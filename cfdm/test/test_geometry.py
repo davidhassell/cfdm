@@ -16,7 +16,7 @@ def _make_geometry_1_file(filename):
     '''
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.8'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
     n.comment     = "Make a netCDF file with 2 node coordinates variables, each of which has a corresponding auxiliary coordinate variable."
     
@@ -92,7 +92,7 @@ def _make_geometry_2_file(filename):
     '''
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.8'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
     n.comment     = 'A netCDF file with 3 node coordinates variables, only two of which have a corresponding auxiliary coordinate variable.'
    
@@ -174,7 +174,7 @@ def _make_geometry_3_file(filename):
     '''
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.8'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
     n.comment     = "A netCDF file with 3 node coordinates variables, each of which contains only one point, only two of which have a corresponding auxiliary coordinate variables. There is no node count variable."
 
@@ -254,7 +254,7 @@ def _make_geometry_4_file(filename):
     '''
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.8'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
     n.comment     = "A netCDF file with 2 node coordinates variables, none of which have a corresponding auxiliary coordinate variable."
     
@@ -324,7 +324,7 @@ def _make_interior_ring_file(filename):
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
     # Global arttributes
-    n.Conventions = 'CF-1.8'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
 
     # Dimensions
@@ -466,7 +466,7 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_part_node_count(), 'axis='+axis)
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
-        cfdm.write(f, self.tempfilename, Conventions='CF-1.8', verbose=False)
+        cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -496,8 +496,8 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_part_node_count(), 'axis='+axis)
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
-        cfdm.write(f, self.tempfilename, Conventions='CF-1.8', verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-1.8', verbose=False)
+        cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
+#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -527,8 +527,8 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_part_node_count(), 'axis='+axis)
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
-        cfdm.write(f, self.tempfilename, Conventions='CF-1.8', verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-1.8', verbose=False)
+        cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
+#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -557,8 +557,8 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_part_node_count(), 'axis='+axis)
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
-        cfdm.write(f, self.tempfilename, Conventions='CF-1.8', verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-1.8', verbose=False)
+        cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
+#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -588,8 +588,8 @@ class DSGTest(unittest.TestCase):
             self.assertTrue(coord.has_part_node_count(), 'axis='+axis)
             self.assertTrue(coord.has_interior_ring(), 'axis='+axis)
 
-        cfdm.write(f, self.tempfilename, Conventions='CF-1.8', verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-1.8', verbose=False)
+        cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
+#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 

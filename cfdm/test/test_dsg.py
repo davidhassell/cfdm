@@ -12,7 +12,7 @@ import cfdm
 def _make_contiguous_file(filename):        
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.7'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
 
     station = n.createDimension('station', 4)
@@ -88,7 +88,7 @@ def _make_contiguous_file(filename):
 def _make_indexed_file(filename):        
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.7'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
     
     station = n.createDimension('station', 4)
@@ -177,7 +177,7 @@ def _make_indexed_file(filename):
 def _make_indexed_contiguous_file(filename):        
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.6'
+    n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = "timeSeriesProfile"
     
     station = n.createDimension('station', 3)  # 3 stations

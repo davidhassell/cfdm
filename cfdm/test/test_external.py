@@ -21,7 +21,7 @@ def _make_files():
         nc.createDimension('grid_latitude', 10)
         nc.createDimension('grid_longitude', 9)
         
-        nc.Conventions = 'CF-1.7'
+        nc.Conventions = 'CF-'+cfdm.CF()
         if parent:
             nc.external_variables = 'areacella'
 

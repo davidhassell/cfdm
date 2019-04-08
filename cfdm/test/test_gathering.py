@@ -23,7 +23,7 @@ def _make_gathered_file(filename):
 
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
-    n.Conventions = 'CF-1.6'
+    n.Conventions = 'CF-'+cfdm.CF()
     
     time    = n.createDimension('time'   ,  2)
     height  = n.createDimension('height' ,  3)
