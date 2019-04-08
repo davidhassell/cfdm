@@ -155,47 +155,47 @@ rules, the only differences being:
 (1, 10, 1)
 
         '''
-        if indices is Ellipsis:
-            return self.copy()
+        if indices is Ellipsis: 
+            return self.copy() 
+ 
+        if not isinstance(indices, tuple): 
+            indices = (indices,) 
+ 
+        new = super().__getitem__(indices) 
 
-        if not isinstance(indices, tuple):
-            indices = (indices,)
-
-        new = super().__getitem__(indices)
-        
-        # Subspace the bounds, if there are any.
-        self_bounds = self.get_bounds(None)
-        if self_bounds is not None:
-            data = self_bounds.get_data(None)
-            if data is not None:
-                # There is a bounds array
+        # Subspace the bounds, if there are any. 
+        self_bounds = self.get_bounds(None) 
+        if self_bounds is not None: 
+            data = self_bounds.get_data(None) 
+            if data is not None: 
+                # There is a bounds array 
                 bounds_indices = list(data._parse_indices(indices))
-                bounds_indices.append(Ellipsis)
-                if data.ndim <= 1 and not self.has_geometry():
-                    index = bounds_indices[0]
-                    if isinstance(index, slice):
-                        if index.step < 0:
-                            # This scalar or 1-d variable has been
-                            # reversed so reverse its bounds (as per
-                            # 7.1 of the conventions)
-                            bounds_indices.append(slice(None, None, -1))
-                    elif data.size > 1 and index[-1] < index[0]:
-                        # This 1-d variable has been reversed so
-                        # reverse its bounds (as per 7.1 of the
-                        # conventions)
-                        bounds_indices.append(slice(None, None, -1))
+                bounds_indices[-1] = Ellipsis
+                if data.ndim <= 1 and not self.has_geometry(): 
+                    index = bounds_indices[0] 
+                    if isinstance(index, slice): 
+                        if index.step < 0: 
+                            # This scalar or 1-d variable has been 
+                            # reversed so reverse its bounds (as per 
+                            # 7.1 of the conventions) 
+                            bounds_indices[-1] = slice(None, None, -1)
+                    elif data.size > 1 and index[-1] < index[0]: 
+                        # This 1-d variable has been reversed so 
+                        # reverse its bounds (as per 7.1 of the 
+                        # conventions) 
+                        bounds_indices[-1] = slice(None, None, -1)
                 #--- End: if
-
-                new.set_bounds(self_bounds[tuple(bounds_indices)], copy=False)
-        #--- End: if
-
-        # Subspace the interior ring array, if there are one.
-        interior_ring = self.get_interior_ring(None)
-        if interior_ring is not None:
-            new.set_interior_ring(interior_ring[indices], copy=False)
-
-        # Return the new bounded variable
-        return new
+ 
+                new.set_bounds(self_bounds[tuple(bounds_indices)], copy=False) 
+        #--- End: if 
+ 
+        # Subspace the interior ring array, if there are one. 
+        interior_ring = self.get_interior_ring(None) 
+        if interior_ring is not None: 
+            new.set_interior_ring(interior_ring[indices], copy=False) 
+ 
+        # Return the new bounded variable 
+        return new 
     #--- End: def
 
     def __str__(self):
@@ -1233,5 +1233,5 @@ Boundaries" of the CF conventions for details.
         
         return c
     #--- End: def
-
+    
 #--- End: class
