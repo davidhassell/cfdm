@@ -161,22 +161,15 @@ rules, the only differences being:
         if not isinstance(indices, tuple):
             indices = (indices,)
 
-#        indices = parse_indices(self.shape, indices)
-
         new = super().__getitem__(indices)
         
-#        data = self.get_data(None)
-#
-#        if data is not None:
-#            new.set_data(data[indices], copy=False)
-
         # Subspace the bounds, if there are any.
         self_bounds = self.get_bounds(None)
         if self_bounds is not None:
             data = self_bounds.get_data(None)
             if data is not None:
                 # There is a bounds array
-                bounds_indices = list(indices)
+                bounds_indices = list(data._parse_indices(indices))
                 bounds_indices.append(Ellipsis)
                 if data.ndim <= 1 and not self.has_geometry():
                     index = bounds_indices[0]
@@ -194,19 +187,12 @@ rules, the only differences being:
                 #--- End: if
 
                 new.set_bounds(self_bounds[tuple(bounds_indices)], copy=False)
-#                new_bounds = new.get_bounds()
-#                new_bounds.set_data(data[tuple(bounds_indices)], copy=False)
         #--- End: if
 
         # Subspace the interior ring array, if there are one.
         interior_ring = self.get_interior_ring(None)
         if interior_ring is not None:
             new.set_interior_ring(interior_ring[indices], copy=False)
-#            data = interior_ring.get_data(None)
-#            if data is not None:
-#                new_interior_ring = new.get_interior_ring()
-#                new_interior_ring.set_data(data[indices], copy=False)
-        #--- End: if
 
         # Return the new bounded variable
         return new
@@ -1206,6 +1192,7 @@ Boundaries" of the CF conventions for details.
 (73, 19, 96, 4)
 
         '''
+        ndim = self.data.ndim
         if axes is None:
             axes = list(range(ndim-1, -1, -1))
         else:
@@ -1222,13 +1209,13 @@ Boundaries" of the CF conventions for details.
         data = c.get_bounds_data(None)
         if data is not None:
             b_axes = axes[:]
-            b_axes.extend.extend(list(range(c.ndim, data.ndim)))
+            b_axes.extend(list(range(ndim, data.ndim)))
                 
             bounds = c.get_bounds()
             bounds = bounds.transpose(b_axes)
             c.set_bounds(bounds, copy=False)
                 
-            if (c.ndim == 2 and data.ndim == 3 and data.shape[-1] == 4 and 
+            if (ndim == 2 and data.ndim == 3 and data.shape[-1] == 4 and 
                 b_axes[0:2] == [1, 0]):
                 # Swap elements 1 and 3 of the trailing dimension so
                 # that the values are still contiguous (if they ever
@@ -1237,21 +1224,12 @@ Boundaries" of the CF conventions for details.
                 bounds.set_data(data, copy=False)
         #--- End: if
 
-        a_axes = axes
-        a_axes.append(-1)
-
         # ------------------------------------------------------------
         # Transpose the interior ring
         # ------------------------------------------------------------
         interior_ring = c.get_interior_ring(None)
         if interior_ring is not None:
-            data = interior_ring.get_data(None)
-            if data is not None:
-                interior_ring_axes = axes[:]
-                interior_ring_axes.extend(list(range(c.ndim, interior_ring.ndim)))
-                interior_ring = interior_ring.transpose(interior_ring_axes)
-                c.set_interior_ring(interior_ring, copy=False)
-        #--- End: if
+            c.set_interior_ring(interior_ring.transpose(axes + [-1]), copy=False)
         
         return c
     #--- End: def

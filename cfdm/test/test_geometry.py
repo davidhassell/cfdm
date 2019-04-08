@@ -321,11 +321,14 @@ def _make_geometry_4_file(filename):
 #--- End: def
 
 def _make_interior_ring_file(filename):        
+    '''See n.comment for details.
+    '''
     n = netCDF4.Dataset(filename, 'w', format='NETCDF3_CLASSIC')
     
     # Global arttributes
     n.Conventions = 'CF-'+cfdm.CF()
     n.featureType = 'timeSeries'
+    n.comment = 'TODO'
 
     # Dimensions
     time     = n.createDimension('time', 4)
@@ -353,7 +356,7 @@ def _make_interior_ring_file(filename):
  
     y = n.createVariable('y', 'f8', ('node',))
     y.units = "degrees_north"
-    y.standard_name = "longitude"
+    y.standard_name = "latitude"
     y.axis = "Y"
     y[...] = [0, 15, 0, 5, 10, 5, 20, 35, 20, 0, 15, 0]
  
@@ -446,7 +449,7 @@ class DSGTest(unittest.TestCase):
         os.remove(self.tempfilename)
     #--- End: def
     
-    def test_geometry_1(self):
+    def test_node_count(self):
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
                 
@@ -457,7 +460,6 @@ class DSGTest(unittest.TestCase):
         for g in f:
             self.assertTrue(g.equals(g.copy(), verbose=True))
             self.assertTrue(len(g.auxiliary_coordinates) == 2)
-#            g.dump()
         
         g = f[0]
         for axis in ('X', 'Y'):
@@ -474,6 +476,19 @@ class DSGTest(unittest.TestCase):
         
         for a, b in zip(f, f2):
             self.assertTrue(a.equals(b, verbose=True))
+
+        # node_count access
+        c = g.construct('longitude').copy()            
+        self.assertTrue(c.has_node_count())
+        n = c.del_node_count() 
+        self.assertFalse(c.has_node_count())
+        self.assertTrue(c.get_node_count(None) == None)
+        self.assertTrue(c.del_node_count(None) == None)
+        c.set_node_count(n)
+        self.assertTrue(c.has_node_count())
+        self.assertTrue(c.get_node_count(None).equals(n, verbose=True))
+        self.assertTrue(c.del_node_count(None).equals(n, verbose=True))
+        self.assertFalse(c.has_node_count())
     #--- End: def
 
     def test_geometry_2(self):
@@ -487,7 +502,6 @@ class DSGTest(unittest.TestCase):
         for g in f:
             self.assertTrue(g.equals(g.copy(), verbose=True))
             self.assertTrue(len(g.auxiliary_coordinates) == 3)
-            #            g.dump()
 
         g = f[0]
         for axis in ('X', 'Y', 'Z'):
@@ -497,7 +511,6 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
         cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -518,7 +531,6 @@ class DSGTest(unittest.TestCase):
         for g in f:
             self.assertTrue(g.equals(g.copy(), verbose=True))
             self.assertTrue(len(g.auxiliary_coordinates) == 3)
-#            g.dump()
 
         g = f[0]
         for axis in ('X', 'Y', 'Z'):
@@ -528,7 +540,6 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
         cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -549,7 +560,6 @@ class DSGTest(unittest.TestCase):
         for g in f:
             self.assertTrue(g.equals(g.copy(), verbose=True))
             self.assertTrue(len(g.auxiliary_coordinates) == 3)
-#            g.dump()
 
         for axis in ('X', 'Y'):
             coord = g.construct('axis='+axis)
@@ -558,7 +568,6 @@ class DSGTest(unittest.TestCase):
             self.assertFalse(coord.has_interior_ring(), 'axis='+axis)
 
         cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -579,7 +588,6 @@ class DSGTest(unittest.TestCase):
         for g in f:
             self.assertTrue(g.equals(g.copy(), verbose=True))
             self.assertTrue(len(g.auxiliary_coordinates) == 4)
-#            g.dump()
 
         g = f[0]
         for axis in ('X', 'Y', 'Z'):
@@ -589,7 +597,6 @@ class DSGTest(unittest.TestCase):
             self.assertTrue(coord.has_interior_ring(), 'axis='+axis)
 
         cfdm.write(f, self.tempfilename, Conventions='CF-'+cfdm.CF(), verbose=False)
-#        cfdm.write(f, 'delme.nc', Conventions='CF-'+cfdm.CF(), verbose=False)
 
         f2 = cfdm.read(self.tempfilename, verbose=False)
 
@@ -597,8 +604,37 @@ class DSGTest(unittest.TestCase):
         
         for a, b in zip(f, f2):
             self.assertTrue(a.equals(b, verbose=True))
-    #--- End: def
 
+        # Interior ring component
+        f = f[0]
+        c = f.construct('longitude')
+        
+        self.assertTrue(c.interior_ring.equals(f.construct('longitude').get_interior_ring()))
+        self.assertTrue(c.interior_ring.data.ndim == c.data.ndim + 1)
+        self.assertTrue(c.interior_ring.data.shape[0] == c.data.shape[0])
+        
+        _ = f.dump(display=False)
+
+        d = c.insert_dimension(0)
+        self.assertTrue(d.data.shape == (1,) + c.data.shape)
+        self.assertTrue(d.interior_ring.data.shape == (1,) + c.interior_ring.data.shape)
+
+        e = d.squeeze(0)
+        self.assertTrue(e.data.shape == c.data.shape)
+        self.assertTrue(e.interior_ring.data.shape == c.interior_ring.data.shape)
+
+        t = d.transpose()
+        self.assertTrue(t.data.shape == d.data.shape[::-1], (t.data.shape, c.data.shape[::-1]))
+        self.assertTrue(t.interior_ring.data.shape == d.interior_ring.data.shape[-2::-1] + (d.interior_ring.data.shape[-1],))
+
+        # Subspacing
+        g = f[1, ...]
+        c = g.construct('longitude')
+        self.assertTrue(c.interior_ring.data.shape[0] == 1)
+        self.assertTrue(c.interior_ring.data.ndim == c.data.ndim + 1)
+        self.assertTrue(c.interior_ring.data.shape[0] == c.data.shape[0])        
+    #--- End: def
+    
 #--- End: class
 
 
