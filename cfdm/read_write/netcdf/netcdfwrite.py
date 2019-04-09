@@ -1291,7 +1291,7 @@ interior ring variables.
 
         # Retrun the default
         return default
-    #--- End: def    
+    #--- End: def
          
     def _get_node_ncdimension(self, bounds, default=None):
         '''TODO
@@ -1309,7 +1309,7 @@ interior ring variables.
 
         # Retrun the default
         return default
-    #--- End: def    
+    #--- End: def
          
     def _write_part_node_count(self, coord, bounds, encodings):
         '''Create a bounds netCDF variable, creating a new bounds netCDF
