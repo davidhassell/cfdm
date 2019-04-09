@@ -143,9 +143,55 @@ x.__repr__() <==> repr(x)
         '''
         return '<{0}: >'.format(self.__class__.__name__)
     #--- End: def
-    
+
+    def conform_geometry_variables(self, field):
+        '''TODO
+
+.. versionadded:: 1.8.0
+
+:Parameters:
+
+    field: Field construct
+
+:Returns:
+
+    `bool`
+        TODO
+
+        '''
+        out = {'node_count'     : {},
+               'part_node_count': {},
+               'interior_ring'  : {}}
+        
+        for coord in self.get_auxiliary_coordinates(field).values():
+            for variable in out:
+                x = getattr(self, 'get_'+variable)(coord)
+                if x is None:
+                    continue
+                
+                for k, v in x.properties().items():
+                    if k not in out[variable]:
+                        out[variable][k] = v
+                    elif v != out[variable][k]:
+                        return False
+        #--- End: for
+        
+        for coord in self.get_auxiliary_coordinates(field).values():
+            for variable in out:
+                x = getattr(self, 'get_'+variable)(coord)
+                if x is None:
+                    continue
+
+                x.set_properties(out[variable])
+        #--- End: for
+
+        return True
+    #--- End: def
+
     def construct_insert_dimension(self, construct, position):
         '''TODO
+
+.. versionadded:: 1.7.0
 
 :Parameters:
 
@@ -556,7 +602,7 @@ axes, and possibly other axes, are returned.
 #        return index.nc_get_instance_dimension(default=default)
 #    #--- End: def
 
-    def nc_get_geometry(self, field, default=None):
+    def nc_get_geometry_variable(self, field, default=None):
         '''TODO
 
 .. versionadded:: 1.8.0
@@ -568,7 +614,7 @@ axes, and possibly other axes, are returned.
     `str`
 
         '''
-        return field.nc_get_geometry(default)
+        return field.nc_get_geometry_variable(default)
     #--- End: def
 
     def nc_get_hdf5_chunksizes(self, data):
@@ -1686,7 +1732,7 @@ also be provided.
         construct.nc_set_dimension(ncdim)
     #--- End: def
 
-    def nc_set_geometry(self, field, ncvar):
+    def nc_set_geometry_variable(self, field, ncvar):
         '''TODO
 
 :Parameters:
@@ -1696,7 +1742,7 @@ also be provided.
     `None`
 
         '''
-        field.nc_set_geometry(ncvar)
+        field.nc_set_geometry_variable(ncvar)
     #--- End: def
 
     def nc_set_variable(self, parent, ncvar):

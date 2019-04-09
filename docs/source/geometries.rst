@@ -6,9 +6,10 @@
 For some geospatial applications, data values are associated with a
 `geometry`_, which is a spatial representation of a real-world
 feature, for instance a time-series of areal average precipitation
-over a watershed. Geometries are a generalization of cell bounds and
-points, lines or polygons; and they may include several disjoint
-parts.
+over a watershed. Geometries are a generalization of cell bounds that
+allows for points, lines or polygons; and they may include several
+disjoint parts. See the :ref:`Geometries` section for examples and
+further details.
 
 .. _Geometries:
 
@@ -17,14 +18,21 @@ parts.
 
 ----
 
-:ref:`Geometries <TODO>` in netCDF datasets are always compressed to
-save space, but the CF data model views them in their uncompressed
-form, as for other types of compressed netCDF variables.
+For some geospatial applications, data values are associated with a
+`geometry`_, which is a spatial representation of a real-world
+feature, for instance a time-series of areal average precipitation
+over a watershed. Geometries are a generalization of cell bounds that
+allows for points, lines or polygons; and they may include several
+disjoint parts.
+
+Geometries in netCDF datasets are always compressed to save space, but
+the CF data model views them in their uncompressed form, as is the
+case for other types of compressed netCDF variables.
 
 This compression uses either continguous, indexed or indexed
-contiguous ragged array techniques, although their netCDF encoding
-differs compared to :ref:`discrete sampling geometries
-<Discrete-sampling-geometries>`.
+contiguous ragged array techniques which are similar to those used for
+:ref:`discrete sampling geometries <Discrete-sampling-geometries>`,
+but their netCDF encoding is different.
 
 This is illustrated with the file ``geometry.nc`` (:download:`download
 <netcdf_files/geometry.nc>`, TODO kB) [#files]_:
@@ -34,173 +42,146 @@ This is illustrated with the file ``geometry.nc`` (:download:`download
              line tool.*
    
    $ ncdump -h geometry.nc
-   TODO
+   netcdf geometry {
+   dimensions:
+   	time = 4 ;
+   	instance = 2 ;
+   	node = 13 ;
+   	part = 4 ;
+   	strlen = 2 ;
+   variables:
+   	int time(time) ;
+   		time:standard_name = "time" ;
+   		time:units = "days since 2000-01-01" ;
+   	char instance_id(instance, strlen) ;
+   		instance_id:cf_role = "timeseries_id" ;
+   	double x(node) ;
+   		x:units = "degrees_east" ;
+   		x:standard_name = "longitude" ;
+   		x:axis = "X" ;
+   	double y(node) ;
+   		y:units = "degrees_north" ;
+   		y:standard_name = "latitude" ;
+   		y:axis = "Y" ;
+   	double z(node) ;
+   		z:units = "m" ;
+   		z:standard_name = "altitude" ;
+   		z:axis = "Z" ;
+   	double lat(instance) ;
+   		lat:units = "degrees_north" ;
+   		lat:standard_name = "latitude" ;
+   		lat:nodes = "y" ;
+   	double lon(instance) ;
+   		lon:units = "degrees_east" ;
+   		lon:standard_name = "longitude" ;
+   		lon:nodes = "x" ;
+   	int geometry_container ;
+   		geometry_container:geometry_type = "polygon" ;
+   		geometry_container:node_count = "node_count" ;
+   		geometry_container:node_coordinates = "x y z" ;
+   		geometry_container:grid_mapping = "datum" ;
+   		geometry_container:coordinates = "lat lon" ;
+   		geometry_container:part_node_count = "part_node_count" ;
+   		geometry_container:interior_ring = "interior_ring" ;
+   		geometry_container:geometry_dimension = "instance" ;
+   	int node_count(instance) ;
+   	int part_node_count(part) ;
+   	int interior_ring(part) ;
+   	float datum ;
+   		datum:grid_mapping_name = "latitude_longitude" ;
+   		datum:semi_major_axis = 6378137. ;
+   		datum:inverse_flattening = 298.257223563 ;
+   		datum:longitude_of_prime_meridian = 0. ;
+   	double pr(instance, time) ;
+   		pr:standard_name = "preciptitation_amount" ;
+   		pr:standard_units = "kg m-2" ;
+   		pr:coordinates = "time lat lon instance_id" ;
+   		pr:grid_mapping = "datum" ;
+   		pr:geometry = "geometry_container" ;
+   
+   // global attributes:
+   		:Conventions = "CF-1.8" ;
+   }
 
-Reading and inspecting this file shows the bounds data of the
-latitude, longitude and altitude coordinates presented in
-three-dimensional uncompressed form (one extra dimension for the
-geometry parts, and one for the geometry nodes within each part), and
-the interior ring data is presented in two-dimensional uncompressed
-form (one extra dimension for the status of each part). In both cases,
-the underlying arrays is still in the one-dimension ragged
-representation described in the file:
+Reading and inspecting this file shows the bounds of the coordinate
+constructs presented in three-dimensional uncompressed form (one extra
+dimension for the geometry parts, and one for the geometry nodes
+within each part), and the interior ring data presented in
+two-dimensional uncompressed form (one extra dimension for the status
+of each part):
 
 .. code-block:: python3
    :caption: *Read a field construct from a dataset that has been
              compressed with contiguous ragged arrays, and inspect its
              data in uncompressed form.*
    
-   >>> h = cfdm.read('contiguous.nc')[0]
-   >>> print(h)
-   Field: specific_humidity (ncvar%humidity)
-   -----------------------------------------
-   Data            : specific_humidity(ncdim%station(4), ncdim%timeseries(9))
-   Dimension coords: 
-   Auxiliary coords: time(ncdim%station(4), ncdim%timeseries(9)) = [[1969-12-29 00:00:00, ..., 1970-01-07 00:00:00]]
-                   : latitude(ncdim%station(4)) = [-9.0, ..., 78.0] degrees_north
-                   : longitude(ncdim%station(4)) = [-23.0, ..., 178.0] degrees_east
-                   : height(ncdim%station(4)) = [0.5, ..., 345.0] m
-                   : cf_role:timeseries_id(ncdim%station(4)) = [station1, ..., station4]
-   >>> print(h.data.array)
-   [[0.12 0.05 0.18   --   --   --   --   --   --]
-    [0.05 0.11 0.2  0.15 0.08 0.04 0.06   --   --]
-    [0.15 0.19 0.15 0.17 0.07   --   --   --   --]
-    [0.11 0.03 0.14 0.16 0.02 0.09 0.1  0.04 0.11]]
+   >>> pr = cfdm.read('geometry.nc')[0]
+   >>> print(pr)
+   Field: preciptitation_amount (ncvar%pr)
+   ---------------------------------------
+   Data            : preciptitation_amount(cf_role=timeseries_id(2), time(4))
+   Dimension coords: time(4) = [2000-01-02 00:00:00, ..., 2000-01-05 00:00:00]
+   Auxiliary coords: latitude(cf_role=timeseries_id(2)) = [25.0, 7.0] degrees_north
+                   : longitude(cf_role=timeseries_id(2)) = [10.0, 40.0] degrees_east
+                   : cf_role=timeseries_id(cf_role=timeseries_id(2)) = [x1, y2]
+                   : altitude(cf_role=timeseries_id(2), 3, 4) = [[[1.0, ..., --]]] m
+   Coord references: grid_mapping_name:latitude_longitude
+   >>> z = h.construct('altitude')
+   >>> z.dump()
+   Auxiliary coordinate: altitude
+       Geometry: polygon
+       Bounds:axis = 'Z'
+       Bounds:standard_name = 'altitude'
+       Bounds:units = 'm'
+       Bounds:Data(2, 3, 4) = [[[1.0, ..., --]]] m       
+       Interior Ring:Data(2, 3) = [[0, ..., --]]
+   >>> print(z.bounds.data.array)
+   [[[1.0 2.0 4.0 --]
+     [2.0 3.0 4.0 5.0]
+     [5.0 1.0 4.0 --]]
+   
+    [[3.0 2.0 1.0 --]
+     [-- -- -- --]
+     [-- -- -- --]]]
+   >>> print(z.interior_ring.data.array)
+   [[0 1 0]
+    [0 -- --]]
+
+Geometry node (and interior ring) data values are accessed, and may be
+altered, by indexing the uncompressed dimensions:
 
 .. code-block:: python3
-   :caption: *Inspect the underlying compressed array and the count
-             variable that defines how to uncompress the data.*
+   :caption: *TODO*
 	     
-   >>> h.data.get_compression_type()
-   'ragged contiguous'
-   >>> print(h.data.compressed_array)
-   [0.12 0.05 0.18 0.05 0.11 0.2 0.15 0.08 0.04 0.06 0.15 0.19 0.15 0.17 0.07
-    0.11 0.03 0.14 0.16 0.02 0.09 0.1 0.04 0.11]
-   >>> count_variable = h.data.get_count_variable()
-   >>> count_variable
-   <Count: long_name=number of observations for this station(4) >
-   >>> print(count_variable.data.array)
-   [3 7 5 9]
+   >>> z.bounds.data[0, 2, 3]
+   <Data(1, 1, 1): [[[5.0]]] m>
+   >>> z.bounds.data[0, 2, 3] = 99
+   >>> print(z.bounds.data.array)
+   [[[1.0 2.0 4.0 --]
+     [2.0 3.0 4.0 99.0]
+     [5.0 1.0 4.0 --]]
+   
+    [[3.0 2.0 1.0 --]
+     [-- -- -- --]
+     [-- -- -- --]]]
 
-The timeseries for the second station is easily selected by indexing
-the "station" axis of the field construct:
-
+Geometry nodes are always written to netCDF datasets in their
+compressed form, and the compression is applied automatically. In
+particular, the node count and part node count data are calculated and
+are not be set manually. It is possible, however, to provide
+properties to node count, part node count and interior ring variables
+that will be written as netCDF attributes to the corresponding netCDF
+variables.
+     
 .. code-block:: python3
-   :caption: *Get the data for the second station.*
-	  
-   >>> station2 = h[1]
-   >>> station2
-   <Field: specific_humidity(ncdim%station(1), ncdim%timeseries(9))>
-   >>> print(station2.data.array)
-   [[0.05 0.11 0.2 0.15 0.08 0.04 0.06 -- --]]
-
-The underlying array of original data remains in compressed form until
-data array elements are modified:
-   
-.. code-block:: python3
-   :caption: *Change an element of the data and show that the
-             underlying array is no longer compressed.*
-
-   >>> h.data.get_compression_type()
-   'ragged contiguous'
-   >>> h.data[1, 2] = -9
-   >>> print(h.data.array)
-   [[0.12 0.05 0.18   --   --   --   --   --   --]
-    [0.05 0.11 -9.0 0.15 0.08 0.04 0.06   --   --]
-    [0.15 0.19 0.15 0.17 0.07   --   --   --   --]
-    [0.11 0.03 0.14 0.16 0.02 0.09 0.1  0.04 0.11]]
-   >>> h.data.get_compression_type()
-   ''
-
-A construct with an underlying ragged array is created by initialising
-a `Data` instance with a ragged array that is stored in one of three
-special array objects: `RaggedContiguousArray`, `RaggedIndexedArray`
-or `RaggedIndexedContiguousArray`. The following code creates a simple
-field construct with an underlying contiguous ragged array:
-
-.. code-block:: python3
-   :caption: *Create a field construct with compressed data.*
-
-   import numpy
-   import cfdm
-   
-   # Define the ragged array values
-   ragged_array = numpy.array([280, 282.5, 281, 279, 278, 279.5],
-                              dtype='float32')
-
-   # Define the count array values
-   count_array = [2, 4]
-
-   # Create the count variable
-   count_variable = cfdm.Count(data=cfdm.Data(count_array))
-   count_variable.set_property('long_name', 'number of obs for this timeseries')
-
-   # Create the contiguous ragged array object
-   array = cfdm.RaggedContiguousArray(
-                    compressed_array=cfdm.NumpyArray(ragged_array),
-                    shape=(2, 4), size=8, ndim=2,
-                    count_variable=count_variable)
-
-   # Create the field construct with the domain axes and the ragged
-   # array
-   T = cfdm.Field()
-   T.set_properties({'standard_name': 'air_temperature',
-                     'units': 'K',
-                     'featureType': 'timeSeries'})
-   
-   # Create the domain axis constructs for the uncompressed array
-   X = T.set_construct(cfdm.DomainAxis(4))
-   Y = T.set_construct(cfdm.DomainAxis(2))
-   
-   # Set the data for the field
-   T.set_data(cfdm.Data(array), axes=[Y, X])
-				
-The new field construct can now be inspected and written to a netCDF file:
-
-.. code-block:: python3
-   :caption: *Inspect the new field construct and write it to disk.*
-   
-   >>> T
-   <Field: air_temperature(key%domainaxis1(2), key%domainaxis0(4)) K>
-   >>> print(T.data.array)
-   [[280.0 282.5    --    --]
-    [281.0 279.0 278.0 279.5]]
-   >>> T.data.get_compression_type()
-   'ragged contiguous'
-   >>> print(T.data.compressed_array)
-   [280.  282.5 281.  279.  278.  279.5]
-   >>> count_variable = T.data.get_count_variable()
-   >>> count_variable
-   <Count: long_name=number of obs for this timeseries(2) >
-   >>> print(count_variable.data.array)
-   [2 4]
-   >>> cfdm.write(T, 'T_contiguous.nc')
-
-The content of the new file is:
-  
-.. code-block:: shell
-   :caption: *Inspect the new compressed dataset with the ncdump
-             command line tool.*   
-
-   $ ncdump T_contiguous.nc
-   netcdf T_contiguous {
-   dimensions:
-   	dim = 2 ;
-   	element = 6 ;
-   variables:
-   	int64 count(dim) ;
-   		count:long_name = "number of obs for this timeseries" ;
-   		count:sample_dimension = "element" ;
-   	float air_temperature(element) ;
-   		air_temperature:units = "K" ;
-   		air_temperature:standard_name = "air_temperature" ;
-   
-   // global attributes:
-		:Conventions = "CF-1.7" ;
-		:featureType = "timeSeries" ;
-   data:
-   
-    count = 2, 4 ;
-   
-    air_temperature = 280, 282.5, 281, 279, 278, 279.5 ;
-   }
+   :caption: *TODO*
+	     
+   >>> ir = z.get_interior_ring()
+   >>> ir.set_property('long_name', 'Interior ring designations')
+   >>> nc = z.get_node_count()
+   >>> nc.set_property('long_name', 'Node counts')
+   >>> pnc = z.get_part_node_count()
+   >>> pnc.set_property('long_name', 'Part node counts')
+   >>> pnc.nc_set_variable('pnc')
+   >>> pnc.nc_set_dimension('parts')
+   >>> cfdm.write(pr, 'new_pr.nc')

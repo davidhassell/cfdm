@@ -191,6 +191,10 @@ NetCDF
    ~cfdm.Field.nc_unlimited_dimensions
    ~cfdm.Field.nc_clear_unlimited_dimensions
    ~cfdm.Field.nc_set_unlimited_dimensions
+   ~cfdm.Field.nc_del_geometry_variable
+   ~cfdm.Field.nc_get_geometry_variable
+   ~cfdm.Field.nc_has_geometry_variable
+   ~cfdm.Field.nc_set_geometry_variable 
    ~cfdm.Field.dataset_compliance
 
 .. _Field-Special:

@@ -706,7 +706,7 @@ a new netCDF bounds dimension.
 :Returns:
 
     `dict`
-        A representation off the CF-netCDF geometry container variable
+        A representation of the CF-netCDF geometry container variable
         for field constuct. If there is no geometry container then the
         dictionary is empty.
 
@@ -730,9 +730,6 @@ a new netCDF bounds dimension.
             geometry_id = (geometry_dimension, geometry_type)
             gc.setdefault(geometry_id, {'geometry_type'     : geometry_type,
                                         'geometry_dimension': geometry_dimension})
-
-#            print ('coord=', repr(coord))
-#            print ('nodes=', repr(nodes))
 
             # Nodes
             nodes_ncvar = g['seen'][id(nodes)]['ncvar']
@@ -912,8 +909,8 @@ dictionary.
         #--- End: for
 
         # Still here? Then write the geometry container to the file
-        ncvar = self.implementation.nc_get_geometry(field,
-                                                    default='geometry_container')
+        ncvar = self.implementation.nc_get_geometry_variable(field,
+                                                             default='geometry_container')
         ncvar = self._netcdf_name(ncvar)
         
         if g['verbose']:
@@ -1369,7 +1366,9 @@ name.
 
         # Find the base of the netCDF part dimension name
         size = self.implementation.get_data_size(count)
-        if 'part_ncdim' in encodings:
+        if g['part_ncdim'] is not None:
+            ncdim = g['part_ncdim'] 
+        elif 'part_ncdim' in encodings:
             ncdim = encodings['part_ncdim']
         else:
             ncdim = self._get_part_ncdimension(coord, default='part')
@@ -1393,6 +1392,8 @@ name.
             # Create the netCDF part_node_count variable
             self._write_netcdf_variable(ncvar, (ncdim,), count)
         #--- End: if
+        
+        g['part_ncdim'] = ncdim
         
         return {'part_node_count': ncvar,
                 'part_ncdim'     : ncdim}
@@ -1435,7 +1436,9 @@ TODO
         ncvar = self.implementation.nc_get_variable(interior_ring, default='interior_ring')
 
         size = self.implementation.get_data_size(interior_ring)
-        if 'part_ncdim' in encodings:
+        if g['part_ncdim'] is not None:
+            ncdim = g['part_ncdim'] 
+        elif 'part_ncdim' in encodings:
             ncdim = encodings['part_ncdim']
         else:
             ncdim = self._get_part_ncdimension(coord, default='part')
@@ -1459,7 +1462,9 @@ TODO
             # Create the netCDF interior ring variable
             self._write_netcdf_variable(ncvar, (ncdim,), interior_ring)
         #--- End: if
-        
+
+        g['part_ncdim'] = ncdim
+
         return {'interior_ring': ncvar,
                 'part_ncdim'   : ncdim}
     #--- End: def
@@ -2232,9 +2237,18 @@ extra trailing dimension.
         # 
         g['sample_ncdim']     = {}
 
-        
+        # 
+        g['part_ncdim'] = None
+       
         # Initialize the list of the field's auxiliary/scalar coordinates
         coordinates = []
+
+        if g['output_version'] >= g['CF-1.8']:
+            if not self.implementation.conform_geometry_variables(f):
+                raise ValueError(
+"Can't write {!r}: node count, part node count, or interior ring variables have inconistent properties".format(
+    f))
+        #--- End: if
 
         g['formula_terms_refs'] = [
             ref for ref in list(self.implementation.get_coordinate_references(f).values())

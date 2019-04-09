@@ -1832,7 +1832,7 @@ variable should be pre-filled with missing values.
         if g['CF>=1.8']:
             geometry = self.implementation.del_property(f, 'geometry', None)
             if geometry is not None:
-                self.implementation.nc_set_geometry(f, geometry)
+                self.implementation.nc_set_geometry_variable(f, geometry)
         #--- End: if
         
         # Map netCDF dimension names to domain axis names.
