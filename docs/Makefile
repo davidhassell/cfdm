@@ -15,10 +15,10 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = source
 BUILDDIR        = $(filter-out $@, $(MAKECMDGOALS))
 
-VERSION    = $(shell grep "^__version__" ../cfdm/__init__.py | cut -d "=" -f 2 | sed "s/[' ]//g")
-CF_VERSION = $(shell grep "^__cf_version__" ../cfdm/__init__.py | cut -d "=" -f 2 | sed "s/[' ]//g")
+VERSION    = $(shell grep "^__version__" ../cfdm/core/__init__.py | cut -d "=" -f 2 | sed "s/[' ]//g")
+CF_VERSION = $(shell grep "^__cf_version__" ../cfdm/core/__init__.py | cut -d "=" -f 2 | sed "s/[' ]//g")
 ID         = $(shell echo $$$$)
-X          = Version $(VERSION) for version $(CF_VERSION) of the CF conventions.
+X          = Release $(VERSION) for version $(CF_VERSION) of the CF conventions.
 NOTEBOOK   = $(BUILDDIR)/_downloads/tutorial.ipynb
 
 .PHONY: help html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest

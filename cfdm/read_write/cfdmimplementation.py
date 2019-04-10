@@ -20,8 +20,8 @@ from .. import (AuxiliaryCoordinate,
                 Count,
                 List,
                 Index,
-                NodeCount,
-                PartNodeCount,
+                NodeCountProperties,
+                PartNodeCountProperties,
 )
 
 from ..data import (Data,
@@ -62,8 +62,8 @@ class CFDMImplementation(Implementation):
                  List=None,
                  Count=None,
                  Index=None,
-                 NodeCount=None,
-                 PartNodeCount=None,
+                 NodeCountProperties=None,
+                 PartNodeCountProperties=None,
     ):
         '''**Initialisation**
 
@@ -130,8 +130,8 @@ class CFDMImplementation(Implementation):
             List=List,
             Count=Count,
             Index=Index,        
-            NodeCount=NodeCount,
-            PartNodeCount=PartNodeCount,
+            NodeCountProperties=NodeCountProperties,
+            PartNodeCountProperties=PartNodeCountProperties,
         )
     #--- End: def
 
@@ -1291,7 +1291,7 @@ attributes: `dict`
         '''
 
         '''
-        cls = self.get_class('NodeCount')
+        cls = self.get_class('NodeCountProperties')
         return cls()
     #--- End: def
 
@@ -1299,7 +1299,7 @@ attributes: `dict`
         '''
 
         '''
-        cls = self.get_class('PartNodeCount')
+        cls = self.get_class('PartNodeCountProperties')
         return cls()
     #--- End: def
 
@@ -1906,11 +1906,11 @@ _implementation = CFDMImplementation(
     CoordinateConversion = CoordinateConversion,
     Datum                = Datum,
 
-    List          = List,
-    Index         = Index,
-    Count         = Count,
-    NodeCount     = NodeCount,
-    PartNodeCount = PartNodeCount,
+    List                    = List,
+    Index                   = Index,
+    Count                   = Count,
+    NodeCountProperties     = NodeCountProperties,
+    PartNodeCountProperties = PartNodeCountProperties,
     
     Data                         = Data,
     GatheredArray                = GatheredArray,
@@ -1957,8 +1957,8 @@ def implementation():
  'InteriorRing': cfdm.interiorring.InteriorRing,
  'List': cfdm.list.List,
  'NetCDFArray': cfdm.data.netcdfarray.NetCDFArray,
- 'NodeCount': cfdm.nodecount.NodeCount,
- 'PartNodeCount': cfdm.partnodecount.PartNodeCount,
+ 'NodeCountProperties': cfdm.nodecount.NodeCountProperties,
+ 'PartNodeCountProperties': cfdm.partnodecount.PartNodeCountProperties,
  'RaggedContiguousArray': cfdm.data.raggedcontiguousarray.RaggedContiguousArray,
  'RaggedIndexedArray': cfdm.data.raggedindexedarray.RaggedIndexedArray,
  'RaggedIndexedContiguousArray': cfdm.data.raggedindexedcontiguousarray.RaggedIndexedContiguousArray}

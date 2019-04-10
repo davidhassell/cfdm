@@ -62,14 +62,14 @@ bounds.
         The interior ring variable may also be set after
         initialisation with the `set_interior_ring` method.
 
-    node_count: `NodeCount`, optional
+    node_count: `NodeCountProperties`, optional
         Set the node count variable for geometry bounds. Ignored if
         the *source* parameter is set.
         
         The node count variable may also be set after initialisation
         with the `set_node_count` method.
     
-    part_node_count: `PartNodeCount`, optional
+    part_node_count: `PartNodeCountProperties`, optional
         Set the part node count variable for geometry bounds. Ignored
         if the *source* parameter is set.
         
@@ -290,14 +290,14 @@ x.__str__() <==> str(x)
 
 **Examples:**
 
->>> n = cfdm.NodeCount(properties={'long_name': 'node counts'})
+>>> n = cfdm.NodeCountProperties(properties={'long_name': 'node counts'})
 >>> c.set_node_count(n)
 >>> c.has_node_count()
 True
 >>> c.get_node_count()
-<NodeCount: long_name=node counts>
+<NodeCountProperties: long_name=node counts>
 >>> c.del_node_count()
-<NodeCount: long_name=node counts>
+<NodeCountProperties: long_name=node counts>
 >>> c.has_node_count()
 False
 
@@ -330,14 +330,14 @@ False
 
 **Examples:**
 
->>> p = cfdm.PartNodeCount(properties={'long_name': 'part node counts'})
+>>> p = cfdm.PartNodeCountProperties(properties={'long_name': 'part node counts'})
 >>> c.set_part_node_count(p)
 >>> c.has_part_node_count()
 True
 >>> c.get_part_node_count()
-<PartNodeCount: long_name=part node counts>
+<PartNodeCountProperties: long_name=part node counts>
 >>> c.del_part_node_count()
-<PartNodeCount: long_name=part node counts>
+<PartNodeCountProperties: long_name=part node counts>
 >>> c.has_part_node_count()
 False
 
@@ -612,14 +612,14 @@ False
 
 **Examples:**
 
->>> n = cfdm.NodeCount(properties={'long_name': 'node counts'})
+>>> n = cfdm.NodeCountProperties(properties={'long_name': 'node counts'})
 >>> c.set_node_count(n)
 >>> c.has_node_count()
 True
 >>> c.get_node_count()
-<NodeCount: long_name=node counts>
+<NodeCountProperties: long_name=node counts>
 >>> c.del_node_count()
-<NodeCount: long_name=node counts>
+<NodeCountProperties: long_name=node counts>
 >>> c.has_node_count()
 False
 
@@ -653,14 +653,14 @@ False
 
 **Examples:**
 
->>> p = cfdm.PartNodeCount(properties={'long_name': 'part node counts'})
+>>> p = cfdm.PartNodeCountProperties(properties={'long_name': 'part node counts'})
 >>> c.set_part_node_count(p)
 >>> c.has_part_node_count()
 True
 >>> c.get_part_node_count()
-<PartNodeCount: long_name=part node counts>
+<PartNodeCountProperties: long_name=part node counts>
 >>> c.del_part_node_count()
-<PartNodeCount: long_name=part node counts>
+<PartNodeCountProperties: long_name=part node counts>
 >>> c.has_part_node_count()
 False
 
@@ -688,14 +688,14 @@ False
 **Examples:**
 
 
->>> n = cfdm.NodeCount(properties={'long_name': 'node counts'})
+>>> n = cfdm.NodeCountProperties(properties={'long_name': 'node counts'})
 >>> c.set_node_count(n)
 >>> c.has_node_count()
 True
 >>> c.get_node_count()
-<NodeCount: long_name=node counts>
+<NodeCountProperties: long_name=node counts>
 >>> c.del_node_count()
-<NodeCount: long_name=node counts>
+<NodeCountProperties: long_name=node counts>
 >>> c.has_node_count()
 False
 
@@ -719,14 +719,14 @@ bounds..
 
 **Examples:**
 
->>> p = cfdm.PartNodeCount(properties={'long_name': 'part node counts'})
+>>> p = cfdm.PartNodeCountProperties(properties={'long_name': 'part node counts'})
 >>> c.set_part_node_count(p)
 >>> c.has_part_node_count()
 True
 >>> c.get_part_node_count()
-<PartNodeCount: long_name=part node counts>
+<PartNodeCountProperties: long_name=part node counts>
 >>> c.del_part_node_count()
-<PartNodeCount: long_name=part node counts>
+<PartNodeCountProperties: long_name=part node counts>
 >>> c.has_part_node_count()
 False
 
@@ -1021,7 +1021,7 @@ also inserted into the bounds data array, if present.
 
 :Parameters:
 
-    node_count: `NodeCount`
+    node_count: `NodeCountProperties`
         The node count variable to be inserted.
 
     copy: `bool`, optional
@@ -1053,7 +1053,7 @@ TODO
 
 :Parameters:
 
-    part_node_count: `PartNodeCount`
+    part_node_count: `PartNodeCountProperties`
         The part node count variable to be inserted.
 
     copy: `bool`, optional

@@ -110,11 +110,11 @@ from .data import (Data,
                    RaggedIndexedArray,
                    RaggedIndexedContiguousArray)
 
-from .count         import Count
-from .index         import Index
-from .list          import List
-from .nodecount     import NodeCount
-from .partnodecount import PartNodeCount
+from .count                   import Count
+from .index                   import Index
+from .list                    import List
+from .nodecountproperties     import NodeCountProperties
+from .partnodecountproperties import PartNodeCountProperties
 
 from .bounds               import Bounds
 from .coordinateconversion import CoordinateConversion

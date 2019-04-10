@@ -30,7 +30,8 @@ The cfdm package is imported as follows:
 **CF version**
 ^^^^^^^^^^^^^^
 
-The version of the `CF conventions <http://cfconventions.org>`_ and
+The version of the `CF conventions
+<http://cfconventions.org/cf-conventions/cf-conventions.html>`_ and
 the :ref:`CF data model <CF-data-model>` being used may be found with
 the `cfdm.CF` function:
 
@@ -1571,8 +1572,6 @@ The `Bounds` instance inherits the descriptive properties from its
 parent coordinate construct, but it may also have its own properties
 (although setting these is not recommended).
 
-.. TODO CF-1.8 change not on bounds properties
-
 .. code-block:: python3
    :caption: *Inspect the inherited and bespoke properties of a Bounds
              instance.*
@@ -1585,7 +1584,7 @@ parent coordinate construct, but it may also have its own properties
 
 For some geospatial applications, data values are associated with a
 `geometry`_, which is a spatial representation of a real-world
-feature, for instance a time-series of areal average precipitation
+feature, for instance a timeseries of areal average precipitation
 over a watershed. Geometries are a generalization of cell bounds that
 allows for points, lines or polygons; and they may include several
 disjoint parts. See the :ref:`Geometries` section for examples and
@@ -3714,10 +3713,10 @@ The content of the new file is:
 
 For some geospatial applications, data values are associated with a
 `geometry`_, which is a spatial representation of a real-world
-feature, for instance a time-series of areal average precipitation
-over a watershed. Geometries are a generalization of cell bounds that
-allows for points, lines or polygons; and they may include several
-disjoint parts.
+feature, for instance a timeseries of areal average precipitation over
+a watershed. Geometries are a generalization of :ref:`cell bounds
+<Bounds>` that allows for points, lines or polygons; and they may
+include several disjoint parts.
 
 Geometries in netCDF datasets are always compressed to save space, but
 the CF data model views them in their uncompressed form, as is the
@@ -3844,7 +3843,7 @@ Geometry node (and interior ring) data values are accessed, and may be
 altered, by indexing the uncompressed dimensions:
 
 .. code-block:: python3
-   :caption: *TODO*
+   :caption: *Access and modify geometry node values.*
 	     
    >>> z.bounds.data[0, 1, 3]
    <Data(1, 1, 1): [[[5.0]]] m>
@@ -3867,7 +3866,8 @@ variables that will be written as netCDF attributes to the
 corresponding netCDF variables.
      
 .. code-block:: python3
-   :caption: *TODO*
+   :Caption: *Set netCDF attributes on netCDF interior ring, node
+             count, and part node count variables.*
 	     
    >>> ir = z.get_interior_ring()
    >>> ir.set_property('long_name', 'Interior ring designations')
@@ -3885,10 +3885,9 @@ corresponding netCDF variables.
           OPeNDAP support enabled. See
           http://unidata.github.io/netcdf4-python for details.
 
-.. [#files] The tutorial files may be also found in the `downloads
-            directory
-            <https://github.com/NCAS-CMS/cfdm/tree/master/docs/_downloads>`_
-            of the on-line code repository.
+.. [#files] The tutorial files may be also found in the downloads
+            directory of the on-line code repository at
+            \https://github.com/NCAS-CMS/cfdm/tree/master/docs/|release|/_downloads
 
 .. .. [#notebook] The Jupyter notebook is quite long. To aid navigation
                   it has been written so that it may optionally be used
