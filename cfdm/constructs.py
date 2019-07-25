@@ -381,138 +381,135 @@ instances are equal.
         return out
     #--- End: def
 
-    def domain_axis_key(self, identity, default=ValueError()):
-        '''Return the key of domain axis construct that is spanned by a unique 1-d
-coordinate construct.
+#    def domain_axis_key(self, identity, default=ValueError()):
+#        '''Return the key of the domain axis construct that is spanned by a
+#        unique 1-d coordinate construct.
+#
+#    :Parameters:
+#    
+#        identity:
+#    
+#            Select the 1-d coordinate construct that has the given
+#            identity.
+#    
+#            An identity is specified by a string (e.g. ``'latitude'``,
+#            ``'long_name=time'``, etc.); or a compiled regular
+#            expression (e.g. ``re.compile('^atmosphere')``), for which
+#            all constructs whose identities match (via `re.search`)
+#            are selected.
+#    
+#            If no identities are provided then all constructs are
+#            selected.
+#    
+#            Each construct has a number of identities, and is selected
+#            if any of them match any of those provided. A construct's
+#            identities are those returned by its `!identities`
+#            method. In the following example, the construct ``x`` has
+#            four identities:
+#    
+#               >>> x.identities()
+#               ['time', 'long_name=Time', 'foo=bar', 'ncvar%T']
+#    
+#            In addition, each construct also has an identity based its
+#            construct key (e.g. ``'key%dimensioncoordinate2'``).
+#    
+#            Note that the identifiers of a metadata construct in the
+#            output of a `print` or `!dump` call are always one of its
+#            identities, and so may always be used as an *identities*
+#            argument.
+#    
+#        default: optional
+#            Return the value of the *default* parameter if a domain
+#            axis construct can not be found. If set to an `Exception`
+#            instance then it will be raised instead.
+#    
+#    :Returns:
+#    
+#        `str`
+#            The key of the domain axis construct that is spanned by
+#            the data of the selected coordinate construct.
+#    
+#    **Examples:**
+#    
+#    TODO
+#
+#        '''
+#        data_axes = self.data_axes()
+#
+#        c = self.filter_by_type('dimension_coordinate',
+#                                'auxiliary_coordinates')
+#        c = c.filter_by_naxes(1)
+#        c = c.filter_by_identity(identity)
+#
+#        if not len(c) :
+#            return self._default(
+#                default,
+#                "No 1-d coordinate constructs have identity {!r}".format(identity))
+#
+#        keys = []
+#        for ckey, coord in c.items():
+#            axes = data_axes.get(ckey)
+#            if not axes:
+#                continue
+#
+#            key = axes[0]
+#            if self.filter_by_type('domain_axis').get(key):
+#                keys.append(key)
+#        #--- End: for
+#
+#        keys = set(keys)
+#
+#        if not keys:
+#            return self._default(
+#                default,
+#                "TODO {!r} has no domain axis contruct".format(coord))                       
+#
+#        if len(keys) > 1:
+#            return self._default(
+#                default,
+#                "TODO Multiple 1-d coordinate constructs with identity {!r} span domain axis {!r}".format(
+#                    len(c), identity, keys.pop()))
+#
+#        return keys.pop()
 
-:Parameters:
-
-    identity:
-        Select the domain axis construct that is spanned by the unique
-        1-d coordinate construct that has the given identity.
-
-        An identity is specified by a string (e.g. ``'latitude'``,
-        ``'long_name=time'``, etc.); or a compiled regular expression
-        (e.g. ``re.compile('^atmosphere')``), for which all constructs
-        whose identities match (via `re.search`) are selected.
-
-        Each construct has a number of identities that are returned by
-        its `!identities` method. In addition, each construct also has
-        an identity based its construct key
-        (e.g. ``'key%dimensioncoordinate2'``).
-
-        Note that the identifiers of a metadata construct in the
-        output of a `print` or `!dump` call are always one of its
-        identities, and so may always be used as an *identity*
-        argument.
-
-        TODO include allowing domain axis construct key
-
-    default: optional
-        Return the value of the *default* parameter if a domain axis
-        construct can not be found. If set to an `Exception` instance
-        then it will be raised instead.
-
-:Returns:
-
-    `DomainAxis`
-        The domain axis constructs that is spanned by the sevlected
-        coordinate construct.
-
-**Examples:**
-
->>> c.ilter_by_type('dimension_coordinate', 'auxiliary_coordinates')
-Constructs:
-{'auxiliarycoordinate0': <AuxiliaryCoordinate: latitude(10, 9) degrees_N>,
- 'auxiliarycoordinate1': <AuxiliaryCoordinate: longitude(9, 10) degrees_E>,
- 'auxiliarycoordinate2': <AuxiliaryCoordinate: long_name=Grid latitude name(10) >,
- 'dimensioncoordinate0': <DimensionCoordinate: atmosphere_hybrid_height_coordinate(1) >,
- 'dimensioncoordinate1': <DimensionCoordinate: grid_latitude(10) degrees>,
- 'dimensioncoordinate2': <DimensionCoordinate: grid_longitude(9) degrees>,
- 'dimensioncoordinate3': <DimensionCoordinate: time(1) days since 2018-12-01 >}
->>> c.domain_axis('grid_latitude'))
-<DomainAxis: size(10)>
->>> c.domain_axis(re.compile('^tim'))
-<DomainAxis: size(1)>
-
-        '''
-        constructs_data_axes = self.data_axes()
-
-        #        TODO include allowing domain axis construct key
-        g
-        c = self.filter_by_type('dimension_coordinate',
-                                'auxiliary_coordinates')
-        c = c.filter_by_naxes(1)
-        c = c.filter_by_identity(identity)
-        
-        if not len(c) :
-            return self._default(
-                default,
-                "No 1-d coordinate constructs have identity {!r}".format(identity))
-
-        if len(c) > 1:
-            return self._default(
-                default,
-                "Multiple 1-d coordinate constructs have identity {!r}".format(
-                    len(c),
-                    identity))
-
-        ckey, coord = dict(c).popitem()
-        axes = constructs_data_axes.get(ckey)
-        
-        if not axes:
-            return self._default(
-                default,
-                "{!r} has no domain axis contruct".format(coord))
-        
-        key = axes[0]
-        out = self.filter_by_type('domain_axis').get(key)
-        if not out:
-            return self._default(
-                default,
-                "Domain axis construct with key {!r} does not exist".format(
-                    key))
-        
-        return key
-    #--- End: def
-
+    
     def domain_axis_identity(self, key):
-        '''Return the canonical identity for an domain axis construct.
+        '''Return the canonical identity for a domain axis construct.
 
-The identity is the first found of the following:
-
-1. The canonical identity of a dimension coordinate contruct that span
-   the domain axis construct.
-2. The identity of a one-dimensional auxiliary coordinate construct
-   that spans the domain axis construct. This will either be the value
-   of a "standard_name", "cf_role" (preceeded by ``'cf_role='``) or
-   "axis" (preceeded by ``'axis='``) property, as appropriate.
-3. The netCDF dimension name, preceeded by 'ncdim%'.
-4. The domain axis construct key, preceeded by 'key%'.
-
-:Parameters:
-
-    key: `str`
-        The construct key for the domain axis construct.
-
-        *Parameter example:*
-          ``key='domainaxis2'``
-
-:Returns:
-
-    `str`
-        The identity.
-
-**Examples:**
-
->>> c.domain_axis_identity('domainaxis1')
-'longitude'
->>> c.domain_axis_identity('domainaxis2')
-'axis=Y'
->>> c.domain_axis_identity('domainaxis3')
-'cf_role=timeseries_id'
->>> c.domain_axis_identity('domainaxis4')
-'key%domainaxis4')
+    The identity is the first found of the following:
+    
+    1. The canonical identity of a dimension coordinate contruct that span
+       the domain axis construct.
+    2. The identity of a one-dimensional auxiliary coordinate construct
+       that spans the domain axis construct. This will either be the value
+       of a "standard_name", "cf_role" (preceeded by ``'cf_role='``) or
+       "axis" (preceeded by ``'axis='``) property, as appropriate.
+    3. The netCDF dimension name, preceeded by 'ncdim%'.
+    4. The domain axis construct key, preceeded by 'key%'.
+    
+    :Parameters:
+    
+        key: `str`
+            The construct key for the domain axis construct.
+    
+            *Parameter example:*
+              ``key='domainaxis2'``
+    
+    :Returns:
+    
+        `str`
+            The identity.
+    
+    **Examples:**
+    
+    >>> c.domain_axis_identity('domainaxis1')
+    'longitude'
+    >>> c.domain_axis_identity('domainaxis2')
+    'axis=Y'
+    >>> c.domain_axis_identity('domainaxis3')
+    'cf_role=timeseries_id'
+    >>> c.domain_axis_identity('domainaxis4')
+    'key%domainaxis4')
 
         '''
         domain_axes = self.filter_by_type('domain_axis')
@@ -571,8 +568,8 @@ The identity is the first found of the following:
 
         # Get the identity from the domain axis construct key
         return 'key%{0}'.format(key)
-    #--- End: def
 
+    
     def equals(self, other, rtol=None, atol=None, verbose=False,
                ignore_data_type=False, ignore_fill_value=False,
                ignore_compression=False, _ignore_type=False):
@@ -776,7 +773,8 @@ False
                         print(
 "{0}: Ambiguous axis mapping ({1} -> both {2} and {3})".format(
     self.__class__.__name__,
-    self.domain_axis_identity(axes0), other.domain_axis_identity(axis1),
+    self.domain_axis_identity(axes0),
+    other.domain_axis_identity(axis1),
     other.domain_axis_identity(axis0_to_axis1[axis0])))
                     return False
                 elif axis1 in axis1_to_axis0 and axis0 != axis1_to_axis0[axis1]:
@@ -784,7 +782,8 @@ False
                         print(
 "{0}: Ambiguous axis mapping ({1} -> both {2} and {3})".format(
     self.__class__.__name__,
-    self.domain_axis_identity(axis0), self.domain_axis_identity(axis1_to_axis0[axis0]),
+    self.domain_axis_identity(axis0),
+    self.domain_axis_identity(axis1_to_axis0[axis0]),
     other.domain_axis_identity(axes1)))
                     return False
 
@@ -1005,67 +1004,70 @@ Select constructs that could contain data:
     def filter_by_identity(self, *identities):
         '''Select metadata constructs by identity.
 
-.. versionadded:: 1.7.0
-
-.. seealso:: `filter_by_axis`, `filter_by_data`, `filter_by_key`,
-             `filter_by_measure`, `filter_by_method`,
-             `filter_by_naxes`, `filter_by_ncdim`, `filter_by_ncvar`,
-             `filter_by_property`, `filter_by_type`,
-             `filters_applied`, `inverse_filter`, `unfilter`
-
-:Parameters:
-
-    identities: optional
-
-        Select constructs that have any of the given identities.
-
-        An identity is specified by a string (e.g. ``'latitude'``,
-        ``'long_name=time'``, etc.); or a compiled regular expression
-        (e.g. ``re.compile('^atmosphere')``), for which all constructs
-        whose identities match (via `re.search`) are selected.
-
-        If no identities are provided then all constructs are selected.
-
-        Each construct has a number of identities, and is selected if
-        any of them match any of those provided. A construct's
-        identities are those returned by its `!identities` method. In
-        the following example, the construct ``c`` has four
-        identities:
-
-           >>> c.identities()
-           ['time', 'long_name=Time', 'foo=bar', 'ncvar%T']
-
-        In addition, each construct also has an identity based its
-        construct key (e.g. ``'key%dimensioncoordinate2'``)
-
-        Note that the identifiers of a metadata construct in the
-        output of a `print` or `!dump` call are always one of its
-        identities, and so may always be used as an *identities*
-        argument.
-
-:Returns:
-
-    `Constructs`
-        The selected constructs and their construct keys.
-
-**Examples:**
-
-Select constructs that have a "standard_name" property of 'latitude':
-
->>> d = c.filter_by_identity('latitude')
-
-Select constructs that have a "long_name" property of 'Height':
-
->>> d = c.filter_by_identity('long_name=Height')
-
-Select constructs that have a "standard_name" property of 'latitude'
-or a "foo" property of 'bar':
-
->>> d = c.filter_by_identity('latitude', 'foo=bar')
-
-Select constructs that have a netCDF variable name of 'time':
-
->>> d = c.filter_by_identity('ncvar%time')
+    .. versionadded:: 1.7.0
+    
+    .. seealso:: `filter_by_axis`, `filter_by_data`, `filter_by_key`,
+                 `filter_by_measure`, `filter_by_method`,
+                 `filter_by_naxes`, `filter_by_ncdim`,
+                 `filter_by_ncvar`, `filter_by_property`,
+                 `filter_by_type`, `filters_applied`,
+                 `inverse_filter`, `unfilter`
+    
+    :Parameters:
+    
+        identities: optional
+    
+            Select constructs that have any of the given identities.
+    
+            An identity is specified by a string (e.g. ``'latitude'``,
+            ``'long_name=time'``, etc.); or a compiled regular
+            expression (e.g. ``re.compile('^atmosphere')``), for which
+            all constructs whose identities match (via `re.search`)
+            are selected.
+    
+            If no identities are provided then all constructs are
+            selected.
+    
+            Each construct has a number of identities, and is selected
+            if any of them match any of those provided. A construct's
+            identities are those returned by its `!identities`
+            method. In the following example, the construct ``x`` has
+            four identities:
+    
+               >>> x.identities()
+               ['time', 'long_name=Time', 'foo=bar', 'ncvar%T']
+    
+            In addition, each construct also has an identity based its
+            construct key (e.g. ``'key%dimensioncoordinate2'``)
+    
+            Note that the identifiers of a metadata construct in the
+            output of a `print` or `!dump` call are always one of its
+            identities, and so may always be used as an *identities*
+            argument.
+    
+    :Returns:
+    
+        `Constructs`
+            The selected constructs and their construct keys.
+    
+    **Examples:**
+    
+    Select constructs that have a "standard_name" property of 'latitude':
+    
+    >>> d = c.filter_by_identity('latitude')
+    
+    Select constructs that have a "long_name" property of 'Height':
+    
+    >>> d = c.filter_by_identity('long_name=Height')
+    
+    Select constructs that have a "standard_name" property of 'latitude'
+    or a "foo" property of 'bar':
+    
+    >>> d = c.filter_by_identity('latitude', 'foo=bar')
+    
+    Select constructs that have a netCDF variable name of 'time':
+    
+    >>> d = c.filter_by_identity('ncvar%time')
 
         '''
         out = self.shallow_copy()

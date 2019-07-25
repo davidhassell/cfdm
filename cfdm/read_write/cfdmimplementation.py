@@ -882,14 +882,13 @@ attributes: `dict`
     #--- End: def
     
     def get_interior_ring(self, construct):
-        '''
+        '''TODO
 
 :Parameters:
 
   
 :Returns:
 
-    out: 
 
 :Examples:
 
