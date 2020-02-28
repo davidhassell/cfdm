@@ -1,3 +1,14 @@
+version 1.7.12
+--------------
+----
+
+**2020-02-28**
+
+* Fixed bug that caused a failure when a "_FillValue" or
+  "missing_value" is set and data type conversions are specified with
+  the ``datatype`` keyword to `cfdm.write`
+  (https://github.com/NCAS-CMS/cfdm/issues/16).
+  
 version 1.7.11
 --------------
 ----
