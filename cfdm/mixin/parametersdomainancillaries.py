@@ -1,7 +1,14 @@
 from __future__ import print_function
 from builtins import super
 
+import logging
+
 from . import Parameters
+
+from ..decorators import _manage_log_level_via_verbosity
+
+
+logger = logging.getLogger(__name__)
 
 
 class ParametersDomainAncillaries(Parameters):
@@ -43,7 +50,8 @@ class ParametersDomainAncillaries(Parameters):
             
         return '; '.join(out)
 
-    def equals(self, other, rtol=None, atol=None, verbose=False,
+    @_manage_log_level_via_verbosity
+    def equals(self, other, rtol=None, atol=None, verbose=None,
                ignore_data_type=False, ignore_fill_value=False,
                ignore_type=False):
         '''Whether two instances are the same.
@@ -121,12 +129,13 @@ class ParametersDomainAncillaries(Parameters):
         domain_ancillaries0 = self.domain_ancillaries()
         domain_ancillaries1 = other.domain_ancillaries()
         if set(domain_ancillaries0) != set(domain_ancillaries1):
-            if verbose:
-                print(
-                    "{0}: Different domain ancillary terms "
-                    "({1} != {2})".format(
-                        self.__class__.__name__,
-                        set(domain_ancillaries0), set(domain_ancillaries1)))
+            logger.info(
+                "{0}: Different domain ancillary terms "
+                "({1} != {2})".format(
+                    self.__class__.__name__,
+                    set(domain_ancillaries0), set(domain_ancillaries1)
+                )
+            )
             return False
 
         for term, value0 in domain_ancillaries0.items():
@@ -135,11 +144,11 @@ class ParametersDomainAncillaries(Parameters):
                 continue
 
             if value0 is None or value1 is None:
-                if verbose:
-                    print("{}: Unequal {!r} domain ancillary terms "
-                          "({!r} != {!r})".format( 
-                              self.__class__.__name__, term, 
-                              value0, value1))
+                logger.info(
+                    "{}: Unequal {!r} domain ancillary terms "
+                    "({!r} != {!r})".format( 
+                        self.__class__.__name__, term, value0, value1)
+                )
                 return False
         # --- End: for
      

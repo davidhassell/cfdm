@@ -1,9 +1,19 @@
 from __future__ import print_function
 from builtins import (str, super)
 
+import logging
+
 from . import Properties
 
-from ..decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
+from ..decorators import (
+    _inplace_enabled,
+    _inplace_enabled_define_and_cleanup,
+    _manage_log_level_via_verbosity,
+)
+
+
+
+logger = logging.getLogger(__name__)
 
 
 class PropertiesData(Properties):
@@ -423,7 +433,8 @@ class PropertiesData(Properties):
         else:
             return string
 
-    def equals(self, other, rtol=None, atol=None, verbose=False,
+    @_manage_log_level_via_verbosity
+    def equals(self, other, rtol=None, atol=None, verbose=None,
                ignore_data_type=False, ignore_fill_value=False,
                ignore_properties=(), ignore_compression=True,
                ignore_type=False):
@@ -534,21 +545,21 @@ class PropertiesData(Properties):
         external0 = self._get_component('external', False)
         external1 = other._get_component('external', False)
         if external0 != external1:
-            if verbose:
-                print("{0}: Only one external variable)".format(
-                    self.__class__.__name__))
+            logger.info("{0}: Only one external variable)".format(
+                self.__class__.__name__))
             return False
         
         if external0:
             # Both variables are external
             if self.nc_get_variable(None) != other.nc_get_variable(None):
-                if verbose:
-                    print(
-                        "{}: External variable have different "
-                        "netCDF variable names: {} != {})".format(
-                            self.__class__.__name__,
-                            self.nc_get_variable(None),
-                            other.nc_get_variable(None)))
+                logger.info(
+                    "{}: External variable have different "
+                    "netCDF variable names: {} != {})".format(
+                        self.__class__.__name__,
+                        self.nc_get_variable(None),
+                        other.nc_get_variable(None)
+                    )
+                )
                 return False
 
             return True
@@ -569,10 +580,10 @@ class PropertiesData(Properties):
         # Check the data
         # ------------------------------------------------------------
         if self.has_data() != other.has_data():
-            if verbose:
-                print(
-                    "{0}: Different data: Only one {0} has data".format(
-                        self.__class__.__name__))
+            logger.info(
+                "{0}: Different data: Only one {0} has data".format(
+                    self.__class__.__name__)
+            )
             return False
             
         if self.has_data():
@@ -582,9 +593,8 @@ class PropertiesData(Properties):
                                 ignore_data_type=ignore_data_type,
                                 ignore_fill_value=ignore_fill_value,
                                 ignore_compression=ignore_compression):
-                if verbose:
-                    print("{0}: Different data".format(
-                        self.__class__.__name__))
+                logger.info("{0}: Different data".format(
+                    self.__class__.__name__))
                 return False
         # --- End: if
 

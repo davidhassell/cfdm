@@ -2,10 +2,17 @@ from __future__ import print_function
 from builtins import (str, super)
 from past.builtins import basestring
 
+import logging
+
 from . import mixin
 from . import core
 from . import CoordinateConversion
 from . import Datum
+
+from .decorators import _manage_log_level_via_verbosity
+
+
+logger = logging.getLogger(__name__)
 
 
 class CoordinateReference(mixin.NetCDFVariable,
@@ -227,8 +234,9 @@ class CoordinateReference(mixin.NetCDFVariable,
             print(string)
         else:
             return string
-            
-    def equals(self, other, rtol=None, atol=None, verbose=False,
+
+    @_manage_log_level_via_verbosity
+    def equals(self, other, rtol=None, atol=None, verbose=None,
                ignore_type=False):
         '''Whether two coordinate reference constructs are the same.
 
@@ -312,11 +320,11 @@ class CoordinateReference(mixin.NetCDFVariable,
         coords0 = self.coordinates()
         coords1 = other.coordinates()
         if len(coords0) != len(coords1):
-            if verbose:
-                print(
-                    "{}: Different sized collections of coordinates "
-                    "({}, {})".format(                        
-                        self.__class__.__name__, coords0, coords1))
+            logger.info(
+                "{}: Different sized collections of coordinates "
+                "({}, {})".format(                        
+                    self.__class__.__name__, coords0, coords1)
+            )
                 
             return False
 
@@ -325,10 +333,10 @@ class CoordinateReference(mixin.NetCDFVariable,
                 rtol=rtol, atol=atol,
                 verbose=verbose,
                 ignore_type=ignore_type):
-            if verbose:
-                print(
-                    "{}: Different coordinate conversions".format(
-                        self.__class__.__name__))
+            logger.info(
+                "{}: Different coordinate conversions".format(
+                    self.__class__.__name__)
+            )
                 
             return False
         
@@ -337,9 +345,8 @@ class CoordinateReference(mixin.NetCDFVariable,
                 rtol=rtol, atol=atol,
                 verbose=verbose,
                 ignore_type=ignore_type):
-            if verbose:
-                print(
-                    "{}: Different datums".format(self.__class__.__name__))
+            logger.info(
+                "{}: Different datums".format(self.__class__.__name__))
                 
             return False
 

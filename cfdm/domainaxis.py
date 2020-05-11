@@ -1,8 +1,15 @@
 from __future__ import print_function
 from builtins import super
 
+import logging
+
 from . import mixin
 from . import core
+
+from .decorators import _manage_log_level_via_verbosity
+
+
+logger = logging.getLogger(__name__)
 
 
 class DomainAxis(mixin.NetCDFDimension,
@@ -66,8 +73,8 @@ class DomainAxis(mixin.NetCDFDimension,
         '''
         return 'size({0})'.format(self.get_size(''))
 
-
-    def equals(self, other, verbose=False, ignore_type=False):
+    @_manage_log_level_via_verbosity
+    def equals(self, other, verbose=None, ignore_type=False):
         '''Whether two domain axis constructs are the same.
 
     Equality is strict by default. This means that:
@@ -131,9 +138,10 @@ class DomainAxis(mixin.NetCDFDimension,
         self_size  = self.get_size(None)
         other_size = other.get_size(None)
         if not self_size == other_size:
-            if verbose:
-                print("{0}: Different axis sizes: {1} != {2}".format(
-			self.__class__.__name__, self_size, other_size))
+            logger.info(
+                "{0}: Different axis sizes: {1} != {2}".format(
+                    self.__class__.__name__, self_size, other_size)
+            )
             return False
 
         return True
