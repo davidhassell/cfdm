@@ -667,7 +667,7 @@ class NetCDFRead(IORead):
         # --- End: for
         
         g['global_attributes'] = global_attributes
-        logger.info(
+        logger.detail(
             "    Global attributes:\n" +
             pformat(g['global_attributes'], indent=4)
         )  # pragma: no cover
@@ -764,7 +764,7 @@ class NetCDFRead(IORead):
 
         g['internal_dimension_sizes'] = internal_dimension_sizes
 
-        logger.info(
+        logger.detail(
             "    netCDF dimensions:\n" +
             pformat(internal_dimension_sizes, indent=4)
         )  # pragma: no cover
@@ -952,7 +952,7 @@ class NetCDFRead(IORead):
                 fields[ncvar] = f
         # --- End: for
         
-        logger.info(
+        logger.detail(
             "Referenced netCDF variables:\n    " +
             "\n    ".join(
                 [ncvar for  ncvar in all_fields
@@ -960,7 +960,7 @@ class NetCDFRead(IORead):
             )
         )  # pragma: no cover
 
-        logger.info(
+        logger.detail(
             "Unreferenced netCDF variables:\n    " +
             "\n    ".join(
                 [ncvar for ncvar in all_fields
@@ -2197,7 +2197,7 @@ class NetCDFRead(IORead):
         field_properties = g['global_attributes'].copy()
         field_properties.update(g['variable_attributes'][field_ncvar])
 
-        logger.info(
+        logger.detail(
             "    netCDF attributes:\n" + 
             pformat(field_properties, indent=4)
         )  # pragma: no cover

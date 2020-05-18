@@ -1,10 +1,12 @@
 from functools import wraps
 
 from .functions import (
-    LOG_SEVERITY_LEVEL,
+    LOG_LEVEL,
     _disable_logging,
     _reset_log_severity_level,
 )
+
+from .constants import numeric_log_level_map
 
 
 # Identifier for 'inplace_enabled' to use as internal '_custom' dictionary key,
@@ -82,14 +84,14 @@ def _inplace_enabled_define_and_cleanup(instance):
 def _manage_log_level_via_verbosity(method_with_verbose_kwarg):
     '''A decorator for managing log message filtering by verbosity argument.
 
-    This enables overriding of the log severity level such that a verbose=True
-    input to the decorated method will force all log messages called within
-    the method (only) to be displayed, even if less than the
-    cfdm.LOG_SEVERITY_LEVEL() which would otherwise filter them out, and
-    verbose=False input will disable all log messages appearing, again
-    regardless of LOG_SEVERITY_LEVEL(). If verbose=None, as is the default,
-    the LOG_SEVERITY_LEVEL() determines which log messages are shown, as
-    standard.
+    This enables overriding of the log severity level such that an integer
+    input (lying in the valid range) to the decorated function will ignore
+    the global cfdm.LOG_LEVEL() to configure a custom verbosity
+    for the individual function call, applying to its logic and any
+    functions it calls internally and lasting only the duration of the call.
+
+    If verbose=None, as is the default, the LOG_LEVEL() determines
+    which log messages are shown, as standard.
 
     Only use this to decorate functions which make log calls directly
     and have a 'verbose' keyword argument set to None by default.
@@ -97,24 +99,49 @@ def _manage_log_level_via_verbosity(method_with_verbose_kwarg):
 
     @wraps(method_with_verbose_kwarg)
     def verbose_override_wrapper(self, *args, **kwargs):
+        # Deliberately error if verbose kwarg not set, if not by user then
+        # as a default to the decorated function, as this is crucial to usage.
         verbose = kwargs.get('verbose')
 
-        if verbose:
-            # This level is effectively below 'DEBUG' and results in all log
-            # messages being returned, no matter their level. Note this only
-            # holds over the time of method execution (see reversion below).
-            _reset_log_severity_level('NOTSET')
-        elif verbose is False:  # deliberatly excluding verbose=None case
-            _disable_logging()  # prevents any log messages being displayed
+        # Convert Boolean cases for backwards compatibility. Need 'is' identity
+        # rather than '==' (value) equivalency test, since 1 == True, etc.
+        if verbose is True:
+            verbose = 3  # max verbosity excluding debug levels
+        elif verbose is False:
+            verbose = 0  # corresponds to disabling logs i.e. no verbosity
 
+        # Override log levels for the function & all it calls (to reset at end)
+        if verbose in numeric_log_level_map.keys():
+            _reset_log_severity_level(numeric_log_level_map[verbose])
+        elif verbose is not None:  # None as default, note exclude True & False
+            # Print rather than log because if user specifies a verbose kwarg
+            # they want to change the log levels so may have them disabled.
+            print(
+                "Invalid value for the 'verbose' keyword argument. Accepted "
+                "values are integers from -1 to {} corresponding in the "
+                "positive cases to increasing verbosity, or None, to "
+                "configure the verbosity according to the global "
+                "LOG_LEVEL setting.".format(
+                    len(numeric_log_level_map) - 2)
+            )
+            return
+
+        # First need to (temporarily) re-enable global logging if disabled
+        # in the cases where you do not want to disable it anyway:
+        if (LOG_LEVEL() == 'DISABLE' and verbose not in (0, None)):
+            _disable_logging(at_level='NOTSET')  # enables all logging again
+
+        # After method completes, re-set any changes to log level or enabling
         try:
             return method_with_verbose_kwarg(self, *args, **kwargs)
         except Exception as exc:
             raise
         finally:  # so above changes are reverted even when method errors
-            if verbose:
-                _reset_log_severity_level(LOG_SEVERITY_LEVEL())  # revert
-            elif verbose is False:  # deliberatly excluding verbose=None case
-                _disable_logging('NOTSET')  # lift the deactivation (re-enable)
+            if verbose == 0:
+                _disable_logging(at_level='NOTSET')  # lift the deactivation
+            elif verbose in numeric_log_level_map.keys():
+                _reset_log_severity_level(LOG_LEVEL())
+            if LOG_LEVEL() == 'DISABLE' and verbose != 0:
+                _disable_logging()  # disable again after re-enabling
 
     return verbose_override_wrapper

@@ -2127,7 +2127,7 @@ class NetCDFWrite(IOWrite):
             chunksizes = self.implementation.nc_get_hdf5_chunksizes(data)
 
         if chunksizes is not None:
-            logger.info(
+            logger.detail(
                 '      HDF5 chunksizes: {}'.format(chunksizes)
             )  # pragma: no cover
         
@@ -3624,7 +3624,7 @@ class NetCDFWrite(IOWrite):
     
     >>> type(f)
     <class 'cf.field.FieldList'>
-    >>> cf.write([f, g], 'file.nc', verbose=True)
+    >>> cf.write([f, g], 'file.nc', verbose=4)
     [<CF Field: air_pressure(30, 24)>,
      <CF Field: u_compnt_of_wind(19, 29, 24)>,
      <CF Field: v_compnt_of_wind(19, 29, 24)>,
