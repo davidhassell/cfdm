@@ -14,10 +14,11 @@ class ConstructsTest(unittest.TestCase):
     def setUp(self):
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL('DISABLE')
-        # Note: to enable all messages for given methods, lines or calls (those
-        # without a 'verbose' option to do the same) e.g. to debug them, wrap
-        # them (for methods, start-to-end internally) as follows:
-        # cfdm.LOG_LEVEL('DEBUG')
+        # Note: to enable all messages for given methods, lines or
+        # calls (those without a 'verbose' option to do the same)
+        # e.g. to debug them, wrap them (for methods, start-to-end
+        # internally) as follows: cfdm.LOG_LEVEL('DEBUG')
+        #
         # < ... test code ... >
         # cfdm.LOG_LEVEL('DISABLE')
 
@@ -60,12 +61,12 @@ class ConstructsTest(unittest.TestCase):
         c = self.f.constructs
 
         d = c.copy()
-        self.assertTrue(c.equals(d, verbose=3))
-        self.assertTrue(d.equals(c, verbose=3))
+        self.assertTrue(c.equals(d, verbose=2))
+        self.assertTrue(d.equals(c, verbose=2))
 
         d = c.shallow_copy()
-        self.assertTrue(c.equals(d, verbose=3))
-        self.assertTrue(d.equals(c, verbose=3))
+        self.assertTrue(c.equals(d, verbose=2))
+        self.assertTrue(d.equals(c, verbose=2))
 
 
     def test_Constructs_FILTER(self):
@@ -251,14 +252,14 @@ class ConstructsTest(unittest.TestCase):
         f2 = e2.inverse_filter(1)
         g2 = f2.inverse_filter(1)
         h2 = g2.inverse_filter(1)
-        self.assertTrue(g2.equals(e2, verbose=3))
-        self.assertTrue(h2.equals(f2, verbose=3))
+        self.assertTrue(g2.equals(e2, verbose=2))
+        self.assertTrue(h2.equals(f2, verbose=2))
 
         # Unfilter
-        self.assertTrue(e.unfilter(1).equals(d, verbose=3))
-        self.assertTrue(e.unfilter(1).unfilter().equals(c, verbose=3))
-        self.assertTrue(d.unfilter(1).equals(c, verbose=3))
-        self.assertTrue(c.unfilter(1).equals(c, verbose=3))
+        self.assertTrue(e.unfilter(1).equals(d, verbose=2))
+        self.assertTrue(e.unfilter(1).unfilter().equals(c, verbose=2))
+        self.assertTrue(d.unfilter(1).equals(c, verbose=2))
+        self.assertTrue(c.unfilter(1).equals(c, verbose=2))
 
 
 #--- End: class

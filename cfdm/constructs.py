@@ -213,8 +213,8 @@ class Constructs(core.Constructs):
             axes1 = list(cm1.get_axes(()))
             if len(axes0) != len(axes1):
                 logger.info(
-                    "{0}: Different cell methods (mismatched axes):"
-                    "\n  {1}\n  {2}".format(
+                    "{}: Different cell methods (mismatched axes):"
+                    "\n  {}\n  {}".format(
                         cm0.__class__.__name__,
                         cell_methods0.ordered(),
                         cell_methods1.ordered()
@@ -238,8 +238,8 @@ class Constructs(core.Constructs):
                         # Only one of axis0 and axis1 is a domain axis
                         # construct
                         logger.info(
-                            "{0}: Different cell methods "
-                            "(mismatched axes):\n  {1}\n  {2}".format(
+                            "{}: Different cell methods "
+                            "(mismatched axes):\n  {}\n  {}".format(
                                 cm0.__class__.__name__,
                                 cell_methods0, cell_methods1
                             )
@@ -253,8 +253,8 @@ class Constructs(core.Constructs):
                     elif axis1 is None:
                         # axis1
                         logger.info(
-                            "{0}: Different cell methods "
-                            "(mismatched axes):\n  {1}\n  {2}".format(
+                            "{}: Different cell methods "
+                            "(mismatched axes):\n  {}\n  {}".format(
                                 cm0.__class__.__name__,
                                 cell_methods0, cell_methods1
                             )
@@ -264,8 +264,8 @@ class Constructs(core.Constructs):
 
             if len(cm1.get_axes(())) != len(indices):
                 logger.info(
-                    "{0}: [4] Different cell methods "
-                    "(mismatched axes):\n  {1}\n  {2}".format(
+                    "{}: [4] Different cell methods "
+                    "(mismatched axes):\n  {}\n  {}".format(
                           cm0.__class__.__name__,
                           cell_methods0, cell_methods1
                     )
@@ -280,7 +280,7 @@ class Constructs(core.Constructs):
                               ignore_type=ignore_type):
                 logger.info(
                     "Verbose: Different cell methods: "
-                    "{0!r}, {1!r}".format(cell_methods0, cell_methods1)
+                    "{!r}, {!r}".format(cell_methods0, cell_methods1)
                 )
                 return False
         # --- End: for
@@ -294,14 +294,19 @@ class Constructs(core.Constructs):
                                      axis1_to_axis0=None,
                                      key1_to_key0=None):
         '''TODO
+
+    :Returns:
+
+        `bool`
+
         '''
         refs0 = dict(self.filter_by_type('coordinate_reference'))
         refs1 = dict(other.filter_by_type('coordinate_reference'))
 
         if len(refs0) != len(refs1):
             logger.info(
-                "{0}: Different numbers of {1} constructs: "
-                "{2} != {3}".format(
+                "{}: Different numbers of {} constructs: "
+                "{} != {}".format(
                     self.__class__.__name__, 'coordinate reference',
                     len(refs0), len(refs1)
                 )
@@ -317,8 +322,8 @@ class Constructs(core.Constructs):
             for ref0 in refs0.values():
                 found_match = False
                 for key1, ref1 in tuple(refs1.items()):
-                    logger.warning(
-                        "{0}: Comparing {1!r}, {2!r}: ".format(
+                    logger.detail(
+                        "{}: Comparing {!r}, {!r}: ".format(
                             self.__class__.__name__, ref0, ref1)
                     )  # pragma: no cover
 
@@ -353,7 +358,7 @@ class Constructs(core.Constructs):
 
                         continue
 
-                    logger.warning("OK")  # pragma: no cover
+                    logger.detail("OK")  # pragma: no cover
 
                     found_match = True
                     del refs1[key1]
@@ -668,18 +673,20 @@ class Constructs(core.Constructs):
 
         verbose: `int` or `None`, optional
             If an integer from `0` to `3`, corresponding to increasing
-            verbosity (else `-1` as a special case of maximal and extreme
-            verbosity), set for the duration of the method call (only) as
-            the minimum severity level cut-off of displayed log messages,
-            regardless of the global configured `cfdm.LOG_LEVEL`.
+            verbosity (else `-1` as a special case of maximal and
+            extreme verbosity), set for the duration of the method
+            call (only) as the minimum severity level cut-off of
+            displayed log messages, regardless of the global
+            configured `cfdm.LOG_LEVEL`.
 
-            Else, if None (the default value), log messages will be filtered
-            out, or otherwise, according to the value of the
+            Else, if None (the default value), log messages will be
+            filtered out, or otherwise, according to the value of the
             `LOG_LEVEL` setting.
 
-            Overall, the higher a non-negative integer that is set (up to
-            a maximum of `3`) the more description that is printed to convey
-            information about differences that lead to inequality.
+            Overall, the higher a non-negative integer that is set (up
+            to a maximum of `3`) the more description that is printed
+            to convey information about differences that lead to
+            inequality.
 
         ignore_data_type: `bool`, optional
             If True then ignore the data types in all numerical
@@ -787,7 +794,7 @@ class Constructs(core.Constructs):
                     for key0, item0 in role_constructs0.items():
                         matched_construct = False
                         for key1, item1 in tuple(role_constructs1.items()):
-                            logger.warning(
+                            logger.detail(
                                 "{}: Comparing {!r}, {!r}: ".format(
                                     self.__class__.__name__, item0, item1)
                             )  # pragma: no cover
@@ -800,7 +807,7 @@ class Constructs(core.Constructs):
                                     ignore_fill_value=ignore_fill_value,
                                     ignore_compression=ignore_compression,
                                     ignore_type=_ignore_type):
-                                logger.warning("OK")  # pragma: no cover
+                                logger.detail("OK")  # pragma: no cover
 
                                 del role_constructs1[key1]
                                 key1_to_key0[key1] = key0

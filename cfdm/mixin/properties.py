@@ -138,15 +138,15 @@ class Properties(Container):
     Equality is strict by default. This means that:
 
     * the same descriptive properties must be present, with the same
-      values and data types, and vector-valued properties must also have
-      same the size and be element-wise equal (see the *ignore_properties*
-      and *ignore_data_type* parameters).
+      values and data types, and vector-valued properties must also
+      have same the size and be element-wise equal (see the
+      *ignore_properties* and *ignore_data_type* parameters).
 
     Two real numbers ``x`` and ``y`` are considered equal if
     ``|x-y|<=atol+rtol|y|``, where ``atol`` (the tolerance on absolute
-    differences) and ``rtol`` (the tolerance on relative differences) are
-    positive, typically very small numbers. See the *atol* and *rtol*
-    parameters.
+    differences) and ``rtol`` (the tolerance on relative differences)
+    are positive, typically very small numbers. See the *atol* and
+    *rtol* parameters.
 
     Any type of object may be tested but, in general, equality is only
     possible with another object of the same type, or a subclass of
@@ -175,18 +175,20 @@ class Properties(Container):
 
         verbose: `int` or `None`, optional
             If an integer from `0` to `3`, corresponding to increasing
-            verbosity (else `-1` as a special case of maximal and extreme
-            verbosity), set for the duration of the method call (only) as
-            the minimum severity level cut-off of displayed log messages,
-            regardless of the global configured `cfdm.LOG_LEVEL`.
+            verbosity (else `-1` as a special case of maximal and
+            extreme verbosity), set for the duration of the method
+            call (only) as the minimum severity level cut-off of
+            displayed log messages, regardless of the global
+            configured `cfdm.LOG_LEVEL`.
 
-            Else, if None (the default value), log messages will be filtered
-            out, or otherwise, according to the value of the
+            Else, if None (the default value), log messages will be
+            filtered out, or otherwise, according to the value of the
             `LOG_LEVEL` setting.
 
-            Overall, the higher a non-negative integer that is set (up to
-            a maximum of `3`) the more description that is printed to convey
-            information about differences that lead to inequality.
+            Overall, the higher a non-negative integer that is set (up
+            to a maximum of `3`) the more description that is printed
+            to convey information about differences that lead to
+            inequality.
 
         ignore_properties: sequence of `str`, optional
             The names of properties to omit from the comparison.
@@ -233,6 +235,7 @@ class Properties(Container):
             return pp
 
         other = pp
+        print('verbose=', verbose)
 
         # ------------------------------------------------------------
         # Check the properties
@@ -256,7 +259,6 @@ class Properties(Container):
                     "{}: Missing property: {}".format(
                         self.__class__.__name__, prop)
                 )
-        # --- End: if
 
             return False
 

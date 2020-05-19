@@ -13,9 +13,11 @@ class NetCDFTest(unittest.TestCase):
     def setUp(self):
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL('DISABLE')
-        # Note: to enable all messages for given methods, lines or calls (those
-        # without a 'verbose' option to do the same) e.g. to debug them, wrap
-        # them (for methods, start-to-end internally) as follows:
+        # Note: to enable all messages for given methods, lines or
+        # calls (those without a 'verbose' option to do the same)
+        # e.g. to debug them, wrap them (for methods, start-to-end
+        # internally) as follows:
+        #
         # cfdm.LOG_LEVEL('DEBUG')
         # < ... test code ... >
         # cfdm.LOG_LEVEL('DISABLE')
@@ -26,7 +28,8 @@ class NetCDFTest(unittest.TestCase):
         self.assertTrue(len(f)==1, 'f={!r}'.format(f))
         self.f = f[0]
 
-        (fd, self.tempfilename) = tempfile.mkstemp(suffix='.nc', prefix='cfdm_', dir='.')
+        (fd, self.tempfilename) = tempfile.mkstemp(
+            suffix='.nc', prefix='cfdm_', dir='.')
         os.close(fd)
 
         self.test_only = []
@@ -133,29 +136,33 @@ class NetCDFTest(unittest.TestCase):
         f2 = f.copy()
         f2.nc_set_variable('ua')
 
-        cfdm.write([f, f2], 'tempfilename.nc', file_descriptors={'comment': 'global comment',
-                                                                 'qwerty': 'asdf'})
+        cfdm.write([f, f2], 'tempfilename.nc',
+                   file_descriptors={'comment': 'global comment',
+                                     'qwerty': 'asdf'})
 
-        g = cfdm.read('tempfilename.nc', verbose=False)
+        g = cfdm.read('tempfilename.nc', verbose=None)
         self.assertTrue(len(g) == 2)
 
         for x in g:
-            self.assertTrue(x.properties() == {'comment': 'variable comment',
-                                               'foo': 'bar',
-                                               'qwerty': 'asdf',
-                                               'Conventions': 'CF-'+cfdm.CF()})
-            self.assertTrue(x.nc_global_attributes() == {'comment': 'global comment',
-                                                         'qwerty': None,
-                                                         'Conventions': None},
-                            x.nc_global_attributes())
-
+            self.assertTrue(
+                x.properties() == {'comment': 'variable comment',
+                                   'foo': 'bar',
+                                   'qwerty': 'asdf',
+                                   'Conventions': 'CF-'+cfdm.CF()})
+            self.assertTrue(
+                x.nc_global_attributes() == {'comment': 'global comment',
+                                             'qwerty': None,
+                                             'Conventions': None},
+                x.nc_global_attributes())
+            
         cfdm.write(g, 'tempfilename2.nc')
         h = cfdm.read('tempfilename2.nc')
         for x, y in zip(h, g):
-            self.assertTrue(x.properties()           == y.properties())
-            self.assertTrue(x.nc_global_attributes() == y.nc_global_attributes())
-            self.assertTrue(x.equals(y, verbose=3))
-            self.assertTrue(y.equals(x, verbose=3))
+            self.assertTrue(x.properties() == y.properties())
+            self.assertTrue(
+                x.nc_global_attributes() == y.nc_global_attributes())
+            self.assertTrue(x.equals(y, verbose=2))
+            self.assertTrue(y.equals(x, verbose=2))
 
         g[1].nc_set_global_attribute('comment', 'different comment')
         cfdm.write(g, 'tempfilename3.nc')
@@ -165,8 +172,8 @@ class NetCDFTest(unittest.TestCase):
             self.assertTrue(x.nc_global_attributes() == {'comment': None,
                                                          'qwerty': None,
                                                          'Conventions': None})
-            self.assertTrue(x.equals(y, verbose=3))
-            self.assertTrue(y.equals(x, verbose=3))
+            self.assertTrue(x.equals(y, verbose=2))
+            self.assertTrue(y.equals(x, verbose=2))
 #        os.remove('tempfilename.nc')
 
 

@@ -59,8 +59,8 @@ class Container(object):
         '''Whether two objects are the same.
 
     Equality either uses one or other of the objects `!equals`
-    methods, or casts them as numpy arrays and carried aout numericlly
-    tolerant equality checks.
+    methods, or casts them as numpy arrays and carried aout
+    numerically tolerant equality checks.
 
     .. versionadded:: 1.7.0
 
@@ -114,10 +114,6 @@ class Container(object):
                 pass
             return eq(x, **kwargs)
 
-#        print (type(x), type(y))
-#        print (repr(x), repr(y))
-#        print (numpy.shape(x))
-#        print (numpy.shape(y))
         if numpy.shape(x) != numpy.shape(y):
             return False
 
@@ -130,7 +126,7 @@ class Container(object):
         if not isinstance(y, numpy.ndarray):
             y = numpy.asanyarray(y)
 
-        # THIS IS WHERE SOME NUMPY FUTURE WARNINGS ARE COMING FROM
+        # THIS IS WHERE SOME NUMPY FUTURE WARNINGS ARE COMING FROM (TODO)
 
         if not ignore_data_type and x.dtype != y.dtype:
             if (x.dtype.kind not in ('S', 'U')

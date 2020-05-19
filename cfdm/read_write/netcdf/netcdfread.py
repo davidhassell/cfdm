@@ -1034,7 +1034,7 @@ class NetCDFRead(IORead):
         field: `Field`
             The parent field construct.
 
-        construct: Construct or Bounds
+        construct: construct or `Bounds`
             The construct that may have valid_[min|max|range]
             properties. May also be the parent field construct or
             Bounds.

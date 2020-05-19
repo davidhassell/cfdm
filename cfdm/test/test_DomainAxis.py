@@ -51,9 +51,9 @@ class DomainTest(unittest.TestCase):
         d = list(f.domain_axes.values())[0]
         e = d.copy()
 
-        self.assertTrue(d.equals(d, verbose=3))
-        self.assertTrue(d.equals(e, verbose=3))
-        self.assertTrue(e.equals(d, verbose=3))
+        self.assertTrue(d.equals(d, verbose=2))
+        self.assertTrue(d.equals(e, verbose=2))
+        self.assertTrue(e.equals(d, verbose=2))
 
 
     def test_DomainAxis_unlimited(self):

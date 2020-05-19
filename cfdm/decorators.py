@@ -55,21 +55,24 @@ def _inplace_enabled(operation_method):
 
 
 def _inplace_enabled_define_and_cleanup(instance):
-    '''Delete attribute set by inable_enabled but store and return its value.
+    '''Delete attribute set by inable_enabled but store and return its
+    value.
 
     Designed as a convenience function for use at the start of methods
-    decorated by inplace_enabled; the core variable used throughout for the
-    instance in the decorated method should first be assigned to this
-    function with the class instance as the input. For example:
+    decorated by inplace_enabled; the core variable used throughout
+    for the instance in the decorated method should first be assigned
+    to this function with the class instance as the input. For
+    example:
 
     d = _inplace_enabled_define_and_cleanup(self)
 
-    should be set initially for a method operating inplace or otherwise
-    (via inplace_enabled) on a data array, d.
+    should be set initially for a method operating inplace or
+    otherwise (via inplace_enabled) on a data array, d.
 
-    In doing so, the relevant construct variable can be defined appropriately
-    and the internal attribute created for that purpose by inplace_enabled
-    (which is no longer required) can be cleaned up, all in one line.
+    In doing so, the relevant construct variable can be defined
+    appropriately and the internal attribute created for that purpose
+    by inplace_enabled (which is no longer required) can be cleaned
+    up, all in one line.
 
     '''
     try:
@@ -82,40 +85,47 @@ def _inplace_enabled_define_and_cleanup(instance):
 
 
 def _manage_log_level_via_verbosity(method_with_verbose_kwarg):
-    '''A decorator for managing log message filtering by verbosity argument.
+    '''A decorator for managing log message filtering by verbosity
+    argument.
 
-    This enables overriding of the log severity level such that an integer
-    input (lying in the valid range) to the decorated function will ignore
-    the global cfdm.LOG_LEVEL() to configure a custom verbosity
-    for the individual function call, applying to its logic and any
-    functions it calls internally and lasting only the duration of the call.
+    This enables overriding of the log severity level such that an
+    integer input (lying in the valid range) to the decorated function
+    will ignore the global cfdm.LOG_LEVEL() to configure a custom
+    verbosity for the individual function call, applying to its logic
+    and any functions it calls internally and lasting only the
+    duration of the call.
 
-    If verbose=None, as is the default, the LOG_LEVEL() determines
-    which log messages are shown, as standard.
+    If *verbose* is `None`, as is the default, the LOG_LEVEL()
+    determines which log messages are shown, as standard.
 
     Only use this to decorate functions which make log calls directly
-    and have a 'verbose' keyword argument set to None by default.
+    and have a *verbose* keyword argument set to None by default.
+
     '''
 
     @wraps(method_with_verbose_kwarg)
     def verbose_override_wrapper(self, *args, **kwargs):
-        # Deliberately error if verbose kwarg not set, if not by user then
-        # as a default to the decorated function, as this is crucial to usage.
+        # Deliberately error if verbose kwarg not set, if not by user
+        # then as a default to the decorated function, as this is
+        # crucial to usage.
         verbose = kwargs.get('verbose')
 
-        # Convert Boolean cases for backwards compatibility. Need 'is' identity
-        # rather than '==' (value) equivalency test, since 1 == True, etc.
+        # Convert Boolean cases for backwards compatibility. Need 'is'
+        # identity rather than '==' (value) equivalency test, since 1
+        # == True, etc.
         if verbose is True:
-            verbose = 3  # max verbosity excluding debug levels
+            verbose = 3  # maximum verbosity below DEBUG
         elif verbose is False:
             verbose = 0  # corresponds to disabling logs i.e. no verbosity
 
-        # Override log levels for the function & all it calls (to reset at end)
+        # Override log levels for the function & all it calls (to
+        # reset at end)
         if verbose in numeric_log_level_map.keys():
             _reset_log_emergence_level(numeric_log_level_map[verbose])
-        elif verbose is not None:  # None as default, note exclude True & False
-            # Print rather than log because if user specifies a verbose kwarg
-            # they want to change the log levels so may have them disabled.
+        elif verbose is not None:  # None as default, note exclude
+            # True & False Print rather than log because if user
+            # specifies a verbose kwarg they want to change the log
+            # levels so may have them disabled.
             print(
                 "Invalid value for the 'verbose' keyword argument. Accepted "
                 "values are integers from -1 to {} corresponding in the "
@@ -126,12 +136,14 @@ def _manage_log_level_via_verbosity(method_with_verbose_kwarg):
             )
             return
 
-        # First need to (temporarily) re-enable global logging if disabled
-        # in the cases where you do not want to disable it anyway:
+        # First need to (temporarily) re-enable global logging if
+        # disabled in the cases where you do not want to disable it
+        # anyway:
         if (LOG_LEVEL() == 'DISABLE' and verbose not in (0, None)):
             _disable_logging(at_level='NOTSET')  # enables all logging again
 
-        # After method completes, re-set any changes to log level or enabling
+        # After method completes, re-set any changes to log level or
+        # enabling
         try:
             return method_with_verbose_kwarg(self, *args, **kwargs)
         except Exception as exc:

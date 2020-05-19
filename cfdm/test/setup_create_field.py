@@ -8,7 +8,7 @@ import numpy
 
 import cfdm
 
-verbose  = False
+verbose  = 0
 warnings = False
 
 
@@ -16,9 +16,11 @@ class create_fieldTest(unittest.TestCase):
     def setUp(self):
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL('DISABLE')
-        # Note: to enable all messages for given methods, lines or calls (those
-        # without a 'verbose' option to do the same) e.g. to debug them, wrap
-        # them (for methods, start-to-end internally) as follows:
+        # Note: to enable all messages for given methods, lines or
+        # calls (those without a 'verbose' option to do the same)
+        # e.g. to debug them, wrap them (for methods, start-to-end
+        # internally) as follows:
+        #
         # cfdm.LOG_LEVEL('DEBUG')
         # < ... test code ... >
         # cfdm.LOG_LEVEL('DISABLE')
@@ -30,7 +32,6 @@ class create_fieldTest(unittest.TestCase):
             os.remove(self.filename)
         except:
             pass
-
 
     def test_create_field(self):
 
@@ -200,7 +201,7 @@ class create_fieldTest(unittest.TestCase):
 
         self.assertTrue(f.equals(f.copy(), verbose=verbose),
                         "Field f not equal to a copy of itself")
-
+        
         if verbose:
             print("####################################################")
 

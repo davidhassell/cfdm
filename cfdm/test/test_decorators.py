@@ -147,7 +147,7 @@ class DecoratorsTest(unittest.TestCase):
 
             # Boolean cases for testing backwards compatibility...
 
-            # ... verbose=True should be equivalent to verbose=3 now:
+            # ... verbose=True should be equivalent to verbose=2 now:
             with self.assertLogs(level=cfdm.LOG_LEVEL()) as catch:
                 test_class.decorated_logging_func(verbose=True)
                 for msg in log_message:

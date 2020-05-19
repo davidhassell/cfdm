@@ -3,9 +3,9 @@
 '''
 
 __author__       = 'David Hassell'
-__date__         = '2020-04-30'
+__date__         = '2020-05-??'
 __cf_version__   = '1.8'
-__version__      = '1.8.3'
+__version__      = '1.8.4'
 
 from distutils.version import LooseVersion
 import platform

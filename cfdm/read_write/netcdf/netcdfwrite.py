@@ -967,9 +967,9 @@ class NetCDFWrite(IOWrite):
 
     :Parameters:
 
-        variable :
+        variable:
 
-        ncdims : `tuple`, optional
+        ncdims: `tuple`, optional
 
     :Returns:
 
@@ -990,6 +990,7 @@ class NetCDFWrite(IOWrite):
                 continue
 
             # Still here?
+            print(999)
             if self.implementation.equal_constructs(variable,
                                                     value['variable'],
                                                     ignore_type=ignore_type):
@@ -997,6 +998,7 @@ class NetCDFWrite(IOWrite):
                                       'ncvar'   : value['ncvar'],
                                       'ncdims'  : value['ncdims']}
                 return True
+            print(8888881)
         # --- End: for
 
         return False
@@ -1536,7 +1538,7 @@ class NetCDFWrite(IOWrite):
         g['part_ncdim'] = ncdim
 
         return {'part_node_count': ncvar,
-                'part_ncdim'     : ncdim}
+                'part_ncdim': ncdim}
 
     def _write_interior_ring(self, coord, bounds, encodings):
         '''TODO
@@ -3258,7 +3260,7 @@ class NetCDFWrite(IOWrite):
 
     :Parameters:
 
-        fields : `list` of field constructs
+        fields: `list` of `Field`
 
     :Returns:
 
@@ -3472,56 +3474,58 @@ class NetCDFWrite(IOWrite):
               datatype=None, least_significant_digit=None,
               endian='native', compress=0, fletcher32=False,
               shuffle=True, scalar=True, string=True,
-              extra_write_vars=None, verbose=None,
-              warn_valid=True):
+              extra_write_vars=None, verbose=None, warn_valid=True):
         '''Write fields to a netCDF file.
 
     NetCDF dimension and variable names will be taken from variables'
     `!ncvar` attributes and the field attribute `!ncdimensions` if
     present, otherwise they are inferred from standard names or set to
-    defaults. NetCDF names may be automatically given a numerical suffix
-    to avoid duplication.
+    defaults. NetCDF names may be automatically given a numerical
+    suffix to avoid duplication.
 
-    Output netCDF file global properties are those which occur in the set
-    of CF global properties and non-standard data variable properties and
-    which have equal values across all input fields.
+    Output netCDF file global properties are those which occur in the
+    set of CF global properties and non-standard data variable
+    properties and which have equal values across all input fields.
 
     Logically identical field components are only written to the file
-    once, apart from when they need to fulfil both dimension coordinate
-    and auxiliary coordinate roles for different data variables.
+    once, apart from when they need to fulfil both dimension
+    coordinate and auxiliary coordinate roles for different data
+    variables.
 
     .. versionadded:: 1.7.0
 
     :Parameters:
 
-        fields : (arbitrarily nested sequence of) `cf.Field`
-            The field or fields to write to the file.
+        fields: (sequence of) `Field`
+            The field constructs to write to the file.
 
-        filename : str
+        filename: `str`
             The output CF-netCDF file. Various type of expansion are
             applied to the file names:
 
-              ====================  ======================================
-              Expansion             Description
-              ====================  ======================================
-              Tilde                 An initial component of ``~`` or
-                                    ``~user`` is replaced by that *user*'s
-                                    home directory.
+            ====================  ====================================
+            Expansion             Description
+            ====================  ====================================
+            Tilde                 An initial component of ``~`` or
+                                  ``~user`` is replaced by that
+                                   *user*'s home directory.
 
-              Environment variable  Substrings of the form ``$name`` or
-                                    ``${name}`` are replaced by the value
-                                    of environment variable *name*.
-              ====================  ======================================
+            Environment variable  Substrings of the form ``$name`` or
+                                  ``${name}`` are replaced by the 
+                                  value of environment variable
+                                  *name*.
+            ====================  ====================================
 
             Where more than one type of expansion is used in the same
             string, they are applied in the order given in the above
             table.
 
-              Example: If the environment variable *MYSELF* has been set
-              to the "david", then ``'~$MYSELF/out.nc'`` is equivalent to
+            *Parameter example:*
+              If the environment variable *MYSELF* has been set to the
+              "david", then ``'~$MYSELF/out.nc'`` is equivalent to
               ``'~david/out.nc'``.
 
-        fmt : str, optional
+        fmt: `str`, optional
             The format of the output file. One of:
 
             ==========================  =================================================
@@ -3539,20 +3543,21 @@ class NetCDFWrite(IOWrite):
             By default the *fmt* is ``'NETCDF4'``. Note that the
             netCDF3 formats may be slower than netCDF4 options.
 
-        overwrite: bool, optional
+        overwrite: `bool`, optional
             If False then raise an exception if the output file
             pre-exists. By default a pre-existing output file is over
             written.
 
-        verbose : bool, optional
-            If True then print one-line summaries of each field written.
+        verbose: `int`, optional
+            TODO
 
-        datatype : dict, optional
-            Specify data type conversions to be applied prior to writing
-            data to disk. Arrays with data types which are not specified
-            remain unchanged. By default, array data types are preserved
-            with the exception of Booleans (``numpy.dtype(bool)``, which
-            are converted to 32 bit integers.
+        datatype: `dict`, optional
+            Specify data type conversions to be applied prior to
+            writing data to disk. Arrays with data types which are not
+            specified remain unchanged. By default, array data types
+            are preserved with the exception of Booleans
+            (``numpy.dtype(bool)``, which are converted to 32 bit
+            integers.
 
             *Parameter example:*
               To convert 64 bit floats and integers to their 32 bit
@@ -3562,11 +3567,12 @@ class NetCDFWrite(IOWrite):
 
         Conventions: (sequence of) `str`, optional
              Specify conventions to be recorded by the netCDF global
-             "Conventions" attribute. These conventions are in addition to
-             version of CF being used e.g. ``'CF-1.7'``, which must not be
-             specified. If the "Conventions" property is set on a field
-             construct then it is ignored. Note that a convention name is
-             not allowed to contain any commas.
+             "Conventions" attribute. These conventions are in
+             addition to version of CF being used e.g. ``'CF-1.7'``,
+             which must not be specified. If the "Conventions"
+             property is set on a field construct then it is
+             ignored. Note that a convention name is not allowed to
+             contain any commas.
 
              *Parameter example:*
                ``Conventions='UGRID-1.0'``
@@ -3763,7 +3769,7 @@ class NetCDFWrite(IOWrite):
         # converted to 32-bit integers and python objects are
         # converted to 64-bit floats.
         # ------------------------------------------------------------
-        dtype_conversions = {numpy.dtype(bool)  : numpy.dtype('int32'),
+        dtype_conversions = {numpy.dtype(bool): numpy.dtype('int32'),
                              numpy.dtype(object): numpy.dtype(float)}
         if datatype:
             dtype_conversions.update(datatype)
@@ -3791,8 +3797,10 @@ class NetCDFWrite(IOWrite):
                 fields = tuple(fields)
             except TypeError:
                 raise TypeError("'fields' parameter must be a (sequence of) "
-                                "Field instances")
-
+                                "Field constructs. Got {}".format(
+                                    type(fields)))
+        # --- End: if
+        
         # ------------------------------------------------------------
         # Scalar coordinate variables
         # ------------------------------------------------------------

@@ -14,9 +14,11 @@ class DomainTest(unittest.TestCase):
     def setUp(self):
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL('DISABLE')
-        # Note: to enable all messages for given methods, lines or calls (those
-        # without a 'verbose' option to do the same) e.g. to debug them, wrap
-        # them (for methods, start-to-end internally) as follows:
+        # Note: to enable all messages for given methods, lines or
+        # calls (those without a 'verbose' option to do the same)
+        # e.g. to debug them, wrap them (for methods, start-to-end
+        # internally) as follows:
+        #
         # cfdm.LOG_LEVEL('DEBUG')
         # < ... test code ... >
         # cfdm.LOG_LEVEL('DISABLE')
@@ -29,7 +31,6 @@ class DomainTest(unittest.TestCase):
 
         self.test_only = []
 
-
     def test_Domain__repr__str__dump(self):
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
@@ -40,7 +41,6 @@ class DomainTest(unittest.TestCase):
         _ = str(d)
         _ = d.dump(display=False)
 
-
     def test_Domain_equals(self):
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
@@ -50,10 +50,9 @@ class DomainTest(unittest.TestCase):
         d = f.domain
         e = d.copy()
 
-        self.assertTrue(d.equals(d, verbose=3))
-        self.assertTrue(d.equals(e, verbose=3))
-        self.assertTrue(e.equals(d, verbose=3))
-
+        self.assertTrue(d.equals(d, verbose=1))
+        self.assertTrue(d.equals(e, verbose=1))
+        self.assertTrue(e.equals(d, verbose=1))
 
 #--- End: class
 

@@ -15,22 +15,26 @@ class create_fieldTest(unittest.TestCase):
     def setUp(self):
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL('DISABLE')
-        # Note: to enable all messages for given methods, lines or calls (those
-        # without a 'verbose' option to do the same) e.g. to debug them, wrap
-        # them (for methods, start-to-end internally) as follows:
+        # Note: to enable all messages for given methods, lines or
+        # calls (those without a 'verbose' option to do the same)
+        # e.g. to debug them, wrap them (for methods, start-to-end
+        # internally) as follows:
+        #
         # cfdm.LOG_LEVEL('DEBUG')
         # < ... test code ... >
         # cfdm.LOG_LEVEL('DISABLE')
 
     def test_core_create_field(self):
         # Dimension coordinates
-        dim1 = cfdm.core.DimensionCoordinate(data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.arange(10.))))
+        dim1 = cfdm.core.DimensionCoordinate(
+            data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.arange(10.))))
         dim1.set_property('standard_name', 'grid_latitude')
         dim1.set_property('units', 'degrees')
 
         data = numpy.arange(9.) + 20
         data[-1] = 34
-        dim0 = cfdm.core.DimensionCoordinate(data=cfdm.core.Data(cfdm.core.NumpyArray(data)))
+        dim0 = cfdm.core.DimensionCoordinate(
+            data=cfdm.core.Data(cfdm.core.NumpyArray(data)))
         dim0.set_property('standard_name', 'grid_longitude')
         dim0.set_property('units', 'degrees')
 
@@ -39,12 +43,17 @@ class create_fieldTest(unittest.TestCase):
         array = numpy.array([array-0.5, array+0.5]).transpose((1,0))
         array[-2, 1] = 30
         array[-1, :] = [30, 36]
-        dim0.set_bounds(cfdm.core.Bounds(data=cfdm.core.Data(cfdm.core.NumpyArray(array))))
+        dim0.set_bounds(
+            cfdm.core.Bounds(data=cfdm.core.Data(cfdm.core.NumpyArray(array))))
 
         dim2 = cfdm.core.DimensionCoordinate(
-            data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.array([1.5]))),
-            bounds=cfdm.core.Bounds(data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.array([[1, 2.]])))))
-        dim2.set_property('standard_name'         , 'atmosphere_hybrid_height_coordinate')
+            data=cfdm.core.Data(
+                cfdm.core.NumpyArray(numpy.array([1.5]))),
+            bounds=cfdm.core.Bounds(
+                data=cfdm.core.Data(
+                    cfdm.core.NumpyArray(numpy.array([[1, 2.]])))))
+        dim2.set_property(
+            'standard_name', 'atmosphere_hybrid_height_coordinate')
         dim2.set_property('computed_standard_name', 'altitude')
 
         # Auxiliary coordinates
@@ -52,37 +61,47 @@ class create_fieldTest(unittest.TestCase):
             data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.array([10.]))))
         ak.set_property('units', 'm')
         ak.set_bounds(cfdm.core.Bounds(
-            data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.array([[5, 15.]])))))
+            data=cfdm.core.Data(
+                cfdm.core.NumpyArray(numpy.array([[5, 15.]])))))
 
         bk = cfdm.core.DomainAncillary(
             data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.array([20.]))))
         bk.set_bounds(cfdm.core.Bounds(
-            data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.array([[14, 26.]])))))
+            data=cfdm.core.Data(
+                cfdm.core.NumpyArray(numpy.array([[14, 26.]])))))
 
         aux2 = cfdm.core.AuxiliaryCoordinate(
-            data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.arange(-45, 45, dtype='int32').reshape(10, 9))))
+            data=cfdm.core.Data(
+                cfdm.core.NumpyArray(
+                    numpy.arange(-45, 45, dtype='int32').reshape(10, 9))))
         aux2.set_property('units', 'degree_N')
         aux2.set_property('standard_name', 'latitude')
 
         aux3 = cfdm.core.AuxiliaryCoordinate(
-            data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.arange(60, 150, dtype='int32').reshape(9, 10))))
+            data=cfdm.core.Data(
+                cfdm.core.NumpyArray(
+                    numpy.arange(60, 150, dtype='int32').reshape(9, 10))))
         aux3.set_property('standard_name', 'longitude')
         aux3.set_property('units', 'degreeE')
 
-        array = numpy.ma.array(['alpha','beta','gamma','delta','epsilon',
-                                'zeta','eta','theta','iota','kappa'], dtype='S')
+        array = numpy.ma.array(
+            ['alpha','beta','gamma','delta','epsilon',
+             'zeta','eta','theta','iota','kappa'], dtype='S')
         array[0] = numpy.ma.masked
-        aux4 = cfdm.core.AuxiliaryCoordinate(data=cfdm.core.Data(cfdm.core.NumpyArray(array)))
+        aux4 = cfdm.core.AuxiliaryCoordinate(
+            data=cfdm.core.Data(cfdm.core.NumpyArray(array)))
         aux4.set_property('long_name', 'greek_letters')
 
         # Cell measures
         msr0 = cfdm.core.CellMeasure(
-            data=cfdm.core.Data(cfdm.core.NumpyArray(1+numpy.arange(90.).reshape(9, 10)*1234)))
+            data=cfdm.core.Data(
+                cfdm.core.NumpyArray(1+numpy.arange(90.).reshape(9, 10)*1234)))
         msr0.set_measure('area')
         msr0.set_property('units', 'km2')
 
         # Data
-        data = cfdm.core.Data(cfdm.core.NumpyArray(numpy.arange(90.).reshape(10, 9)))
+        data = cfdm.core.Data(
+            cfdm.core.NumpyArray(numpy.arange(90.).reshape(10, 9)))
 
         properties = {'units': 'm s-1'}
 
@@ -152,11 +171,13 @@ class create_fieldTest(unittest.TestCase):
         f.set_construct(anc, axes=[axisY, axisX])
 
         data = f_data.array[0]
-        anc = cfdm.core.FieldAncillary(data=cfdm.core.Data(cfdm.core.NumpyArray(data)))
+        anc = cfdm.core.FieldAncillary(
+            data=cfdm.core.Data(cfdm.core.NumpyArray(data)))
         f.set_construct(anc, axes=[axisX])
 
         data = f_data.array[..., 0]
-        anc = cfdm.core.FieldAncillary(data=cfdm.core.Data(cfdm.core.NumpyArray(data)))
+        anc = cfdm.core.FieldAncillary(
+            data=cfdm.core.Data(cfdm.core.NumpyArray(data)))
         f.set_construct(anc, axes=[axisY])
 
         f.set_property('flag_values', numpy.array([1, 2, 4], 'int32'))
@@ -167,7 +188,8 @@ class create_fieldTest(unittest.TestCase):
             axes=[axisX],
             method='mean',
             qualifiers={
-                'interval': [cfdm.core.Data(cfdm.core.NumpyArray(numpy.array(1)), 'day')],
+                'interval': [cfdm.core.Data(
+                    cfdm.core.NumpyArray(numpy.array(1)), 'day')],
                 'comment' : 'ok'})
 
         cm1 = cfdm.core.CellMethod(
@@ -178,11 +200,9 @@ class create_fieldTest(unittest.TestCase):
         f.set_construct(cm0)
         f.set_construct(cm1)
 
-
     def test_core_FUNCTIONS(self):
         self.assertTrue(cfdm.core.CF() == cfdm.core.__cf_version__)
         _ = cfdm.core.environment(display=False)
-
 
 #--- End: class
 

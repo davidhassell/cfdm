@@ -761,14 +761,16 @@ class CFDMImplementation(Implementation):
         '''TODO
 
         '''
-        return construct0.equals(construct1, ignore_type=ignore_type)
+        return construct0.equals(construct1, ignore_type=ignore_type,
+                                 verbose=0)
 
     def equal_properties(self, property_value0, property_value1):
         '''TODO
 
         '''
         field = self.get_class('Field')()
-        return field._equals(property_value0, property_value1)
+        return field._equals(property_value0, property_value1,
+                             verbose=0)
 
     def equal_datums(self, coordinate_reference0, coordinate_reference1):
         '''TODO
@@ -786,7 +788,7 @@ class CFDMImplementation(Implementation):
         '''
         datum0 = coordinate_reference0.datum
         datum1 = coordinate_reference1.datum
-        return datum0.equals(datum1)
+        return datum0.equals(datum1, verbose=0)
 
     def get_construct_data_size(self, construct):
         '''TODO
