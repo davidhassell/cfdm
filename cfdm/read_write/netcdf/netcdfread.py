@@ -537,6 +537,12 @@ class NetCDFRead(IORead):
             # --------------------------------------------------------
             'geometries': {},
 
+            # --------------------------------------------------------
+            # Interpolation containers, keyed by their netCDF
+            # interpolation container variable names.
+            # --------------------------------------------------------
+            'interpolation': {},
+
             'do_not_create_field':  set(),
             'references': {},
 
@@ -580,7 +586,7 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         # Set versions
-        for version in ('1.6', '1.7', '1.8', '1.9'):
+        for version in ('1.6', '1.7', '1.8', '1.9', '1.10'):
             g['version'][version] = LooseVersion(version)
 
         # ------------------------------------------------------------
@@ -691,7 +697,7 @@ class NetCDFRead(IORead):
         g['file_version'] = LooseVersion(file_version)
 
         # Set minimum versions
-        for vn in ('1.6', '1.7', '1.8', '1.9'):
+        for vn in ('1.6', '1.7', '1.8', '1.9', '1.10'):
             g['CF>='+vn] = (g['file_version'] >= g['version'][vn])
 
         # ------------------------------------------------------------
@@ -879,6 +885,26 @@ class NetCDFRead(IORead):
                 g['do_not_create_field'].add(geometry_ncvar)
         # --- End: if
 
+        # ------------------------------------------------------------
+        # Subsampled variables (CF>=?.?)
+        #
+        # Identify and parse all subsampled variables and their
+        # corresponding index and container variables
+        # ------------------------------------------------------------
+        if g['CF>=?.?']:            
+            for ncvar, attributes in variable_attributes.items():
+                if 'interpolation' not in attributes: # attr name may change
+                    continue
+
+                interpolation_ncvar  = attributes['attirbute']
+                self._parse_interpolation(ncvar, interpolation_ncvar,
+                                          variable_attributes)
+
+                # Do not attempt to create a field construct from an
+                # interpolation container variable
+                g['do_not_create_field'].add(interpolation_ncvar)
+        # --- End: if
+        
         # ------------------------------------------------------------
         # Parse external variables (CF>=1.7)
         # ------------------------------------------------------------
@@ -1729,6 +1755,49 @@ class NetCDFRead(IORead):
              'node_dimension'    : node_dimension}
         )
 
+    def _parse_interpolation(self, field_ncvar, interpolation_ncvar,
+                             attributes):
+        '''TODO
+
+    .. versionadded:: 1.? TODO
+
+    :Parameters:
+
+        field_ncvar: `str`
+            The netCDF variable name of the parent data variable.
+
+        interpolation_ncvar: `str`
+            The netCDF variable name of the interpolation container
+            variable.
+
+        attributes: `dict`
+            All attributes of all netCDF variables, keyed by netCDF
+            variable name.
+
+    :Returns:
+
+        `None`
+
+        '''
+        g = self.read_vars
+
+        logger.info(
+            "    Interpolation container = {!r}".format(interpolation_ncvar)
+        )  # pragma: no cover
+        logger.info(
+            "        netCDF attributes: {}".format(
+                attributes[interpolation_ncvar])
+        )  # pragma: no cover
+
+        if interpolation_ncvar in g['interpolation']:
+            # We've already parsed this interpolation container
+            return
+
+        g['interpolation'][interpolation_ncvar].update(
+            {'interpolation_name': interpolation_name,
+             }
+        )
+
     def _set_ragged_contiguous_parameters(self,
                                           elements_per_instance=None,
                                           sample_dimension=None,
@@ -2262,6 +2331,18 @@ class NetCDFRead(IORead):
                 self.implementation.nc_set_geometry_variable(f, geometry)
         # --- End: if
 
+        # ------------------------------------------------------------
+        # Remove the field construct's "interpolation" property,
+        # saving its value
+        # ------------------------------------------------------------
+        if g['CF>=1.?']:
+            interpolation = self.implementation.del_property(
+                f, 'interpolation', None)
+            if interpolation is not None:
+                self.implementation.nc_set_interpolation_variable(
+                    f, interpolation)
+        # --- End: if
+
         # Map netCDF dimension names to domain axis names.
         #
         # For example: {'lat': 'dim0', 'time': 'dim1'}
@@ -2771,6 +2852,20 @@ class NetCDFRead(IORead):
                 # --- End: for
         # --- End: if
 
+        # ------------------------------------------------------------
+        # Add subsampled coordinates. Do this after grid mappings and
+        # formula terms. (CF>=1.TODO)
+        # ------------------------------------------------------------
+        interpolation = self._get_interpolation(field_ncvar)
+        if interpolation is not None:
+            # 1. Read "subsampled_coordinates" attribute
+            #
+            # 2. Create Subsampled variable instances (ultimately with
+            #    self._create_bounded_construct)
+            #
+            # 3. Create Auxiliary coordinate constructs that contiThese will end up embedded within auxiliary
+            pass # TODO
+
         # ----------------------------------------------------------------
         # Add cell measures to the field
         # ----------------------------------------------------------------
@@ -2963,6 +3058,32 @@ class NetCDFRead(IORead):
             geometry_ncvar = (
                 g['variable_attributes'][field_ncvar].get('geometry'))
             return g['geometries'].get(geometry_ncvar)
+
+    def _get_interpolation(self, field_ncvar):
+        '''Return an interpolation container for this field construct.
+
+    .. versionadded:: 1.TODO
+
+    :Parameters:
+
+        field_ncvar: `str`
+            The netCDF varibale name for the field construct.
+
+    :Returns:
+
+        `dict` or `None`
+            A `dict` containing interpolation container
+            information. If there is no container for this data
+            variable, or if the file version is pre-CF-1.TODO, then
+            `None` is returned.
+
+        '''
+        g = self.read_vars
+        if g['CF>=1.TODO']:
+            interpolation_ncvar = (
+                g['variable_attributes'][field_ncvar].get('interpolation')
+            )
+            return g['interpolation'].get(interpolation_ncvar)
 
     def _add_message(self, field_ncvar, ncvar, message=None,
                      attribute=None, dimensions=None, variable=None,

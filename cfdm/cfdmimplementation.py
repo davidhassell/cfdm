@@ -662,6 +662,22 @@ class CFDMImplementation(Implementation):
         '''
         return field.nc_get_geometry_variable(default)
 
+    def nc_get_interpolation_variable(self, field, default=None):
+        '''TODO
+
+    .. versionadded:: 1.?.?
+
+    :Parameters:
+
+        TODO
+
+    :Returns:
+
+        `str`
+
+        '''
+        return field.nc_get_interpolation_variable(default)
+
     def nc_get_hdf5_chunksizes(self, data):
         '''Return the HDF5 chunksizes for the data.
 
@@ -1741,6 +1757,20 @@ class CFDMImplementation(Implementation):
 
         '''
         field.nc_set_geometry_variable(ncvar)
+
+    def nc_set_interpolation_variable(self, field, ncvar):
+        '''TODO
+
+    .. versionadded:: 1.?.? TODO
+
+    :Parameters:
+
+    :Returns:
+
+        `None`
+
+        '''
+        field.nc_set_interpolation_variable(ncvar)
 
     def nc_set_variable(self, parent, ncvar):
         '''TODO
