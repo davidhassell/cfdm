@@ -61,7 +61,8 @@ class DomainAxis(abstract.Container):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> d = {{package}}.DomainAxis()
+    >>> d.construct_type
     'domain_axis'
 
         '''
@@ -87,6 +88,7 @@ class DomainAxis(abstract.Container):
 
     **Examples:**
 
+    >>> d = {{package}}.DomainAxis()
     >>> d.set_size(96)
     >>> d.has_size()
     True
@@ -122,6 +124,7 @@ class DomainAxis(abstract.Container):
 
     **Examples:**
 
+    >>> d = {{package}}.DomainAxis()
     >>> d.set_size(96)
     >>> d.has_size()
     True
@@ -155,10 +158,12 @@ class DomainAxis(abstract.Container):
 
     :Returns:
 
+        `int`
             The size.
 
     **Examples:**
 
+    >>> d = {{package}}.DomainAxis()
     >>> d.set_size(96)
     >>> d.has_size()
     True
@@ -201,6 +206,7 @@ class DomainAxis(abstract.Container):
 
     **Examples:**
 
+    >>> d = {{package}}.DomainAxis()
     >>> d.set_size(96)
     >>> d.has_size()
     True
@@ -213,6 +219,7 @@ class DomainAxis(abstract.Container):
     >>> print(d.del_size(None))
     None
     >>> print(d.get_size(None))
+    None
 
         '''
         self._set_component('size', size, copy=copy)

@@ -47,7 +47,8 @@ class DimensionCoordinate(abstract.Coordinate):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> c = {{package}}.DimensionCoordinate()
+    >>> c.construct_type
     'dimension_coordinate'
 
         '''
@@ -67,7 +68,7 @@ class DimensionCoordinate(abstract.Coordinate):
 
         data: data_like
             The data to be inserted. Must be 1-dimensional,
-            i.e. scalar or multidimensionl data is not allowed.
+            i.e. scalar or multidimensional data is not allowed.
 
             {{data_like}}
 
@@ -88,19 +89,19 @@ class DimensionCoordinate(abstract.Coordinate):
 
     **Examples:**
 
-    >>> d = {{package}}.Data(range(10))
-    >>> f.set_data(d)
-    >>> f.has_data()
+    >>> c = {{package}}.DimensionCoordinate()
+    >>> c.set_data(range(10))
+    >>> c.has_data()
     True
-    >>> f.get_data()
+    >>> c.get_data()
     <{{repr}}Data(10): [0, ..., 9]>
-    >>> f.del_data()
+    >>> c.del_data()
     <{{repr}}Data(10): [0, ..., 9]>
-    >>> f.has_data()
+    >>> c.has_data()
     False
-    >>> print(f.get_data(None))
+    >>> print(c.get_data(None))
     None
-    >>> print(f.del_data(None))
+    >>> print(c.del_data(None))
     None
 
         '''

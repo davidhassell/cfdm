@@ -156,12 +156,12 @@ class Domain(mixin.ConstructAccess,
 
     :Returns:
 
-        `{{class}}`
+        `Domain`
             The domain created from a view of the constructs.
 
     **Examples:**
 
-    >>> d = {{package}}.{{class}}.fromconstructs(f.constructs)
+    >>> d = {{package}}.Domain.fromconstructs(f.constructs)
 
         '''
         domain = cls()

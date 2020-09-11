@@ -86,7 +86,8 @@ class CellMeasure(abstract.PropertiesData):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> c = {{package}}.CellMeasure()
+    >>> c.construct_type
     'cell_measure'
 
         '''
@@ -109,6 +110,7 @@ class CellMeasure(abstract.PropertiesData):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMeasure()
     >>> c.set_measure('area')
     >>> c.has_measure()
     True
@@ -144,6 +146,7 @@ class CellMeasure(abstract.PropertiesData):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMeasure()
     >>> c.set_measure('area')
     >>> c.has_measure()
     True
@@ -180,6 +183,7 @@ class CellMeasure(abstract.PropertiesData):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMeasure()
     >>> c.set_measure('area')
     >>> c.has_measure()
     True
@@ -222,6 +226,7 @@ class CellMeasure(abstract.PropertiesData):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMeasure()
     >>> c.set_measure('area')
     >>> c.has_measure()
     True

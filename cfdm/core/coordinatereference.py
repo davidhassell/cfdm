@@ -152,7 +152,8 @@ class CoordinateReference(abstract.Container):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> c = {{package}}.CoordinateReference()
+    >>> c.construct_type
     'coordinate_reference'
 
         '''

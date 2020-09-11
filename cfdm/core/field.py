@@ -139,6 +139,7 @@ class Field(mixin.ConstructAccess,
 
     **Examples:**
 
+    >>> f = {{package}}.Field()
     >>> f.construct_type
     'field'
 

@@ -35,7 +35,8 @@ class DomainAncillary(abstract.PropertiesDataBounds):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> c = {{package}}.DomainAncillary()
+    >>> c.construct_type
     'domain_ancillary'
 
     '''

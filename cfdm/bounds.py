@@ -135,8 +135,8 @@ class Bounds(mixin.NetCDFVariable,
 
     **Examples:**
 
-    >>> d = {{package}}.Data(range(10))
-    >>> f.set_data(d)
+    >>> f = {{package}}.Bounds()
+    >>> f.set_data(range(10))
     >>> f.has_data()
     True
     >>> f.get_data()

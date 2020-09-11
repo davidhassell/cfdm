@@ -131,7 +131,8 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> c = {{package}}.CellMethod()
+    >>> c.construct_type
     'cell_method'
 
         '''
@@ -140,25 +141,6 @@ class CellMethod(abstract.Container):
     # ----------------------------------------------------------------
     # Methods
     # ----------------------------------------------------------------
-#    def copy(self):
-#        '''Return a deep copy.
-#
-#    ``f.copy()`` is equivalent to ``copy.deepcopy(f)``.
-#
-#    .. versionadded:: (cfdm) 1.7.0
-#
-#    :Returns:
-#
-#        `{{class}}`
-#            The deep copy.
-#
-#    **Examples:**
-#
-#    >>> g = f.copy()
-#
-#        '''
-#        return type(self)(source=self, copy=True)
-
     def del_axes(self, default=ValueError()):
         '''Remove the axes of the cell method.
 
@@ -181,6 +163,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_axes('domainaxis1')
     >>> c.has_axes()
     True
@@ -223,6 +206,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_method('minimum')
     >>> c.has_method()
     True
@@ -309,6 +293,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_axes('domainaxis1')
     >>> c.has_axes()
     True
@@ -351,6 +336,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_method('minimum')
     >>> c.has_method()
     True
@@ -399,6 +385,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_qualifier('where', 'land')
     >>> c.get_qualifier('where', 'no qualifier')
     'land'
@@ -430,6 +417,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_axes('domainaxis1')
     >>> c.has_axes()
     True
@@ -460,6 +448,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_method('minimum')
     >>> c.has_method()
     True
@@ -496,6 +485,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_qualifier('where', 'land')
     >>> c.has_qualifier('where')
     True
@@ -570,6 +560,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_axes('domainaxis1')
     >>> c.has_axes()
     True
@@ -621,6 +612,7 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_method('minimum')
     >>> c.has_method()
     True
@@ -662,9 +654,14 @@ class CellMethod(abstract.Container):
 
     **Examples:**
 
+    >>> c = {{package}}.CellMethod()
     >>> c.set_qualifier('where', 'land')
-    >>> c.get_qualifier('where')
+    >>> c.has_qualifier('where')
+    True
+    >>> c.del_qualifier('where')
     'land'
+    >>> c.has_qualifier('where')
+    False
 
         '''
         if copy:

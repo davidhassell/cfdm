@@ -44,7 +44,8 @@ class AuxiliaryCoordinate(abstract.Coordinate):
 
     **Examples:**
 
-    >>> f.construct_type
+    >>> c = {{package}}.AuxiliaryCoordinate()
+    >>> c.construct_type
     'auxiliary_coordinate'
 
         '''
