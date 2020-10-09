@@ -1277,6 +1277,40 @@ class NetCDFRead(IORead):
                         instance_dimension)
         # --- End: if
 
+        logger.debug("    Compression read vars:")  # pragma: no cover
+        logger.debug(
+            "        read_vars['compression'] =\n" +
+            pformat(g['compression'], indent=12)
+        )  # pragma: no cover
+
+        # ------------------------------------------------------------
+        # Identify and parse all mesh topology and location index set
+        # container variables (CF>=1.9)
+        #
+        # http://ugrid-conventions.github.io/ugrid-conventions/#data-variables
+        # http://ugrid-conventions.github.io/ugrid-conventions/#location-index-set
+        # ------------------------------------------------------------
+        if g['CF>=1.9']:
+            for ncvar, attributes in variable_attributes.items():
+                if 'mesh' not in attributes or 'location_index_set' not in attributes:
+                    # This data variable does not have a mesh topology
+                    # container
+                    continue
+
+                mesh_ncvar = self._parse_mesh(ncvar,
+                                              variable_attributes)
+
+                if not mesh_ncvar:
+                    # The mesh topology container has already been
+                    # parsed, or a sufficiently CF-compliant container
+                    # could not be found.
+                    continue
+
+                # Do not attempt to create a field construct from a
+                # mesh toppology variable
+                g['do_not_create_field'].add(mesh_ncvar)
+        # --- End: if
+
         # ------------------------------------------------------------
         # Identify and parse all geometry container variables
         # (CF>=1.8)
