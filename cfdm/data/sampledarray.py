@@ -12,11 +12,15 @@ class SampledArray(abstract.Array):
     .. versionadded:: (cfdm) TODO
 
     '''
+    # ----------------------------------------------------------------
+    # Define the interpolated array datatype, depending on the
+    # interpolation type.
+    # ----------------------------------------------------------------
     _interpolated_datatype = {
         'linear': numpy.dtype(float),
         'bilinear': numpy.dtype(float),
     }
-    
+
     def __init__(self, shape=None, size=None, ndim=None,
                  sampled_dimensions=None, interpolation=None,
                  tie_points=None, tie_point_indices=None,
@@ -35,7 +39,7 @@ class SampledArray(abstract.Array):
             The number of uncompressed array dimensions
 
         sampled_dimensions: sequence of `int`
-            TODO
+            The positions of the sampled dimensions in array.
 
         interpolation: `str`
             TODO
@@ -44,20 +48,38 @@ class SampledArray(abstract.Array):
             TODO
 
         tie_point_indices: sequence of `TiePointIndex` or `None`
-            TODO
+            TODO An elements of `None` indicates that there is a tie
+            point for every element of the corresponding target domain
+            dimension.
 
-        tie_point_offsets: sequence of `TiePointOffset` or `None`, optional
-            TODO
-        coefficients: sequence of `InterpolationCoefficient`, optional
-            TODO
+        tie_point_offsets: sequence of `TiePointOffset` or `None`
+            TODO An element of `None` is equivalent to an offset of
+            zero.
+
+        interpolation_coefficients: sequence of `InterpolationCoefficient`
+            TODO. May be an empty sequence.
 
         '''
+        sampled_dimensions = tuple(sorted(sampled_dimensions))
+
+        # Copy variables and ensure that they are stored in tuples
+        tie_points = tuple(v.copy() for v in tie_points)
+        tie_point_indices = tuple(v.copy() for v in tie_points_indices
+                                  if v is not None)
+        tie_point_offsets = tuple(v.copy() for v in tie_points_offsets
+                                  if v is not None)
+        interpolation_coefficients = tuple(
+            v.copy() for v in interpolation_coefficients
+            if v is not None
+        )
+        
         super().__init__(shape=shape, size=size, ndim=ndim,
                          sampled_dimensions=sampled_dimensions,
                          interpolation=interpolation,
                          tie_points=tie_points,
                          tie_points_indices=tie_points_indices,
                          tie_points_offsets=tie_points_offsets,
+                         interpolation_coefficients=interpolation_coefficients,
                          compression_type='sampled')
 
     def __getitem__(self, indices):
@@ -93,7 +115,7 @@ class SampledArray(abstract.Array):
     # ----------------------------------------------------------------
     @property
     def dtype(self):
-        '''Data-type of the data elements.
+        '''Data-type of the uncompressed data.
 
     .. versionadded:: (cfdm) TODO
 
@@ -205,85 +227,160 @@ class SampledArray(abstract.Array):
     def compressed_array(self):
         '''Return an independent numpy array containing the compressed data.
 
-    :Returns:
-
-        `numpy.ndarray`
-            The compressed array.
+    Always raises an exception, as there is no underlying compressed
+    array for compression by sampling.
 
     **Examples:**
 
     >>> n = a.compressed_array
-    >>> import numpy
-    >>> isinstance(n, numpy.ndarray)
-    True
+    >>> ValueError: There is no underlying compressed array for compression by sampling
 
         '''
-        ca = self._get_compressed_Array(None)
-        if ca is None:
-            raise ValueError("There is no underlying compressed array")
-
-        return ca.array
+        raise ValueError(
+            "There is no underlying compressed array for "
+            "compression by sampling"
+        )
 
     # ----------------------------------------------------------------
     # Methods
     # ----------------------------------------------------------------
-    def get_sampled_axes(self):
-        '''Return axes that are sampled in the underlying array.
+    def get_interpolation_coefficients(self):
+        '''Return the interpolation coefficient variables for sampled
+    dimensions.
 
     .. versionadded:: (cfdm) TODO
 
     :Returns:
 
-        `list`
-            The sampled axes described by their integer positions.
+        `tuple` of `InterpolationCoefficient`
+            The tie point index variables. May be an empty tuple.
 
     **Examples:**
 
-    TODO
+    >>> c = d.get_interpolation_coefficients)
 
         '''
-        TODO
-        
-#        compressed_dimension = self.get_compressed_dimension()
-#        compressed_ndim = self._get_compressed_Array().ndim
-#
-#        return list(range(
-#            compressed_dimension,
-#            self.ndim - (compressed_ndim - compressed_dimension - 1)
-#        ))
+        try:
+            return self._get_component('interpolation_coefficients')
+        except ValueError:
+            return ()
 
-    def get_sampled_dimensions(self, *default):
-        '''Return the positions of the sampled dimension in the compressed
-    array.
+    def get_sampled_dimensions(self):
+        '''Return the positions of the sampled dimensions in array.
 
-    .. versionadded:: (cfdm) 1.7.0
+    .. versionadded:: (cfdm) TODO
 
-    .. seealso:: `get_compressed_axearray`, `get_compressed_axes`,
-                 `get_compressed_type`
+    .. seealso:: TODO
+
+    :Returns:
+
+        `tuple` of `int`
+            The positions of the sampled dimensions in the array.
+
+    **Examples:**
+
+    >>> i = d.get_sampled_dimensions()
+
+        '''
+        return self._get_component('sampled_dimensions')
+
+    def get_tie_point_indices(self, default=ValueError()):
+        '''Return the tie point index variables for sampled dimensions.
+
+    .. versionadded:: (cfdm) TODO
 
     :Parameters:
 
         default: optional
-            Return *default* if the underlying array is not
-            compressed.
+            Return the value of the *default* parameter if tie point
+            index variables have not been set.
+
+            {{default Exception}}
 
     :Returns:
 
-        `int`
-            The position of the compressed dimension in the compressed
-            array. If the underlying is not compressed then *default*
-            is returned, if provided.
+        `tuple` of `TiePointIndex`
+            The tie point index variables.
 
     **Examples:**
 
-    >>> i = d.get_compressed_dimension()
+    >>> c = d.get_tie_point_indices()
 
         '''
-        return self._get_component('compressed_dimension', *default)
+        try:
+            return self._get_component('tie_point_indices')
+        except ValueError:
+            return self._default(
+                default,
+                "{!r} has no tie point index variables".format(
+                    self.__class__.__name__)
+            )
+        
+    def get_tie_point_offsets(self, default=ValueError()):
+        '''Return the tie point offset variables for sampled dimensions.
 
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
+    .. versionadded:: (cfdm) TODO
+
+    :Parameters:
+
+        default: optional
+            Return the value of the *default* parameter if tie point
+            offset variables have not been set.
+
+            {{default Exception}}
+
+    :Returns:
+
+        `tuple` of `TiePointOffset` or `None`
+            The tie point offset variables. An element of `None` is
+            equivalent to an offset of zero.
+
+    **Examples:**
+
+    >>> c = d.get_tie_point_offsets()
+
+        '''
+        try:
+            return self._get_component('tie_point_offsets')
+        except ValueError:
+            return self._default(
+                default,
+                "{!r} has no tie point offset variables".format(
+                    self.__class__.__name__)
+            )
+        
+    def get_tie_points(self, default=ValueError()):
+        '''Return the tie point variables for sampled dimensions.
+
+    .. versionadded:: (cfdm) TODO
+
+    :Parameters:
+
+        default: optional
+            Return the value of the *default* parameter if tie point
+            variables have not been set.
+
+            {{default Exception}}
+
+    :Returns:
+
+        `tuple` of `TiePoint`
+            The tie point variables.
+
+    **Examples:**
+
+    >>> c = d.get_tie_points()
+
+        '''
+        try:
+            return self._get_component('tie_points')
+        except ValueError:
+            return self._default(
+                default,
+                "{!r} has no tie point variables".format(
+                    self.__class__.__name__)
+            )
+
     def to_memory(self):
         '''Bring an array on disk into memory and retain it there.
 
@@ -301,6 +398,19 @@ class SampledArray(abstract.Array):
     >>> b = a.to_memory()
 
         '''
-        return 'TODO'
+        for v in self.get_tie_points():
+            v.data.to_memory()
+    
+        for v in (
+                self.get_tie_point_indices() +
+                self.get_tie_point_offsets() +
+                self.get_interpolation_coefficients()
+        ):
+            if v is None:
+                continue
+            
+            v.data.to_memory()
+                   
+        return self
 
 # --- End: class
