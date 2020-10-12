@@ -2332,8 +2332,8 @@ class Data(Container,
     The shape of the data may change, but the size will not.
 
     The flattening is executed in row-major (C-style) order. For
-    example, the array ``[[1, 2], [3, 4]]`` would be flattened across
-    both dimensions to ``[1 2 3 4]``.
+    example, the flattening the array ``[[1, 2], [3, 4]]`` across both
+    dimensions would result in ``[1 2 3 4]``.
 
     .. versionadded:: (cfdm) 1.7.11
 

@@ -1,9 +1,6 @@
 import numpy
 
-from .mixin import ArrayMixin
-
-from . import mixin
-from .. import core
+from . import abstract
 
 
 class SampledArray(abstract.Array):
@@ -13,8 +10,8 @@ class SampledArray(abstract.Array):
 
     '''
     # ----------------------------------------------------------------
-    # Define the interpolated array datatype, depending on the
-    # interpolation type.
+    # Define the interpolated datatype, depending on the interpolation
+    # method.
     # ----------------------------------------------------------------
     _interpolated_datatype = {
         'linear': numpy.dtype(float),
@@ -24,7 +21,7 @@ class SampledArray(abstract.Array):
     def __init__(self, shape=None, size=None, ndim=None,
                  sampled_dimensions=None, interpolation=None,
                  tie_points=None, tie_point_indices=None,
-                 tie_point_offsets=None, coefficients=None):
+                 tie_point_offsets=(), interpolation_coefficients=()):
         '''**Initialization**
 
     :Parameters:
@@ -52,11 +49,11 @@ class SampledArray(abstract.Array):
             point for every element of the corresponding target domain
             dimension.
 
-        tie_point_offsets: sequence of `TiePointOffset` or `None`
+        tie_point_offsets: sequence of `TiePointOffset` or `None`, optional
             TODO An element of `None` is equivalent to an offset of
             zero.
 
-        interpolation_coefficients: sequence of `InterpolationCoefficient`
+        interpolation_coefficients: sequence of `InterpolationCoefficient`, optional
             TODO. May be an empty sequence.
 
         '''
@@ -64,21 +61,23 @@ class SampledArray(abstract.Array):
 
         # Copy variables and ensure that they are stored in tuples
         tie_points = tuple(v.copy() for v in tie_points)
-        tie_point_indices = tuple(v.copy() for v in tie_points_indices
-                                  if v is not None)
-        tie_point_offsets = tuple(v.copy() for v in tie_points_offsets
-                                  if v is not None)
+        
+        tie_point_indices = tuple(v if v is None else v.copy()
+                                  for v in tie_point_indices)
+        
+        tie_point_offsets = tuple(v if v is None else v.copy()
+                                  for v in tie_point_offsets)
+        
         interpolation_coefficients = tuple(
             v.copy() for v in interpolation_coefficients
-            if v is not None
         )
         
         super().__init__(shape=shape, size=size, ndim=ndim,
                          sampled_dimensions=sampled_dimensions,
                          interpolation=interpolation,
                          tie_points=tie_points,
-                         tie_points_indices=tie_points_indices,
-                         tie_points_offsets=tie_points_offsets,
+                         tie_point_indices=tie_point_indices,
+                         tie_point_offsets=tie_point_offsets,
                          interpolation_coefficients=interpolation_coefficients,
                          compression_type='sampled')
 
@@ -103,6 +102,8 @@ class SampledArray(abstract.Array):
     .. versionadded:: (cfdm) TODO
 
         '''
+        raise NotImplementedError("TODO")
+    
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
