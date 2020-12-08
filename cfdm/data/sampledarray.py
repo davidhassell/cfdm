@@ -3,6 +3,9 @@ import numpy
 from . import abstract
 
 
+_float64 = numpy.dtype(float)
+
+
 class SampledArray(abstract.Array):
     '''TODO
 
@@ -14,17 +17,21 @@ class SampledArray(abstract.Array):
     # method.
     # ----------------------------------------------------------------
     _interpolated_datatype = {
-        'linear': numpy.dtype(float),
-        'bilinear': numpy.dtype(float),
+        'linear': _float64,
+        'bilinear': _float64,
     }
 
     def __init__(self, shape=None, size=None, ndim=None,
                  sampled_dimensions=None, interpolation=None,
                  tie_points=None, tie_point_indices=None,
-                 tie_point_offsets=(), interpolation_coefficients=()):
+                 interpolation_coefficients=(),
+                 interpolation_coefficients=()):
         '''**Initialization**
 
     :Parameters:
+
+        compressed_array: `Data`
+            The compressed array.
 
         shape: `tuple`
             The uncompressed array dimension sizes.
@@ -33,27 +40,23 @@ class SampledArray(abstract.Array):
             Number of elements in the uncompressed array.
 
         ndim: `int`
-            The number of uncompressed array dimensions
+            The number of uncompressed array dimensions.
 
         sampled_dimensions: sequence of `int`
-            The positions of the sampled dimensions in array.
+            The positions of the compressed dimensions in the compresed array.
 
         interpolation: `str`
-            TODO
-
-        tie_points: sequence of `TiePoint`
-            TODO
+            TODO The interpolation method
 
         tie_point_indices: sequence of `TiePointIndex` or `None`
-            TODO An elements of `None` indicates that there is a tie
-            point for every element of the corresponding target domain
-            dimension.
-
-        tie_point_offsets: sequence of `TiePointOffset` or `None`, optional
-            TODO An element of `None` is equivalent to an offset of
-            zero.
+            TODO An elements of `None` indicates that there is a
+            unique tie point for every element of the corresponding
+            target domain dimension.
 
         interpolation_coefficients: sequence of `InterpolationCoefficient`, optional
+            TODO. May be an empty sequence.
+
+        interpolation_configuration: sequence of `InterpolationConfiguration`, optional
             TODO. May be an empty sequence.
 
         '''
@@ -62,14 +65,16 @@ class SampledArray(abstract.Array):
         # Copy variables and ensure that they are stored in tuples
         tie_points = tuple(v.copy() for v in tie_points)
         
-        tie_point_indices = tuple(v if v is None else v.copy()
-                                  for v in tie_point_indices)
-        
-        tie_point_offsets = tuple(v if v is None else v.copy()
-                                  for v in tie_point_offsets)
+        tie_point_indices = tuple(
+            v if v is None else v.copy() for v in tie_point_indices
+        )
         
         interpolation_coefficients = tuple(
             v.copy() for v in interpolation_coefficients
+        )
+                
+        interpolation_configuration = tuple(
+            v.copy() for v in interpolation_configuration
         )
         
         super().__init__(shape=shape, size=size, ndim=ndim,
@@ -77,8 +82,8 @@ class SampledArray(abstract.Array):
                          interpolation=interpolation,
                          tie_points=tie_points,
                          tie_point_indices=tie_point_indices,
-                         tie_point_offsets=tie_point_offsets,
                          interpolation_coefficients=interpolation_coefficients,
+                         interpolation_configurations=interpolation_configurations,
                          compression_type='sampled')
 
     def __getitem__(self, indices):
