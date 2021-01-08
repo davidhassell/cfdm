@@ -22,7 +22,7 @@ class SampledArray(abstract.Array):
     }
 
     def __init__(self, shape=None, size=None, ndim=None,
-                 sampled_dimensions=None, interpolation=None,
+                 compressed_dimensions=None, interpolation=None,
                  tie_points=None, tie_point_indices=None,
                  interpolation_coefficients=(),
                  interpolation_coefficients=()):
@@ -42,8 +42,9 @@ class SampledArray(abstract.Array):
         ndim: `int`
             The number of uncompressed array dimensions.
 
-        sampled_dimensions: sequence of `int`
-            The positions of the compressed dimensions in the compresed array.
+        compressed_dimensions: sequence of `int`
+            The positions of the compressed dimensions in the
+            compresed array.
 
         interpolation: `str`
             TODO The interpolation method
@@ -60,7 +61,7 @@ class SampledArray(abstract.Array):
             TODO. May be an empty sequence.
 
         '''
-        sampled_dimensions = tuple(sorted(sampled_dimensions))
+        compressed_dimensions = tuple(sorted(compressed_dimensions))
 
         # Copy variables and ensure that they are stored in tuples
         tie_points = tuple(v.copy() for v in tie_points)
@@ -77,14 +78,15 @@ class SampledArray(abstract.Array):
             v.copy() for v in interpolation_configuration
         )
         
-        super().__init__(shape=shape, size=size, ndim=ndim,
-                         sampled_dimensions=sampled_dimensions,
-                         interpolation=interpolation,
-                         tie_points=tie_points,
-                         tie_point_indices=tie_point_indices,
-                         interpolation_coefficients=interpolation_coefficients,
-                         interpolation_configurations=interpolation_configurations,
-                         compression_type='sampled')
+        super().__init__(
+            shape=shape, size=size, ndim=ndim,
+            compressed_dimensions=compressed_dimensions,
+            interpolation=interpolation, tie_points=tie_points,
+            tie_point_indices=tie_point_indices,
+            interpolation_coefficients=interpolation_coefficients,
+            interpolation_configurations=interpolation_configurations,
+            compression_type='sampled'
+        )
 
     def __getitem__(self, indices):
         '''x.__getitem__(indices) <==> x[indices]
@@ -137,7 +139,7 @@ class SampledArray(abstract.Array):
         if datatype is not None:
             return datatype
         
-        return numpy.dtype(float)
+        return _float64
 
     @property
     def ndim(self):
