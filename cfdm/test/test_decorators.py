@@ -13,9 +13,10 @@ logger = cfdm.logging.getLogger(log_name)
 
 
 class dummyClass:
-    '''Dummy class acting as container to test methods as proper instance
-       methods, mirroring their context in the codebase.
-    '''
+    """Dummy class acting as container to test methods as proper instance
+    methods, mirroring their context in the codebase.
+    """
+
     def __init__(self):
         self._list = [1]
 
@@ -28,9 +29,9 @@ class dummyClass:
         return copy.deepcopy(self)  # note a shallow copy is not sufficient
 
     def func(self, inplace):
-        '''Dummy function to do something trivial to a mutable object,
-           potentially in-place as toggled by an in-place flag.
-        '''
+        """Dummy function to do something trivial to a mutable object,
+        potentially in-place as toggled by an in-place flag.
+        """
         if inplace:
             d = self
         else:
@@ -44,9 +45,9 @@ class dummyClass:
 
     @cfdm.decorators._inplace_enabled(False)
     def decorated_func(self, inplace):
-        '''Dummy function equivalent to 'func' but a decorator manages the
-           logic to specify and conduct in-place operation.
-        '''
+        """Dummy function equivalent to 'func' but a decorator manages the
+        logic to specify and conduct in-place operation.
+        """
         d = cfdm.decorators._inplace_enabled_define_and_cleanup(self)
         d._list.append(2)
         return d
@@ -57,6 +58,7 @@ class dummyClass:
         logger.detail(self.detail_message)
         logger.info(self.info_message)
         logger.warning(self.warning_message)
+
 
 # --- End: class
 
@@ -98,16 +100,16 @@ class DecoratorsTest(unittest.TestCase):
         test_class = dummyClass()
 
         # Order of decreasing severity/verbosity is crucial to one test below
-        levels = ['WARNING', 'INFO', 'DETAIL', 'DEBUG']
+        levels = ["WARNING", "INFO", "DETAIL", "DEBUG"]
 
         # Note we test assertions on the root logger object, which is the
         # one output overall at runtime, but the specific module logger name
         # should be registered within the log message:
         log_message = [
-            'WARNING:{}:{}'.format(log_name, test_class.warning_message),
-            'INFO:{}:{}'.format(log_name, test_class.info_message),
-            'DETAIL:{}:{}'.format(log_name, test_class.detail_message),
-            'DEBUG:{}:{}'.format(log_name, test_class.debug_message)
+            "WARNING:{}:{}".format(log_name, test_class.warning_message),
+            "INFO:{}:{}".format(log_name, test_class.info_message),
+            "DETAIL:{}:{}".format(log_name, test_class.detail_message),
+            "DEBUG:{}:{}".format(log_name, test_class.debug_message),
         ]
 
         for level in levels:
@@ -128,7 +130,7 @@ class DecoratorsTest(unittest.TestCase):
 
             # Highest verbosity case (note -1 == 'DEBUG', highest verbosity):
             # all messages should appear, regardless of global log_level:
-            for argument in (-1, 'DEBUG', 'debug', 'Debug', 'DeBuG'):
+            for argument in (-1, "DEBUG", "debug", "Debug", "DeBuG"):
                 with self.assertLogs(level=cfdm.log_level()) as catch:
                     test_class.decorated_logging_func(verbose=argument)
                     for msg in log_message:
@@ -137,11 +139,11 @@ class DecoratorsTest(unittest.TestCase):
             # Lowest verbosity case ('WARNING' / 1) excluding special case of
             # 'DISABLE' (see note above): only warning messages should appear,
             # regardless of global log_level value set:
-            for argument in (1, 'WARNING', 'warning', 'Warning', 'WaRning'):
+            for argument in (1, "WARNING", "warning", "Warning", "WaRning"):
                 with self.assertLogs(level=cfdm.log_level()) as catch:
                     test_class.decorated_logging_func(verbose=argument)
                     for msg in log_message:
-                        if msg.split(":")[0] == 'WARNING':
+                        if msg.split(":")[0] == "WARNING":
                             self.assertIn(msg, catch.output)
                         else:
                             self.assertNotIn(msg, catch.output)
@@ -152,7 +154,7 @@ class DecoratorsTest(unittest.TestCase):
             with self.assertLogs(level=cfdm.log_level()) as catch:
                 test_class.decorated_logging_func(verbose=True)
                 for msg in log_message:
-                    if msg.split(":")[0] == 'DEBUG':
+                    if msg.split(":")[0] == "DEBUG":
                         self.assertNotIn(msg, catch.output)
                     else:
                         self.assertIn(msg, catch.output)
@@ -163,21 +165,22 @@ class DecoratorsTest(unittest.TestCase):
             # Special 'DISABLE' (0) case: note this needs to be last as we
             # reset the log_level to it but need to use 'NOTSET' for the
             # assertLogs level, which sends all log messages through:
-            for argument in (0, 'DISABLE', 'disable', 'Disable', 'DisAblE'):
-                with self.assertLogs(level='NOTSET') as catch:
+            for argument in (0, "DISABLE", "disable", "Disable", "DisAblE"):
+                with self.assertLogs(level="NOTSET") as catch:
                     # Note: get 'AssertionError' if don't log anything at all,
                     # so to avoid this and allow check for disabled logging,
                     # first log something then disable and check that no other
                     # messages emerge:
                     logger.info(
-                        "Purely to keep 'assertLog' happy: see comment!")
-                    cfdm.log_level('DISABLE')
+                        "Purely to keep 'assertLog' happy: see comment!"
+                    )
+                    cfdm.log_level("DISABLE")
                     test_class.decorated_logging_func(verbose=argument)
                     for msg in log_message:  # nothing else should be logged
                         self.assertNotIn(msg, catch.output)
 
             # verbose=False should be equivalent in behaviour to verbose=0
-            with self.assertLogs(level='NOTSET') as catch:
+            with self.assertLogs(level="NOTSET") as catch:
                 logger.info("Purely to keep 'assertLog' happy: see previous!")
                 test_class.decorated_logging_func(verbose=False)
                 for msg in log_message:  # nothing else should be logged
@@ -187,8 +190,8 @@ class DecoratorsTest(unittest.TestCase):
 # --- End: class
 
 
-if __name__ == '__main__':
-    print('Run date:', datetime.datetime.now())
+if __name__ == "__main__":
+    print("Run date:", datetime.datetime.now())
     cfdm.environment()
-    print('')
+    print("")
     unittest.main(verbosity=2)

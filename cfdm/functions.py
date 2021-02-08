@@ -9,15 +9,13 @@ import cftime
 import numpy
 import netcdf_flattener
 
-from . import (__version__,
-               __cf_version__,
-               __file__)
+from . import __version__, __cf_version__, __file__
 
 from .constants import CONSTANTS, ValidLogLevels
 
 
 def configuration(atol=None, rtol=None, log_level=None):
-    '''View or set any number of constants in the project-wide configuration.
+    """View or set any number of constants in the project-wide configuration.
 
     The full list of global constants that are provided in a dictionary to
     view, and can be set in any combination, are:
@@ -101,13 +99,14 @@ def configuration(atol=None, rtol=None, log_level=None):
     >>> cfdm.configuration()
     {'atol': 5e-14, 'rtol': 1e-17, 'log_level': 'INFO'}
 
-    '''
+    """
     return _configuration(
-        new_atol=atol, new_rtol=rtol, new_log_level=log_level)
+        new_atol=atol, new_rtol=rtol, new_log_level=log_level
+    )
 
 
 def _configuration(**kwargs):
-    '''Internal helper function to provide the logic for `cfdm.configuration`.
+    """Internal helper function to provide the logic for `cfdm.configuration`.
 
     We delegate from the user-facing `cfdm.configuration` for two main reasons:
 
@@ -119,7 +118,7 @@ def _configuration(**kwargs):
     explicitly listed, but the very similar logic applied for each keyword
     can be consolidated by iterating over the full dictionary of input kwargs.
 
-    '''
+    """
     old = {name.lower(): val for name, val in CONSTANTS.items()}
     # Filter out 'None' kwargs from configuration() defaults. Note that this
     # does not filter out '0' or 'True' values, which is important as the user
@@ -128,9 +127,9 @@ def _configuration(**kwargs):
 
     # Note values are the functions not the keyword arguments of same name:
     reset_mapping = {
-        'new_atol': atol,
-        'new_rtol': rtol,
-        'new_log_level': log_level,
+        "new_atol": atol,
+        "new_rtol": rtol,
+        "new_log_level": log_level,
     }
     for setting_alias, new_value in kwargs.items():  # for all input kwargs...
         reset_mapping[setting_alias](new_value)  # ...run corresponding func
@@ -139,7 +138,7 @@ def _configuration(**kwargs):
 
 
 def atol(*atol):
-    '''The tolerance on absolute differences when testing for numerically
+    """The tolerance on absolute differences when testing for numerically
     tolerant equality.
 
     Two real numbers ``x`` and ``y`` are considered equal if
@@ -178,22 +177,21 @@ def atol(*atol):
     >>> atol()
     2.220446049250313e-16
 
-    '''
-    old = CONSTANTS['ATOL']
+    """
+    old = CONSTANTS["ATOL"]
     if atol:
-        CONSTANTS['ATOL'] = float(atol[0])
+        CONSTANTS["ATOL"] = float(atol[0])
 
     return old
 
 
 def ATOL(*new_atol):
-    '''Alias for `cfdm.atol`.
-    '''
+    """Alias for `cfdm.atol`."""
     return atol(*new_atol)
 
 
 def rtol(*rtol):
-    '''The tolerance on relative differences when testing for numerically
+    """The tolerance on relative differences when testing for numerically
     tolerant equality.
 
     Two real numbers ``x`` and ``y`` are considered equal if
@@ -232,22 +230,21 @@ def rtol(*rtol):
     >>> rtol()
     2.220446049250313e-16
 
-    '''
-    old = CONSTANTS['RTOL']
+    """
+    old = CONSTANTS["RTOL"]
     if rtol:
-        CONSTANTS['RTOL'] = float(rtol[0])
+        CONSTANTS["RTOL"] = float(rtol[0])
 
     return old
 
 
 def RTOL(*new_rtol):
-    '''Alias for `cfdm.rtol`.
-    '''
+    """Alias for `cfdm.rtol`."""
     return rtol(*new_rtol)
 
 
 def _log_level(constants_dict, log_level):
-    ''' Equivalent to log_level, but with dict to modify as an argument.
+    """Equivalent to log_level, but with dict to modify as an argument.
 
     This internal function is designed specifically so that a different
     constants_dict can be manipulated with setting or reading of the
@@ -258,8 +255,8 @@ def _log_level(constants_dict, log_level):
     them such that it can manipulate (its own separate) log_level constant.
 
     Note: relies on the mutability of arguments (here the constants_dict).
-    '''
-    old = constants_dict['LOG_LEVEL']
+    """
+    old = constants_dict["LOG_LEVEL"]
 
     if log_level:
         level = log_level[0]
@@ -278,12 +275,18 @@ def _log_level(constants_dict, log_level):
                 "Logging level {!r} is not one of the valid values '{}', "
                 "where either the string or the corrsponding integer is "
                 "accepted. Value remains as it was, at '{}'.".format(
-                    level, ", '".join([val.name + "' = " + str(val.value)
-                                       for val in ValidLogLevels]), old
+                    level,
+                    ", '".join(
+                        [
+                            val.name + "' = " + str(val.value)
+                            for val in ValidLogLevels
+                        ]
+                    ),
+                    old,
                 )
             )
         # Safe to reset now as guaranteed to be valid:
-        constants_dict['LOG_LEVEL'] = level
+        constants_dict["LOG_LEVEL"] = level
         _reset_log_emergence_level(level)
 
     # --- End: if
@@ -292,7 +295,7 @@ def _log_level(constants_dict, log_level):
 
 
 def log_level(*log_level):
-    '''The minimal level of seriousness of log messages which are shown.
+    """The minimal level of seriousness of log messages which are shown.
 
     This can be adjusted to filter out potentially-useful log messages
     generated by cfdm at runtime, such that any messages marked as
@@ -344,18 +347,17 @@ def log_level(*log_level):
     >>> log_level()
     'DISABLE'
 
-    '''
+    """
     return _log_level(CONSTANTS, log_level)
 
 
 def LOG_LEVEL(*new_log_level):
-    '''Alias for `cfdm.log_level`.
-    '''
+    """Alias for `cfdm.log_level`."""
     return log_level(*new_log_level)
 
 
 def _is_valid_log_level_int(int_log_level):
-    '''Return a Boolean stating if input is a ValidLogLevels Enum integer.'''
+    """Return a Boolean stating if input is a ValidLogLevels Enum integer."""
     try:
         ValidLogLevels(int_log_level)
     except KeyError:  # if verbose int not in Enum int constants
@@ -364,7 +366,7 @@ def _is_valid_log_level_int(int_log_level):
 
 
 def _reset_log_emergence_level(level, logger=None):
-    '''Re-set minimum level for displayed log messages of a logger.
+    """Re-set minimum level for displayed log messages of a logger.
 
     This may correspond to a change, otherwise will re-set to the same
     value (which is harmless, & as costly as checking to avoid this in
@@ -381,7 +383,7 @@ def _reset_log_emergence_level(level, logger=None):
     disables the logging; the responsibility to re-enable it once the
     need for deactivation is over lies with methods that call this.
 
-    '''
+    """
     if logger:
         use_logger = logging.getLogger(logger)
     else:  # apply to root, which all other (module) loggers inherit from
@@ -390,17 +392,17 @@ def _reset_log_emergence_level(level, logger=None):
     if isinstance(level, int) and _is_valid_log_level_int(level):
         level = ValidLogLevels(level).name  # convert to string ID if valid
 
-    if level == 'DISABLE':
+    if level == "DISABLE":
         _disable_logging()
     else:
         # First must (re-)enable in case logging previously was
         # disabled:
-        _disable_logging(at_level='NOTSET')
+        _disable_logging(at_level="NOTSET")
         use_logger.setLevel(getattr(logging, level))
 
 
 def _disable_logging(at_level=None):
-    '''Disable log messages at and below a given level, else completely.
+    """Disable log messages at and below a given level, else completely.
 
     This is an overriding level for all loggers.
 
@@ -414,7 +416,7 @@ def _disable_logging(at_level=None):
     disactivation level previously set with this method, so the logger
     regains its original level.
 
-    '''
+    """
     if at_level:
         logging.disable(getattr(logging, at_level))
     else:
@@ -424,7 +426,7 @@ def _disable_logging(at_level=None):
 
 
 def environment(display=True, paths=True):
-    '''Return the names, versions and paths of all dependencies.
+    """Return the names, versions and paths of all dependencies.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -466,48 +468,48 @@ def environment(display=True, paths=True):
     numpy: 1.16.2
     cfdm: 1.8.6.0
 
-    '''
+    """
     out = []
 
-    out.append('Platform: ' + str(platform.platform()))
-    out.append('HDF5 library: ' + str(netCDF4. __hdf5libversion__))
-    out.append('netcdf library: ' + str(netCDF4.__netcdf4libversion__))
+    out.append("Platform: " + str(platform.platform()))
+    out.append("HDF5 library: " + str(netCDF4.__hdf5libversion__))
+    out.append("netcdf library: " + str(netCDF4.__netcdf4libversion__))
 
-    out.append('python: ' + str(platform.python_version()))
+    out.append("python: " + str(platform.python_version()))
     if paths:
-        out[-1] += ' ' + str(sys.executable)
+        out[-1] += " " + str(sys.executable)
 
-    out.append('netCDF4: ' + str(netCDF4.__version__))
+    out.append("netCDF4: " + str(netCDF4.__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(netCDF4.__file__))
+        out[-1] += " " + str(os.path.abspath(netCDF4.__file__))
 
-    out.append('cftime: ' + str(cftime.__version__))
+    out.append("cftime: " + str(cftime.__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(cftime.__file__))
+        out[-1] += " " + str(os.path.abspath(cftime.__file__))
 
-    out.append('numpy: ' + str(numpy.__version__))
+    out.append("numpy: " + str(numpy.__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(numpy.__file__))
+        out[-1] += " " + str(os.path.abspath(numpy.__file__))
 
     try:
-        out.append('netcdf_flattener: ' + str(netcdf_flattener.__version__))
+        out.append("netcdf_flattener: " + str(netcdf_flattener.__version__))
     except AttributeError:
-        out.append('netcdf_flattener: unknown version')
+        out.append("netcdf_flattener: unknown version")
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(netcdf_flattener.__file__))
+        out[-1] += " " + str(os.path.abspath(netcdf_flattener.__file__))
 
-    out.append('cfdm: ' + str(__version__))
+    out.append("cfdm: " + str(__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(__file__))
+        out[-1] += " " + str(os.path.abspath(__file__))
 
     if display:
-        print('\n'.join(out))  # pragma: no cover
+        print("\n".join(out))  # pragma: no cover
     else:
         return out
 
 
 def CF():
-    '''The version of the CF conventions.
+    """The version of the CF conventions.
 
     This indicates which version of the CF conventions are represented
     by this release of the cfdm package, and therefore the version can
@@ -526,12 +528,12 @@ def CF():
     >>> CF()
     '1.8'
 
-    '''
+    """
     return __cf_version__
 
 
 def abspath(filename):
-    '''Return a normalised absolute version of a file name.
+    """Return a normalised absolute version of a file name.
 
     If a string containing URL is provided then it is returned
     unchanged.
@@ -558,9 +560,9 @@ def abspath(filename):
     >>> abspath('http://data/archive/file.nc')
     'http://data/archive/file.nc'
 
-    '''
+    """
     u = urllib.parse.urlparse(filename)
-    if u.scheme != '':
+    if u.scheme != "":
         return filename
 
     return os.path.abspath(filename)

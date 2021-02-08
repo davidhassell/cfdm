@@ -2,10 +2,10 @@ from . import mixin
 from . import core
 
 
-class TiePointOffset(mixin.NetCDFVariable,
-                     mixin.PropertiesData,
-                     core.abstract.PropertiesData):
-    '''A tie point offset variable required to uncompress a sampled array TODO.
+class TiePointOffset(
+    mixin.NetCDFVariable, mixin.PropertiesData, core.abstract.PropertiesData
+):
+    """A tie point offset variable required to uncompress a sampled array TODO.
 
     TODO
 
@@ -21,63 +21,89 @@ class TiePointOffset(mixin.NetCDFVariable,
 
     .. versionadded:: (cfdm) TODO
 
-    '''
-    def __init__(self, properties=None, data=None, source=None,
-                 copy=True, _use_data=True):
-        '''**Initialization**
+    """
 
-    :Parameters:
+    def __init__(
+        self,
+        properties=None,
+        data=None,
+        source=None,
+        copy=True,
+        _use_data=True,
+    ):
+        """**Initialization**
 
-        {{init properties: `dict`, optional}}
+        :Parameters:
 
-            *Parameter example:*
-              ``properties={'long_name': 'uncompression indices'}``
+            {{init properties: `dict`, optional}}
 
-        {{init data: data_like, optional}}
+                *Parameter example:*
+                  ``properties={'long_name': 'uncompression indices'}``
 
-        source: optional
-            Initialize the properties and data from those of *source*.
+            {{init data: data_like, optional}}
 
-            {{init source}}
+            source: optional
+                Initialize the properties and data from those of *source*.
 
-        {{init copy: `bool`, optional}}
+                {{init source}}
 
-        '''
-        super().__init__(properties=properties, data=data,
-                         source=source, copy=copy,
-                         _use_data=_use_data)
+            {{init copy: `bool`, optional}}
+
+        """
+        super().__init__(
+            properties=properties,
+            data=data,
+            source=source,
+            copy=copy,
+            _use_data=_use_data,
+        )
 
         self._initialise_netcdf(source)
 
-    def dump(self, display=True, _key=None, _title=None,
-             _create_title=True, _prefix='', _level=0,
-             _omit_properties=None, _axes=None, _axis_names=None):
-        '''A full description of the tie point offset variable.
+    def dump(
+        self,
+        display=True,
+        _key=None,
+        _title=None,
+        _create_title=True,
+        _prefix="",
+        _level=0,
+        _omit_properties=None,
+        _axes=None,
+        _axis_names=None,
+    ):
+        """A full description of the tie point offset variable.
 
-    Returns a description of all properties, including those of
-    components, and provides selected values of all data arrays.
+        Returns a description of all properties, including those of
+        components, and provides selected values of all data arrays.
 
-    .. versionadded:: (cfdm) TODO
+        .. versionadded:: (cfdm) TODO
 
-    :Parameters:
+        :Parameters:
 
-        display: `bool`, optional
-            If False then return the description as a string. By
-            default the description is printed.
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
 
-    :Returns:
+        :Returns:
 
-        {{returns dump}}
+            {{returns dump}}
 
-        '''
+        """
         if _create_title and _title is None:
-            _title = 'TiePointOffset: ' + self.identity(default='')
+            _title = "TiePointOffset: " + self.identity(default="")
 
-        return super().dump(display=display, _key=_key,
-                            _omit_properties=_omit_properties,
-                            _prefix=_prefix, _level=_level,
-                            _title=_title,
-                            _create_title=_create_title, _axes=_axes,
-                            _axis_names=_axis_names)
+        return super().dump(
+            display=display,
+            _key=_key,
+            _omit_properties=_omit_properties,
+            _prefix=_prefix,
+            _level=_level,
+            _title=_title,
+            _create_title=_create_title,
+            _axes=_axes,
+            _axis_names=_axis_names,
+        )
+
 
 # --- End: class

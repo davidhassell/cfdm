@@ -27,9 +27,9 @@ retrieve and set the values with the dedicated get-and-set functions.
       See `cfdm.log_level`.
 """
 CONSTANTS = {
-    'ATOL': sys.float_info.epsilon,
-    'RTOL': sys.float_info.epsilon,
-    'LOG_LEVEL': logging.getLevelName(logging.getLogger().level),
+    "ATOL": sys.float_info.epsilon,
+    "RTOL": sys.float_info.epsilon,
+    "LOG_LEVEL": logging.getLevelName(logging.getLogger().level),
 }
 
 
@@ -47,7 +47,7 @@ class ValidLogLevels(Enum):
 # --------------------------------------------------------------------
 # masked
 # --------------------------------------------------------------------
-'''A constant that allows data values to be masked by direct
+"""A constant that allows data values to be masked by direct
 assignment. This is consistent with the behaviour of numpy masked
 arrays.
 
@@ -56,5 +56,5 @@ could be done as follows:
 
 >>> f[...] = cfdm.masked
 
-'''
+"""
 masked = numpy.ma.masked

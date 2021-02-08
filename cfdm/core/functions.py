@@ -6,13 +6,11 @@ import sys
 import netCDF4
 import numpy
 
-from . import (__version__,
-               __cf_version__,
-               __file__)
+from . import __version__, __cf_version__, __file__
 
 
 def environment(display=True, paths=True):
-    '''Return the names, versions and paths of all dependencies.
+    """Return the names, versions and paths of all dependencies.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -52,37 +50,37 @@ def environment(display=True, paths=True):
     numpy: 1.16.2
     cfdm.core: 1.8.0
 
-    '''
+    """
     out = []
 
-    out.append('Platform: ' + str(platform.platform()))
-    out.append('HDF5 library: ' + str(netCDF4. __hdf5libversion__))
-    out.append('netcdf library: ' + str(netCDF4.__netcdf4libversion__))
+    out.append("Platform: " + str(platform.platform()))
+    out.append("HDF5 library: " + str(netCDF4.__hdf5libversion__))
+    out.append("netcdf library: " + str(netCDF4.__netcdf4libversion__))
 
-    out.append('python: ' + str(platform.python_version()))
+    out.append("python: " + str(platform.python_version()))
     if paths:
-        out[-1] += ' ' + str(sys.executable)
+        out[-1] += " " + str(sys.executable)
 
-    out.append('netCDF4: ' + str(netCDF4.__version__))
+    out.append("netCDF4: " + str(netCDF4.__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(netCDF4.__file__))
+        out[-1] += " " + str(os.path.abspath(netCDF4.__file__))
 
-    out.append('numpy: ' + str(numpy.__version__))
+    out.append("numpy: " + str(numpy.__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(numpy.__file__))
+        out[-1] += " " + str(os.path.abspath(numpy.__file__))
 
-    out.append('cfdm.core: ' + str(__version__))
+    out.append("cfdm.core: " + str(__version__))
     if paths:
-        out[-1] += ' ' + str(os.path.abspath(__file__))
+        out[-1] += " " + str(os.path.abspath(__file__))
 
     if display:
-        print('\n'.join(out))  # pragma: no cover
+        print("\n".join(out))  # pragma: no cover
     else:
         return out
 
 
 def CF():
-    '''The version of the CF conventions.
+    """The version of the CF conventions.
 
     This indicates which version of the CF conventions are represented
     by this release of the cfdm.core package, and therefore the
@@ -101,5 +99,5 @@ def CF():
     >>> cfdm.core.CF()
     '1.8'
 
-    '''
+    """
     return __cf_version__
