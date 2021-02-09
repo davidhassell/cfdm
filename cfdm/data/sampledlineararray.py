@@ -92,21 +92,28 @@ class SampledLinearArray(Sampledrray):
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
-        self._conform_interpolation_variables()
+        d = self.get_compression_dimension()[0]
         
         # Initialise the un-sliced uncompressed array
         uarray = np.ma.masked_all(self.shape, dtype=_float)
 
-        for u_indices, tp_indices, points in zip(
-                self._get_interpolation_zones()
+        s_shape = [1] * self.ndim
+        
+        for tp_indices, u_indices, n_points in zip(
+                *self._define_interpolation_zones()
         ):
-            delta = points[0]
-            s = np.arange(0, 1 + delta, delta)
+            # Create interpolation variable, s
+            delta = n_points[0]
+            s = np.arange(0, 1 + delta / 2, delta)
+            s_shape[d] = s.size
+            s.resize(s_shape)
 
-            tp = tie_points[tp_indices[0]].array * (1 - s)
-            tp += tie_points[tp_indices[1]].array * s
+            tp_indices = tp_indices[0]
             
-            uarray[u_indices] = tp
+            x = tie_points[tp_indices[:1]].array * (1 - s)
+            x += tie_points[tp_indices[1:]].array * s
+            
+            uarray[u_indices] = x
 
         return self.get_subspace(uarray, indices, copy=True)
 

@@ -69,71 +69,89 @@ class SampledArray(CompressedArray):
             compressed_dimensions=compressed_dimensions,
             compression_type="sampled",
             interpolation=interpolation,
-            tie_point_indices=tie_point_indices.copy(),
+            tie_point_indices=tuple(tie_point_indices),
             interpolation_coefficients=interpolation_coefficients.copy(),
             interpolation_configurations=interpolation_configuration.copy(),
             
         )
 
-    def _conform_interpolation_variables(self):
-        """TODO"""
-        # Make sure the interpolation coefficents/configuration have
-        # the same relaitve dimension order as the tie points
-        compressed_dimensions = self.get_compressed_dimension()
-        for key, c in (
-                tuple(self.get_interpolation_coefficients().items())
-                + tuple(self.get_interpolation_configuration().items())
+    def _conform_interpolation_formula_terms(self):
+        """Make sure the interpolation coefficents/configuration have the
+         same relative dimension order as the tie points
+
+        """
+        dims = tuple(range(ndim))
+
+        term_dimensions = self.term_dimensions
+
+        interpolation_coefficients = self.interpolation_coefficients
+        
+        for term, c in (
+                tuple(self.interpolation_coefficients.items())
+                + tuple(self.get_interpolation_configuration.items())
         ):
-            parent_compressed_dimensions = (
-                c.get_parent_compressed_dimensions()
-            )
-            if parent_compressed_dimensions == compressed_dimensions:
+            dimensions = term_dimensions[term]
+            new_order = [dimensions.index(i) for i in dims
+                         if i in dimensions]
+            if new_order == list(range(c.ndim)):
                 continue
+            
+            interpolation_ceofficients[term] = c.tranpose(new_order)
+            term_dimensions[term] = tuple([dimensions[i] for i in new_order])
 
-            new_order = [compressed_dimensions.index(i)
-                         for i in parent_compressed_dimensions]
-            c.tranpose(new_order, inplace=True)
-            c._set_component("parent_compressed_dimensions",
-                             compressed_dimensions)
+    def _define_interpolation_zones(self):
+        """TODO
 
-    def _get_interpolation_zones(self):
-        """TODO"""
-        tie_points = self.get_tie_points()
+        :Returns:
+        
+            3-`tuple`
+            
+               * The indices of the tie point array that correspond to
+                 each interpolation zone.
+
+               * The indices of the uncompressed array that correspond
+                 to each interpolation zone.
+
+               * The shape of the interpolation zone in the
+                 uncompressed array, ignoring any non-interpolation
+                 dimensions.
+
+        """
         tie_point_indices = self.get_tie_point_indices()
         
         compressed_dimensions = self.get_compression_dimension()
 
-        slices = [slice(None)] * tie_points.ndim - len(compression_dimensions)
+        slices = [slice(None)] * self.ndim
 
         u_slice = slices[:]        
 
         points = []
         
-        for d, indices in zip(
-                compression_dimensions,
+        for d, tp_indices in zip(
+                self.get_compression_dimension(),
                 self.get_tie_point_indices()
         ):
-            d_slices = []
+            tp_slices = []
             d_points = []
             d_zzz = []
 
-            indices = tie_point_indices[0]            
+            tp_indices = tp_indices.array.tolist()
             for i, (index0, index1) in enumerate(
-                    zip(indices[:-1], indices[1:])
+                    zip(tp_indices[:-1], tp_indices[1:])
             ):
-                delta = index1 - index0
-                if delta <= 1:
+                diff = index1 - index0
+                if diff <= 1:
                     continue
 
-                d_slices.append([i, i + 1])
-                d_points.append(delta)
-                d_zzz.append(slice(index0, index1))
+                tp_slices.append([i, i + 1])
+                d_zzz.append(slice(index0, index1 + 1))
+                d_points.append(1 / diff)
                 
-            slices.insert(d, d_slices)
+            slices[d] = tp_slices
+            u_slices[d] = d_zzz
             points.append(d_points)
-            u_slices.insert(d, d_zzz)
             
-        return product(*u_slices), product(*slices), product(*points)
+        return product(*slices), product(*u_slices), product(*points)
             
     # ----------------------------------------------------------------
     # Attributes
