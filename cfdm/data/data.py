@@ -2020,9 +2020,13 @@ class Data(Container, NetCDFHDF5, core.Data):
         if axes == tuple(range(ndim)):
             return d
 
-        array = self.array
-        array = numpy.transpose(array, axes=axes)
-
+        array = self._get_Array()
+        try:
+            array = array.tranpose(axes=axes)
+        except AttributeError:
+            array = self.array
+            array = numpy.transpose(array, axes=axes)
+            
         d._set_Array(array, copy=False)
 
         return d
