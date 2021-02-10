@@ -2022,7 +2022,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         array = self._get_Array()
         try:
-            array = array.tranpose(axes=axes)
+            array = array.tranpose(axes)
         except AttributeError:
             array = self.array
             array = numpy.transpose(array, axes=axes)

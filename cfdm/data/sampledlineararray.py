@@ -98,12 +98,12 @@ class SampledLinearArray(Sampledrray):
         uarray = np.ma.masked_all(self.shape, dtype=_float)
 
         s_shape = [1] * self.ndim
-        
+
         for tp_indices, u_indices, n_points in zip(
                 *self._define_interpolation_zones()
         ):
             # Create interpolation variable, s
-            delta = n_points[0]
+            delta = 1 / (len(n_points[0]) - 1)
             s = np.arange(0, 1 + delta / 2, delta)
             s_shape[d] = s.size
             s.resize(s_shape)

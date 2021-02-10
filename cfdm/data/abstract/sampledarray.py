@@ -17,6 +17,7 @@ class SampledArray(CompressedArray):
     
     def __init__(
             self,
+            compressed_array=None,
             shape=None,
             size=None,
             ndim=None,
@@ -24,8 +25,7 @@ class SampledArray(CompressedArray):
             interpolation=None,
             tie_points=None,
             tie_point_indices=None,
-            interpolation_coefficients=(),
-            interpolation_configuation=(),
+            interpolation_parameters={},
             compression_type="linear"
     ):
         """**Initialization**
@@ -54,10 +54,7 @@ class SampledArray(CompressedArray):
             tie_point_indices: `dict`, optional
                 TODO
 
-            interpolation_coefficients: `dict`
-                TODO
-
-            interpolation_configuration: `dict`
+            interpolation_parameters: `dict`
                 TODO
 
         """
@@ -70,8 +67,7 @@ class SampledArray(CompressedArray):
             compression_type="sampled",
             interpolation=interpolation,
             tie_point_indices=tuple(tie_point_indices),
-            interpolation_coefficients=interpolation_coefficients.copy(),
-            interpolation_configurations=interpolation_configuration.copy(),
+            interpolation_parameters=interpolation_parameters.copy(),
             
         )
 
@@ -84,10 +80,10 @@ class SampledArray(CompressedArray):
 
         term_dimensions = self.term_dimensions
 
-        interpolation_coefficients = self.interpolation_coefficients
+        interpolation_parameters = self.interpolation_parameters
         
         for term, c in (
-                tuple(self.interpolation_coefficients.items())
+                tuple(self.interpolation_parameters.items())
                 + tuple(self.get_interpolation_configuration.items())
         ):
             dimensions = term_dimensions[term]
@@ -107,14 +103,20 @@ class SampledArray(CompressedArray):
             3-`tuple`
             
                * The indices of the tie point array that correspond to
-                 each interpolation zone.
+                 each interpolation zone. Each index for the tie point
+                 interpolation dimensions is expressed as a list of
+                 two integers, rather than a `slice` object, to
+                 facilitate retrieval of each tie point individually.
 
                * The indices of the uncompressed array that correspond
-                 to each interpolation zone.
+                 to each interpolation zone. Each index in the tuple
+                 is expressed as a `slice` object.
 
-               * The shape of the interpolation zone in the
-                 uncompressed array, ignoring any non-interpolation
-                 dimensions.
+               * The indices for the axis of the uncompressed array
+                 that corresponds interpolation dimensions of each
+                 interpolation zone. Each index is given as `range`
+                 object defineing the actual indices of the the
+                 uncompressed array. 
 
         """
         tie_point_indices = self.get_tie_point_indices()
@@ -126,6 +128,8 @@ class SampledArray(CompressedArray):
         u_slice = slices[:]        
 
         points = []
+
+        interpolation_dimension_indices = [1] * self.ndim
         
         for d, tp_indices in zip(
                 self.get_compression_dimension(),
@@ -135,23 +139,37 @@ class SampledArray(CompressedArray):
             d_points = []
             d_zzz = []
 
-            tp_indices = tp_indices.array.tolist()
+            tp_indices = tp_indices.array.flatten().tolist()
+            
             for i, (index0, index1) in enumerate(
                     zip(tp_indices[:-1], tp_indices[1:])
             ):
-                diff = index1 - index0
-                if diff <= 1:
+                index1 = index1 + 1
+                zone_indices = range(index0, index1)
+                if len(zone_indices) <= 2:
+                    # Interpolation area boundary
                     continue
 
+                # The subspace for the axis of the tie points that
+                # corresponds to this axis of the interpolation zone
                 tp_slices.append([i, i + 1])
-                d_zzz.append(slice(index0, index1 + 1))
-                d_points.append(1 / diff)
+
+                # The subspace for this axis of the uncompressed array
+                # that corresponds to the interpolation zone
+                d_zzz.append(slice(index0, index1))
+
+                # The indices for the axis of the uncompressed array
+                # that corresponds to this axis of the interpolation
+                # zone
+                d_points.append(zone_indices)
                 
             slices[d] = tp_slices
             u_slices[d] = d_zzz
-            points.append(d_points)
+            interpolation_dimension_indices[d] = d_points
             
-        return product(*slices), product(*u_slices), product(*points)
+        return (product(*slices)
+                product(*u_slices),
+                product(*interpolation_dimension_indices))
             
     # ----------------------------------------------------------------
     # Attributes
@@ -200,8 +218,8 @@ class SampledArray(CompressedArray):
         """
         return list(self.get_compressed_dimension())
 
-     def get_interpolation_coefficients(self):
-        """Return the interpolation coefficient variables for sampled
+     def get_interpolation_parameters(self):
+        """Return the interpolation parameter variables for sampled
         dimensions.
 
         .. versionadded:: (cfdm) TODO
@@ -210,28 +228,10 @@ class SampledArray(CompressedArray):
 
         **Examples:**
 
-        >>> c = d.get_interpolation_coefficients)
+        >>> c = d.get_interpolation_parameters)
 
         """
-        try:
-            return self._get_component("interpolation_coefficients")
-        except ValueError:
-            return {}
-
-    def get_interpolation_configuration(self):
-        """Return the interpolation TODO
-
-        .. versionadded:: (cfdm) TODO
-
-        :Returns:
-
-        **Examples:**
-
-        """
-        try:
-            return self._get_component("interpolation_configuration")
-        except ValueError:
-            return {}
+        return self._get_component("interpolation_parameters")
 
     def get_sampled_dimensions(self):
         """Return the positions of the sampled dimensions in array.
@@ -336,7 +336,7 @@ class SampledArray(CompressedArray):
         for v in (
             self.get_tie_point_indices()
             + self.get_tie_point_offsets()
-            + self.get_interpolation_coefficients()
+            + self.get_interpolation_parameters()
         ):
             if v is None:
                 continue
@@ -344,3 +344,41 @@ class SampledArray(CompressedArray):
             v.data.to_memory()
 
         return self
+
+    def tranpose(self, axes):
+        """TODO"""
+        # Tranpose the compressed array 
+        compressed_array = self.source().tranpose(axes=axes)
+
+        # Transpose the shape
+        old_shape = self.shape
+        shape = tuple([old_shape.index(i) for n in axes])
+            i
+
+        # Change the compressed dimensions
+        compressed_dimensions = sorted(
+            [axes.index(i)
+             for i in self._get_component("compressed_dimension")]
+        )
+        
+        # Change the tie point index dimensions
+        tie_point_indices = {
+            axes.index(i): v for i, v in self.tie_point_indices.items()
+        }
+        
+        # Change the interpolation parameter dimensions
+        parameter_dimensions = {
+            term: tuple([axes.index(i) for i in v])
+            for term, v in self.parameter_dimensions.items()
+        }
+
+        return type(self)(
+            compressed_array=compressed_array,
+            shape=shape, ndim=self.ndim, size=self.size,
+            compressed_dimensions=compressed_dimensions,
+            interpolation=self.interpolation,
+            tie_point_indices=tie_point_indices,
+            interpolation_parameters=self.get_interpolation_parameters(),
+            parameter_dimensions=parameter_dimensions,
+        )
+    
