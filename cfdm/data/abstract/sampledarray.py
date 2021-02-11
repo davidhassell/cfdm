@@ -24,7 +24,7 @@ class SampledArray(CompressedArray):
             compressed_dimensions=None,
             interpolation=None,
             tie_points=None,
-            tie_point_indices=None,
+            tie_point_indices={},
             interpolation_parameters={},
             compression_type="linear"
     ):
@@ -71,9 +71,9 @@ class SampledArray(CompressedArray):
             
         )
 
-    def _conform_interpolation_formula_terms(self):
-        """Make sure the interpolation coefficents/configuration have the
-         same relative dimension order as the tie points
+    def _conform_interpolation_parameters(self):
+        """Make sure the interpolation parameters arrays have the same
+        relative dimension order as the tie point array.
 
         """
         dims = tuple(range(ndim))
@@ -95,13 +95,13 @@ class SampledArray(CompressedArray):
             interpolation_ceofficients[term] = c.tranpose(new_order)
             term_dimensions[term] = tuple([dimensions[i] for i in new_order])
 
-    def _define_interpolation_zones(self):
+    def _interpolation_zones(self,
+                             non_interpolation_dimension_value=slice(None)):
         """TODO
 
         :Returns:
         
-            3-`tuple`
-            
+            iterator, iterator
                * The indices of the tie point array that correspond to
                  each interpolation zone. Each index for the tie point
                  interpolation dimensions is expressed as a list of
@@ -112,64 +112,108 @@ class SampledArray(CompressedArray):
                  to each interpolation zone. Each index in the tuple
                  is expressed as a `slice` object.
 
-               * The indices for the axis of the uncompressed array
-                 that corresponds interpolation dimensions of each
-                 interpolation zone. Each index is given as `range`
-                 object defineing the actual indices of the the
-                 uncompressed array. 
-
         """
         tie_point_indices = self.get_tie_point_indices()
         
         compressed_dimensions = self.get_compression_dimension()
 
-        slices = [slice(None)] * self.ndim
-
-        u_slice = slices[:]        
-
-        points = []
-
-        interpolation_dimension_indices = [1] * self.ndim
+        # Initialise the indices of the tie point array that
+        # correspond to each interpolation zone.
+        #
+        # This list starts off with (slice(None),) for all dimensions,
+        # but each tie point interpolation dimension will then be
+        # replaced by a sequence of index pairs that define tie point
+        # values for each interpolation zone. Finally, the caresian
+        # product of the list is returned
+        #
+        # For example, if the tie point array has three dimensions and
+        # dimensions 0 and 2 are tie point interpolation dimensions,
+        # then the list could evolve as follows:
+        #
+        # Initialization:
+        #
+        # [(slice(None),), (slice(None),), (slice(None),)]
+        #
+        # Overwrite tie point interpolation dimension entries with
+        # indices to tie point pairs:
+        #
+        # [[[0, 1], [2, 3]], (slice(None),), [[0,1], [1, 2], [2, 3]]]
+        #
+        # Returned cartesian product (one set of indices per
+        # interpolation zone):
+        #
+        # [[0, 1], slice(None), [0, 1]),
+        #  [0, 1], slice(None), [1, 2]),
+        #  [0, 1], slice(None), [2, 3]),
+        #  [2, 3], slice(None), [0, 1]),
+        #  [2, 3], slice(None), [1, 2]),
+        #  [2, 3], slice(None), [2, 3])]
+        tp_interpolation_zones = (
+            [(non_interpolation_dimension_value,)] * self.ndim
+        )
         
-        for d, tp_indices in zip(
-                self.get_compression_dimension(),
-                self.get_tie_point_indices()
-        ):
-            tp_slices = []
-            d_points = []
-            d_zzz = []
-
-            tp_indices = tp_indices.array.flatten().tolist()
+        # Initialise indices of the uncompressed array that correspond
+        # to each interpolation zone.
+        #
+        # This list starts off with (slice(None),) for all dimensions,
+        # but each interpolation dimension will then be replaced by a
+        # sequence of slices that define tie the uncompressed array
+        # locations for each interpolation zone. Finally, the caresian
+        # product of the list is returned
+        #
+        # For example, if the tie point array has three dimensions and
+        # dimensions 0 and 2 are interpolation dimensions, then list
+        # could evolve as follows:
+        #
+        # Initialization:
+        #
+        # [(slice(None),), (slice(None),), (slice(None),)]
+        #
+        # Overwrite interpolation dimension entries with indices to
+        # tie point pairs:
+        #
+        # [[slice(0, 10), slice(11, 20)],
+        #  (slice(None),),
+        #  [slice(0, 5), slice(5, 10), slice(10, 15)]]
+        #
+        # Returned cartesian product (one set of indices per
+        # interpolation zone):
+        #
+        # [(slice(0, 10), slice(None), slice(0, 5)),
+        #  (slice(0, 10), slice(None), slice(5, 10)),
+        #  (slice(0, 10), slice(None), slice(10, 15)),
+        #  (slice(11, 20), slice(None), slice(0, 5)),
+        #  (slice(11, 20), slice(None), slice(5, 10)),
+        #  (slice(11, 20), slice(None), slice(10, 15))]
+        u_interpolation_zones = tp_indices[:]
+        
+        for d self.get_compression_dimension():
+            tp_index = []
+            u_index = []
+            
+            tie_point_indices = self.get_tie_point_indices()
+            tie_point_indices = tie_point_indices[d].array.flatten().tolist()
             
             for i, (index0, index1) in enumerate(
-                    zip(tp_indices[:-1], tp_indices[1:])
+                    zip(tie_point_indices[:-1], tie_point_indices[1:])
             ):
-                index1 = index1 + 1
-                zone_indices = range(index0, index1)
-                if len(zone_indices) <= 2:
+                if index1 - index0 <= 1:
                     # Interpolation area boundary
                     continue
 
                 # The subspace for the axis of the tie points that
                 # corresponds to this axis of the interpolation zone
-                tp_slices.append([i, i + 1])
+                tp_index.append([i, i + 1])
 
                 # The subspace for this axis of the uncompressed array
                 # that corresponds to the interpolation zone
-                d_zzz.append(slice(index0, index1))
+                u_index.append(slice(index0, index1 + 1))
 
-                # The indices for the axis of the uncompressed array
-                # that corresponds to this axis of the interpolation
-                # zone
-                d_points.append(zone_indices)
-                
-            slices[d] = tp_slices
-            u_slices[d] = d_zzz
-            interpolation_dimension_indices[d] = d_points
+            tp_interpolation_zones[d] = tp_index
+            u_interpolation_zones[d] = u_index
             
-        return (product(*slices)
-                product(*u_slices),
-                product(*interpolation_dimension_indices))
+        return (product(*tp_interpolation_zones),
+                product(*u_interpolation_zones))
             
     # ----------------------------------------------------------------
     # Attributes
@@ -284,7 +328,7 @@ class SampledArray(CompressedArray):
             )
         
     def get_tie_points(self, default=ValueError()):
-        """Return the tie point variables for sampled dimensions.
+        """Return the tie points data.
 
         .. versionadded:: (cfdm) TODO
 

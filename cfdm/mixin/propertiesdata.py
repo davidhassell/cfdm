@@ -808,6 +808,43 @@ class PropertiesData(Properties):
 
         return True
 
+    def flag(self, meaning):
+        """TODO"""
+        properties = self.properties()
+        flag_masks = properties.get("flag_masks")
+        flag_values = properties.get("flag_values")
+        flag_meanings = properties.get("flag_meanings")
+
+        if flag_meanings is None:
+            raise ValueError("Can't when no flag meanings")
+
+        try:
+            index = flag_meanings.index(meaning)
+        except ValueError:
+            raise ValueError("bad meaning")
+
+        if flag_masks is not None:
+            if flag_values is not None:
+                raise NotImplementedError("TODO")
+            
+            array = numpy.ma.where(
+                self.array & flag_masks[index], True, False
+            )
+        elif flag_values is not None:
+            array = numpy.ma.where(
+                self.array == flag_values[index], True, False
+            )
+            flags = flag_values
+        elif flag_masks is None and flag_values is None:
+            raise ValueError("Can't when no flag values or flag masks")
+        elif flag_masks is not None and flag_values is not None:
+            raise NotImplementedError("TODO")
+
+        if not numpy.ma.is_masked(array):
+            array = array.data
+            
+        return self._Data(array)
+
     def get_filenames(self):
         """Return the name of the file or files containing the data.
 

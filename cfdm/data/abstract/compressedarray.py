@@ -269,11 +269,15 @@ class CompressedArray(Array):
         4
         >>> c.compressed_array.ndim
         3
-        >>> c.compressed_axes()
+        >>> c.get_compressed_axes()
         [1, 2]
 
         """
-        compressed_dimension = self.get_compressed_dimension()
+        compressed_dimensions = self.get_compressed_dimensions()
+        if len(compressed_dimensions) > 1:
+            return sorted(compressed_dimensions)
+
+        compressed_dimension = compressed_dimension[0]
         compressed_ndim = self._get_compressed_Array().ndim
 
         return list(
@@ -283,13 +287,13 @@ class CompressedArray(Array):
             )
         )
 
-    def get_compressed_dimension(self, *default):
+    def get_compressed_dimensions(self, *default):
         """Return the position of the compressed dimension in the compressed
         array.
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `get_compressed_axearray`, `get_compressed_axes`,
+        .. seealso:: `get_compressed_array`, `get_compressed_axes`,
                      `get_compressed_type`
 
         :Parameters:
@@ -300,17 +304,17 @@ class CompressedArray(Array):
 
         :Returns:
 
-            `int`
-                The position of the compressed dimension in the compressed
-                array. If the underlying is not compressed then *default*
-                is returned, if provided.
+            `list` of `int`
+                The positions of the compressed dimensions in the
+                compressed array. If the underlying is not compressed
+                then *default* is returned, if provided.
 
         **Examples:**
 
-        >>> i = d.get_compressed_dimension()
+        >>> i = d.get_compressed_dimensions()
 
         """
-        return self._get_component("compressed_dimension", *default)
+        return self._get_component("compressed_dimensions", *default)
 
     #    @abc.abstractmethod
     def to_memory(self):

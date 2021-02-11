@@ -3,7 +3,8 @@ from . import core
 
 
 class TiePointIndex(
-    mixin.NetCDFVariable, mixin.PropertiesData, core.abstract.PropertiesData
+        mixin.NetCDFVariable, mixin.NetCDFDimension,
+        mixin.PropertiesData, core.abstract.PropertiesData
 ):
     """A tie point index variable required to uncompress a sampled array TODO.
 
@@ -104,6 +105,3 @@ class TiePointIndex(
             _axes=_axes,
             _axis_names=_axis_names,
         )
-
-
-# --- End: class

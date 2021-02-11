@@ -478,19 +478,24 @@ class NetCDFWrite(IOWrite):
         ncdims = [g["axis_to_ncdim"][axis] for axis in domain_axes]
 
         compression_type = self.implementation.get_compression_type(construct)
-        if compression_type:
-            sample_dimension_position = (
-                self.implementation.get_sample_dimension_position(construct)
-            )
+
+        if compression_type:            
             compressed_axes = tuple(
                 self.implementation.get_compressed_axes(field, key, construct)
             )
-            compressed_ncdims = tuple(
-                [g["axis_to_ncdim"][axis] for axis in compressed_axes]
-            )
-
-            sample_ncdim = g["sample_ncdim"].get(compressed_ncdims)
-
+            
+            if compression_type != "sampled":
+                sample_dimension_position = (
+                    self.implementation.get_sample_dimension_position(
+                        construct
+                    )
+                )
+                
+                compressed_ncdims = tuple(
+                    [g["axis_to_ncdim"][axis] for axis in compressed_axes]
+                )
+                sample_ncdim = g["sample_ncdim"].get(compressed_ncdims)
+        
             if compression_type == "gathered":
                 # ----------------------------------------------------
                 # Compression by gathering
@@ -532,6 +537,27 @@ class NetCDFWrite(IOWrite):
                 pass
             elif compression_type == "ragged indexed contiguous":
                 pass
+            elif compression_type == "sampled":
+                # ----------------------------------------------------
+                # Compression by sampling
+                # TODO
+                # ----------------------------------------------------
+                tp_index_variables = (
+                    self.implementation.get_tie_point_index_variables(
+                        construct
+                    )
+                )
+                for axis in compressed_axes:
+                    tp_index_variable = (
+                        self.implementation.get_tie_point_index_variable(
+                            construct, domain_axes.index(axis)
+                        )
+                    )
+                    tp_index_ncdim = self._write_tie_point_index_variable(
+                        field, tp_index
+                    )
+                    g["tie_point_index_ncdim"][axis] = tp_index_ncdim
+                    
             else:
                 raise ValueError(
                     "Can't write {!r}: Unknown compression type: {!r}".format(
@@ -541,12 +567,17 @@ class NetCDFWrite(IOWrite):
 
             n = len(compressed_ncdims)
             ncdims[
-                sample_dimension_position : sample_dimension_position + n
+                sample_dimension_position:sample_dimension_position + n
             ] = [sample_ncdim]
         # --- End: if
 
         return tuple(ncdims)
 
+    def _write_tie_point_index_variable(self, field, tp_index, axis):
+        ncdims = g["axis_to_ncdim"][axis]
+        g["interpolation_dimension"][axis] = [ncdims]
+
+    
     def _write_dimension(
         self, ncdim, f, axis=None, unlimited=False, size=None
     ):
