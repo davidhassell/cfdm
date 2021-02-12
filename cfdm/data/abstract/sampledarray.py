@@ -14,19 +14,19 @@ class SampledArray(CompressedArray):
     .. versionadded:: (cfdm) TODO
 
     """
-    
+
     def __init__(
-            self,
-            compressed_array=None,
-            shape=None,
-            size=None,
-            ndim=None,
-            compressed_dimensions=None,
-            interpolation=None,
-            tie_points=None,
-            tie_point_indices={},
-            interpolation_parameters={},
-            compression_type="linear"
+        self,
+        compressed_array=None,
+        shape=None,
+        size=None,
+        ndim=None,
+        compressed_dimensions=None,
+        interpolation=None,
+        tie_points=None,
+        tie_point_indices={},
+        interpolation_parameters={},
+        parameter_dimensions={},
     ):
         """**Initialization**
 
@@ -57,6 +57,9 @@ class SampledArray(CompressedArray):
             interpolation_parameters: `dict`
                 TODO
 
+            parameter_dimensions: `dict`
+                TODO
+
         """
         super().__init__(
             compressed_array=tie_points,
@@ -66,9 +69,9 @@ class SampledArray(CompressedArray):
             compressed_dimensions=compressed_dimensions,
             compression_type="sampled",
             interpolation=interpolation,
-            tie_point_indices=tuple(tie_point_indices),
+            tie_point_indices=tie_point_indices.copy(),
             interpolation_parameters=interpolation_parameters.copy(),
-            
+            parameter_dimensions=parameter_dimensions.copy(),
         )
 
     def _conform_interpolation_parameters(self):
@@ -81,27 +84,28 @@ class SampledArray(CompressedArray):
         term_dimensions = self.term_dimensions
 
         interpolation_parameters = self.interpolation_parameters
-        
-        for term, c in (
-                tuple(self.interpolation_parameters.items())
-                + tuple(self.get_interpolation_configuration.items())
+
+        for term, c in tuple(self.interpolation_parameters.items()) + tuple(
+            self.get_interpolation_configuration.items()
         ):
             dimensions = term_dimensions[term]
-            new_order = [dimensions.index(i) for i in dims
-                         if i in dimensions]
+            new_order = [dimensions.index(i) for i in dims if i in dimensions]
             if new_order == list(range(c.ndim)):
                 continue
-            
+
             interpolation_ceofficients[term] = c.tranpose(new_order)
             term_dimensions[term] = tuple([dimensions[i] for i in new_order])
 
-    def _interpolation_zones(self,
-                             non_interpolation_dimension_value=slice(None)):
+    def _interpolation_zones(
+        self, non_interpolation_dimension_value=slice(None)
+    ):
         """TODO
 
+        .. versionadded:: (cfdm) TODO
+
         :Returns:
-        
-            iterator, iterator
+
+            iterator, iterator, iterator
                * The indices of the tie point array that correspond to
                  each interpolation zone. Each index for the tie point
                  interpolation dimensions is expressed as a list of
@@ -112,9 +116,13 @@ class SampledArray(CompressedArray):
                  to each interpolation zone. Each index in the tuple
                  is expressed as a `slice` object.
 
+               * Flags which state, for each interpolation dimension,
+                 whether each interplation zone is at the start of an
+                 interpolation area.
+
         """
         tie_point_indices = self.get_tie_point_indices()
-        
+
         compressed_dimensions = self.get_compression_dimension()
 
         # Initialise the indices of the tie point array that
@@ -128,6 +136,7 @@ class SampledArray(CompressedArray):
         #
         # For example, if the tie point array has three dimensions and
         # dimensions 0 and 2 are tie point interpolation dimensions,
+        # and interpolation dimension 0 has two interpolation areas,
         # then the list could evolve as follows:
         #
         # Initialization:
@@ -137,7 +146,9 @@ class SampledArray(CompressedArray):
         # Overwrite tie point interpolation dimension entries with
         # indices to tie point pairs:
         #
-        # [[[0, 1], [2, 3]], (slice(None),), [[0,1], [1, 2], [2, 3]]]
+        # [[[0, 1], [2, 3]],
+        #  (slice(None),),
+        #  [[0,1], [1, 2], [2, 3]]]
         #
         # Returned cartesian product (one set of indices per
         # interpolation zone):
@@ -148,10 +159,10 @@ class SampledArray(CompressedArray):
         #  [2, 3], slice(None), [0, 1]),
         #  [2, 3], slice(None), [1, 2]),
         #  [2, 3], slice(None), [2, 3])]
-        tp_interpolation_zones = (
-            [(non_interpolation_dimension_value,)] * self.ndim
-        )
-        
+        tp_interpolation_zones = [
+            (non_interpolation_dimension_value,)
+        ] * self.ndim
+
         # Initialise indices of the uncompressed array that correspond
         # to each interpolation zone.
         #
@@ -162,8 +173,9 @@ class SampledArray(CompressedArray):
         # product of the list is returned
         #
         # For example, if the tie point array has three dimensions and
-        # dimensions 0 and 2 are interpolation dimensions, then list
-        # could evolve as follows:
+        # dimensions 0 and 2 are interpolation dimensions, and
+        # interpolation dimension 0 has two interpolation areas, then
+        # list could evolve as follows:
         #
         # Initialization:
         #
@@ -174,33 +186,69 @@ class SampledArray(CompressedArray):
         #
         # [[slice(0, 10), slice(11, 20)],
         #  (slice(None),),
-        #  [slice(0, 5), slice(5, 10), slice(10, 15)]]
+        #  [slice(0, 6), slice(5, 11), slice(10, 16)]]
         #
         # Returned cartesian product (one set of indices per
         # interpolation zone):
         #
-        # [(slice(0, 10), slice(None), slice(0, 5)),
-        #  (slice(0, 10), slice(None), slice(5, 10)),
-        #  (slice(0, 10), slice(None), slice(10, 15)),
-        #  (slice(11, 20), slice(None), slice(0, 5)),
-        #  (slice(11, 20), slice(None), slice(5, 10)),
-        #  (slice(11, 20), slice(None), slice(10, 15))]
+        # [(slice(0, 10), slice(None), slice(0, 6)),
+        #  (slice(0, 10), slice(None), slice(5, 11)),
+        #  (slice(0, 10), slice(None), slice(10, 16)),
+        #  (slice(11, 20), slice(None), slice(0, 6)),
+        #  (slice(11, 20), slice(None), slice(5, 11)),
+        #  (slice(11, 20), slice(None), slice(10, 16))]
         u_interpolation_zones = tp_indices[:]
-        
-        for d self.get_compression_dimension():
+     
+        # Initialise the boolean flags which state, for each
+        # interpolation dimension, whether each interplation zone is
+        # at the start of an interpolation area. Non-interpolation
+        # dimensions are given the flag `None`.
+        #
+        # These flags allow the indices in u_interpolation_zones to be
+        # modified if it is desired to ot overwrite uncompressed
+        # values that have already been (or will otherwise be)
+        # computed.
+        #
+        # For the example given for tp_interpolation_zones, we would
+        # have
+        #
+        # [[True, True],
+        #  (None,)
+        #  [True, False, False]]
+        #
+        # Returned cartesian product (one set of flags per
+        # interpolation zone):
+        #
+        # [(True, None, True),
+        #  (True, None, False),
+        #  (True, None, False),
+        #  (True, None, True),
+        #  (True, None, False),
+        #  (True, None, False)]
+        new_interpolation_area = []
+              
+        for d in self.get_compression_dimension():
             tp_index = []
             u_index = []
+            new_area = []
             
             tie_point_indices = self.get_tie_point_indices()
             tie_point_indices = tie_point_indices[d].array.flatten().tolist()
-            
+
             for i, (index0, index1) in enumerate(
-                    zip(tie_point_indices[:-1], tie_point_indices[1:])
+                zip(tie_point_indices[:-1], tie_point_indices[1:])
             ):
-                if index1 - index0 <= 1:
-                    # Interpolation area boundary
+                new = index1 - index0 <= 1:
+                new_area.append(new)
+                
+                if new:
+                    # This interpolation zone is at the start of a new
+                    # interpolation area
                     continue
 
+                # This interpolation zone is not at the start of a new
+                # interpolation area
+                
                 # The subspace for the axis of the tie points that
                 # corresponds to this axis of the interpolation zone
                 tp_index.append([i, i + 1])
@@ -211,10 +259,14 @@ class SampledArray(CompressedArray):
 
             tp_interpolation_zones[d] = tp_index
             u_interpolation_zones[d] = u_index
+            new_interpolation_area.append(new_area)
             
-        return (product(*tp_interpolation_zones),
-                product(*u_interpolation_zones))
-            
+        return (
+            product(*tp_interpolation_zones),
+            product(*u_interpolation_zones),
+            product(*new_interpolation_area)
+        )
+    
     # ----------------------------------------------------------------
     # Attributes
     # ----------------------------------------------------------------
@@ -224,19 +276,12 @@ class SampledArray(CompressedArray):
 
         .. versionadded:: (cfdm) TODO
 
-        **Examples:**
-
-        >>> a.dtype
-        dtype('float64')
-        >>> print(type(a.dtype))
-        <type 'numpy.dtype'>
-
         """
         return _float64
 
     @property
     def interpolation(self):
-        """TODO"""
+        """The description of the interpolation method."""
         raise NotImplementedError("Must implement in subclasses")
 
     # ----------------------------------------------------------------
@@ -262,7 +307,7 @@ class SampledArray(CompressedArray):
         """
         return list(self.get_compressed_dimension())
 
-     def get_interpolation_parameters(self):
+    def get_interpolation_parameters(self):
         """Return the interpolation parameter variables for sampled
         dimensions.
 
@@ -323,10 +368,9 @@ class SampledArray(CompressedArray):
             return self._get_component("tie_point_indices")
         except ValueError:
             return self._default(
-                default,
-                f"{self.__class__.__name__} has no tie point indices"
+                default, f"{self.__class__.__name__} has no tie point indices"
             )
-        
+
     def get_tie_points(self, default=ValueError()):
         """Return the tie points data.
 
@@ -391,25 +435,26 @@ class SampledArray(CompressedArray):
 
     def tranpose(self, axes):
         """TODO"""
-        # Tranpose the compressed array 
+        # Tranpose the compressed array
         compressed_array = self.source().tranpose(axes=axes)
 
         # Transpose the shape
         old_shape = self.shape
         shape = tuple([old_shape.index(i) for n in axes])
-            i
 
         # Change the compressed dimensions
         compressed_dimensions = sorted(
-            [axes.index(i)
-             for i in self._get_component("compressed_dimension")]
+            [
+                axes.index(i)
+                for i in self._get_component("compressed_dimension")
+            ]
         )
-        
+
         # Change the tie point index dimensions
         tie_point_indices = {
             axes.index(i): v for i, v in self.tie_point_indices.items()
         }
-        
+
         # Change the interpolation parameter dimensions
         parameter_dimensions = {
             term: tuple([axes.index(i) for i in v])
@@ -418,11 +463,12 @@ class SampledArray(CompressedArray):
 
         return type(self)(
             compressed_array=compressed_array,
-            shape=shape, ndim=self.ndim, size=self.size,
+            shape=shape,
+            ndim=self.ndim,
+            size=self.size,
             compressed_dimensions=compressed_dimensions,
             interpolation=self.interpolation,
             tie_point_indices=tie_point_indices,
             interpolation_parameters=self.get_interpolation_parameters(),
             parameter_dimensions=parameter_dimensions,
         )
-    

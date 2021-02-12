@@ -10,58 +10,6 @@ class SampledLinearArray(Sampledrray):
 
     """
 
-    def __init__(
-        self,
-        shape=None,
-        size=None,
-        ndim=None,
-        compressed_dimensions=None,
-        interpolation=None,
-        tie_points=None,
-        tie_point_indices={},
-        interpolation_parameters={},
-    ):
-        """**Initialization**
-
-        :Parameters:
-
-            compressed_array: `Data`
-                The compressed array.
-
-            shape: `tuple`
-                The uncompressed array dimension sizes.
-
-            size: `int`
-                Number of elements in the uncompressed array.
-
-            ndim: `int`
-                The number of uncompressed array dimensions.
-
-            compressed_dimensions: sequence of `int`
-                The positions of the compressed dimensions in the
-                compressed array.
-
-            tie_point_indices: `dict`, optional
-                TODO
-
-            interpolation_parameters: `dict`
-                TODO
-
-        """
-        compressed_dimensions = tuple(sorted(compressed_dimensions))
-
-        super().__init__(
-            shape=shape,
-            size=size,
-            ndim=ndim,
-            compressed_dimensions=compressed_dimensions,
-            interpolation=interpolation,
-            tie_points=tie_points,
-            tie_point_indices=tie_point_indices.copy(),
-            interpolation_parameters=interpolation_parameters.copy(),
-            compression_type="sampled",
-        )
-
     def __getitem__(self, indices):
         """x.__getitem__(indices) <==> x[indices]
 
@@ -90,97 +38,121 @@ class SampledLinearArray(Sampledrray):
         d0 = self.get_compression_dimension()[0]
 
         tie_points = self.get_tie_points()
-         
+
         # Initialise the un-sliced uncompressed array
         uarray = np.ma.masked_all(self.shape, dtype=float)
 
-        for tp_indices, u_indices in zip(*self._interpolation_zones()):
-            u_slice  = u_indices[d0]
-            
+        first_zone = True
+        for tp_indices, u_indices, new_area in zip(
+            *self._interpolation_zones()
+        ):
+            u_slice = u_indices[d0]
+            n = u_slice.stop - u_slice.start
+
             tp_index0 = list(tp_indices)
             tp_index1 = tp_index0[:]
             tp_index0[d0] = tp_index0[d0][:1]
             tp_index1[d0] = tp_index1[d0][1:]
-            
+
             uarray[u_indices] = self._linear_interpolation(
-                d0, u_slice,
-                tie_points[tuple(tp_index0)],
-                tie_points[tuple(tp_index1)],
+                d0,
+                n,
+                new_area[d0],
+                tie_points[tuple(tp_index0)].array,
+                tie_points[tuple(tp_index1)].array,
             )
-            
+
         self._calculate_s.cache_clear()
-            
+
         return self.get_subspace(uarray, indices, copy=True)
-    
+
     # ----------------------------------------------------------------
     # Private methods
     # ----------------------------------------------------------------
-    def _linear_interpolation(self, d, u_slice, tp0, tp1):
+    def _linear_interpolation(self, d, n, new_area, a0, a1):
         """TODO
+
+        .. versionadded:: (cfdm) TODO
 
         :Parameters:
 
             d: `int`
+                The position of the tie point interpolation
+                dimension.
 
-            u_slice: `slice`
-                The `slice` object that describes which elements along
-                interpolation dimension *d* of the of the uncompressed
-                array are in this interpolation zone.
+            n: sequence of `slice` or `list`
+                The number of uncompressed elements in this
+                interpolation zone along the interpolation dimension.
 
-            tie_points: `Data`
-        
-            tp_indices: `tuple` of indices
+            new_area: `bool`
+                Set to True if this interpolation is at the start of a
+                new interpolation area, otherwise set to False. If
+                False then the first element along the interpolation
+                dimension of the uncompressed array is removed.
+
+            a0, a1: array_like
+               The arrays containing the points for pair-wise
+               interpolation along dimension *d*
 
         """
-        s, one_minus_s = self._calculate_s(
-            d, u_slice.stop - u_slice.start
-        )
-        
-        return tp0.array * one_minus_s + tp1.array * s
+        s, one_minus_s = self._calculate_s(d, n)
+
+        u = a0 * one_minus_s + a1 * s
+
+        if not new_area:
+            indices = [slice(None)] * u.ndim
+            indices[d] = slice(1, None)
+            u = u[tuple(indices)]
+
+        return u
 
     @lru_cache(maxsize=32)
     def _calculate_s(self, d, n):
-        """TODO
+        """Create the interpolation coefficients and 1-s.
+
+        .. versionadded:: (cfdm) TODO
 
         :Parameters:
 
             d: `int`
-                The interpolation dimension along which linear
-                interpolation is being applied.
+                The position of the tie point interpolation dimension.
 
             n: `int`
-                The uncompressed size of the interpolation zone along
-                interpolation dimension *d*.
+                The number of uncompressed elements in this
+                interpolation zone along the interpolation dimension.
 
         :Returns:
 
             2-`tuple`
                 The interpolation coefficents ``s`` and ``1 - s`` in
                 that order, each of which are numpy arrays containing
-                floats in the range [0.0, 1.0]. The numpy arrays are
-                broadcastable to the tie points array.
+                floats in the range [0.0, 1.0]. The numpy arrays have
+                size 1 dimensions corresponding to all tie point
+                dimensions other than *d*.
+
+        **Examples:**
+
+        >>> x.ndim
+        >>> 2
+        >>> x._calculate_s(1, 6)
+        (array([[0. , 0.2, 0.4, 0.6, 0.8, 1. ]]),
+         array([[1. , 0.8, 0.6, 0.4, 0.2, 0. ]]))
 
         """
-
-        # Create the interpolation variable, s, and make it
-        # broadcastable to the tie points array.
-        delta = 1 / n
+        delta = 1 / (n - 1)
         s = np.arange(0, 1 + delta / 2, delta)
 
-        s_shape = [1] * self.ndim
-        s_shape[d] = s.size
-        s.resize(s_shape)
+        one_minus_s = s[::-1]
 
-        return s, 1 - s
-    
+        new_shape = [1] * self.ndim
+        new_shape[d] = s.size
+
+        return (s.reshape(new_shape), one_minus_s.reshape(new_shape))
+
     # ----------------------------------------------------------------
     # Attributes
     # ----------------------------------------------------------------
     @property
     def interpolation(self):
-        """TODO"""
+        """The description of the interpolation method."""
         return "linear"
-
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
