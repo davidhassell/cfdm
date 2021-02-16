@@ -2026,7 +2026,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         except AttributeError:
             array = self.array
             array = numpy.transpose(array, axes=axes)
-            
+
         d._set_Array(array, copy=False)
 
         return d
@@ -2317,17 +2317,15 @@ class Data(Container, NetCDFHDF5, core.Data):
             # 1. Check interpolation method
             # 3. Check tie point index data values
             # 2. Check tie point data values
-            # 4. Check interpolation coefficients (terms and data values). May invlolve tranposing 
-            # 5. Check interpolation configuration (terms and data values). May invlolve tranposing 
+            # 4. Check interpolation coefficients (terms and data values). May invlolve tranposing
+            # 5. Check interpolation configuration (terms and data values). May invlolve tranposing
             #
             # If all of these are the same then return True. If any of
             # these are False then go on to check the uncompressed
             # values.
             pass
-        
-        
-        if not self._equals(self.array, other.array, rtol=rtol,
-                              atol=atol):
+
+        if not self._equals(self.array, other.array, rtol=rtol, atol=atol):
             # --------------------------------------------------------
             # Check for equal (uncompressed) array values
             # --------------------------------------------------------

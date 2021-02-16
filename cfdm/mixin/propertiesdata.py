@@ -826,10 +826,8 @@ class PropertiesData(Properties):
         if flag_masks is not None:
             if flag_values is not None:
                 raise NotImplementedError("TODO")
-            
-            array = numpy.ma.where(
-                self.array & flag_masks[index], True, False
-            )
+
+            array = numpy.ma.where(self.array & flag_masks[index], True, False)
         elif flag_values is not None:
             array = numpy.ma.where(
                 self.array == flag_values[index], True, False
@@ -842,7 +840,7 @@ class PropertiesData(Properties):
 
         if not numpy.ma.is_masked(array):
             array = array.data
-            
+
         return self._Data(array)
 
     def get_filenames(self):

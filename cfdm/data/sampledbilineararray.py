@@ -94,6 +94,6 @@ class SampledBiLinearArray(SampledLinearArray):
     # Attributes
     # ----------------------------------------------------------------
     @property
-    def interpolation(self):      
+    def interpolation(self):
         """The description of the interpolation method."""
         return "bi_linear"

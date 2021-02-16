@@ -198,7 +198,7 @@ class SampledArray(CompressedArray):
         #  (slice(11, 20), slice(None), slice(5, 11)),
         #  (slice(11, 20), slice(None), slice(10, 16))]
         u_interpolation_zones = tp_indices[:]
-     
+
         # Initialise the boolean flags which state, for each
         # interpolation dimension, whether each interplation zone is
         # at the start of an interpolation area. Non-interpolation
@@ -211,6 +211,13 @@ class SampledArray(CompressedArray):
         #
         # For the example given for tp_interpolation_zones, we would
         # have
+        #
+        # Initialization:
+        #
+        # [(None,), (None,), (None,)]
+        #
+        # Overwrite interpolation dimension entries with flags for
+        # each interpolation zone:
         #
         # [[True, True],
         #  (None,)
@@ -225,22 +232,22 @@ class SampledArray(CompressedArray):
         #  (True, None, True),
         #  (True, None, False),
         #  (True, None, False)]
-        new_interpolation_area = []
-              
+        new_interpolation_area = [(None,)] * self.ndim
+
         for d in self.get_compression_dimension():
             tp_index = []
             u_index = []
             new_area = []
-            
+
             tie_point_indices = self.get_tie_point_indices()
             tie_point_indices = tie_point_indices[d].array.flatten().tolist()
 
             for i, (index0, index1) in enumerate(
                 zip(tie_point_indices[:-1], tie_point_indices[1:])
             ):
-                new = index1 - index0 <= 1:
+                new = index1 - index0 <= 1
                 new_area.append(new)
-                
+
                 if new:
                     # This interpolation zone is at the start of a new
                     # interpolation area
@@ -248,7 +255,7 @@ class SampledArray(CompressedArray):
 
                 # This interpolation zone is not at the start of a new
                 # interpolation area
-                
+
                 # The subspace for the axis of the tie points that
                 # corresponds to this axis of the interpolation zone
                 tp_index.append([i, i + 1])
@@ -260,13 +267,13 @@ class SampledArray(CompressedArray):
             tp_interpolation_zones[d] = tp_index
             u_interpolation_zones[d] = u_index
             new_interpolation_area.append(new_area)
-            
+
         return (
             product(*tp_interpolation_zones),
             product(*u_interpolation_zones),
-            product(*new_interpolation_area)
+            product(*new_interpolation_area),
         )
-    
+
     # ----------------------------------------------------------------
     # Attributes
     # ----------------------------------------------------------------
