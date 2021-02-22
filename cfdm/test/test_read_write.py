@@ -9,6 +9,10 @@ import unittest
 
 import numpy
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
 
 warnings = False
@@ -42,7 +46,10 @@ atexit.register(_remove_tmpfiles)
 
 
 class read_writeTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -71,6 +78,7 @@ class read_writeTest(unittest.TestCase):
         # self.test_only = ['test_read_write_multiple_geometries']
 
     def test_write_filename(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -86,6 +94,7 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue((a == g[0].data.array).all())
 
     def test_read_field(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -160,6 +169,7 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(len(f), 14, "\n" + str(f))
 
     def test_read_write_format(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -182,6 +192,7 @@ class read_writeTest(unittest.TestCase):
             )
 
     def test_read_write_netCDF4_compress_shuffle(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -201,6 +212,7 @@ class read_writeTest(unittest.TestCase):
         # --- End: for
 
     def test_read_write_missing_data(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -221,6 +233,7 @@ class read_writeTest(unittest.TestCase):
             )
 
     def test_read_mask(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -259,6 +272,7 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(numpy.ma.count(g.data.array), N - 2)
 
     def test_write_datatype(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -282,6 +296,7 @@ class read_writeTest(unittest.TestCase):
         )
 
     def test_read_write_unlimited(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -312,6 +327,7 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(f.domain_axes["domainaxis2"].nc_is_unlimited())
 
     def test_read_CDL(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -333,7 +349,7 @@ class read_writeTest(unittest.TestCase):
 
         f0 = cfdm.read(self.filename)[0]
         f = cfdm.read(tmpfile)[0]
-        h = cfdm.read(tmpfileh)[0]
+        cfdm.read(tmpfileh)[0]
         c = cfdm.read(tmpfilec)[0]
 
         self.assertTrue(f0.equals(f, verbose=3))
@@ -350,7 +366,7 @@ class read_writeTest(unittest.TestCase):
         )
 
         with self.assertRaises(OSError):
-            x = cfdm.read("test_read_write.py")
+            cfdm.read("test_read_write.py")
 
         # TODO: make portable instead of skipping on Mac OS (see Issue #25):
         #       '-i' aspect solved, but the regex patterns need amending too.
@@ -386,11 +402,12 @@ class read_writeTest(unittest.TestCase):
                     check=True,
                 )
 
-                h = cfdm.read(tmpfileh)[0]
+                cfdm.read(tmpfileh)[0]
 
     #        subprocess.run(' '.join(['head', tmpfileh]),  shell=True, check=True)
 
     def test_read_write_string(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -425,6 +442,7 @@ class read_writeTest(unittest.TestCase):
         # --- End: for
 
     def test_read_write_Conventions(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -488,6 +506,7 @@ class read_writeTest(unittest.TestCase):
             )
 
     def test_read_write_multiple_geometries(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -521,6 +540,7 @@ class read_writeTest(unittest.TestCase):
         self.assertFalse(f)
 
     def test_write_coordinates(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -532,8 +552,23 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(len(g), 1)
         self.assertTrue(g[0].equals(f))
 
+    def test_write_scalar_domain_ancillary(self):
+        """TODO DOCS."""
+        if self.test_only and inspect.stack()[0][3] not in self.test_only:
+            return
 
-# --- End: class
+        f = cfdm.example_field(1)
+
+        # Create scalar domain ancillary
+        d = f.construct("ncvar%a")
+        d.del_data()
+        d.set_data(10)
+        d.del_bounds()
+
+        key = f.construct_key("ncvar%a")
+        f.set_data_axes((), key=key)
+
+        cfdm.write(f, tmpfile)
 
 
 if __name__ == "__main__":

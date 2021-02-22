@@ -52,7 +52,7 @@ class InteriorRing(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -126,6 +126,3 @@ class InteriorRing(
             _axes=_axes,
             _axis_names=_axis_names,
         )
-
-
-# --- End: class

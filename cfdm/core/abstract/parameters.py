@@ -1,5 +1,3 @@
-import abc
-
 from copy import deepcopy
 
 from .container import Container
@@ -13,7 +11,7 @@ class Parameters(Container):
     """
 
     def __init__(self, parameters=None, source=None, copy=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -29,7 +27,7 @@ class Parameters(Container):
                  ``parameters={'earth_radius': 6371007.}``
 
             source: optional
-                Initialize the parameters from those of *source*.
+                Initialise the parameters from those of *source*.
 
                 {{init source}}
 
@@ -122,7 +120,7 @@ class Parameters(Container):
         False
         >>> print(f.del_parameter('earth_radius', None))
         None
-        >>> print(f.get_paramete('earth_radius', None))
+        >>> print(f.get_parameter('earth_radius', None))
         None
 
         """
@@ -336,6 +334,3 @@ class Parameters(Container):
             value = deepcopy(value)
 
         self._get_component("parameters")[term] = value
-
-
-# --- End: class

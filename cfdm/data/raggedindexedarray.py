@@ -28,7 +28,7 @@ class RaggedIndexedArray(mixin.RaggedIndexed, abstract.CompressedArray):
         ndim=None,
         index_variable=None,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -60,10 +60,9 @@ class RaggedIndexedArray(mixin.RaggedIndexed, abstract.CompressedArray):
         )
 
     def __getitem__(self, indices):
-        """x.__getitem__(indices) <==> x[indices]
+        """Returns a subspace of the uncompressed data in a numpy array.
 
-        Returns an subspace of the uncompressed data an independent numpy
-        array.
+        x.__getitem__(indices) <==> x[indices]
 
         The indices that define the subspace are relative to the
         uncompressed data and must be either `Ellipsis` or a sequence that
@@ -131,6 +130,3 @@ class RaggedIndexedArray(mixin.RaggedIndexed, abstract.CompressedArray):
         super().to_memory()
         self.get_index().data.to_memory()
         return self
-
-
-# --- End: class

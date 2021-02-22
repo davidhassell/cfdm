@@ -30,7 +30,7 @@ class PartNodeCountProperties(
     """
 
     def __init__(self, properties=None, source=None, copy=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -41,7 +41,7 @@ class PartNodeCountProperties(
                   station'}``
 
             source: optional
-                Initialize the properties from those of *source*.
+                Initialise the properties from those of *source*.
 
             {{init copy: `bool`, optional}}
 
@@ -89,6 +89,3 @@ class PartNodeCountProperties(
             _title=_title,
             _create_title=_create_title,
         )
-
-
-# --- End: class

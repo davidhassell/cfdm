@@ -4,8 +4,16 @@ import datetime
 import inspect
 import logging
 import os
+import platform
+import sys
 import tempfile
 import unittest
+
+import numpy
+
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
 
@@ -31,8 +39,11 @@ atexit.register(_remove_tmpfiles)
 
 
 class FunctionsTest(unittest.TestCase):
+    """TODO DOCS."""
+
     @classmethod
     def setUpClass(cls):
+        """TODO DOCS."""
         # Need to run this per-class, not per-method, to access the
         # original value of log_level to use to test the default (see
         # test_log_level)
@@ -48,6 +59,7 @@ class FunctionsTest(unittest.TestCase):
         # (no tearDownClass necessary)
 
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warning, but
         # save original state for test on logging (see test_log_level)
         cfdm.log_level("DISABLE")
@@ -80,6 +92,7 @@ class FunctionsTest(unittest.TestCase):
         self.test_only = []
 
     def test_atol_rtol(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -104,6 +117,7 @@ class FunctionsTest(unittest.TestCase):
         self.assertTrue(cfdm.atol() == org)
 
     def test_log_level(self):
+        """TODO DOCS."""
         original = self.__class__.original  # original to module i.e. default
 
         self.assertEqual(original, "WARNING")  # test default
@@ -134,6 +148,7 @@ class FunctionsTest(unittest.TestCase):
             cfdm.LOG_LEVEL("ERROR")
 
     def test_reset_log_emergence_level(self):
+        """TODO DOCS."""
         # 'DISABLE' is special case so test it afterwards (see below)
         for value in self.valid_level_values:
             cfdm.functions._reset_log_emergence_level(value)
@@ -161,9 +176,10 @@ class FunctionsTest(unittest.TestCase):
         )
 
     def test_disable_logging(self):
+        """TODO DOCS."""
         # Re-set to avoid coupling; use set level to check it is
         # restored after
-        original = cfdm.log_level("DETAIL")
+        cfdm.log_level("DETAIL")
         below_detail_values = [logging.DEBUG]
         at_or_above_detail_values = [
             cfdm.logging._nameToLevel["DETAIL"],
@@ -190,22 +206,43 @@ class FunctionsTest(unittest.TestCase):
         self.assertFalse(cfdm.logging.getLogger().isEnabledFor(logging.DEBUG))
 
     def test_CF(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
         self.assertEqual(cfdm.CF(), cfdm.core.__cf_version__)
 
     def test_environment(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
-        self.assertIsInstance(cfdm.environment(display=False), list)
-        self.assertIsInstance(
-            cfdm.environment(display=False, paths=False), list
-        )
-        self.assertIsInstance(cfdm.environment(display=False), list)
+        e = cfdm.environment(display=False)
+        ep = cfdm.environment(display=False, paths=False)
+
+        self.assertIsInstance(e, list)
+        self.assertIsInstance(ep, list)
+
+        components = ["Platform: ", "netCDF4: ", "numpy: ", "cftime: "]
+        for component in components:
+            self.assertTrue(any(s.startswith(component) for s in e))
+            self.assertTrue(any(s.startswith(component) for s in ep))
+        for component in [
+            "cfdm: {} {}".format(
+                cfdm.__version__, os.path.abspath(cfdm.__file__)
+            ),
+            "Python: {} {}".format(platform.python_version(), sys.executable),
+        ]:
+            self.assertIn(component, e)
+            self.assertNotIn(component, ep)  # paths shouldn't be present here
+        for component in [
+            "cfdm: {}".format(cfdm.__version__),
+            "Python: {}".format(platform.python_version()),
+        ]:
+            self.assertIn(component, ep)
 
     def test_example_field(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -231,6 +268,7 @@ class FunctionsTest(unittest.TestCase):
             cfdm.example_field(1, 2)
 
     def test_abspath(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -242,6 +280,7 @@ class FunctionsTest(unittest.TestCase):
         self.assertEqual(cfdm.abspath(filename), filename)
 
     def test_configuration(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -336,8 +375,174 @@ class FunctionsTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             cfdm.configuration(bad_kwarg=1e-15)
 
+        old = cfdm.configuration()
+        try:
+            cfdm.configuration(atol=888, rtol=999, log_level="BAD")
+        except ValueError:
+            self.assertEqual(cfdm.configuration(), old)
+        else:
+            raise RuntimeError(
+                "A ValueError should have been raised, but wasn't"
+            )
 
-# --- End: class
+    def test_context_managers(self):
+        """TODO DOCS."""
+        if self.test_only and inspect.stack()[0][3] not in self.test_only:
+            return
+
+        # rtol and atol
+        for func in (
+            cfdm.atol,
+            cfdm.rtol,
+        ):
+            old = func()
+            new = old * 2
+            with func(new):
+                self.assertEqual(func(), new)
+                self.assertEqual(func(new * 2), new)
+                self.assertEqual(func(), new * 2)
+
+            self.assertEqual(func(), old)
+
+        # log_level
+        func = cfdm.log_level
+
+        org = func("DETAIL")
+        old = func()
+        new = "DEBUG"
+        with func(new):
+            self.assertEqual(func(), new)
+
+        self.assertEqual(func(), old)
+        func(org)
+
+        del org._func
+        with self.assertRaises(AttributeError):
+            with org:
+                pass
+        # --- End: with
+
+        # Full configuration
+        func = cfdm.configuration
+
+        org = func(rtol=10, atol=20, log_level="DETAIL")
+        old = func()
+        new = dict(rtol=10 * 2, atol=20 * 2, log_level="DEBUG")
+        with func(**new):
+            self.assertEqual(func(), new)
+
+        self.assertEqual(func(), old)
+        func(**org)
+
+        org = func(rtol=cfdm.Constant(10), atol=20, log_level="DETAIL")
+        old = func()
+        new = dict(rtol=cfdm.Constant(10 * 2), atol=20 * 2, log_level="DEBUG")
+        with func(**new):
+            self.assertEqual(func(), new)
+
+        self.assertEqual(func(), old)
+        func(**org)
+
+    def test_Constant(self):
+        """TODO DOCS."""
+        if self.test_only and inspect.stack()[0][3] not in self.test_only:
+            return
+
+        c = cfdm.Constant(20)
+        d = cfdm.Constant(10)
+        e = cfdm.Constant(999)
+
+        self.assertIsInstance(hash(c), int)
+        self.assertIsInstance(repr(c), str)
+
+        self.assertEqual(float(c), 20.0)
+        self.assertEqual(int(c), 20)
+        self.assertEqual(str(c), "20")
+
+        # Binary operations
+        self.assertEqual(c, 20)
+        self.assertEqual(20, c)
+        self.assertEqual(c, c)
+        self.assertEqual(c, copy.deepcopy(c))
+        self.assertEqual(c, numpy.array(20))
+
+        self.assertNotEqual(c, 999)
+        self.assertNotEqual(999, c)
+        self.assertNotEqual(c, d)
+        self.assertNotEqual(c, numpy.array(999))
+        self.assertNotEqual(numpy.array(999), c)
+
+        self.assertLess(c, 999)
+        self.assertLessEqual(c, 999)
+        self.assertGreater(c, 10)
+        self.assertGreaterEqual(c, 10)
+
+        self.assertGreater(999, c)
+        self.assertGreaterEqual(999, c)
+        self.assertLess(10, c)
+        self.assertLessEqual(10, c)
+
+        self.assertLess(c, e)
+        self.assertLessEqual(c, e)
+        self.assertGreater(c, d)
+        self.assertGreaterEqual(c, d)
+
+        self.assertEqual(c + 10, 30)
+        self.assertEqual(c - 10, 10)
+        self.assertEqual(c / 10, 2)
+        self.assertEqual(c * 10, 200)
+        self.assertEqual(c // 10, 2)
+
+        self.assertEqual(c + d, 30)
+        self.assertEqual(c - d, 10)
+        self.assertEqual(c / d, 2)
+        self.assertEqual(c * d, 200)
+        self.assertEqual(c // d, 2)
+
+        self.assertEqual(20 + d, 30)
+        self.assertEqual(20 - d, 10)
+        self.assertEqual(20 / d, 2)
+        self.assertEqual(20 * d, 200)
+        self.assertEqual(20 // d, 2)
+
+        c = cfdm.Constant(20)
+        c -= 10
+        self.assertEqual(c, 10)
+        c += 10
+        self.assertEqual(c, 20)
+        c *= 10
+        self.assertEqual(c, 200)
+        c /= 10
+        self.assertEqual(c, 20)
+        c //= 10
+        self.assertEqual(c, 2)
+
+        # Unary operations
+        c = cfdm.Constant(-20)
+        self.assertEqual(-c, 20)
+        self.assertEqual(abs(c), 20)
+        self.assertEqual(+c, -20)
+
+        # Copy
+        c = cfdm.atol().copy()
+        del c._func
+        self.assertEqual(c, c.copy())
+
+        # Bool
+        self.assertTrue(cfdm.Constant(1))
+        self.assertTrue(cfdm.Constant(True))
+        self.assertFalse(cfdm.Constant(0))
+        self.assertFalse(cfdm.Constant(False))
+
+    def test_Configuration(self):
+        """TODO DOCS."""
+        if self.test_only and inspect.stack()[0][3] not in self.test_only:
+            return
+
+        c = cfdm.configuration()
+
+        self.assertIsInstance(repr(c), str)
+        self.assertEqual(str(c), str(dict(**c)))
 
 
 if __name__ == "__main__":

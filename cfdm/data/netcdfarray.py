@@ -25,7 +25,7 @@ class NetCDFArray(abstract.Array):
         size=None,
         mask=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -45,7 +45,7 @@ class NetCDFArray(abstract.Array):
                 Specify the netCDF4 group to which the netCDF variable
                 belongs. By default, or if *group* is `None` or an empty
                 sequence, it assumed to be in the root group. The last
-                element in the sequence isw the name of the group in which
+                element in the sequence is the name of the group in which
                 the variable lies, with other elements naming any parent
                 groups (excluding the root group).
 
@@ -119,9 +119,9 @@ class NetCDFArray(abstract.Array):
         self._set_component("mask", mask)
 
     def __getitem__(self, indices):
-        """x.__getitem__(indices) <==> x[indices]
+        """Returns a subspace of the array as a numpy array.
 
-        Returns a subspace of the array as an independent numpy array.
+        x.__getitem__(indices) <==> x[indices]
 
         The indices that define the subspace must be either `Ellipsis` or
         a sequence that contains an index for each dimension. In the
@@ -218,20 +218,26 @@ class NetCDFArray(abstract.Array):
         return array
 
     def __repr__(self):
-        """x.__repr__() <==> repr(x)"""
-        return "<{0}{1}: {2}>".format(
-            self.__class__.__name__, self.shape, str(self)
-        )
+        """Returns a printable representation of the `NetCDFArray`.
+
+        x.__repr__() is logically equivalent to repr(x)
+
+        """
+        return f"<{self.__class__.__name__}{self.shape}: {self}>"
 
     def __str__(self):
-        """x.__str__() <==> str(x)"""
+        """Returns a string version of the `NetCDFArray` object.
+
+        x.__str__() is logically equivalent to str(x)
+
+        """
         name = self.get_ncvar()
         if name is None:
             name = "varid={0}".format(self.get_varid())
         else:
             name = "variable={0}".format(name)
 
-        return "file={0} {1}".format(self.get_filename(), name)
+        return f"file={self.get_filename()} {name}"
 
     # ----------------------------------------------------------------
     # Attributes
@@ -254,7 +260,7 @@ class NetCDFArray(abstract.Array):
 
     @property
     def ndim(self):
-        """Number of array dimensions
+        """Number of array dimensions.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -280,6 +286,7 @@ class NetCDFArray(abstract.Array):
         0
         >>> a.size
         1
+
         """
         return self._get_component("ndim")
 
@@ -311,6 +318,7 @@ class NetCDFArray(abstract.Array):
         0
         >>> a.size
         1
+
         """
         return self._get_component("shape")
 
@@ -360,7 +368,7 @@ class NetCDFArray(abstract.Array):
         return self._get_component("filename")
 
     def get_group(self):
-        """The netCDF4 group structure to which the netCDF variable belongs.
+        """The netCDF4 group structure of the netCDF variable.
 
         .. versionadded:: (cfdm) 1.8.6.0
 
@@ -404,8 +412,7 @@ class NetCDFArray(abstract.Array):
         return self._get_component("ncvar")
 
     def get_varid(self):
-        """The UNIDATA netCDF interface ID of the variable containing the
-        array.
+        """The UNIDATA netCDF interface ID of the array's variable.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -469,7 +476,7 @@ class NetCDFArray(abstract.Array):
         return self[...]
 
     def open(self):
-        """Return an open `netCDF4.Dataset` for the file containing the array.
+        """Returns an open `netCDF4.Dataset` for the array's file.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -489,7 +496,7 @@ class NetCDFArray(abstract.Array):
             try:
                 netcdf = netCDF4.Dataset(self.get_filename(), "r")
             except RuntimeError as error:
-                raise RuntimeError("{}: {}".format(error, filename))
+                raise RuntimeError(f"{error}: {self.get_filename()}")
 
             self._set_component("netcdf", netcdf, copy=False)
 
@@ -513,6 +520,3 @@ class NetCDFArray(abstract.Array):
 
         """
         return NumpyArray(self[...])
-
-
-# --- End: class

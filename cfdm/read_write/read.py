@@ -209,7 +209,7 @@ def read(
         warn_valid: `bool`, optional
             If True then print a warning for the presence of
             ``valid_min``, ``valid_max`` or ``valid_range`` properties
-            on field contructs and metadata constructs that have
+            on field constructs and metadata constructs that have
             data. By default no such warning is issued.
 
             "Out-of-range" data values in the file, as defined by any
@@ -285,7 +285,7 @@ def read(
         raise IOError("Can't read non-existent file {}".format(filename))
 
     # ----------------------------------------------------------------
-    # Read the file into field contructs
+    # Read the file into field constructs
     # ----------------------------------------------------------------
 
     # Initialise a netCDF read object

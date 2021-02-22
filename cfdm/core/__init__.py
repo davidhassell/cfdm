@@ -1,11 +1,9 @@
-"""
-
-"""
+""""""
 
 __author__ = "David Hassell"
-__date__ = "2020-10-??"
+__date__ = "2020-01-15"
 __cf_version__ = "1.8"
-__version__ = "1.8.7.0"
+__version__ = "1.8.8.1"
 
 from distutils.version import LooseVersion
 import platform
@@ -28,7 +26,7 @@ except ImportError as error1:
     raise ImportError(_error0 + str(error1))
 
 # Check the version of python
-_minimum_vn = "3.5.0"
+_minimum_vn = "3.6.0"
 if LooseVersion(platform.python_version()) < LooseVersion(_minimum_vn):
     raise ValueError(
         "Bad python version: cfdm.core requires python>={}. "

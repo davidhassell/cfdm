@@ -1,10 +1,9 @@
 from .mixin import ArrayMixin
 
-from . import mixin
 from .. import core
 
 
-class NumpyArray(mixin.ArrayMixin, core.NumpyArray):
+class NumpyArray(ArrayMixin, core.NumpyArray):
     """An underlying numpy array.
 
     .. versionadded:: (cfdm) 1.7.0
@@ -12,9 +11,9 @@ class NumpyArray(mixin.ArrayMixin, core.NumpyArray):
     """
 
     def __getitem__(self, indices):
-        """x.__getitem__(indices) <==> x[indices]
+        """Returns a subspace of the array as a numpy array.
 
-        Returns a subspace of the array as an independent numpy array.
+        x.__getitem__(indices) <==> x[indices]
 
         The indices that define the subspace must be either `Ellipsis` or
         a sequence that contains an index for each dimension. In the
@@ -54,6 +53,3 @@ class NumpyArray(mixin.ArrayMixin, core.NumpyArray):
 
         """
         return self
-
-
-# --- End: class

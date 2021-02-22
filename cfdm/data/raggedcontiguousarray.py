@@ -30,7 +30,7 @@ class RaggedContiguousArray(mixin.RaggedContiguous, abstract.CompressedArray):
         ndim=None,
         count_variable=None,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -62,10 +62,12 @@ class RaggedContiguousArray(mixin.RaggedContiguous, abstract.CompressedArray):
         )
 
     def __getitem__(self, indices):
-        """x.__getitem__(indices) <==> x[indices]
+        """Returns a subspace of the array defined by the given indices.
 
-        Returns an subspace of the uncompressed data an independent numpy
-        array.
+        That is, returns a subspace of the uncompressed data in an
+        independent numpy array. Note that:
+
+        x.__getitem__(indices) <==> x[indices]
 
         The indices that define the subspace are relative to the
         uncompressed data and must be either `Ellipsis` or a sequence that
@@ -137,6 +139,3 @@ class RaggedContiguousArray(mixin.RaggedContiguous, abstract.CompressedArray):
         super().to_memory()
         self.get_count().data.to_memory()
         return self
-
-
-# --- End: class

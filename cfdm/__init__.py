@@ -1,6 +1,8 @@
-"""cfdm is a reference implementation of the CF data model, that
-identifies the fundamental elements of the CF conventions and shows
-how they relate to each other, independently of the netCDF encoding.
+"""cfdm is a reference implementation of the CF data model.
+
+It identifies the fundamental elements of the CF conventions and
+shows how they relate to each other, independently of the netCDF
+encoding.
 
 The central element defined by the CF data model is the field
 construct, which corresponds to a CF-netCDF data variable with all of
@@ -56,7 +58,7 @@ except ImportError as error1:
     raise ImportError(_error0 + str(error1))
 
 # Check the version of cftime
-_minimum_vn = "1.2.1"
+_minimum_vn = "1.3.0"
 if LooseVersion(cftime.__version__) < LooseVersion(_minimum_vn):
     raise ValueError(
         "Bad cftime version: cfdm requires cftime>={}. "
@@ -68,7 +70,7 @@ try:
 except ImportError as error1:
     raise ImportError(_error0 + str(error1))
 
-# Check the version of cftime
+# Check the version of netcdf_flattener
 _minimum_vn = "1.2.0"
 if LooseVersion(netcdf_flattener.__version__) < LooseVersion(_minimum_vn):
     raise ValueError(
@@ -95,10 +97,12 @@ from .functions import (
     environment,
     log_level,
     rtol,
-    _log_level,
     _disable_logging,
     _reset_log_emergence_level,
     _is_valid_log_level_int,
+    Configuration,
+    Constant,
+    ConstantAccess,
 )
 
 # Though these are internal-use methods, include them in the namespace
@@ -108,6 +112,7 @@ from .decorators import (
     _inplace_enabled,
     _inplace_enabled_define_and_cleanup,
     _manage_log_level_via_verbosity,
+    _display_or_return,
 )
 
 from .constructs import Constructs
@@ -174,6 +179,7 @@ logging.addLevelName(logging.DETAIL, "DETAIL")
 
 
 def detail(self, message, *args, **kwargs):
+    """Sets up a custom logging level named 'detail'."""
     if self.isEnabledFor(logging.DETAIL):
         self._log(logging.DETAIL, message, args, **kwargs)
 

@@ -2,8 +2,7 @@ from . import abstract
 
 
 class Datum(abstract.Parameters):
-    """A datum component of a coordinate reference construct of the CF
-    data model.
+    """A datum component of a coordinate reference of the CF data model.
 
     A datum is a complete or partial definition of the zeroes of the
     dimension and auxiliary coordinate constructs which define a
@@ -22,6 +21,3 @@ class Datum(abstract.Parameters):
     .. versionadded:: (cfdm) 1.7.0
 
     """
-
-
-# --- End: class

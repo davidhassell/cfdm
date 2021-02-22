@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class Data(Container, NetCDFHDF5, core.Data):
-    """An orthogonal multidimensional array with masked values and units.
+    """An orthogonal multidimensional array with masking and units.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -45,7 +45,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         _use_array=True,
         **kwargs
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -130,7 +130,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 defined by the *array* parameter.
 
             source: optional
-                Initialize the array, units, calendar and fill value from
+                Initialise the array, units, calendar and fill value from
                 those of *source*.
 
                 {{init source}}
@@ -190,17 +190,16 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.{{class}}([1, 2, 3])
         >>> a = numpy.array(d)
         >>> print(type(a))
-        <type 'numpy.ndarray'>
+        <class 'numpy.ndarray'>
         >>> a[0] = -99
         >>> d
         <{{repr}}{{class}}(3): [1, 2, 3]>
         >>> b = numpy.array(d, float)
         >>> print(b)
-        [ 1.  2.  3.]
+        [1. 2. 3.]
 
         """
         array = self.array
@@ -228,7 +227,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         )
 
     def __getitem__(self, indices):
-        """Return a subspace of the data defined by indices
+        """Return a subspace of the data defined by indices.
 
         d.__getitem__(indices) <==> d[indices]
 
@@ -255,7 +254,6 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.{{class}}(numpy.arange(100, 190).reshape(1, 10, 9))
         >>> d.shape
         (1, 10, 9)
@@ -321,14 +319,15 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> for e in d:
         ...    print(repr(e))
         ...
-        <{{repr}}Data: [1, 2] metres>
-        <{{repr}}Data: [4, 5] metres>
+        <{{repr}}Data(2): [1, 2] metres>
+        <{{repr}}Data(2): [4, 5] metres>
 
         >>> d = {{package}}.{{class}}(34, 'metres')
         >>> for e in d:
         ...     print(repr(e))
-        ...
-        TypeError: iteration over a 0-d Data
+        Traceback (most recent call last):
+            ...
+        TypeError: Iteration over 0-d Data
 
         """
         ndim = self.ndim
@@ -390,15 +389,14 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.{{class}}(numpy.arange(100, 190).reshape(1, 10, 9))
         >>> d.shape
-        (10, 9)
+        (1, 10, 9)
         >>> d[:, :, 1] = -10
         >>> d[:, 0] = range(9)
         >>> d[..., 6:3:-1, 3:6] = numpy.arange(-18, -9).reshape(3, 3)
-        >>> d[0, [2, 9], [4, 8]] =  Data([[-2, -3]])
-        >>> d[0, :, -2] = masked
+        >>> d[0, [2, 9], [4, 8]] = cfdm.Data([[-2, -3]])
+        >>> d[0, :, -2] = cfdm.masked
 
         """
         indices = self._parse_indices(indices)
@@ -424,16 +422,18 @@ class Data(Container, NetCDFHDF5, core.Data):
         units = self.get_units(None)
         calendar = self.get_calendar(None)
 
+        isreftime = False
         if units is not None:
-            isreftime = "since" in units
-        else:
-            isreftime = False
+            if isinstance(units, str):
+                isreftime = "since" in units
+            else:
+                units = "??"
 
         try:
             first = self.first_element()
         except Exception:
             out = ""
-            if units:
+            if units and not isreftime:
                 out += " {0}".format(units)
             if calendar:
                 out += " {0}".format(calendar)
@@ -543,15 +543,14 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.{{class}}([[1, 2, 3]], 'km')
         >>> x = d._item((0, -1))
         >>> print(x, type(x))
-        3 <type 'int'>
-        >>> x = d._item(1)
+        3 <class 'int'>
+        >>> x = d._item((0, 1))
         >>> print(x, type(x))
-        2 <type 'int'>
-        >>> d[0, 1] = masked
+        2 <class 'int'>
+        >>> d[0, 1] = cfdm.masked
         >>> d._item((slice(None), slice(1, 2)))
         masked
 
@@ -568,7 +567,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         return numpy.ma.masked
 
     def _parse_axes(self, axes):
-        """Parse data axes and return valid non-duplicate axes as a tuple.
+        """Parses the data axes and returns valid non-duplicate axes.
 
         :Parameters:
 
@@ -736,7 +735,7 @@ class Data(Container, NetCDFHDF5, core.Data):
     # ----------------------------------------------------------------
     @property
     def compressed_array(self):
-        """Return an independent numpy array containing the compressed data.
+        """Returns an independent numpy array of the compressed data.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -762,13 +761,16 @@ class Data(Container, NetCDFHDF5, core.Data):
 
     @property
     def datetime_array(self):
-        """Return an independent numpy array containing the date-time objects
-        corresponding to times since a reference date.
+        """Returns an independent numpy array of datetimes.
+
+        Specifically, returns an independent numpy array containing
+        the date-time objects corresponding to times since a reference
+        date.
 
         Only applicable for reference time units.
 
         If the calendar has not been set then the CF default calendar of
-        "standard" (i.e. the mixed Gregorian/Julian calendar as defined by
+        'standard' (i.e. the mixed Gregorian/Julian calendar as defined by
         Udunits) will be used.
 
         Conversions are carried out with the `netCDF4.num2date` function.
@@ -787,9 +789,9 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> d = {{package}}.{{class}}([31, 62, 90], units='days since 2018-12-01')
         >>> a = d.datetime_array
         >>> print(a)
-        [cftime.DatetimeGregorian(2019-01-01 00:00:00)
-         cftime.DatetimeGregorian(2019-02-01 00:00:00)
-         cftime.DatetimeGregorian(2019-03-01 00:00:00)]
+        [cftime.DatetimeGregorian(2019, 1, 1, 0, 0, 0, 0)
+         cftime.DatetimeGregorian(2019, 2, 1, 0, 0, 0, 0)
+         cftime.DatetimeGregorian(2019, 3, 1, 0, 0, 0, 0)]
         >>> print(a[1])
         2019-02-01 00:00:00
 
@@ -797,9 +799,9 @@ class Data(Container, NetCDFHDF5, core.Data):
         ...          calendar='360_day')
         >>> a = d.datetime_array
         >>> print(a)
-        [cftime.Datetime360Day(2019-01-02 00:00:00)
-         cftime.Datetime360Day(2019-02-03 00:00:00)
-         cftime.Datetime360Day(2019-03-01 00:00:00)]
+        [cftime.Datetime360Day(2019, 1, 2, 0, 0, 0, 0)
+         cftime.Datetime360Day(2019, 2, 3, 0, 0, 0, 0)
+         cftime.Datetime360Day(2019, 3, 1, 0, 0, 0, 0)]
         >>> print(a[1])
         2019-02-03 00:00:00
 
@@ -840,8 +842,10 @@ class Data(Container, NetCDFHDF5, core.Data):
 
     @property
     def datetime_as_string(self):
-        """Return an independent numpy array containing string representations
-        of times since a reference date.
+        """Returns an independent numpy array with datetimes as strings.
+
+        Specifically, returns an independent numpy array containing
+        string representations of times since a reference date.
 
         Only applicable for reference time units.
 
@@ -888,10 +892,11 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> d = {{package}}.{{class}}(numpy.ma.array([[280.0,   -99,   -99,   -99],
-                                     [281.0, 279.0, 278.0, 279.5]],
-                     mask=[[0, 1, 1, 1],
-                           [0, 0, 0, 0]]))
+        >>> d = {{package}}.{{class}}(numpy.ma.array(
+        ...     [[280.0,   -99,   -99,   -99],
+        ...      [281.0, 279.0, 278.0, 279.5]],
+        ...     mask=[[0, 1, 1, 1], [0, 0, 0, 0]]
+        ... ))
         >>> d
         <{{repr}}Data(2, 4): [[280.0, ..., 279.5]]>
         >>> print(d.array)
@@ -926,7 +931,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> d = {{package}}.{{class}}([[0, 0, 0]])
         >>> d.any()
         False
-        >>> d[0, 0] = masked
+        >>> d[0, 0] = cfdm.masked
         >>> print(d.array)
         [[-- 0 0]]
         >>> d.any()
@@ -936,7 +941,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         [[-- 3 0]]
         >>> d.any()
         True
-        >>> d[...] = masked
+        >>> d[...] = cfdm.masked
         >>> print(d.array)
         [[-- -- --]]
         >>> d.any()
@@ -1029,9 +1034,8 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.{{class}}(numpy.arange(12).reshape(3, 4), 'm')
-        >>> d[1, 1] = masked
+        >>> d[1, 1] = cfdm.masked
         >>> print(d.array)
         [[0  1  2  3]
          [4 --  6  7]
@@ -1042,26 +1046,26 @@ class Data(Container, NetCDFHDF5, core.Data):
          [4 --  6  7]
          [8  9 10 11]]
         >>> print(d.apply_masking(fill_values=[0]).array)
-        [[--  1  2  3]
-         [ 4 --  6  7]
-         [ 8  9 10 11]]
+        [[-- 1 2 3]
+         [4 -- 6 7]
+         [8 9 10 11]]
         >>> print(d.apply_masking(fill_values=[0, 11]).array)
-        [[--  1  2  3]
-         [ 4 --  6  7]
-         [ 8  9 10 --]]
+        [[-- 1 2 3]
+         [4 -- 6 7]
+         [8 9 10 --]]
 
         >>> print(d.apply_masking(valid_min=3).array)
-        [[-- -- --  3]
-         [ 4 --  6  7]
-         [ 8  9 10 11]]
+        [[-- -- -- 3]
+         [4 -- 6 7]
+         [8 9 10 11]]
         >>> print(d.apply_masking(valid_max=6).array)
-        [[ 0  1  2  3]
-         [ 4 --  6 --]
+        [[0 1 2 3]
+         [4 -- 6 --]
          [-- -- -- --]]
         >>> print(d.apply_masking(valid_range=[2, 8]).array)
-        [[-- --  2  3]
-         [ 4 --  6  7]
-         [ 8 -- -- --]]
+        [[-- -- 2 3]
+         [4 -- 6 7]
+         [8 -- -- --]]
 
         >>> d.set_fill_value(7)
         >>> print(d.apply_masking(fill_values=True).array)
@@ -1070,9 +1074,9 @@ class Data(Container, NetCDFHDF5, core.Data):
          [8  9 10 11]]
         >>> print(d.apply_masking(fill_values=True,
         ...                       valid_range=[2, 8]).array)
-        [[-- --  2  3]
-         [ 4 --  6 --]
-         [ 8 -- -- --]]
+        [[-- -- 2 3]
+         [4 -- 6 --]
+         [8 -- -- --]]
 
         """
         if valid_range is not None:
@@ -1520,8 +1524,10 @@ class Data(Container, NetCDFHDF5, core.Data):
             )
 
     def get_compressed_dimension(self, default=ValueError()):
-        """Return the position of the compressed dimension in the compressed
-        array.
+        """Returns the compressed dimension's array position.
+
+        That is, returns the position of the compressed dimension
+        in the compressed array.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -1570,7 +1576,6 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = cfdm.Data(numpy.arange(100, 190).reshape(1, 10, 9))
         >>> d._parse_indices((slice(None, None, None), 1, 2))
         [slice(None, None, None), slice(1, 2, 1), slice(2, 3, 1)]
@@ -1585,7 +1590,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         if not isinstance(indices, tuple):
             indices = (indices,)
 
-        # Initialize the list of parsed indices as the input indices with any
+        # Initialise the list of parsed indices as the input indices with any
         # Ellipsis objects expanded
         length = len(indices)
         n = len(shape)
@@ -1692,7 +1697,6 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.Data(numpy.arange(24).reshape(1, 2, 3, 4))
         >>> d
         <{{repr}}Data(1, 2, 3, 4): [[[[0, ..., 23]]]]>
@@ -1764,7 +1768,6 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.Data(numpy.arange(24).reshape(1, 2, 3, 4))
         >>> d
         <{{repr}}Data(1, 2, 3, 4): [[[[0, ..., 23]]]]>
@@ -1911,7 +1914,6 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples:**
 
-        >>> import numpy
         >>> d = {{package}}.Data(numpy.arange(24).reshape(1, 2, 3, 4))
         >>> d
         <{{repr}}Data(1, 2, 3, 4): [[[[0, ..., 23]]]]>
@@ -2032,7 +2034,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         return d
 
     def get_compressed_axes(self):
-        """Return the dimensions that have compressed in the underlying array.
+        """Returns the dimensions that are compressed in the array.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -2069,7 +2071,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         return ca.get_compressed_axes()
 
     def get_compression_type(self):
-        """Return the type of compression applied to the underlying array.
+        """Returns the type of compression applied to the array.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -2391,36 +2393,36 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> d = {{package}}.{{class}}(9.0)
         >>> x = d.first_element()
         >>> print(x, type(x))
-        (9.0, <type 'float'>)
+        9.0 <class 'float'>
 
         >>> d = {{package}}.{{class}}([[1, 2], [3, 4]])
         >>> x = d.first_element()
         >>> print(x, type(x))
-        (1, <type 'int'>)
-        >>> d[0, 0] = masked
+        1 <class 'int'>
+        >>> d[0, 0] = cfdm.masked
         >>> y = d.first_element()
         >>> print(y, type(y))
-        (masked, <class 'numpy.ma.core.MaskedConstant'>)
+        -- <class 'numpy.ma.core.MaskedConstant'>
 
         >>> d = {{package}}.{{class}}(['foo', 'bar'])
         >>> x = d.first_element()
         >>> print(x, type(x))
-        ('foo', <type 'str'>)
+        foo <class 'str'>
 
         """
         return self._item((slice(0, 1),) * self.ndim)
 
     @_inplace_enabled(default=False)
     def flatten(self, axes=None, inplace=False):
-        """Flatten axes of the data
+        """Flatten axes of the data.
 
         Any subset of the axes may be flattened.
 
         The shape of the data may change, but the size will not.
 
         The flattening is executed in row-major (C-style) order. For
-        example, the flattening the array ``[[1, 2], [3, 4]]`` across both
-        dimensions would result in ``[1 2 3 4]``.
+        example, the array ``[[1, 2], [3, 4]]`` would be flattened across
+        both dimensions to ``[1 2 3 4]``.
 
         .. versionadded:: (cfdm) 1.7.11
 
@@ -2445,7 +2447,6 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         **Examples**
 
-        >>> import numpy
         >>> d = {{package}}.Data(numpy.arange(24).reshape(1, 2, 3, 4))
         >>> d
         <{{repr}}Data(1, 2, 3, 4): [[[[0, ..., 23]]]]>
@@ -2517,7 +2518,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             # list is the left-most flattened axis
             axes = sorted(axes)
 
-        # Save the shape before we tranpose
+        # Save the shape before we transpose
         shape = list(d.shape)
 
         order = [i for i in range(ndim) if i not in axes]
@@ -2558,21 +2559,21 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> d = {{package}}.{{class}}(9.0)
         >>> x = d.last_element()
         >>> print(x, type(x))
-        (9.0, <type 'float'>)
+        9.0 <class 'float'>
 
         >>> d = {{package}}.{{class}}([[1, 2], [3, 4]])
         >>> x = d.last_element()
         >>> print(x, type(x))
-        (4, <type 'int'>)
-        >>> d[-1, -1] = masked
+        4 <class 'int'>
+        >>> d[-1, -1] = cfdm.masked
         >>> y = d.last_element()
         >>> print(y, type(y))
-        (masked, <class 'numpy.ma.core.MaskedConstant'>)
+        -- <class 'numpy.ma.core.MaskedConstant'>
 
         >>> d = {{package}}.{{class}}(['foo', 'bar'])
         >>> x = d.last_element()
         >>> print(x, type(x))
-        ('bar', <type 'str'>)
+        bar <class 'str'>
 
         """
         return self._item((slice(-1, None),) * self.ndim)
@@ -2593,16 +2594,16 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> d = {{package}}.{{class}}([[1, 2], [3, 4]])
         >>> x = d.second_element()
         >>> print(x, type(x))
-        (2, <type 'int'>)
-        >>> d[0, 1] = masked
+        2 <class 'int'>
+        >>> d[0, 1] = cfdm.masked
         >>> y = d.second_element()
         >>> print(y, type(y))
-        (masked, <class 'numpy.ma.core.MaskedConstant'>)
+        -- <class 'numpy.ma.core.MaskedConstant'>
 
         >>> d = {{package}}.{{class}}(['foo', 'bar'])
         >>> x = d.second_element()
         >>> print(x, type(x))
-        ('bar', <type 'str'>)
+        bar <class 'str'>
 
         """
         return self._item((slice(0, 1),) * (self.ndim - 1) + (slice(1, 2),))
@@ -2682,8 +2683,8 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         >>> d = {{package}}.{{class}}([[4, 2, 1], [1, 2, 3]], 'metre')
         >>> d.unique()
-        <{{repr}}Data(4): [1, 2, 3, 4] metre>
-        >>> d[1, -1] = masked
+        <{{repr}}Data(4): [1, ..., 4] metre>
+        >>> d[1, -1] = cfdm.masked
         >>> d.unique()
         <{{repr}}Data(3): [1, 2, 4] metre>
 
@@ -2707,15 +2708,12 @@ class Data(Container, NetCDFHDF5, core.Data):
     # Aliases
     # ----------------------------------------------------------------
     def max(self, axes=None):
-        """Alias for `maximum`"""
+        """Alias for `maximum`."""
         return self.maximum(axes=axes)
 
     def min(self, axes=None):
-        """Alias for `minimum`"""
+        """Alias for `minimum`."""
         return self.minimum(axes=axes)
-
-
-# --- End: class
 
 
 # --------------------------------------------------------------------

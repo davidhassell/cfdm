@@ -1,11 +1,9 @@
 import logging
 import textwrap
 
-import numpy
-
 from . import Container
 
-from ..decorators import _manage_log_level_via_verbosity
+from ..decorators import _manage_log_level_via_verbosity, _display_or_return
 
 
 logger = logging.getLogger(__name__)
@@ -113,7 +111,6 @@ class Properties(Container):
         c.set_properties({'units': 'Kelvin', 'standard_name': 'air_temperature'})
 
         """
-        namespace0 = namespace
         if namespace is None:
             namespace = self._package() + "."
         elif namespace and not namespace.endswith("."):
@@ -156,6 +153,7 @@ class Properties(Container):
 
         return out
 
+    @_display_or_return
     def dump(
         self,
         display=True,
@@ -182,7 +180,6 @@ class Properties(Container):
 
         """
         indent0 = "    " * _level
-        indent1 = "    " * (_level + 1)
 
         string = []
 
@@ -218,12 +215,7 @@ class Properties(Container):
         if properties:
             string.append(properties)
 
-        string = "\n".join(string)
-
-        if display:
-            print(string)
-        else:
-            return string
+        return "\n".join(string)
 
     @_manage_log_level_via_verbosity
     def equals(
@@ -388,7 +380,7 @@ class Properties(Container):
         >>> f = {{package}}.{{class}}()
         >>> f.set_properties({'foo': 'bar',
         ...                   'long_name': 'Air Temperature',
-        ...                   'standard_name': 'air_temperature'}
+        ...                   'standard_name': 'air_temperature'})
         >>> f.nc_set_variable('tas')
         >>> f.identity()
         'air_temperature'
@@ -519,6 +511,3 @@ class Properties(Container):
 
         """
         return {}
-
-
-# --- End: class

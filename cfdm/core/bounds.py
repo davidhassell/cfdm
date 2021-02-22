@@ -2,8 +2,10 @@ from . import abstract
 
 
 class Bounds(abstract.PropertiesData):
-    """A cell bounds component of a coordinate or domain ancillary
-    construct of the CF data model.
+    """A cell bounds component.
+
+    That is, a cell bounds component of a coordinate or domain
+    ancillary construct of the CF data model.
 
     An array of cell bounds spans the same domain axes as its
     coordinate array, with the addition of an extra dimension whose
@@ -25,7 +27,7 @@ class Bounds(abstract.PropertiesData):
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -37,7 +39,7 @@ class Bounds(abstract.PropertiesData):
             {{init data: data_like, optional}}
 
             source: optional
-                Initialize the properties and data from those of *source*.
+                Initialise the properties and data from those of *source*.
                 respectively.
 
                 {{init source}}
@@ -48,6 +50,3 @@ class Bounds(abstract.PropertiesData):
         super().__init__(
             properties=properties, data=data, source=source, copy=copy
         )
-
-
-# --- End: class

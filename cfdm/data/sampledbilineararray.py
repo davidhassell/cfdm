@@ -4,7 +4,7 @@ from . import SampledLinearArray
 
 
 class SampledBiLinearArray(SampledLinearArray):
-    """TODO
+    """TODO.
 
     .. versionadded:: (cfdm) TODO
 
@@ -45,9 +45,6 @@ class SampledBiLinearArray(SampledLinearArray):
         for tp_indices, u_indices, new_area in zip(
             *self._interpolation_zones()
         ):
-            new_area = new_area[d0]
-            u_slice = u_indices[d0]
-            n = u_slice.stop - u_slice.start
 
             index = list(tp_indices)
             index[d1] = tp_index[d1][:1]
@@ -59,9 +56,12 @@ class SampledBiLinearArray(SampledLinearArray):
             index1 = index0[:]
             index1[d0] = tp_index[d0][1:]
 
+            u_slice = u_indices[d0]
+            new_area = new_area[d0]
+
             x = self._linear_interpolation(
                 d0,
-                n,
+                u_slice,
                 new_area,
                 tie_points[tuple(index0)].array,
                 tie_points[tuple(index1)].array,
@@ -72,18 +72,14 @@ class SampledBiLinearArray(SampledLinearArray):
 
             y = self._linear_interpolation(
                 d0,
-                n,
+                u_slice,
                 new_area,
                 tie_points[tuple(index0)].array,
                 tie_points[tuple(index1)].array,
             )
 
-            new_area = new_area[d1]
-            u_slice = u_indices[d1]
-            n = u_slice.stop - u_slice.start
-
             uarray[u_indices] = self._linear_interpolation(
-                d1, n, new_area, x, y
+                d1, u_indices[d1], new_area[d1], x, y
             )
 
         self._calculate_s.cache_clear()

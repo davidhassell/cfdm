@@ -58,7 +58,7 @@ class CellMeasure(
         copy=True,
         _use_data=True,
     ):
-        """**Initialisation**
+        """Initialisation.
 
         :Parameters:
 
@@ -109,7 +109,8 @@ class CellMeasure(
         data_name="data",
         header=True,
     ):
-        """Return the commands that would create the cell measure construct.
+        """Return the commands that would create the cell measure
+        construct.
 
         .. versionadded:: (cfdm) 1.8.7.0
 

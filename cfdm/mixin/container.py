@@ -41,8 +41,10 @@ class Container:
         return ", ".join(out)
 
     def __docstring_substitutions__(self):
-        """Define docstring substitutions that apply to this class and all of
-        its subclasses.
+        """Define docstring substitutions for the class hierarchy.
+
+        The defined substitutions apply to this class along with
+        all of its subclasses.
 
         These are in addtion to, and take precendence over, docstring
         substitutions defined by the base classes of this class.
@@ -60,7 +62,7 @@ class Container:
         return _docstring_substitution_definitions
 
     def __docstring_package_depth__(self):
-        """Return the package depth for {{package}} docstring substitutions.
+        """Return the package depth for {{package}} substitutions.
 
         See `_docstring_package_depth` for details.
 
@@ -71,19 +73,21 @@ class Container:
     def _atol(self):
         """Internal alias for `{{package}}.atol`.
 
-        An alias is necessary to avoid a name clash with the keyword argument
-        of identical name (`atol`) in calling functions.
+        An alias is necessary to avoid a name clash with the keyword
+        argument of identical name (`atol`) in calling functions.
+
         """
-        return atol()
+        return atol().value
 
     @property
     def _rtol(self):
         """Internal alias for `{{package}}.rtol`.
 
-        An alias is necessary to avoid a name clash with the keyword argument
-        of identical name (`rtol`) in calling functions.
+        An alias is necessary to avoid a name clash with the keyword
+        argument of identical name (`rtol`) in calling functions.
+
         """
-        return rtol()
+        return rtol().value
 
     def _equals(
         self, x, y, rtol=None, atol=None, ignore_data_type=False, **kwargs
@@ -105,8 +109,13 @@ class Container:
         """
         if rtol is None:
             rtol = self._rtol
+        else:
+            rtol = float(rtol)
+
         if atol is None:
             atol = self._atol
+        else:
+            atol = float(atol)
 
         kwargs["ignore_data_type"] = ignore_data_type
         kwargs["rtol"] = rtol
@@ -236,6 +245,3 @@ class Container:
         """
         depth = self.__class__._docstring_package_depth(self.__class__)
         return ".".join(self.__module__.split(".")[0 : depth + 1])
-
-
-# --- End: class

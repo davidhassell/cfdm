@@ -7,7 +7,7 @@ from . import Datum
 
 from .data import Data
 
-from .decorators import _manage_log_level_via_verbosity
+from .decorators import _manage_log_level_via_verbosity, _display_or_return
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class CoordinateReference(
         source=None,
         copy=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -128,7 +128,7 @@ class CoordinateReference(
                 method.
 
             source: optional
-                Initialize the coordinates, datum and coordinate
+                Initialise the coordinates, datum and coordinate
                 conversion from those of *source*.
 
                 {{init source}}
@@ -159,8 +159,7 @@ class CoordinateReference(
     def creation_commands(
         self, namespace=None, indent=0, string=True, name="c", header=True
     ):
-        """Return the commands that would create the coordinate reference
-        construct.
+        """Returns the commands to create the coordinate reference.
 
         .. versionadded:: (cfdm) 1.8.7.0
 
@@ -286,6 +285,7 @@ class CoordinateReference(
 
         return out
 
+    @_display_or_return
     def dump(
         self,
         display=True,
@@ -318,7 +318,6 @@ class CoordinateReference(
         """
         indent0 = "    " * _level
         indent1 = "    " * (_level + 1)
-        indent2 = "    " * (_level + 2)
 
         if _title is None:
             string = [
@@ -387,12 +386,7 @@ class CoordinateReference(
             for identifier in sorted(self.coordinates()):
                 string.append("{0}Coordinate: {1}".format(indent1, identifier))
 
-        string = "\n".join(string)
-
-        if display:
-            print(string)
-        else:
-            return string
+        return "\n".join(string)
 
     @_manage_log_level_via_verbosity
     def equals(
@@ -555,7 +549,7 @@ class CoordinateReference(
         return default
 
     def identities(self):
-        """Return all possible identities.
+        """Returns all possible identities.
 
         The identities comprise:
 
@@ -590,7 +584,6 @@ class CoordinateReference(
         []
 
         """
-
         out = []
 
         for prop in ("standard_name", "grid_mapping_name"):
@@ -604,6 +597,3 @@ class CoordinateReference(
             out.append("ncvar%{0}".format(n))
 
         return out
-
-
-# --- End: class

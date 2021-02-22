@@ -36,7 +36,7 @@ class List(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -48,7 +48,7 @@ class List(
             {{init data: data_like, optional}}
 
             source: optional
-                Initialize the properties and data from those of *source*.
+                Initialise the properties and data from those of *source*.
 
                 {{init source}}
 
@@ -109,6 +109,3 @@ class List(
             _axes=_axes,
             _axis_names=_axis_names,
         )
-
-
-# --- End: class

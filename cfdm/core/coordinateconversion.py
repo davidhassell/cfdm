@@ -2,8 +2,10 @@ from . import abstract
 
 
 class CoordinateConversion(abstract.ParametersDomainAncillaries):
-    """A coordinate conversion component of a coordinate reference
-    construct of the CF data model.
+    """A coordinate conversion for a coordinate reference.
+
+    That is, a coordinate conversion component of a coordinate
+    reference construct of the CF data model.
 
     A coordinate conversion formula converting coordinate values taken
     from the dimension or auxiliary coordinate constructs to a
@@ -19,6 +21,3 @@ class CoordinateConversion(abstract.ParametersDomainAncillaries):
     .. versionadded:: (cfdm) 1.7.0
 
     """
-
-
-# --- End: class

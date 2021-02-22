@@ -1,5 +1,3 @@
-import abc
-
 from copy import deepcopy
 
 from .container import Container
@@ -13,7 +11,7 @@ class Properties(Container):
     """
 
     def __init__(self, properties=None, source=None, copy=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -23,7 +21,7 @@ class Properties(Container):
                    ``properties={'standard_name': 'altitude'}``
 
             source: optional
-                Initialize the properties from those of *source*.
+                Initialise the properties from those of *source*.
 
                 {{init source}}
 
@@ -37,7 +35,6 @@ class Properties(Container):
                 properties = source.properties()
             except AttributeError:
                 properties = None
-        # --- End: if
 
         self._set_component("properties", {}, copy=False)
 
@@ -68,17 +65,16 @@ class Properties(Container):
         ...                   'long_name': 'Air Pressure'})
         >>> f.properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
          'long_name': 'Air Pressure'}
         >>> f.set_properties({'standard_name': 'air_pressure', 'foo': 'bar'})
         >>> f.properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
-         'long_name': 'Air Pressure'}
+         'long_name': 'Air Pressure',
+         'foo': 'bar'}
         >>> f.clear_properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
-         'long_name': 'Air Pressure'}
+         'long_name': 'Air Pressure',
+         'foo': 'bar'}
         >>> f.properties()
         {}
 
@@ -258,17 +254,16 @@ class Properties(Container):
         ...                   'long_name': 'Air Pressure'})
         >>> f.properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
          'long_name': 'Air Pressure'}
         >>> f.set_properties({'standard_name': 'air_pressure', 'foo': 'bar'})
         >>> f.properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
-         'long_name': 'Air Pressure'}
+         'long_name': 'Air Pressure',
+         'foo': 'bar'}
         >>> f.clear_properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
-         'long_name': 'Air Pressure'}
+         'long_name': 'Air Pressure',
+         'foo': 'bar'}
         >>> f.properties()
         {}
 
@@ -309,17 +304,16 @@ class Properties(Container):
         ...                   'long_name': 'Air Pressure'})
         >>> f.properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
          'long_name': 'Air Pressure'}
         >>> f.set_properties({'standard_name': 'air_pressure', 'foo': 'bar'})
         >>> f.properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
-         'long_name': 'Air Pressure'}
+         'long_name': 'Air Pressure',
+         'foo': 'bar'}
         >>> f.clear_properties()
         {'standard_name': 'air_pressure',
-         'foo': 'bar',
-         'long_name': 'Air Pressure'}
+         'long_name': 'Air Pressure',
+         'foo': 'bar'}
         >>> f.properties()
         {}
 
@@ -376,6 +370,3 @@ class Properties(Container):
             value = deepcopy(value)
 
         self._get_component("properties")[prop] = value
-
-
-# --- End: class

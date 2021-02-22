@@ -53,7 +53,7 @@ class Count(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 

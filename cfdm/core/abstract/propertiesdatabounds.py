@@ -1,5 +1,3 @@
-import abc
-
 import numpy
 
 from .propertiesdata import PropertiesData
@@ -12,8 +10,7 @@ from .propertiesdata import PropertiesData
 
 
 class PropertiesDataBounds(PropertiesData):
-    """Mixin class for a data array with bounds and descriptive
-    properties.
+    """Mixin for a data array with bounds and descriptive properties.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -30,7 +27,7 @@ class PropertiesDataBounds(PropertiesData):
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -48,7 +45,7 @@ class PropertiesDataBounds(PropertiesData):
             {{init interior_ring: `InteriorRing`, optional}}
 
             source: optional
-                Initialize the properties, geometry type, data, bounds and
+                Initialise the properties, geometry type, data, bounds and
                 interior ring from those of *source*.
 
                 {{init source}}
@@ -81,7 +78,6 @@ class PropertiesDataBounds(PropertiesData):
                 interior_ring = source.get_interior_ring(None)
             except AttributeError:
                 interior_ring = None
-        # --- End: if
 
         # Initialise bounds
         if bounds is not None:
@@ -122,7 +118,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> b = {{package}}.Bounds(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_bounds(b)
@@ -157,7 +152,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> i = {{package}}.InteriorRing(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_interior_ring(i)
         >>> c.has_interior_ring()
@@ -198,7 +192,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> b = {{package}}.Bounds(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_bounds(b)
@@ -294,7 +287,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> i = {{package}}.InteriorRing(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_interior_ring(i)
@@ -348,7 +340,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> b = {{package}}.Bounds(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_bounds(b)
@@ -446,7 +437,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> i = {{package}}.InteriorRing(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_interior_ring(i)
@@ -491,7 +481,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> b = {{package}}.Bounds(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_bounds(b)
@@ -561,7 +550,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> i = {{package}}.InteriorRing(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_interior_ring(i)
@@ -606,7 +594,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
         >>> c = {{package}}.{{class}}()
         >>> b = {{package}}.Bounds(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_bounds(b)
@@ -702,8 +689,8 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> import numpy
-        >>> c = {{package}}.{{class}})(
+
+        >>> c = {{package}}.{{class}}()
         >>> i = {{package}}.InteriorRing(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_interior_ring(i)
         >>> c.has_interior_ring()
@@ -727,6 +714,3 @@ class PropertiesDataBounds(PropertiesData):
             interior_ring = interior_ring.copy()
 
         self._set_component("interior_ring", interior_ring, copy=False)
-
-
-# --- End: class

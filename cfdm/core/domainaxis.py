@@ -18,7 +18,7 @@ class DomainAxis(abstract.Container):
     """
 
     def __init__(self, size=None, source=None, copy=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -32,7 +32,7 @@ class DomainAxis(abstract.Container):
                 `set_size` method.
 
             source:
-                Initialize the size from that of source.
+                Initialise the size from that of source.
 
                 {{init source}}
 
@@ -91,18 +91,20 @@ class DomainAxis(abstract.Container):
 
         **Examples:**
 
-        >>> d.set_size(96)
+        >>> d = {{package}}.{{class}}(size=50)
         >>> d.has_size()
         True
         >>> d.get_size()
-        96
+        50
+
+        >>> d.set_size(100)
+        >>> d.get_size()
+        100
         >>> d.del_size()
-        96
+        100
         >>> d.has_size()
         False
         >>> print(d.del_size(None))
-        None
-        >>> print(d.get_size(None))
         None
 
         """
@@ -127,18 +129,20 @@ class DomainAxis(abstract.Container):
 
         **Examples:**
 
-        >>> d.set_size(96)
+        >>> d = {{package}}.{{class}}(size=50)
         >>> d.has_size()
         True
         >>> d.get_size()
-        96
+        50
+
+        >>> d.set_size(100)
+        >>> d.get_size()
+        100
         >>> d.del_size()
-        96
+        100
         >>> d.has_size()
         False
         >>> print(d.del_size(None))
-        None
-        >>> print(d.get_size(None))
         None
 
         """
@@ -164,18 +168,20 @@ class DomainAxis(abstract.Container):
 
         **Examples:**
 
-        >>> d.set_size(96)
+        >>> d = {{package}}.{{class}}(size=50)
         >>> d.has_size()
         True
         >>> d.get_size()
-        96
+        50
+
+        >>> d.set_size(100)
+        >>> d.get_size()
+        100
         >>> d.del_size()
-        96
+        100
         >>> d.has_size()
         False
         >>> print(d.del_size(None))
-        None
-        >>> print(d.get_size(None))
         None
 
         """
@@ -207,21 +213,21 @@ class DomainAxis(abstract.Container):
 
         **Examples:**
 
-        >>> d.set_size(96)
+        >>> d = {{package}}.{{class}}(size=50)
         >>> d.has_size()
         True
         >>> d.get_size()
-        96
+        50
+
+        >>> d.set_size(100)
+        >>> d.get_size()
+        100
         >>> d.del_size()
-        96
+        100
         >>> d.has_size()
         False
         >>> print(d.del_size(None))
         None
-        >>> print(d.get_size(None))
 
         """
         self._set_component("size", size, copy=copy)
-
-
-# --- End: class

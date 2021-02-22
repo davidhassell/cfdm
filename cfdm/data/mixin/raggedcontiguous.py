@@ -34,6 +34,3 @@ class RaggedContiguous:
                 default,
                 "{!r} has no count variable".format(self.__class__.__name__),
             )
-
-
-# --- End: class

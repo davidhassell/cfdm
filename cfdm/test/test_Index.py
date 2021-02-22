@@ -1,11 +1,18 @@
 import datetime
 import unittest
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
 
 
 class IndexTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -20,6 +27,7 @@ class IndexTest(unittest.TestCase):
         self.indexed = "DSG_timeSeries_indexed.nc"
 
     def test_Index__repr__str__dump(self):
+        """TODO DOCS."""
         f = cfdm.read(self.indexed)[0]
 
         index = f.data.get_index()

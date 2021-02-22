@@ -5,7 +5,9 @@ import os
 import tempfile
 import unittest
 
-import numpy
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
 
@@ -31,7 +33,10 @@ atexit.register(_remove_tmpfiles)
 
 
 class CoordinateReferenceTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -53,6 +58,7 @@ class CoordinateReferenceTest(unittest.TestCase):
         self.test_only = []
 
     def test_CoordinateReference__repr__str__dump_construct_type(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -65,10 +71,9 @@ class CoordinateReferenceTest(unittest.TestCase):
             self.assertEqual(cr.construct_type, "coordinate_reference")
 
     def test_CoordinateReference_equals(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
-
-        f = self.f.copy()
 
         # Create a vertical grid mapping coordinate reference
         t = cfdm.CoordinateReference(
@@ -143,6 +148,7 @@ class CoordinateReferenceTest(unittest.TestCase):
         self.assertTrue(t.equals(t.copy(), verbose=3))
 
     def test_CoordinateConversion(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -190,6 +196,7 @@ class CoordinateReferenceTest(unittest.TestCase):
         self.assertTrue(_.equals(cc))
 
     def test_Datum(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 

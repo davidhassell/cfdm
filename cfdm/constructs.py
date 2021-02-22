@@ -28,7 +28,7 @@ class Constructs(mixin.Container, core.Constructs):
 
     The container is like a dictionary in many ways, in that it stores
     key/value pairs where the key is the unique construct key with
-    correspondaing metadata construct value, and provides some of the
+    corresponding metadata construct value, and provides some of the
     usual dictionary methods.
 
 
@@ -134,8 +134,7 @@ class Constructs(mixin.Container, core.Constructs):
     # Private methods
     # ----------------------------------------------------------------
     def _axes_to_constructs(self):
-        """Map domain axis constructs to the metadata constructs whose data
-        span them.
+        """Maps domain axes to constructs whose data span them.
 
         This is useful for ascertaining whether or not two `Constructs`
         instances are equal.
@@ -944,7 +943,7 @@ class Constructs(mixin.Container, core.Constructs):
         )
 
         # Parse the mode parameter
-        _and = False
+        _and = False  # TODO SLB: doesn't do anything, is that intended?
         _or = False
         _exact = False
         _subset = False
@@ -953,11 +952,9 @@ class Constructs(mixin.Container, core.Constructs):
             mode = "and"
 
         if mode == "and":
-            _and = True
+            _and = True  # noqa: F841
         elif mode == "or":
             _or = True
-        elif mode == "and":
-            _and = True
         elif mode == "exact":
             _exact = True
         elif mode == "subset":
@@ -1017,9 +1014,9 @@ class Constructs(mixin.Container, core.Constructs):
         return out
 
     def filter_by_data(self):
-        """Select metadata constructs by whether they could contain data.
+        """Selects metadata constructs that could contain data.
 
-        Selection is not based on whether they thay actually have data,
+        Selection is not based on whether they actually have data,
         rather by whether the construct supports the inclusion of
         data. For example, constructs selected by this method will all
         have a `!get_data` method.
@@ -1295,7 +1292,7 @@ class Constructs(mixin.Container, core.Constructs):
 
         for cid, construct in tuple(out.items()):
             try:
-                get_measure = construct.get_measure
+                construct.get_measure
             except AttributeError:
                 # This construct doesn't have a "get_measure" method
                 out._pop(cid)
@@ -1421,8 +1418,10 @@ class Constructs(mixin.Container, core.Constructs):
         return out
 
     def filter_by_naxes(self, *naxes):
-        """Select metadata constructs by the number of domain axis constructs
-        spanned by their data.
+        """Selects constructs by the number of axes their data spans.
+
+        Specifically, selects metadata constructs by the number of domain axis
+        constructs spanned by their data.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -1844,7 +1843,7 @@ class Constructs(mixin.Container, core.Constructs):
 
         for cid, construct in tuple(out.items()):
             try:
-                get_size = construct.get_size
+                construct.get_size
             except AttributeError:
                 # This construct doesn't have a "get_size" method
                 out._pop(cid)
@@ -2041,7 +2040,7 @@ class Constructs(mixin.Container, core.Constructs):
         instance being returned.
 
         If the *depth* parameter is set to *N* then the inverse is
-        relative to the constructs selected by the *N*\ -th most recently
+        relative to the constructs selected by the N-th most recently
         applied filter.
 
         A history of the filters that have been applied is returned in a
@@ -2066,7 +2065,7 @@ class Constructs(mixin.Container, core.Constructs):
                 filter. By default the inverse is relative to the
                 constructs selected by all previously applied
                 filters. ``N`` may be larger than the total number of
-                filters applied, which results in the default bahaviour.
+                filters applied, which results in the default behaviour.
 
         :Returns:
 
@@ -2189,7 +2188,7 @@ class Constructs(mixin.Container, core.Constructs):
         before all previously applied filters.
 
         If the *depth* parameter is set to *N* then the unfiltered
-        constructs are those that existed before the *N*\ -th most
+        constructs are those that existed before the *N*-th most
         recently applied filter.
 
         A history of the filters that have been applied is returned in a
@@ -2213,7 +2212,7 @@ class Constructs(mixin.Container, core.Constructs):
                 ``N``-th most recently applied filter. By default the
                 constructs from before all previously applied filters are
                 returned. ``N`` may be larger than the total number of
-                filters applied, which results in the default bahaviour.
+                filters applied, which results in the default behaviour.
 
         :Returns:
 

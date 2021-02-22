@@ -1,11 +1,10 @@
 from collections import OrderedDict
-from copy import copy
 
 from . import abstract
 
 
 class Constructs(abstract.Container):
-    """A container for metadata constucts.
+    """A container for metadata constructs.
 
     The following metadata constructs can be included:
 
@@ -22,7 +21,7 @@ class Constructs(abstract.Container):
 
     The container is like a dictionary in many ways, in that it stores
     key/value pairs where the key is the unique construct key with
-    correspondaing metadata construct value, and provides some of the
+    corresponding metadata construct value, and provides some of the
     usual dictionary methods.
 
     .. versionadded:: (cfdm) 1.7.0
@@ -45,7 +44,7 @@ class Constructs(abstract.Container):
         _view=False,
         _ignore=(),
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -258,7 +257,7 @@ class Constructs(abstract.Container):
             self._constructs[x] = OrderedDict()
 
     def __contains__(self, key):
-        """Called to implement membership test operators for construct keys.
+        """Implements membership test operators for construct keys.
 
         x.__contains__(y) <==> y in x
 
@@ -334,7 +333,7 @@ class Constructs(abstract.Container):
         return self._construct_axes.pop(k, *d)
 
     def _view(self, ignore=()):
-        """Return a new container with a view the same metadata constructs.
+        """Returns a new container with a view of the same constructs.
 
         A new `{{class}}` instance is returned that contains the same
         metadata construct instances
@@ -402,11 +401,12 @@ class Constructs(abstract.Container):
 
         Type name components are formatted to be whitespace-delimited to
         effective words for the purposes of printing to the user.
+
         """
         return construct_type.replace("_", " ")
 
     def _dictionary(self, copy=False):
-        """"""
+        """Constructs the mapping of keys to metadata constructs."""
         out = {}
         ignore = self._ignore
         for key, value in self._constructs.items():
@@ -425,7 +425,7 @@ class Constructs(abstract.Container):
         """Remove a metadata construct.
 
         If a domain axis construct is selected for removal then it can't
-        be spanned by any metdata construct data arrays, nor be referenced
+        be spanned by any metadata construct data arrays, nor be referenced
         by any cell method constructs.
 
         However, a domain ancillary construct may be removed even if it is
@@ -474,21 +474,30 @@ class Constructs(abstract.Container):
 
             # Fail if the domain axis construct is referenced by a
             # cell method construct
-            try:
-                cell_methods = self.filter_by_type("cell_method")
-            except ValueError:
-                # Cell methods are not possible for this Constructs
-                # instance
-                pass
-            else:
-                for xid, cm in cell_methods.items():
-                    axes = cm.get_axes(())
-                    if key in axes:
-                        raise ValueError(
-                            "Can't remove domain axis construct {!r} "
-                            "that is referenced by cell method construct "
-                            "{!r}".format(key, xid)
-                        )
+            #            try:
+            #                cell_methods = self.filter_by_type('cell_method')
+            #            except ValueError:
+            #                # Cell methods are not possible for this Constructs
+            #                # instance
+            #                pass
+            #            else:
+            #                for xid, cm in cell_methods.items():
+            #                    axes = cm.get_axes(())
+            #                    if key in axes:
+            #                        raise ValueError(
+            #                            "Can't remove domain axis construct {!r} "
+            #                            "that is referenced by cell method construct "
+            #                            "{!r}".format(key, xid)
+            #                        )
+
+            for xid, cm in self.filter_by_type("cell_method").items():
+                axes = cm.get_axes(())
+                if key in axes:
+                    raise ValueError(
+                        "Can't remove domain axis construct {!r} "
+                        "that is referenced by cell method construct "
+                        "{!r}".format(key, xid)
+                    )
         else:
             # Remove references to the removed construct in coordinate
             # reference constructs
@@ -509,7 +518,7 @@ class Constructs(abstract.Container):
 
         if out is None:
             return self._default(
-                default, "Can't get remove non-existent construct"
+                default, "Can't remove non-existent construct"
             )
 
         return out
@@ -531,7 +540,7 @@ class Constructs(abstract.Container):
                 The construct identifier to be used for the construct. If
                 not set then a new, unique identifier is created
                 automatically. If the identifier already exists then the
-                exisiting construct will be replaced.
+                existing construct will be replaced.
 
                 *Parameter example:*
                   ``key='cellmeasure0'``
@@ -624,7 +633,7 @@ class Constructs(abstract.Container):
                 The construct identifiers of the domain axis constructs
                 spanned by the data array. An exception is raised if used
                 for a metadata construct that can not have a data array,
-                such as a domain axis constuct.
+                such as a domain axis construct.
 
                 *Parameter example:*
                   ``axes='domainaxis1'``
@@ -710,8 +719,9 @@ class Constructs(abstract.Container):
     # Private dictionary-like methods
     # ----------------------------------------------------------------
     def _pop(self, k, *d):
-        """D.pop(k[,d]) -> v, remove specified key and return the
-        corresponding value.
+        """Removes specified key and returns the corresponding value.
+
+        D.pop(k[,d]) -> v
 
         If k is not found, d is returned if given, otherwise KeyError is
         raised
@@ -733,7 +743,11 @@ class Constructs(abstract.Container):
         return self._constructs[construct_type].pop(k, *d)
 
     def _update(self, other):
-        """D.update(E) -> None. Update D from E."""
+        """D.update(E) -> None.
+
+        Update D from E.
+
+        """
         self._ignore = tuple(set(self._ignore).union(other._ignore))
 
         self._key_base.update(other._key_base)
@@ -748,7 +762,7 @@ class Constructs(abstract.Container):
     # Dictionary-like methods
     # ----------------------------------------------------------------
     def get(self, key, *default):
-        """Return the construct for construct key, if it exists, else default.
+        """Returns the construct for the construct key, if it exists.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -944,8 +958,10 @@ class Constructs(abstract.Container):
         )
 
     def data_axes(self):
-        """Return the domain axis constructs spanned by metadata construct
-        data.
+        """Returns the axes spanned by the data.
+
+        Specifically, returns the domain axis constructs spanned by
+        metadata construct data.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -1028,8 +1044,8 @@ class Constructs(abstract.Container):
 
         Select dimension coordinate and field ancillary constructs:
 
-        >>> d = c.filter_by_type('dimension_coordinate',
-            'field_ancillary')
+        >>> d = c.filter_by_type(
+        ...     'dimension_coordinate', 'field_ancillary')
 
         """
         if types:
@@ -1067,7 +1083,7 @@ class Constructs(abstract.Container):
         >>> print(c)
         Constructs:
         {'dimensioncoordinate0': <{{repr}}DimensionCoordinate: latitude(5) degrees_north>}
-        >>> c.key(
+        >>> c.key()
         'dimensioncoordinate0'
         >>> c.value()
         <{{repr}}DimensionCoordinate: latitude(5) degrees_north>
@@ -1242,7 +1258,7 @@ class Constructs(abstract.Container):
         >>> print(c)
         Constructs:
         {'dimensioncoordinate0': <{{repr}}DimensionCoordinate: latitude(5) degrees_north>}
-        >>> c.key(
+        >>> c.key()
         'dimensioncoordinate0'
         >>> c.value()
         <{{repr}}DimensionCoordinate: latitude(5) degrees_north>
@@ -1259,6 +1275,3 @@ class Constructs(abstract.Container):
         _, construct = self._dictionary().popitem()
 
         return construct
-
-
-# --- End: class

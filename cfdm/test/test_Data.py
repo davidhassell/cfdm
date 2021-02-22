@@ -5,13 +5,17 @@ import itertools
 import os
 import unittest
 
-
 import numpy
+
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
 
 
 def axes_combinations(ndim):
+    """TODO DOCS."""
     return [
         axes
         for n in range(1, ndim + 1)
@@ -20,7 +24,10 @@ def axes_combinations(ndim):
 
 
 class DataTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
         # Note: to enable all messages for given methods, lines or calls (those
@@ -45,6 +52,7 @@ class DataTest(unittest.TestCase):
         #    self.test_only = ['test_Data_BINARY_AND_UNARY_OPERATORS']
 
     def test_Data_any(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -58,6 +66,7 @@ class DataTest(unittest.TestCase):
         self.assertFalse(d.any())
 
     def test_Data__repr__str(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -82,6 +91,7 @@ class DataTest(unittest.TestCase):
     #            return
 
     def test_Data__setitem__(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -149,6 +159,7 @@ class DataTest(unittest.TestCase):
         self.assertIs(a[()], numpy.ma.masked)
 
     def test_Data_apply_masking(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -226,6 +237,7 @@ class DataTest(unittest.TestCase):
     #            pass
 
     def test_Data_array(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -270,6 +282,7 @@ class DataTest(unittest.TestCase):
         self.assertFalse((a2 == a).all())
 
     def test_Data_datetime_array(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -292,6 +305,7 @@ class DataTest(unittest.TestCase):
         self.assertIs(dt[()], numpy.ma.masked)
 
     def test_Data_flatten(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -346,6 +360,7 @@ class DataTest(unittest.TestCase):
             d.flatten(0)
 
     def test_Data_transpose(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -374,6 +389,7 @@ class DataTest(unittest.TestCase):
         self.assertTrue(d.equals(d.transpose()))
 
     def test_Data_unique(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -390,6 +406,7 @@ class DataTest(unittest.TestCase):
         self.assertTrue((u.array == cfdm.Data([1, 2, 4], "metre").array).all())
 
     def test_Data_equals(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -404,6 +421,7 @@ class DataTest(unittest.TestCase):
         self.assertTrue(e.equals(d, verbose=3))
 
     def test_Data_maximum_minimum_sum_squeeze(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -481,6 +499,7 @@ class DataTest(unittest.TestCase):
             d.maximum(axes=0)
 
     def test_Data_dtype_mask(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -519,6 +538,7 @@ class DataTest(unittest.TestCase):
         self.assertTrue((d.mask.array == numpy.ma.getmaskarray(a)).all())
 
     def test_Data_get_index(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -526,6 +546,7 @@ class DataTest(unittest.TestCase):
         self.assertIsNone(d.get_index(default=None))
 
     def test_Data_get_list(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -533,6 +554,7 @@ class DataTest(unittest.TestCase):
         self.assertIsNone(d.get_list(default=None))
 
     def test_Data_get_count(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -540,6 +562,7 @@ class DataTest(unittest.TestCase):
         self.assertIsNone(d.get_count(default=None))
 
     def test_Data_filled(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -591,6 +614,7 @@ class DataTest(unittest.TestCase):
         self.assertTrue((d.filled().array == ["", "b", "c"]).all())
 
     def test_Data_insert_dimension(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -644,14 +668,12 @@ class DataTest(unittest.TestCase):
             d.insert_dimension(1000)
 
     def test_Data_get_compressed_dimension(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
         d = cfdm.Data([[281, 279, 278, 279]])
         self.assertIsNone(d.get_compressed_dimension(None))
-
-
-# --- End: class
 
 
 if __name__ == "__main__":

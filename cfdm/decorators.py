@@ -13,10 +13,8 @@ from .functions import (
 from .constants import ValidLogLevels
 
 
-# Identifier for 'inplace_enabled' to use as internal '_custom'
-# dictionary key, or directly as a (temporary) attribute name if
-# '_custom' is not provided:
-INPLACE_ENABLED_PLACEHOLDER = "_to_assign"
+# Identifier for '_inplace_enabled' to use as a (temporary) attribute name
+INPLACE_ENABLED_PLACEHOLDER = "_inplace_store"
 
 
 def _inplace_enabled(operation_method=None, *, default=False):
@@ -31,7 +29,7 @@ def _inplace_enabled(operation_method=None, *, default=False):
     variable storing the relevant instance for use throughout the
     method to ``_inplace_enabled_define_and_cleanup(self)``.
 
-    :Parmaeters:
+    :Parameters:
 
         operation_method: method
 
@@ -43,22 +41,10 @@ def _inplace_enabled(operation_method=None, *, default=False):
         @wraps(operation_method)
         def inplace_wrapper(self, *args, **kwargs):
             is_inplace = kwargs.get("inplace", default)
-            try:
-                if is_inplace:
-                    # create an attribute equal to 'self'
-                    self._custom[INPLACE_ENABLED_PLACEHOLDER] = self
-                else:
-                    # create an attribute equal to a (shallow) copy of
-                    # 'self'
-                    self._custom[INPLACE_ENABLED_PLACEHOLDER] = self.copy()
-            # '_custom' not available for object so have to use a direct
-            # attribute for the storage, which is not as desirable since
-            # it is more exposed:
-            except AttributeError:
-                if is_inplace:
-                    self.INPLACE_ENABLED_PLACEHOLDER = self
-                else:
-                    self.INPLACE_ENABLED_PLACEHOLDER = self.copy()
+            if is_inplace:
+                self.INPLACE_ENABLED_PLACEHOLDER = self
+            else:
+                self.INPLACE_ENABLED_PLACEHOLDER = self.copy()
 
             processed_copy = operation_method(self, *args, **kwargs)
 
@@ -76,11 +62,10 @@ def _inplace_enabled(operation_method=None, *, default=False):
 
 
 def _inplace_enabled_define_and_cleanup(instance):
-    """Delete attribute set by inable_enabled but store and return its
-    value.
+    """Deletes attribute set by _inplace_enabled, returning its value.
 
     Designed as a convenience function for use at the start of methods
-    decorated by inplace_enabled; the core variable used throughout
+    decorated by _inplace_enabled; the core variable used throughout
     for the instance in the decorated method should first be assigned
     to this function with the class instance as the input. For
     example:
@@ -106,8 +91,7 @@ def _inplace_enabled_define_and_cleanup(instance):
 
 
 def _manage_log_level_via_verbosity(method_with_verbose_kwarg, calls=[0]):
-    """A decorator for managing log message filtering by verbosity
-    argument.
+    """A decorator to manage log filtering by verbosity argument.
 
     This enables overriding of the log severity level such that an
     integer input (lying in the valid range) to the decorated function
@@ -131,9 +115,12 @@ def _manage_log_level_via_verbosity(method_with_verbose_kwarg, calls=[0]):
     concern) that this approach may not be thread-safe.
 
     """
+    # Note that 'self' can be included in '*args' for any function calls
+    # below, such that this decorator will work for both methods and
+    # functions that are not bound to classes.
 
     @wraps(method_with_verbose_kwarg)
-    def verbose_override_wrapper(self, *args, **kwargs):
+    def verbose_override_wrapper(*args, **kwargs):
         # Increment indicates that one decorated function has started
         # execution
         calls[0] += 1
@@ -191,7 +178,7 @@ def _manage_log_level_via_verbosity(method_with_verbose_kwarg, calls=[0]):
         # After method completes, re-set any changes to log level or
         # enabling
         try:
-            return method_with_verbose_kwarg(self, *args, **kwargs)
+            return method_with_verbose_kwarg(*args, **kwargs)
         except Exception:
             raise
         finally:  # so that crucial 'teardown' code runs even if
@@ -217,7 +204,7 @@ def _manage_log_level_via_verbosity(method_with_verbose_kwarg, calls=[0]):
 
 # @_test_decorator_args('i') -> example usage for decorating, using i kwarg
 def _test_decorator_args(*dec_args):
-    """A wrapper for provision of positional arguments to the decorator."""
+    """A wrapper to provide positional arguments to the decorator."""
 
     def deprecated_kwarg_check_decorator(operation_method):
         """A decorator for a deprecation check on given kwargs.
@@ -246,3 +233,31 @@ def _test_decorator_args(*dec_args):
         return precede_with_kwarg_deprecation_check
 
     return deprecated_kwarg_check_decorator
+
+
+def _display_or_return(method_with_display_kwarg):
+    """A decorator enabling a string to be printed rather than returned.
+
+    If the decorated method has keyword argument *display* being equal
+    to True, by default or from being set as such, the function will
+    print the output that would otherwise be returned and return `None`.
+
+    :Parameters:
+
+        method_with_display_kwarg: method
+
+    """
+
+    @wraps(method_with_display_kwarg)
+    def end_with_display_or_return_logic(self, *args, **kwargs):
+        string = method_with_display_kwarg(self, *args, **kwargs)
+
+        # display=True is always default, so if display not provided, set True
+        display = kwargs.get("display", True)
+
+        if display:
+            print(string)
+        else:
+            return string
+
+    return end_with_display_or_return_logic

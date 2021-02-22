@@ -4,7 +4,7 @@ from .abstract import Sampledrray
 
 
 class SampledLinearArray(Sampledrray):
-    """TODO
+    """TODO.
 
     .. versionadded:: (cfdm) TODO
 
@@ -46,17 +46,14 @@ class SampledLinearArray(Sampledrray):
         for tp_indices, u_indices, new_area in zip(
             *self._interpolation_zones()
         ):
-            u_slice = u_indices[d0]
-            n = u_slice.stop - u_slice.start
-
             tp_index0 = list(tp_indices)
             tp_index1 = tp_index0[:]
             tp_index0[d0] = tp_index0[d0][:1]
             tp_index1[d0] = tp_index1[d0][1:]
 
-            uarray[u_indices] = self._linear_interpolation(
+            uarray[u1_indices] = self._linear_interpolation(
                 d0,
-                n,
+                u_indices[d0],
                 new_area[d0],
                 tie_points[tuple(tp_index0)].array,
                 tie_points[tuple(tp_index1)].array,
@@ -69,8 +66,8 @@ class SampledLinearArray(Sampledrray):
     # ----------------------------------------------------------------
     # Private methods
     # ----------------------------------------------------------------
-    def _linear_interpolation(self, d, n, new_area, a0, a1):
-        """TODO
+    def _linear_interpolation(self, d, u_slice, new_area, a0, a1):
+        """TODO.
 
         .. versionadded:: (cfdm) TODO
 
@@ -80,9 +77,7 @@ class SampledLinearArray(Sampledrray):
                 The position of the tie point interpolation
                 dimension.
 
-            n: sequence of `slice` or `list`
-                The number of uncompressed elements in this
-                interpolation zone along the interpolation dimension.
+            u_slice: `slice`
 
             new_area: `bool`
                 Set to True if this interpolation is at the start of a
@@ -95,7 +90,7 @@ class SampledLinearArray(Sampledrray):
                interpolation along dimension *d*
 
         """
-        s, one_minus_s = self._calculate_s(d, n)
+        s, one_minus_s = self._calculate_s(d, u_slice, new_area)
 
         u = a0 * one_minus_s + a1 * s
 
@@ -107,7 +102,7 @@ class SampledLinearArray(Sampledrray):
         return u
 
     @lru_cache(maxsize=32)
-    def _calculate_s(self, d, n):
+    def _calculate_s(self, d, u_slice, new_area):
         """Create the interpolation coefficients and 1-s.
 
         .. versionadded:: (cfdm) TODO
@@ -117,9 +112,9 @@ class SampledLinearArray(Sampledrray):
             d: `int`
                 The position of the tie point interpolation dimension.
 
-            n: `int`
-                The number of uncompressed elements in this
-                interpolation zone along the interpolation dimension.
+            u_slice: `slice`
+
+            new_area: `bool`
 
         :Returns:
 
@@ -139,7 +134,12 @@ class SampledLinearArray(Sampledrray):
          array([[1. , 0.8, 0.6, 0.4, 0.2, 0. ]]))
 
         """
-        delta = 1 / (n - 1)
+        n = u_slice.stop - u_slice.start
+        if new_area:
+            n -= 1
+
+        delta = 1 / n
+
         s = np.arange(0, 1 + delta / 2, delta)
 
         one_minus_s = s[::-1]

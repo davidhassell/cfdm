@@ -7,6 +7,10 @@ import unittest
 
 import numpy
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
 
 
@@ -31,7 +35,10 @@ atexit.register(_remove_tmpfiles)
 
 
 class StringTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -46,6 +53,7 @@ class StringTest(unittest.TestCase):
         self.test_only = []
 
     def test_STRING(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -67,8 +75,8 @@ class StringTest(unittest.TestCase):
             )
 
             # Create and set domain axes
-            axis_T = tas.set_construct(cfdm.DomainAxis(1))
-            axis_Z = tas.set_construct(cfdm.DomainAxis(1))
+            tas.set_construct(cfdm.DomainAxis(1))
+            tas.set_construct(cfdm.DomainAxis(1))
             axis_Y = tas.set_construct(cfdm.DomainAxis(10))
             axis_X = tas.set_construct(cfdm.DomainAxis(9))
 
@@ -101,8 +109,8 @@ class StringTest(unittest.TestCase):
                 ),
             )
 
-            dim_Y = tas.set_construct(dimension_coordinate_Y, axes=[axis_Y])
-            dim_X = tas.set_construct(dimension_coordinate_X, axes=[axis_X])
+            tas.set_construct(dimension_coordinate_Y, axes=[axis_Y])
+            tas.set_construct(dimension_coordinate_X, axes=[axis_X])
 
             # Create and set the auxiliary coordinates
             array[0] = numpy.ma.masked

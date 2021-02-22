@@ -1,5 +1,4 @@
 import inspect
-import re
 
 
 class DocstringRewriteMeta(type):
@@ -27,12 +26,15 @@ class DocstringRewriteMeta(type):
     # http://www.jesshamrick.com/2013/04/17/rewriting-python-docstrings-with-a-metaclass/
 
     def __new__(cls, class_name, parents, attrs):
-        # ------------------------------------------------------------
-        # Combine the docstring substitutions from all classes in the
-        # inheritance tree. The value for a key that occurs in
-        # multiple classes will be taken from the class closest to the
-        # child class.
-        # ------------------------------------------------------------
+        """Combines docstring substitutions across the inheritance tree.
+
+        That is, combines docstring substitutions from all classes in the
+        inheritance tree.
+
+        The value for a key that occurs in multiple classes will be taken
+        from the class closest to the child class.
+
+        """
         docstring_rewrite = {}
 
         for parent in parents[::-1]:
@@ -260,7 +262,6 @@ class DocstringRewriteMeta(type):
                             f.__defaults__,
                             f.__closure__,
                         )
-
                         # Make sure that the keyword argument defaults
                         # are set correctly. In general they will be,
                         # but not if there is a variable number of
@@ -308,15 +309,74 @@ class DocstringRewriteMeta(type):
                     # class
                     attrs[attr_name] = attr
 
-                except Exception as error:
-                    raise RuntimeError(
-                        str(error)
-                        + ": "
-                        + ".".join([parent.__name__, attr_name])
-                    )
+                except Exception:
+                    pass
+        #                    raise RuntimeError(str(error) + ': ' +
+        #                                       '.'.join([parent.__name__,
+        #                                                 attr_name]))
         # --- End: for
 
+        # ------------------------------------------------------------
+        # Rewrite the docstring of the class itself.
+        #
+        # The method is as follows:
+        #
+        # 1. If __doc__ contains substitutions then save the
+        #    unsubstituted docstring in __doc_template__, rewrite the
+        #    docstring, and save it in __doc__.
+        #
+        # 2. If __doc__ is not None and does not contain substitutions
+        #    then set __doc_template___ to None.
+        #
+        # 3. If __doc__ is None then search back through the parent
+        #    classes until you found one with a non-None __doc__ AND a
+        #    non-None __doc_template__. If such a parent exists then
+        #    copy its __doc_template__ to the child class's
+        #    __doc_template__, rewrite it, and save the rewritten
+        #    docstring to the child class's __doc__.
+        #
+        # ------------------------------------------------------------
+        doc = attrs.get("__doc__")
+        doc_template = None
+        set_doc_template_to_None = False
+
+        if doc is None:
+            for parent in parents[::-1]:
+                x = getattr(parent, "__doc__", None)
+                if x is not None:
+                    doc_template = getattr(parent, "__doc_template__", None)
+                    if doc_template is not None:
+                        break
+            # --- End: for
+
+            if doc_template is None:
+                set_doc_template_to_None = True
+        # --- End: if
+
+        if doc_template is not None:
+            doc = doc_template
+
+        if doc is not None and "{{" in doc:
+            doc_template = doc
+            doc = DocstringRewriteMeta._docstring_update(
+                package_name,
+                class_name,
+                None,
+                None,
+                docstring_rewrite,
+                class_docstring=doc,
+            )
+            attrs["__doc__"] = doc
+
+            if set_doc_template_to_None:
+                doc_template = None
+        # --- End: if
+
+        attrs["__doc_template__"] = doc_template
+
+        # ------------------------------------------------------------
         # Create the class
+        # ------------------------------------------------------------
         return super().__new__(cls, class_name, parents, attrs)
 
     # ----------------------------------------------------------------
@@ -324,7 +384,7 @@ class DocstringRewriteMeta(type):
     # ----------------------------------------------------------------
     @classmethod
     def _docstring_special_substitutions(cls):
-        """Return the special docstring subtitutions.
+        """Return the special docstring substitutions.
 
         ``{{class}}`` is replaced by the name of the class.
 
@@ -355,16 +415,15 @@ class DocstringRewriteMeta(type):
 
     @staticmethod
     def _docstring_substitutions(cls):
-        """Return the docstring substitutions that apply to methods of the
-        given class.
+        """Returns the substitutions that apply to methods of the class.
 
         Text to be replaced is specified as a key in the returned
         dictionary, with the replacement text defined by the corresponding
         value.
 
-        Special docstring subtitutions, as defined by a class's
+        Special docstring substitutions, as defined by a class's
         `_docstring_special_substitutions` method, may be used in the
-        replacement text, and will be substituted as ususal.
+        replacement text, and will be substituted as usual.
 
         Replacement text may contain other non-special substitutions.
 
@@ -424,8 +483,7 @@ class DocstringRewriteMeta(type):
 
     @staticmethod
     def _docstring_package_depth(cls):
-        """Return the package depth, N, for {{package}} docstring
-        substitutions for the given class.
+        """Returns the class {{package}} substitutions package depth.
 
         In docstrings, ``{{package}}`` is replaced by the name of the
         package, as defined by the first N+1 ``.`` (dot) separated fields
@@ -474,16 +532,15 @@ class DocstringRewriteMeta(type):
 
     @staticmethod
     def _docstring_method_exclusions(cls):
-        """Return the names of methods to exclude from docstring substitutions
-        for the given class.
+        """Returns method names excluded in the class substitutions.
 
         Exclusions for a class may be defined by creating a
         `__docstring_method_exclusions__` method that returns the sequence
         of names of methods to be excluded. These exclusions will also
         apply to any child classes.
 
-        Exclsusions may be defined for any reason, but in particular may
-        be required if a method has a non-rewriteable docstring. An
+        Exclusions may be defined for any reason, but in particular may
+        be required if a method has a non-rewritable docstring. An
         example of method that has a non-rewritable docstring is when the
         method is a 'method_descriptor' object, such as `list.append`: any
         class that inherits such such a method will need to exclude it,
@@ -507,7 +564,7 @@ class DocstringRewriteMeta(type):
 
             `set`
                 The names of the methods to exclude from the docstring
-                substutition process.
+                substitution process.
 
         """
         out = [
@@ -533,22 +590,30 @@ class DocstringRewriteMeta(type):
 
     @classmethod
     def _docstring_update(
-        cls, package_name, class_name, f, method_name, config
+        cls,
+        package_name,
+        class_name,
+        f,
+        method_name,
+        config,
+        class_docstring=None,
     ):
-        """Perform docstring substitutions on a method at time of import.
+        """Performs docstring substitutions on a method at import time.
 
         .. versionadded:: (cfdm) 1.8.7.0
 
         """
-        doc = f.__doc__
-        if doc is None:
-            return
+        if class_docstring is not None:
+            doc = class_docstring
+        else:
+            doc = f.__doc__
+            if doc is None or "{{" not in doc:
+                return doc
 
         # ------------------------------------------------------------
         # Do general substitutions first
         # ------------------------------------------------------------
         for key, value in config.items():
-
             # Substitute non-special substitutions embedded within
             # this value, updating the value if any are found. Note
             # that any non-special substitutions embedded within the
@@ -586,7 +651,7 @@ class DocstringRewriteMeta(type):
         # ----------------------------------------------------------------
         # Set the rewritten docstring on the method
         # ----------------------------------------------------------------
-        f.__doc__ = doc
+        if class_docstring is None:
+            f.__doc__ = doc
 
-
-# --- End: class
+        return doc

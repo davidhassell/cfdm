@@ -3,23 +3,33 @@ import unittest
 
 import numpy
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
 
 verbose = False
 
 
 class create_fieldTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
-        # Note: to enable all messages for given methods, lines or calls (those
-        # without a 'verbose' option to do the same) e.g. to debug them, wrap
-        # them (for methods, start-to-end internally) as follows:
+        # Note: to enable all messages for given methods, lines or
+        # calls (those without a 'verbose' option to do the same)
+        # e.g. to debug them, wrap them (for methods, start-to-end
+        # internally) as follows:
+        #
         # cfdm.log_level('DEBUG')
         # < ... test code ... >
         # cfdm.log_level('DISABLE')
 
     def test_core_create_field(self):
+        """TODO DOCS."""
         # Dimension coordinates
         dim1 = cfdm.core.DimensionCoordinate(
             data=cfdm.core.Data(cfdm.core.NumpyArray(numpy.arange(10.0)))
@@ -154,7 +164,7 @@ class create_fieldTest(unittest.TestCase):
 
         lat = f.set_construct(aux2, axes=[axisY, axisX])
         lon = f.set_construct(aux3, axes=[axisX, axisY])
-        greek = f.set_construct(aux4, axes=[axisY])
+        f.set_construct(aux4, axes=[axisY])
 
         ak = f.set_construct(ak, axes=[axisZ])
         bk = f.set_construct(bk, axes=[axisZ])
@@ -243,6 +253,7 @@ class create_fieldTest(unittest.TestCase):
         f.set_construct(cm1)
 
     def test_core_FUNCTIONS(self):
+        """TODO DOCS."""
         self.assertEqual(cfdm.core.CF(), cfdm.core.__cf_version__)
 
         self.assertIsInstance(cfdm.core.environment(display=False), list)

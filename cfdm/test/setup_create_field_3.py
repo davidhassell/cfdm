@@ -4,6 +4,10 @@ import unittest
 
 import numpy
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
 
 
@@ -12,7 +16,10 @@ warnings = False
 
 
 class create_fieldTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -29,7 +36,7 @@ class create_fieldTest(unittest.TestCase):
         )
 
     def test_create_field_3(self):
-
+        """TODO DOCS."""
         # Dimension coordinates
         data = numpy.arange(9.0) + 20
         data[-1] = 34
@@ -129,11 +136,11 @@ class create_fieldTest(unittest.TestCase):
         x = f.set_construct(dim0, axes=[axisX])
         y = f.set_construct(dim1, axes=[axisY])
         z = f.set_construct(dim2, axes=[axisZ])
-        t = f.set_construct(dim3, axes=[axisT])
+        f.set_construct(dim3, axes=[axisT])
 
         lat = f.set_construct(aux2, axes=[axisY, axisX])
         lon = f.set_construct(aux3, axes=[axisX, axisY])
-        greek = f.set_construct(aux4, axes=[axisY])
+        f.set_construct(aux4, axes=[axisY])
 
         ak = f.set_construct(ak, axes=[axisZ])
         bk = f.set_construct(bk, axes=[axisZ])

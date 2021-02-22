@@ -27,7 +27,7 @@ class CellMethod(abstract.Container):
     def __init__(
         self, axes=None, method=None, qualifiers=None, source=None, copy=True
     ):
-        """**Initialisation**
+        """Initialisation.
 
         :Parameters:
 
@@ -68,7 +68,7 @@ class CellMethod(abstract.Container):
 
             qualifiers: `dict`, optional
                 Set descriptive qualifiers. The dictionary keys are
-                qualifer names, with corresponding values. Ignored if the
+                qualifier names, with corresponding values. Ignored if the
                 *source* parameter is set.
 
                 Qualifiers may also be set after initialisation with the
@@ -81,7 +81,7 @@ class CellMethod(abstract.Container):
                   ``qualifiers={'where': 'sea', ''over': 'ice'}``
 
             source: optional
-                Initialize the axes, method and qualifiers from those of
+                Initialise the axes, method and qualifiers from those of
                 *source*.
 
                 {{init source}}
@@ -313,6 +313,7 @@ class CellMethod(abstract.Container):
         >>> c.get_axes()
         ('domainaxis1',)
         >>> c.del_axes()
+        ('domainaxis1',)
         >>> c.has_axes()
         False
         >>> c.get_axes('NO AXES')
@@ -357,6 +358,7 @@ class CellMethod(abstract.Container):
         >>> c.get_method()
         'minimum'
         >>> c.del_method()
+        'minimum'
         >>> c.has_method()
         False
         >>> c.get_method('NO METHOD')
@@ -443,6 +445,7 @@ class CellMethod(abstract.Container):
         >>> c.get_axes()
         ('domainaxis1',)
         >>> c.del_axes()
+        ('domainaxis1',)
         >>> c.has_axes()
         False
         >>> c.get_axes('NO AXES')
@@ -474,6 +477,7 @@ class CellMethod(abstract.Container):
         >>> c.get_method()
         'minimum'
         >>> c.del_method()
+        'minimum'
         >>> c.has_method()
         False
         >>> c.get_method('NO METHOD')
@@ -588,6 +592,7 @@ class CellMethod(abstract.Container):
         >>> c.get_axes()
         ('domainaxis1',)
         >>> c.del_axes()
+        ('domainaxis1',)
         >>> c.has_axes()
         False
         >>> c.get_axes('NO AXES')
@@ -640,6 +645,7 @@ class CellMethod(abstract.Container):
         >>> c.get_method()
         'minimum'
         >>> c.del_method()
+        'minimum'
         >>> c.has_method()
         False
         >>> c.get_method('NO METHOD')
@@ -685,6 +691,3 @@ class CellMethod(abstract.Container):
             value = deepcopy(value)
 
         self._get_component("qualifiers")[qualifier] = value
-
-
-# --- End: class

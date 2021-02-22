@@ -7,7 +7,7 @@ from .numpyarray import NumpyArray
 
 
 class Data(abstract.Container):
-    """An orthogonal multidimensional array with masked values and units.
+    """An orthogonal multidimensional array with masking and units.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -24,7 +24,7 @@ class Data(abstract.Container):
         _use_array=True,
         _custom_deep_copy=False,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -86,7 +86,7 @@ class Data(abstract.Container):
                   ``fill_value=-999.``
 
             source: *optional*
-                Initialize the data, units, calendar and fill value from
+                Initialise the data, units, calendar and fill value from
                 those of *source*.
 
             {{init copy: `bool`, optional}}
@@ -97,7 +97,6 @@ class Data(abstract.Container):
                 source = array.__data__()
             except (AttributeError, ValueError, TypeError):
                 pass
-        # --- End: if
 
         super().__init__(source=source)
 
@@ -170,10 +169,10 @@ class Data(abstract.Container):
         >>> isinstance(n, numpy.ndarray)
         True
         >>> print(n)
-        [ 1.,   2.,   3.]
+        [1. 2. 3.]
         >>> n[0] = 88
         >>> d
-        <{{repr}}{{class}}: [1.0, 2.0, 3.0] km>
+        <{{repr}}{{class}}(3): [1.0, 2.0, 3.0] km>
 
         """
         array = self._get_Array().array

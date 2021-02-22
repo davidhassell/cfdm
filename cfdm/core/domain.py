@@ -38,12 +38,12 @@ class Domain(mixin.ConstructAccess, abstract.Container):
         return instance
 
     def __init__(self, source=None, copy=True, _use_data=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
             source: optional
-                Initialize the metadata constructs from those of *source*.
+                Initialise the metadata constructs from those of *source*.
 
                 {{init source}}
 
@@ -81,7 +81,7 @@ class Domain(mixin.ConstructAccess, abstract.Container):
     # ----------------------------------------------------------------
     @property
     def constructs(self):
-        """Return the metdata constructs.
+        """Return the metadata constructs.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -92,9 +92,11 @@ class Domain(mixin.ConstructAccess, abstract.Container):
 
         **Examples:**
 
+        >>> d = cfdm.example_field(0)
         >>> print(d.constructs)
         Constructs:
-        {'dimensioncoordinate0': <{{repr}}DimensionCoordinate: latitude(5) degrees_north>,
+        {'cellmethod0': <CellMethod: area: mean>,
+         'dimensioncoordinate0': <{{repr}}DimensionCoordinate: latitude(5) degrees_north>,
          'dimensioncoordinate1': <{{repr}}DimensionCoordinate: longitude(8) degrees_east>,
          'dimensioncoordinate2': <{{repr}}DimensionCoordinate: time(1) days since 2018-12-01 >,
          'domainaxis0': <{{repr}}DomainAxis: size(5)>,
@@ -129,7 +131,12 @@ class Domain(mixin.ConstructAccess, abstract.Container):
 
         **Examples:**
 
+        >>> d = cfdm.example_field(0)
         >>> e = d.copy()
+        >>> e.equals(d)
+        True
+        >>> e is d
+        False
 
         """
         return type(self)(source=self, copy=True, _use_data=data)
@@ -148,7 +155,7 @@ class Domain(mixin.ConstructAccess, abstract.Container):
 
             constructs: `Constructs`
                 The constructs from which to create the new domain. Cell
-                method and field ancillary constucts are ignored.
+                method and field ancillary constructs are ignored.
 
             copy: `bool`, optional
                 If True then deep copy the metadata constructs prior to
@@ -162,7 +169,10 @@ class Domain(mixin.ConstructAccess, abstract.Container):
 
         **Examples:**
 
+        >>> f = cfdm.example_field(0)
         >>> d = {{package}}.{{class}}.fromconstructs(f.constructs)
+        >>> d
+        <Domain: {1, 5, 8}>
 
         """
         domain = cls()
@@ -175,6 +185,3 @@ class Domain(mixin.ConstructAccess, abstract.Container):
         domain.constructs._field_data_axes = None
 
         return domain
-
-
-# --- End: class

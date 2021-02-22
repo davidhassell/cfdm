@@ -5,7 +5,7 @@ from . import core
 
 from . import Constructs
 
-from .decorators import _manage_log_level_via_verbosity
+from .decorators import _manage_log_level_via_verbosity, _display_or_return
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class Domain(mixin.ConstructAccess, mixin.Container, core.Domain):
         """
 
         def _print_item(self, cid, variable, axes):
-            """Private function called by __str__"""
+            """Private function called by __str__."""
             x = [variable.identity(default="key%{0}".format(cid))]
 
             if variable.has_data():
@@ -176,9 +176,9 @@ class Domain(mixin.ConstructAccess, mixin.Container, core.Domain):
 
         return "\n".join(string)
 
+    @_display_or_return
     def _dump_axes(self, axis_names, display=True, _level=0):
-        """Return a string containing a description of the domain axes of the
-        field.
+        """Returns a string description of the field's domain axes.
 
         :Parameters:
 
@@ -214,6 +214,7 @@ class Domain(mixin.ConstructAccess, mixin.Container, core.Domain):
         else:
             return string
 
+    @_display_or_return
     def dump(self, display=True, _level=0, _title=None):
         """A full description of the domain.
 
@@ -241,10 +242,6 @@ class Domain(mixin.ConstructAccess, mixin.Container, core.Domain):
                 as a string.
 
         """
-        indent = "    "
-        indent0 = indent * _level
-        indent1 = indent0 + indent
-
         axis_to_name = self._unique_domain_axis_identities()
 
         construct_name = self._unique_construct_names()
@@ -332,13 +329,7 @@ class Domain(mixin.ConstructAccess, mixin.Container, core.Domain):
             )
 
         string.append("")
-
-        string = "\n".join(string)
-
-        if display:
-            print(string)
-        else:
-            return string
+        return "\n".join(string)
 
     @_manage_log_level_via_verbosity
     def equals(

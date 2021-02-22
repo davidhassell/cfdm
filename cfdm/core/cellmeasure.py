@@ -35,7 +35,7 @@ class CellMeasure(abstract.PropertiesData):
         copy=True,
         _use_data=True,
     ):
-        """**Initialisation**
+        """Initialisation.
 
         :Parameters:
 
@@ -175,6 +175,7 @@ class CellMeasure(abstract.PropertiesData):
         None
         >>> print(c.get_measure(None))
         None
+
         """
         return self._has_component("measure")
 
@@ -257,8 +258,6 @@ class CellMeasure(abstract.PropertiesData):
         None
         >>> print(c.get_measure(None))
         None
+
         """
         return self._set_component("measure", measure, copy=copy)
-
-
-# --- End: class

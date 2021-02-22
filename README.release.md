@@ -1,10 +1,12 @@
 * Change the version and date in `cfdm/core/__init__.py`
-  (`__version__` and `__date__` variables)
+  (`__version__` and `__date__` variables); and in the `codemeta.json`
+  file.
 
-* Ensure that the requirements on dependencies & their versions are
-  up-to-date and consistent in both the `install_requires` list of the
-  `setup.py` and in the `_requires` list and `LooseVersion` checks in
-  `cfdm/core/__init__.py`.
+* Ensure that the requirements on dependencies and their versions are
+  up-to-date and consistent in both the `requirements.txt` file and in
+  `docs/source/installation.rst`; and in the `_requires` list and
+  `LooseVersion` checks in `cfdm/core/__init__.py` and
+  `cfdm/__init__.py`.
 
 * If required, change the CF conventions version in
   `cfdm/core/__init__.py` (`__cf_version__` variable)
@@ -13,37 +15,28 @@
 
 * Make sure that `Changelog.rst` is up to date.
 
-* Make sure that any new attributes, methods and keyword arguments (as
-  listed in the change log) have on-line documentation. This may
-  require additions to the `.rst` files in `docs/source/class/`
+* Check that the documentation API coverage is complete:
+
+  ```bash
+  ./check_docs_api_coverage
+  ```
+
+  * If it is not complete, add any undocumented attributes, methods,
+    functions and keyword arguments (e.g. as listed in the change log)
+    to the `.rst` files in `docs/source/class/`.
 
 * Check external links to the CF conventions are up to date in
   `docs/source/tutorial.rst`
 
 * Create a link to the new documentation in `docs/source/releases.rst`
 
-* If groups are ready then remove the Hierarchical Groups placeholders
-  in the documentation files: `setup.py`, `README.md`,
-  `docs/source/introduction.rst`, `docs/source/tutorial.rst` (and
-  delete this instruction).
-
 * Test tutorial code:
 
   ```bash
   export PYTHONPATH=$PWD:$PYTHONPATH
-  cd docs/source
-  ./extract_tutorial_code
-  ./reset_test_tutorial
-  cd test_tutorial
-  python ../tutorial.py
+  ./test_tutorial_code
   ```
 
-* Check that the documentaion API coverage is complete:
-
-  ```bash
-  ./check_docs_api_coverage
-  ```
-  
 * Build a development copy of the documentation using to check API
   pages for any new methods are present & correct, & that the overall
   formatting has not been adversely affected for comprehension by any
@@ -51,19 +44,75 @@
   the dev build.)
 
   ```bash
-  ./release_docs <vn> dev-clean # E.g. ./release_docs 1.8.6.0 dev-clean
+  ./release_docs <vn> dev-clean # E.g. ./release_docs 1.8.7.0 dev-clean
   ```
-  
+
+* Check that no typos or spelling mistakes have been introduced to the
+  documentation:
+
+  * Run a dummy build of the documentation to detect invalid words:
+
+     ```console
+     $ cd docs
+     $ make spelling build
+     ```
+
+  * If there are words raised with 'Spell check' warnings for the dummy
+    build, such as:
+
+    ```bash
+    /home/sadie/cf-python/docs/source/class/cf.NetCDFArray.rst:18: Spell check: isw: element in the sequence isw the name of the group in which.
+    Writing /home/sadie/cf-python/docs/spelling/class/cf.NetCDFArray.spelling
+    /home/sadie/cf-python/docs/source/class/cf.Query.rst:3: Spell check: encapulates:  object encapulates a condition, such as.
+    ```
+
+    they may or may not be typos or mis-spellings. Address all the warnings
+    (except those relating to files under `docs/source/class/`,
+    `/attribute` or `/function` which will be fixed along with the origin
+    docstrings after a 'latest' build) as follows:
+
+    * If there are words that are in fact valid, add the valid words to
+      the list of false positives for the spelling checker extension,
+      `docs/source/spelling_false_positives.txt`.
+    * Correct any words that are not valid in the codebase under `cf` or
+      in the `docs/source` content files.
+
+  * Note that, in the case there are many words raised as warnings, it
+    helps to automate the above steps. The following commands are a means
+    to do this processing:
+
+    1. Copy all 'spell check' warnings (there will be 'Writing to ...' lines
+       interspersed which can be removed by command so can be copied here too)
+       output to STDOUT during the build to a file (here we use
+       `spellings-file-1` as an example name).
+    2. Cut all 'Writing to ...' lines interspersed with the warnings by
+       running `sed -i '/^riting/d' spellings-file-1`.
+    3. Cut all of the invalid words detected from the warning messages via
+       `cat spellings-file-1 | cut -d':' -f 4 > spellings-file-2`
+    4. Sift through these new words and remove any words that are true
+       positives i.e. typos or mis-spellings. Correct them in the
+       docstrings or documentation source files. If there are many
+       instances across the docs, it helps to do a substitution of all
+       occurences, e.g. via `find . -type f | xargs sed -i 's/<typo>/<correction>/g'`,
+       though take care to have spaces surrounding words which may be
+       part of other words, e.g. use
+       `find . -type f | xargs sed -i 's/ ot / to /g'` to correct `ot` to `to`.
+    5. Remove the leading whitespace character on each line and add
+       all the new words to the current list of false positives:
+       `sed 's/^.//' spellings-file-2 >> docs/source/spelling_false_positives.txt`
+    6. Remove duplicate words and sort alphabetically via:
+       `sort -u -o docs/source/spelling_false_positives.txt docs/source/spelling_false_positives.txt`
+
 * Create an archived copy of the documentation:
 
   ```bash
-  ./release_docs <vn> archive # E.g. ./release_docs 1.8.6.0 archive
+  ./release_docs <vn> archive # E.g. ./release_docs 1.8.7.0 archive
   ```
 
 * Update the latest documentation:
 
   ```bash
-  ./release_docs <vn> latest # E.g. ./release_docs 1.8.6.0 latest
+  ./release_docs <vn> latest # E.g. ./release_docs 1.8.7.0 latest
   ```
 
 * Create a source tarball:
@@ -75,7 +124,7 @@
 * Test the tarball release using
 
   ```bash
-  ./test_release <vn> # E.g. ./test_release 1.8.6.0
+  ./test_release <vn> # E.g. ./test_release 1.8.7.0
   ```
 
 * Push recent commits using
@@ -87,7 +136,7 @@
 * Tag the release:
 
   ```bash
-  ./tag <vn> # E.g. ./tag 1.8.6.0
+  ./tag <vn> # E.g. ./tag 1.8.7.0
   ```
   
 * Upload the source tarball to PyPi. Note this requires the `twine`
@@ -95,5 +144,5 @@
   privileges on PyPi.
 
   ```bash
-  ./upload_to_pypi <vn> # E.g. ./upload_to_pypi 1.8.6.0
+  ./upload_to_pypi <vn> # E.g. ./upload_to_pypi 1.8.7.0
   ```

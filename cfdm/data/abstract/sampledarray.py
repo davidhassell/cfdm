@@ -9,7 +9,7 @@ _float64 = np.dtype(float)
 
 
 class SampledArray(CompressedArray):
-    """TODO
+    """TODO.
 
     .. versionadded:: (cfdm) TODO
 
@@ -28,7 +28,7 @@ class SampledArray(CompressedArray):
         interpolation_parameters={},
         parameter_dimensions={},
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -76,9 +76,7 @@ class SampledArray(CompressedArray):
 
     def _conform_interpolation_parameters(self):
         """Make sure the interpolation parameters arrays have the same
-        relative dimension order as the tie point array.
-
-        """
+        relative dimension order as the tie point array."""
         dims = tuple(range(ndim))
 
         term_dimensions = self.term_dimensions
@@ -95,184 +93,6 @@ class SampledArray(CompressedArray):
 
             interpolation_ceofficients[term] = c.tranpose(new_order)
             term_dimensions[term] = tuple([dimensions[i] for i in new_order])
-
-    def _interpolation_zones(
-        self, non_interpolation_dimension_value=slice(None)
-    ):
-        """TODO
-
-        .. versionadded:: (cfdm) TODO
-
-        :Returns:
-
-            iterator, iterator, iterator
-               * The indices of the tie point array that correspond to
-                 each interpolation zone. Each index for the tie point
-                 interpolation dimensions is expressed as a list of
-                 two integers, rather than a `slice` object, to
-                 facilitate retrieval of each tie point individually.
-
-               * The indices of the uncompressed array that correspond
-                 to each interpolation zone. Each index in the tuple
-                 is expressed as a `slice` object.
-
-               * Flags which state, for each interpolation dimension,
-                 whether each interplation zone is at the start of an
-                 interpolation area.
-
-        """
-        tie_point_indices = self.get_tie_point_indices()
-
-        compressed_dimensions = self.get_compression_dimension()
-
-        # Initialise the indices of the tie point array that
-        # correspond to each interpolation zone.
-        #
-        # This list starts off with (slice(None),) for all dimensions,
-        # but each tie point interpolation dimension will then be
-        # replaced by a sequence of index pairs that define tie point
-        # values for each interpolation zone. Finally, the caresian
-        # product of the list is returned
-        #
-        # For example, if the tie point array has three dimensions and
-        # dimensions 0 and 2 are tie point interpolation dimensions,
-        # and interpolation dimension 0 has two interpolation areas,
-        # then the list could evolve as follows:
-        #
-        # Initialization:
-        #
-        # [(slice(None),), (slice(None),), (slice(None),)]
-        #
-        # Overwrite tie point interpolation dimension entries with
-        # indices to tie point pairs:
-        #
-        # [[[0, 1], [2, 3]],
-        #  (slice(None),),
-        #  [[0,1], [1, 2], [2, 3]]]
-        #
-        # Returned cartesian product (one set of indices per
-        # interpolation zone):
-        #
-        # [[0, 1], slice(None), [0, 1]),
-        #  [0, 1], slice(None), [1, 2]),
-        #  [0, 1], slice(None), [2, 3]),
-        #  [2, 3], slice(None), [0, 1]),
-        #  [2, 3], slice(None), [1, 2]),
-        #  [2, 3], slice(None), [2, 3])]
-        tp_interpolation_zones = [
-            (non_interpolation_dimension_value,)
-        ] * self.ndim
-
-        # Initialise indices of the uncompressed array that correspond
-        # to each interpolation zone.
-        #
-        # This list starts off with (slice(None),) for all dimensions,
-        # but each interpolation dimension will then be replaced by a
-        # sequence of slices that define tie the uncompressed array
-        # locations for each interpolation zone. Finally, the caresian
-        # product of the list is returned
-        #
-        # For example, if the tie point array has three dimensions and
-        # dimensions 0 and 2 are interpolation dimensions, and
-        # interpolation dimension 0 has two interpolation areas, then
-        # list could evolve as follows:
-        #
-        # Initialization:
-        #
-        # [(slice(None),), (slice(None),), (slice(None),)]
-        #
-        # Overwrite interpolation dimension entries with indices to
-        # tie point pairs:
-        #
-        # [[slice(0, 10), slice(11, 20)],
-        #  (slice(None),),
-        #  [slice(0, 6), slice(5, 11), slice(10, 16)]]
-        #
-        # Returned cartesian product (one set of indices per
-        # interpolation zone):
-        #
-        # [(slice(0, 10), slice(None), slice(0, 6)),
-        #  (slice(0, 10), slice(None), slice(5, 11)),
-        #  (slice(0, 10), slice(None), slice(10, 16)),
-        #  (slice(11, 20), slice(None), slice(0, 6)),
-        #  (slice(11, 20), slice(None), slice(5, 11)),
-        #  (slice(11, 20), slice(None), slice(10, 16))]
-        u_interpolation_zones = tp_indices[:]
-
-        # Initialise the boolean flags which state, for each
-        # interpolation dimension, whether each interplation zone is
-        # at the start of an interpolation area. Non-interpolation
-        # dimensions are given the flag `None`.
-        #
-        # These flags allow the indices in u_interpolation_zones to be
-        # modified if it is desired to ot overwrite uncompressed
-        # values that have already been (or will otherwise be)
-        # computed.
-        #
-        # For the example given for tp_interpolation_zones, we would
-        # have
-        #
-        # Initialization:
-        #
-        # [(None,), (None,), (None,)]
-        #
-        # Overwrite interpolation dimension entries with flags for
-        # each interpolation zone:
-        #
-        # [[True, True],
-        #  (None,)
-        #  [True, False, False]]
-        #
-        # Returned cartesian product (one set of flags per
-        # interpolation zone):
-        #
-        # [(True, None, True),
-        #  (True, None, False),
-        #  (True, None, False),
-        #  (True, None, True),
-        #  (True, None, False),
-        #  (True, None, False)]
-        new_interpolation_area = [(None,)] * self.ndim
-
-        for d in self.get_compression_dimension():
-            tp_index = []
-            u_index = []
-            new_area = []
-
-            tie_point_indices = self.get_tie_point_indices()
-            tie_point_indices = tie_point_indices[d].array.flatten().tolist()
-
-            for i, (index0, index1) in enumerate(
-                zip(tie_point_indices[:-1], tie_point_indices[1:])
-            ):
-                new = index1 - index0 <= 1
-                new_area.append(new)
-
-                if new:
-                    # This interpolation zone is at the start of a new
-                    # interpolation area
-                    continue
-
-                # This interpolation zone is not at the start of a new
-                # interpolation area
-
-                # The subspace for the axis of the tie points that
-                # corresponds to this axis of the interpolation zone
-                tp_index.append([i, i + 1])
-
-                # The subspace for this axis of the uncompressed array
-                # that corresponds to the interpolation zone
-                u_index.append(slice(index0, index1 + 1))
-
-            tp_interpolation_zones[d] = tp_index
-            u_interpolation_zones[d] = u_index
-            new_interpolation_area.append(new_area)
-
-        return (
-            product(*tp_interpolation_zones),
-            product(*u_interpolation_zones),
-            product(*new_interpolation_area),
-        )
 
     # ----------------------------------------------------------------
     # Attributes
@@ -408,6 +228,193 @@ class SampledArray(CompressedArray):
                 default, f"{self.__class__.__name__} has no tie points"
             )
 
+    def interpolation_zones(
+        self, non_interpolation_dimension_value=slice(None)
+    ):
+        """TODO.
+
+        .. versionadded:: (cfdm) TODO
+
+        :Returns:
+
+            iterator, iterator, iterator
+               * The indices of the tie point array that correspond to
+                 each interpolation zone. Each index for the tie point
+                 interpolation dimensions is expressed as a list of
+                 two integers, rather than a `slice` object, to
+                 facilitate retrieval of each tie point individually.
+
+               * The indices of the uncompressed array that correspond
+                 to each interpolation zone. Each index in the tuple
+                 is expressed as a `slice` object.
+
+               * Flags which state, for each interpolation dimension,
+                 whether each interplation zone is at the start of an
+                 interpolation area.
+
+        """
+        tie_point_indices = self.get_tie_point_indices()
+
+        compressed_dimensions = self.get_compression_dimension()
+
+        non_interpolation_dimension_value = slice(None)
+
+        # Initialise the indices of the tie point array that
+        # correspond to each interpolation zone.
+        #
+        # This list starts off with (slice(None),) for all dimensions,
+        # but each tie point interpolation dimension will then be
+        # replaced by a sequence of index pairs that define tie point
+        # values for each interpolation zone. Finally, the cartesian
+        # product of the list is returned.
+        #
+        # For example, if the tie point array has three dimensions and
+        # dimensions 0 and 2 are tie point interpolation dimensions,
+        # and interpolation dimension 0 has two interpolation areas,
+        # then the list could evolve as follows:
+        #
+        # Initialization:
+        #
+        # [(slice(None),), (slice(None),), (slice(None),)]
+        #
+        # Overwrite tie point interpolation dimension entries with
+        # indices to tie point pairs:
+        #
+        # [[[0, 1], [2, 3]],
+        #  (slice(None),),
+        #  [[0, 1], [1, 2], [2, 3]]]
+        #
+        # Returned cartesian product (one set of indices per
+        # interpolation zone):
+        #
+        # [[0, 1], slice(None), [0, 1]),
+        #  [0, 1], slice(None), [1, 2]),
+        #  [0, 1], slice(None), [2, 3]),
+        #  [2, 3], slice(None), [0, 1]),
+        #  [2, 3], slice(None), [1, 2]),
+        #  [2, 3], slice(None), [2, 3])]
+        tp_interpolation_zones = [
+            (non_interpolation_dimension_value,)
+        ] * self.ndim
+
+        # Initialise indices of the uncompressed array that correspond
+        # to each interpolation zone.
+        #
+        # This list starts off with (slice(None),) for all dimensions,
+        # but each interpolation dimension will then be replaced by a
+        # sequence of slices that define tie the uncompressed array
+        # locations for each interpolation zone, omitting the first
+        # tie point if the interpolation is not at teh start of a new
+        # interpolation area. Finally, the cartesian product of the
+        # list is returned.
+        #
+        # For example, if the tie point array has three dimensions and
+        # dimensions 0 and 2 are interpolation dimensions, and
+        # interpolation dimension 0 has two interpolation areas, then
+        # list could evolve as follows:
+        #
+        # Initialization:
+        #
+        # [(slice(None),), (slice(None),), (slice(None),)]
+        #
+        # Overwrite interpolation dimension entries with indices to
+        # tie point pairs:
+        #
+        # [[slice(0, 10), slice(10, 20)],
+        #  (slice(None),),
+        #  [slice(0, 6), slice(6, 11), slice(11, 16)]]
+        #
+        # Returned cartesian product (one set of indices per
+        # interpolation zone):
+        #
+        # [(slice(0, 10), slice(None), slice(0, 6)),
+        #  (slice(0, 10), slice(None), slice(6, 11)),
+        #  (slice(0, 10), slice(None), slice(11, 16)),
+        #  (slice(10, 20), slice(None), slice(0, 6)),
+        #  (slice(10, 20), slice(None), slice(6, 11)),
+        #  (slice(10, 20), slice(None), slice(11, 16))]
+        u_interpolation_zones = tp_indices[:]
+
+        # Initialise the boolean flags which state, for each
+        # interpolation dimension, whether each interplation zone is
+        # at the start of an interpolation area. Non-interpolation
+        # dimensions are given the flag `None`.
+        #
+        # These flags allow the indices in u_interpolation_zones to be
+        # modified if it is desired to ot overwrite uncompressed
+        # values that have already been (or will otherwise be)
+        # computed.
+        #
+        # For the example given for tp_interpolation_zones, we would
+        # have
+        #
+        # Initialization:
+        #
+        # [(None,), (None,), (None,)]
+        #
+        # Overwrite interpolation dimension entries with flags for
+        # each interpolation zone:
+        #
+        # [[True, True],
+        #  (None,)
+        #  [True, False, False]]
+        #
+        # Returned cartesian product (one set of flags per
+        # interpolation zone):
+        #
+        # [(True, None, True),
+        #  (True, None, False),
+        #  (True, None, False),
+        #  (True, None, True),
+        #  (True, None, False),
+        #  (True, None, False)]
+        new_interpolation_area = [(None,)] * self.ndim
+
+        for d in self.get_compression_dimension():
+            tp_index = []
+            u_index = []
+            new_area = []
+
+            tie_point_indices = self.get_tie_point_indices()
+            tie_point_indices = tie_point_indices[d].array.flatten().tolist()
+
+            new = True
+
+            for i, (index0, index1) in enumerate(
+                zip(tie_point_indices[:-1], tie_point_indices[1:])
+            ):
+                new_area.append(new)
+
+                if index1 - index0 <= 1:
+                    new = True
+                    new_area.pop()
+                    continue
+
+                # The subspace for the axis of the tie points that
+                # corresponds to this axis of the interpolation zone
+                tp_index.append([i, i + 1])
+
+                # The subspace for this axis of the uncompressed array
+                # that corresponds to the interpolation zone, only
+                # including the first tie point if this the first
+                # interpolation zone in a new interpolation area.
+                if not new:
+                    index0 += 1
+
+                u_index.append(slice(index0, index1 + 1))
+
+                new = False
+
+            tp_interpolation_zones[d] = tp_index
+            u_interpolation_zones[d] = u_index
+            new_interpolation_area[d] = new_area
+
+        return (
+            product(*tp_interpolation_zones),
+            product(*u_interpolation_zones),
+            product(*new_interpolation_area),
+        )
+
     def to_memory(self):
         """Bring an array on disk into memory and retain it there.
 
@@ -441,7 +448,7 @@ class SampledArray(CompressedArray):
         return self
 
     def tranpose(self, axes):
-        """TODO"""
+        """TODO."""
         # Tranpose the compressed array
         compressed_array = self.source().tranpose(axes=axes)
 

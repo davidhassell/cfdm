@@ -22,7 +22,7 @@ class NodeCountProperties(
     """
 
     def __init__(self, properties=None, source=None, copy=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -33,7 +33,7 @@ class NodeCountProperties(
                   geometry'}``
 
             source: optional
-                Initialize the properties from those of *source*.
+                Initialise the properties from those of *source*.
 
             {{init copy: `bool`, optional}}
 
@@ -81,6 +81,3 @@ class NodeCountProperties(
             _title=_title,
             _create_title=_create_title,
         )
-
-
-# --- End: class

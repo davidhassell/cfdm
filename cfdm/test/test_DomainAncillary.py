@@ -4,11 +4,18 @@ import unittest
 
 import numpy
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
 
 
 class DomainAncillaryTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -25,6 +32,7 @@ class DomainAncillaryTest(unittest.TestCase):
         )
 
     def test_DomainAncillary__repr__str__dump(self):
+        """TODO DOCS."""
         f = cfdm.read(self.filename)[0]
         x = f.domain_ancillaries("ncvar%a").value()
 
@@ -41,12 +49,14 @@ class DomainAncillaryTest(unittest.TestCase):
         self.assertIsInstance(x.dump(display=False), str)
 
     def test_DomainAncillary_bounds(self):
+        """TODO DOCS."""
         f = cfdm.read(self.filename)[0]
 
         a = f.auxiliary_coordinates("latitude").value()
-        x = cfdm.DomainAncillary(source=a)
+        cfdm.DomainAncillary(source=a)
 
     def test_DomainAncillary_properties(self):
+        """TODO DOCS."""
         f = cfdm.read(self.filename)[0]
         x = f.domain_ancillaries("ncvar%a").value()
 
@@ -58,6 +68,7 @@ class DomainAncillaryTest(unittest.TestCase):
         self.assertIsNone(x.del_property("long_name", None))
 
     def test_DomainAncillary_insert_dimension(self):
+        """TODO DOCS."""
         f = cfdm.read(self.filename)[0]
         d = f.dimension_coordinates("grid_longitude").value()
         x = cfdm.DomainAncillary(source=d)
@@ -74,6 +85,7 @@ class DomainAncillaryTest(unittest.TestCase):
         self.assertEqual(x.bounds.shape, (9, 1, 2), x.bounds.shape)
 
     def test_DomainAncillary_transpose(self):
+        """TODO DOCS."""
         f = cfdm.read(self.filename)[0]
         a = f.auxiliary_coordinates("longitude").value()
         bounds = cfdm.Bounds(
@@ -94,6 +106,7 @@ class DomainAncillaryTest(unittest.TestCase):
         self.assertEqual(x.bounds.shape, (10, 9, 4), x.bounds.shape)
 
     def test_DomainAncillary_squeeze(self):
+        """TODO DOCS."""
         f = cfdm.read(self.filename)[0]
         a = f.auxiliary_coordinates("longitude").value()
         bounds = cfdm.Bounds(
@@ -115,9 +128,6 @@ class DomainAncillaryTest(unittest.TestCase):
         x.squeeze(2, inplace=True)
         self.assertEqual(x.shape, (1, 9, 10))
         self.assertEqual(x.bounds.shape, (1, 9, 10, 4), x.bounds.shape)
-
-
-# --- End: class
 
 
 if __name__ == "__main__":

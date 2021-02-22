@@ -8,7 +8,8 @@ class TiePointIndex(
     mixin.PropertiesData,
     core.abstract.PropertiesData,
 ):
-    """A tie point index variable required to uncompress a sampled array TODO.
+    """A tie point index variable required to uncompress a sampled array
+    TODO.
 
     TODO
 
@@ -34,7 +35,7 @@ class TiePointIndex(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 

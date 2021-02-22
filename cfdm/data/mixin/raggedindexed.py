@@ -30,6 +30,3 @@ class RaggedIndexed:
                 default,
                 "{!r} has no index variable".format(self.__class__.__name__),
             )
-
-
-# --- End: class

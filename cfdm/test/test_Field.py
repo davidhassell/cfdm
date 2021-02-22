@@ -9,7 +9,12 @@ import unittest
 
 import numpy
 
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
+
 import cfdm
+
 
 n_tmpfiles = 1
 tmpfiles = [
@@ -32,6 +37,8 @@ atexit.register(_remove_tmpfiles)
 
 
 class FieldTest(unittest.TestCase):
+    """TODO DOCS."""
+
     filename = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "test_file.nc"
     )
@@ -50,6 +57,7 @@ class FieldTest(unittest.TestCase):
     #    f = cfdm.read(filename)[0]
 
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -72,6 +80,7 @@ class FieldTest(unittest.TestCase):
     #        self.test_only = ['test_Field_field']
 
     def test_Field__repr__str__dump_construct_type(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -83,12 +92,14 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(f.construct_type, "field")
 
     def test_Field__init__(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
-        f = cfdm.Field(source="qwerty")
+        cfdm.Field(source="qwerty")
 
     def test_Field___getitem__(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -199,6 +210,7 @@ class FieldTest(unittest.TestCase):
     #            self.assertEqual(counts[0], array.size)
 
     def test_Field_get_filenames(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -228,6 +240,7 @@ class FieldTest(unittest.TestCase):
         os.remove(tmpfile)
 
     def test_Field_apply_masking(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -283,6 +296,7 @@ class FieldTest(unittest.TestCase):
         self.assertTrue(e.equals(g.data, verbose=3))
 
     def test_Field_PROPERTIES(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -303,6 +317,7 @@ class FieldTest(unittest.TestCase):
         f.set_properties(d, copy=False)
 
     def test_Field_set_get_del_has_data(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -342,6 +357,7 @@ class FieldTest(unittest.TestCase):
         self.assertTrue(g.data.equals(d))
 
     def test_Field_CONSTRUCTS(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -465,6 +481,7 @@ class FieldTest(unittest.TestCase):
         )
 
     def test_Field_data_axes(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -481,6 +498,7 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(f.get_data_axes(), ref)
 
     def test_Field_convert(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -516,6 +534,7 @@ class FieldTest(unittest.TestCase):
             f.convert("qwerty")
 
     def test_Field_equals(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -538,6 +557,7 @@ class FieldTest(unittest.TestCase):
         self.assertFalse(f.equals(h))
 
     def test_Field_del_construct(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -555,6 +575,7 @@ class FieldTest(unittest.TestCase):
         self.assertIsNone(a)
 
     def test_Field_has_construct(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -573,6 +594,7 @@ class FieldTest(unittest.TestCase):
         self.assertTrue(d)
 
     def test_Field_squeeze_transpose_insert_dimension(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -604,6 +626,7 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(h.get_data_axes()[:-1], f.get_data_axes())
 
     def test_Field_compress_uncompress(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -653,6 +676,7 @@ class FieldTest(unittest.TestCase):
         # --- End: for
 
     def test_Field_creation_commands(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -682,6 +706,7 @@ class FieldTest(unittest.TestCase):
         # --- End: for
 
     def test_Field_has_geometry(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -690,9 +715,6 @@ class FieldTest(unittest.TestCase):
 
         f = cfdm.example_field(6)
         self.assertTrue(f.has_geometry())
-
-
-# --- End: class
 
 
 if __name__ == "__main__":

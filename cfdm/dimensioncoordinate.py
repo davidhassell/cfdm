@@ -57,7 +57,7 @@ class DimensionCoordinate(
         copy=True,
         _use_data=True,
     ):
-        """**Initialisation**
+        """Initialisation.
 
         :Parameters:
 

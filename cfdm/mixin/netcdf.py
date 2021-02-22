@@ -2,6 +2,8 @@ from copy import deepcopy
 
 
 class DeprecationError(Exception):
+    """An error indicating a method is no longer available."""
+
     pass
 
 
@@ -13,8 +15,10 @@ class NetCDF:
     """
 
     def _initialise_netcdf(self, source=None):
-        """Call this from inside the __init__ method of a class that inherits
-        from this mixin class.
+        """Helps to initialise netCDF components.
+
+        Call this from inside the __init__ method of a class that
+        inherits from this mixin class.
 
         :Parameters:
 
@@ -54,6 +58,7 @@ class _NetCDFGroupsMixin:
     """Mixin class for accessing netCDF(4) hierarchical groups.
 
     .. versionadded:: (cfdm) 1.8.6
+
     """
 
     def _nc_groups(self, nc_get):
@@ -412,7 +417,6 @@ class NetCDFDimension(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_dimension_groups()
         ()
         >>> f.nc_set_dimension_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_dimension_groups()
         ('forecast', 'model')
         >>> f.nc_get_dimension()
@@ -466,7 +470,6 @@ class NetCDFDimension(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_dimension_groups()
         ()
         >>> f.nc_set_dimension_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_dimension_groups()
         ('forecast', 'model')
         >>> f.nc_get_dimension()
@@ -520,7 +523,6 @@ class NetCDFDimension(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_dimension_groups()
         ()
         >>> f.nc_set_dimension_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_dimension_groups()
         ('forecast', 'model')
         >>> f.nc_get_dimension()
@@ -771,7 +773,6 @@ class NetCDFVariable(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_variable_groups()
         ()
         >>> f.nc_set_variable_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_variable()
@@ -825,7 +826,6 @@ class NetCDFVariable(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_variable_groups()
         ()
         >>> f.nc_set_variable_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_variable()
@@ -879,7 +879,6 @@ class NetCDFVariable(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_variable_groups()
         ()
         >>> f.nc_set_variable_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_variable()
@@ -1129,7 +1128,6 @@ class NetCDFSampleDimension(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_sample_dimension_groups()
         ()
         >>> f.nc_set_sample_dimension_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_sample_dimension_groups()
         ('forecast', 'model')
         >>> f.nc_get_sample_dimension()
@@ -1184,7 +1182,6 @@ class NetCDFSampleDimension(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_sample_dimension_groups()
         ()
         >>> f.nc_set_sample_dimension_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_sample_dimension_groups()
         ('forecast', 'model')
         >>> f.nc_get_sample_dimension()
@@ -1239,7 +1236,6 @@ class NetCDFSampleDimension(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_sample_dimension_groups()
         ()
         >>> f.nc_set_sample_dimension_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_sample_dimension_groups()
         ('forecast', 'model')
         >>> f.nc_get_sample_dimension()
@@ -1276,8 +1272,7 @@ class NetCDFGlobalAttributes(NetCDF):
     """
 
     def nc_global_attributes(self, values=False):
-        """Return the selection of properties to be written as netCDF global
-        attributes.
+        """Returns properties to write as netCDF global attributes.
 
         When multiple field constructs are being written to the same file,
         it is only possible to create a netCDF global attribute from a
@@ -1350,8 +1345,7 @@ class NetCDFGlobalAttributes(NetCDF):
         return out
 
     def nc_clear_global_attributes(self):
-        """Remove the selection of properties to be written as netCDF global
-        attributes.
+        """Removes properties to write as netCDF global attributes.
 
         When multiple field constructs are being written to the same file,
         it is only possible to create a netCDF global attribute from a
@@ -1552,8 +1546,7 @@ class NetCDFGroupAttributes(NetCDF):
     """
 
     def nc_group_attributes(self, values=False):
-        """Return the selection of properties to be written as netCDF group
-        attributes.
+        """Returns properties to write as netCDF group attributes.
 
         .. versionadded:: (cfdm) 1.8.6
 
@@ -1611,8 +1604,7 @@ class NetCDFGroupAttributes(NetCDF):
         return out
 
     def nc_clear_group_attributes(self):
-        """Remove the selection of properties to be written as netCDF group
-        attributes.
+        """Removes properties to write as netCDF group attributes.
 
         .. versionadded:: (cfdm) 1.8.6
 
@@ -1782,8 +1774,7 @@ class NetCDFUnlimitedDimensions(NetCDF):
     """
 
     def nc_unlimited_dimensions(self):
-        """Return the selection of domain axis constructs to be written as
-        netCDF unlimited dimensions.
+        """Returns domain axes to write as netCDF unlimited dimensions.
 
         By default output netCDF dimensions are not unlimited.
 
@@ -1817,12 +1808,11 @@ class NetCDFUnlimitedDimensions(NetCDF):
         raise DeprecationError(
             "Field.nc_unlimited_dimensions was deprecated at version 1.7.4 "
             "and is no longer available. Use DomainAxis.nc_is_unlimited "
-            "instead"
+            "instead."
         )
 
     def nc_set_unlimited_dimensions(self, axes):
-        """Select domain axis constructs to be written as netCDF unlimited
-        dimensions.
+        """Selects domain axes to write as netCDF unlimited dimensions.
 
         By default output netCDF dimensions are not unlimited.
 
@@ -1866,13 +1856,12 @@ class NetCDFUnlimitedDimensions(NetCDF):
         """
         raise DeprecationError(
             "Field.nc_set_unlimited_dimensions was deprecated at version "
-            "1.7.4 and is no longer available. "
-            "Use DomainAxis.nc_set_unlimited instead"
+            "1.7.4 and is no longer available."
+            "Use DomainAxis.nc_set_unlimited instead."
         )
 
     def nc_clear_unlimited_dimensions(self):
-        """Remove the selection of domain axis constructs to be written as
-        netCDF unlimited dimensions.
+        """Removes domain axes to write as netCDF unlimited dimensions.
 
         By default output netCDF dimensions are not unlimited.
 
@@ -1904,7 +1893,7 @@ class NetCDFUnlimitedDimensions(NetCDF):
         """
         raise DeprecationError(
             "Field.nc_clear_unlimited_dimensions was deprecated at version "
-            "1.7.4 and is no longer available. "
+            "1.7.4 and is no longer available."
             "Use DomainAxis.nc_set_unlimited instead."
         )
 
@@ -1920,7 +1909,7 @@ class NetCDFExternal(NetCDF):
     """
 
     def nc_get_external(self):
-        """Whether the construct corresponds to an external netCDF variable.
+        """Whether a construct matches an external netCDF variable.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -1973,12 +1962,8 @@ class NetCDFExternal(NetCDF):
         self._get_component("netcdf")["external"] = bool(external)
 
 
-# --- End: class
-
-
 class NetCDFGeometry(NetCDF, _NetCDFGroupsMixin):
-    """Mixin class for accessing the netCDF geometry container variable
-    name.
+    """Mixin to access the netCDF geometry container variable name.
 
     .. versionadded:: (cfdm) 1.8.0
 
@@ -2081,7 +2066,7 @@ class NetCDFGeometry(NetCDF, _NetCDFGroupsMixin):
             )
 
     def nc_has_geometry_variable(self):
-        """Whether the netCDF geometry container variable name has been set.
+        """Whether a netCDF geometry container variable has a name.
 
         .. versionadded:: (cfdm) 1.8.0
 
@@ -2200,7 +2185,6 @@ class NetCDFGeometry(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_geometry_variable_groups()
         ()
         >>> f.nc_set_geometry_variable_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_geometry_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_geometry_variable()
@@ -2255,7 +2239,6 @@ class NetCDFGeometry(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_geometry_variable_groups()
         ()
         >>> f.nc_set_geometry_variable_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_geometry_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_geometry_variable()
@@ -2310,7 +2293,6 @@ class NetCDFGeometry(NetCDF, _NetCDFGroupsMixin):
         >>> f.nc_geometry_variable_groups()
         ()
         >>> f.nc_set_geometry_variable_groups(['forecast', 'model'])
-        >>> ()
         >>> f.nc_geometry_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_geometry_variable()
@@ -2493,7 +2475,7 @@ class NetCDFUnlimitedDimension(NetCDF):
 
             `bool`
                 The existing unlimited status. True and False signify
-                "unlimited" and "not unlimited" repectively.
+                "unlimited" and "not unlimited" respectively.
 
         **Examples:**
 
@@ -2525,7 +2507,7 @@ class NetCDFUnlimitedDimension(NetCDF):
 
             value: `bool`
                 The new unlimited status. True and False signify
-                "unlimited" and "not unlimited" repectively.
+                "unlimited" and "not unlimited" respectively.
 
         :Returns:
 
@@ -2546,6 +2528,3 @@ class NetCDFUnlimitedDimension(NetCDF):
 
         """
         self._get_component("netcdf")["unlimited"] = bool(value)
-
-
-# --- End: class

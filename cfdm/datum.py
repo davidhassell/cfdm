@@ -35,7 +35,7 @@ class Datum(mixin.Parameters, mixin.NetCDFVariable, core.Datum):
     """
 
     def __init__(self, parameters=None, source=None, copy=True):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -61,6 +61,3 @@ class Datum(mixin.Parameters, mixin.NetCDFVariable, core.Datum):
         super().__init__(parameters=parameters, source=source, copy=copy)
 
         self._initialise_netcdf(source)
-
-
-# --- End: class

@@ -33,7 +33,7 @@ class TiePoint(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -45,7 +45,7 @@ class TiePoint(
             {{init data: data_like, optional}}
 
             source: optional
-                Initialize the properties and data from those of *source*.
+                Initialise the properties and data from those of *source*.
 
                 {{init source}}
 
@@ -106,6 +106,3 @@ class TiePoint(
             _axes=_axes,
             _axis_names=_axis_names,
         )
-
-
-# --- End: class

@@ -56,7 +56,7 @@ class AuxiliaryCoordinate(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -74,7 +74,7 @@ class AuxiliaryCoordinate(
             {{init interior_ring: `InteriorRing`, optional}}
 
             source: optional
-                Initialize the properties, data and bounds from those of
+                Initialise the properties, data and bounds from those of
                 *source*.
 
                 {{init source}}
@@ -135,6 +135,3 @@ class AuxiliaryCoordinate(
             _axes=_axes,
             _axis_names=_axis_names,
         )
-
-
-# --- End: class

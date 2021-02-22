@@ -6,25 +6,25 @@ from enum import Enum
 import numpy
 
 
-"""
-A dictionary of useful constants.
+"""A dictionary of useful constants.
 
 Whilst the dictionary may be modified directly, it is safer to
 retrieve and set the values with the dedicated get-and-set functions.
 
 :Keys:
 
-    ATOL : float
-      The value of absolute tolerance for testing numerically
-      tolerant equality.
+    ATOL: `float`
+      The value of absolute tolerance for testing numerically tolerant
+      equality.
 
-    RTOL : float
-      The value of relative tolerance for testing numerically
-      tolerant equality.
+    RTOL: `float`
+      The value of relative tolerance for testing numerically tolerant
+      equality.
 
-    LOG_LEVEL : str
-      The minimal level of seriousness for which log messages are shown.
-      See `cfdm.log_level`.
+    LOG_LEVEL: `str`
+      The minimal level of seriousness for which log messages are
+      shown.  See `cfdm.log_level`.
+
 """
 CONSTANTS = {
     "ATOL": sys.float_info.epsilon,
@@ -37,6 +37,8 @@ CONSTANTS = {
 # logging
 # --------------------------------------------------------------------
 class ValidLogLevels(Enum):
+    """TODO DOCS."""
+
     DISABLE = 0
     WARNING = 1
     INFO = 2

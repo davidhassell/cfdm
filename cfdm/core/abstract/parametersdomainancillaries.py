@@ -1,13 +1,10 @@
-import abc
-
 from copy import deepcopy
 
 from .parameters import Parameters
 
 
 class ParametersDomainAncillaries(Parameters):
-    """Mixin class for a collection of named parameters and named domain
-    ancillary constructs.
+    """Mixin to collect named parameters and domain ancillaries.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -16,7 +13,7 @@ class ParametersDomainAncillaries(Parameters):
     def __init__(
         self, parameters=None, domain_ancillaries=None, source=None, copy=True
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -45,7 +42,7 @@ class ParametersDomainAncillaries(Parameters):
                  ``domain_ancillaries={'orog': 'domainancillary2'}``
 
             source: optional
-                Initialize the parameters and domain ancillary terms from
+                Initialise the parameters and domain ancillary terms from
                 those of *source*.
 
                 {{init source}}
@@ -62,7 +59,6 @@ class ParametersDomainAncillaries(Parameters):
                 domain_ancillaries = source.domain_ancillaries()
             except AttributeError:
                 domain_ancillaries = None
-        # --- End: if
 
         if domain_ancillaries is None:
             domain_ancillaries = {}
@@ -70,7 +66,6 @@ class ParametersDomainAncillaries(Parameters):
             domain_ancillaries = domain_ancillaries.copy()
             for key, value in list(domain_ancillaries.items()):
                 domain_ancillaries[key] = deepcopy(value)
-        # --- End: if
 
         self.set_domain_ancillaries(domain_ancillaries, copy=False)
 
@@ -366,6 +361,3 @@ class ParametersDomainAncillaries(Parameters):
             value = deepcopy(value)
 
         self._get_component("domain_ancillaries")[term] = value
-
-
-# --- End: class

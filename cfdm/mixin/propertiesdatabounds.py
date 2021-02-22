@@ -5,9 +5,8 @@ from operator import mul
 
 from . import PropertiesData
 
-from ..functions import rtol, atol
-
 from ..decorators import (
+    _display_or_return,
     _inplace_enabled,
     _inplace_enabled_define_and_cleanup,
     _manage_log_level_via_verbosity,
@@ -18,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class PropertiesDataBounds(PropertiesData):
-    """Mixin class for a data array with descriptive properties and cell
-    bounds.
+    """Mixin for a data array with descriptive properties and bounds.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -38,7 +36,7 @@ class PropertiesDataBounds(PropertiesData):
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -94,7 +92,7 @@ class PropertiesDataBounds(PropertiesData):
                 initialisation with the `set_node_count` method.
 
             source: optional
-                Initialize the properties, geometry type, data, bounds,
+                Initialise the properties, geometry type, data, bounds,
                 interior ring variable, node count variable and part node
                 count variable from those of *source*.
 
@@ -139,7 +137,7 @@ class PropertiesDataBounds(PropertiesData):
             self.set_part_node_count(part_node_count, copy=copy)
 
     def __getitem__(self, indices):
-        """Return a subspace of the construct defined by indices
+        """Return a subspace of the construct defined by indices.
 
         f.__getitem__(indices) <==> f[indices]
 
@@ -230,8 +228,6 @@ class PropertiesDataBounds(PropertiesData):
         .. versionadded:: (cfdm) 1.7.0
 
         """
-        name = self.identity("")
-
         shape = None
         data = self.get_data(None)
         bounds = self.get_bounds(None)
@@ -481,10 +477,10 @@ class PropertiesDataBounds(PropertiesData):
         applied for that method.
 
         The cell bounds, if any, are also masked according to the same
-        criteria as the parent constuct. If, however, any of the relevant
+        criteria as the parent construct. If, however, any of the relevant
         properties are explicitly set on the bounds instance then their
         values will be used in preference to those of the parent
-        contsruct.
+        construct.
 
         Elements that are already masked remain so.
 
@@ -789,6 +785,7 @@ class PropertiesDataBounds(PropertiesData):
                 ),
             )
 
+    @_display_or_return
     def dump(
         self,
         display=True,
@@ -875,12 +872,7 @@ class PropertiesDataBounds(PropertiesData):
                 )
             )
 
-        string = "\n".join(string)
-
-        if display:
-            print(string)
-        else:
-            return string
+        return "\n".join(string)
 
     @_manage_log_level_via_verbosity
     def equals(
@@ -1080,7 +1072,7 @@ class PropertiesDataBounds(PropertiesData):
 
         .. versionadded:: (cfdm) 1.8.0
 
-        .. seealso:: del_node_count`, `has_node_count`, `set_node_count`
+        .. seealso:: `del_node_count`, `has_node_count`, `set_node_count`
 
         :Parameters:
 
@@ -1165,7 +1157,7 @@ class PropertiesDataBounds(PropertiesData):
             )
 
     def has_node_count(self):
-        """Whether or not there is a node count variable for geometry bounds..
+        """Whether geometry bounds have a node count variable.
 
         .. versionadded:: (cfdm) 1.8.0
 
@@ -1194,8 +1186,7 @@ class PropertiesDataBounds(PropertiesData):
         return self._has_component("node_count")
 
     def has_part_node_count(self):
-        """Whether or not there is a part node count variable for geometry
-        bounds..
+        """Whether geometry bounds have a part node count variable.
 
         .. versionadded:: (cfdm) 1.8.0
 
@@ -1536,7 +1527,7 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> n = cfdm.NodeCount(properties={'long_name': 'node counts'})
+        >>> n = {{package}}.NodeCount(properties={'long_name': 'node counts'})
         >>> c.set_node_count(n)
         >>> c.has_node_count()
         True
@@ -1576,7 +1567,8 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples:**
 
-        >>> p = cfdm.PartNodeCount(properties={'long_name': 'part node counts'})
+        >>> p = {{package}}.PartNodeCount(properties={'long_name':
+        ...                                           'part node counts'})
         >>> c.set_part_node_count(p)
         >>> c.has_part_node_count()
         True
@@ -1694,9 +1686,9 @@ class PropertiesDataBounds(PropertiesData):
 
         >>> f.shape
         (19, 73, 96)
-        >>> f.tranpose().shape
+        >>> f.transpose().shape
         (96, 73, 19)
-        >>> g = f.tranpose([1, 0, 2])
+        >>> g = f.transpose([1, 0, 2])
         >>> g.shape
         (73, 19, 96)
         >>> f.bounds.shape
@@ -1806,6 +1798,3 @@ class PropertiesDataBounds(PropertiesData):
             bounds.uncompress(inplace=True)
 
         return v
-
-
-# --- End: class

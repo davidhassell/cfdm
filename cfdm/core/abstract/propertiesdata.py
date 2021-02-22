@@ -1,5 +1,3 @@
-import abc
-
 from ..data import Data
 
 from .properties import Properties
@@ -32,7 +30,7 @@ class PropertiesData(Properties):
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -44,7 +42,7 @@ class PropertiesData(Properties):
             {{init data: data_like, optional}}
 
             source: optional
-                Initialize the properties and data from those of *source*.
+                Initialise the properties and data from those of *source*.
 
                 {{init source}}
 
@@ -140,9 +138,8 @@ class PropertiesData(Properties):
 
         **Examples:**
 
-        >>> import numpy
         >>> f = {{package}}.{{class}}()
-        >>> f.set_data({{package}}.Data(numpy.range(9.)))
+        >>> f.set_data({{package}}.Data(numpy.arange(10.)))
         >>> f.has_data()
         True
         >>> d = f.data
@@ -454,6 +451,3 @@ class PropertiesData(Properties):
             return
 
         return f
-
-
-# --- End: class

@@ -2,8 +2,7 @@ import re
 
 
 class ConstructAccess:
-    """Mixin class for manipulating constructs stored in a `Constructs`
-    object.
+    """Mixin to manipulate constructs stored in a `Constructs` object.
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -46,9 +45,8 @@ class ConstructAccess:
 
                 for key in keys:
                     key_to_name[key] = "{0}{{{1}}}".format(
-                        name, re.findall("\d+$", key)[0]
+                        name, re.findall(r"\d+$", key)[0]
                     )
-        # --- End: for
 
         return key_to_name
 
@@ -82,7 +80,7 @@ class ConstructAccess:
             else:
                 for key in keys:
                     key_to_name[key] = "{0}{{{1}}}({2})".format(
-                        name, re.findall("\d+$", key)[0], size
+                        name, re.findall(r"\d+$", key)[0], size
                     )
         # --- End: for
 
@@ -489,8 +487,10 @@ class ConstructAccess:
         )
 
     def domain_axis_key(self, identity, default=ValueError()):
-        """Return the key of the domain axis construct that is spanned by 1-d
-        coordinate constructs.
+        """Returns the domain axis key spanned by the coordinates.
+
+        Specifically, returns the key of the domain axis construct that
+        is spanned by 1-d coordinate constructs.
 
         :Parameters:
 
@@ -603,6 +603,3 @@ class ConstructAccess:
             )
 
         return keys.pop()
-
-
-# --- End: class

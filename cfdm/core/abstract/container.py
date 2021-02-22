@@ -1,6 +1,3 @@
-import inspect
-import re
-
 from copy import copy, deepcopy
 
 from ..meta import DocstringRewriteMeta
@@ -16,12 +13,12 @@ class Container(metaclass=DocstringRewriteMeta):
     """
 
     def __init__(self, source=None, copy=True):
-        """**Initialisation**
+        """Initialisation.
 
         :Parameters:
 
             source: optional
-                Initialize the components from those of *source*.
+                Initialise the components from those of *source*.
 
                 {{init source}}
 
@@ -61,8 +58,10 @@ class Container(metaclass=DocstringRewriteMeta):
         return self.copy()
 
     def __docstring_substitutions__(self):
-        """Define docstring substitutions that apply to this class and all of
-        its subclasses.
+        """Defines docstring substitutions for a class and subclasses.
+
+        That is, defines docstring substitutions that apply to this
+        class and all of its subclasses.
 
         These are in addtion to, and take precendence over, docstring
         substitutions defined by the base classes of this class.
@@ -80,7 +79,7 @@ class Container(metaclass=DocstringRewriteMeta):
         return _docstring_substitution_definitions
 
     def __docstring_package_depth__(self):
-        """Return the package depth for {{package}} docstring substitutions.
+        """Returns the package depth for {{package}} substitutions.
 
         See `_docstring_package_depth` for details.
 
@@ -114,10 +113,16 @@ class Container(metaclass=DocstringRewriteMeta):
 
         >>> f = {{package}}.{{class}}()
         >>> f._default(AttributeError())  # Raises Exception
-        AttributeError:
+        Traceback (most recent call last):
+            ...
+        AttributeError
         >>> f._default(ValueError("Missing item"))  # Raises Exception
+        Traceback (most recent call last):
+            ...
         ValueError: Missing item
         >>> f._default(ValueError(), message="No component")  # Raises Exception
+        Traceback (most recent call last):
+            ...
         ValueError: No component
         >>> f._default(False)
         False
@@ -186,6 +191,9 @@ class Container(metaclass=DocstringRewriteMeta):
     def _custom(self):
         """Customisable storage for additional attributes.
 
+        See https://ncas-cms.github.io/cfdm/extensions.html for more
+        information.
+
         .. versionadded:: (cfdm) 1.7.4
 
         **Examples:**
@@ -193,24 +201,24 @@ class Container(metaclass=DocstringRewriteMeta):
         >>> f = {{package}}.{{class}}()
         >>> f._custom
         {}
-        >>> f._custom['feature'] = ['f']
+        >>> f._custom['feature_1'] = 1
         >>> g = f.copy()
-        >>> g._custom['feature'][0] = 'g'
+        >>> g._custom['feature_2'] = 2
         >>> f._custom
-        {'feature': ['f']}
+        {'feature_1': 1}
         >>> g._custom
-        {'feature': ['g']}
-        >>> del g._custom['feature']
+        {'feature_1': 1, 'feature_2': 2}
+        >>> del g._custom['feature_1']
+        >>> g._custom
+        {'feature_2': 2}
         >>> f._custom
-        {'feature': ['f']}
-        >>> g._custom
-        {}
+        {'feature_1': 1}
 
         """
         return self._get_component("custom")
 
     def _get_component(self, component, default=ValueError()):
-        """Return a component
+        """Return a component.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -348,6 +356,3 @@ class Container(metaclass=DocstringRewriteMeta):
 
         """
         return type(self)(source=self, copy=True)
-
-
-# --- End: class

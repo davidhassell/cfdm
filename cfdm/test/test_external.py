@@ -1,11 +1,13 @@
 import atexit
 import datetime
+import inspect
 import os
 import tempfile
 import unittest
 
-import netCDF4
-import numpy
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
 
@@ -35,7 +37,10 @@ atexit.register(_remove_tmpfiles)
 
 
 class ExternalVariableTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.LOG_LEVEL("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -46,7 +51,6 @@ class ExternalVariableTest(unittest.TestCase):
         # cfdm.LOG_LEVEL('DEBUG')
         # < ... test code ... >
         # cfdm.log_level('DISABLE')
-        dir_with_data_files = os.path.dirname(os.path.realpath(__file__))
 
         dataset_dir = os.path.dirname(os.path.abspath(__file__))
         self.parent_file = os.path.join(dataset_dir, "parent.nc")
@@ -59,6 +63,7 @@ class ExternalVariableTest(unittest.TestCase):
         self.test_only = []
 
     def test_EXTERNAL_READ(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -137,6 +142,7 @@ class ExternalVariableTest(unittest.TestCase):
             self.assertTrue(c[i].equals(f[i], verbose=3))
 
     def test_EXTERNAL_WRITE(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 

@@ -70,7 +70,7 @@ class CoordinateReference(abstract.Container):
         source=None,
         copy=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -105,7 +105,7 @@ class CoordinateReference(abstract.Container):
                 method.
 
             source: optional
-                Initialize the coordinates, datum and coordinate
+                Initialise the coordinates, datum and coordinate
                 conversion from those of *source*.
 
                 {{init source}}
@@ -546,7 +546,6 @@ class CoordinateReference(abstract.Container):
         >>> c.coordinates()
         {'dimensioncoordinate0', 'dimensioncoordinate1'}
 
-
         """
         if isinstance(coordinates, str):
             coordinates = (coordinates,)
@@ -620,6 +619,3 @@ class CoordinateReference(abstract.Container):
             datum = datum.copy()
 
         self._set_component("datum", datum, copy=False)
-
-
-# --- End: class

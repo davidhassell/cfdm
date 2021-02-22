@@ -13,6 +13,9 @@ class Bounds(
     """A cell bounds component of a coordinate or domain ancillary
     construct of the CF data model.
 
+    Specifically, a cell bounds component of a coordinate or domain
+    ancillary construct of the CF data model.
+
     An array of cell bounds spans the same domain axes as its
     coordinate array, with the addition of an extra dimension whose
     size is that of the number of vertices of each cell. This extra
@@ -54,7 +57,7 @@ class Bounds(
         copy=True,
         _use_data=True,
     ):
-        """**Initialization**
+        """Initialisation.
 
         :Parameters:
 
@@ -66,7 +69,7 @@ class Bounds(
             {{init data: data_like, optional}}
 
             source: optional
-                Initialize the properties and data from those of *source*.
+                Initialise the properties and data from those of *source*.
 
                 {{init source}}
 
@@ -304,6 +307,3 @@ class Bounds(
             self = bounds
 
         return super().identity(default=default)
-
-
-# --- End: class

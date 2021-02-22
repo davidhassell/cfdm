@@ -883,7 +883,7 @@ Data mask
 ^^^^^^^^^
 
 There is always a data mask, which may be thought of as a separate
-data array of booleans with the same shape as the original data. The
+data array of Booleans with the same shape as the original data. The
 data mask is `False` where the the data has values, and `True` where
 the data is missing. The data mask may be inspected with the
 `~cfdm.Data.mask` attribute of the data instance, which returns the
@@ -1104,53 +1104,6 @@ assigning them to any other value.
      [267.9  -2.0 279.8 260.3 261.2 275.3 271.2    -- 268.9]
      [270.9  -2.0 273.2 261.7 271.6 265.8 273.0    -- 266.4]
      [276.4  -2.0 276.3 266.1  -4.0 268.1 277.0    --  -5.0]]]
-
-Manipulating dimensions
-^^^^^^^^^^^^^^^^^^^^^^^
-
-The dimensions of a field construct's data may be reordered, have size
-one dimensions removed and have new new size one dimensions included
-by using the following field construct methods:
-
-=========================  ===========================================
-Method                     Description
-=========================  ===========================================
-`~Field.transpose`         Reorder data dimensions
-
-`~Field.squeeze`           Remove size one data dimensions
-	   
-`~Field.insert_dimension`  Insert a new size one data dimension. The
-                           new dimension must correspond to an
-                           existing size one domain axis construct.
-=========================  ===========================================
-
-.. code-block:: python
-   :caption: *Remove all size one dimensions from the data, noting
-             that metadata constructs which span the corresponding
-             domain axis construct are not affected.*
-
-   >>> t
-   <Field: air_temperature(atmosphere_hybrid_height_coordinate(1), grid_latitude(10), grid_longitude(9)) K>
-   >>> t2 = t.squeeze()
-   >>> t2
-   <Field: air_temperature(grid_latitude(10), grid_longitude(9)) K>   
-   >>> print(t2.dimension_coordinates)
-   Constructs:
-   {'dimensioncoordinate0': <DimensionCoordinate: atmosphere_hybrid_height_coordinate(1) >,
-    'dimensioncoordinate1': <DimensionCoordinate: grid_latitude(10) degrees>,
-    'dimensioncoordinate2': <DimensionCoordinate: grid_longitude(9) degrees>,
-    'dimensioncoordinate3': <DimensionCoordinate: time(1) days since 2018-12-01 >}
-
-.. code-block:: python
-   :caption: *Insert a new size one dimension, corresponding to a size
-             one domain axis construct, and then reorder the
-             dimensions.*
-
-   >>> t3 = t2.insert_dimension(axis='domainaxis3', position=1)
-   >>> t3
-   <Field: air_temperature(grid_latitude(10), time(1), grid_longitude(9)) K>  
-   >>> t3.transpose([2, 0, 1])
-   <Field: air_temperature(grid_longitude(9), grid_latitude(10), time(1)) K>
 
 ----
 
@@ -2297,7 +2250,7 @@ The domain axis constructs spanned by a metadata construct's data may
 be changed after insertion with the `~Field.set_data_axes` method of
 the field construct.
 
-.. Code Block 1
+.. Code Block Start 1
    
 .. code-block:: python
    :caption: *Create a field construct with properties; data; and
@@ -2376,6 +2329,8 @@ the field construct.
    Q.set_construct(dimY, axes=axisY)
    Q.set_construct(dimX, axes=axisX)
 
+.. Code Block End 1
+
 .. code-block:: python
    :caption: *Inspect the new field construct.* 
 	  
@@ -2445,7 +2400,7 @@ Here is a more complete example which creates a field construct that
 contains every type of metadata construct (again, data arrays have
 been generated with dummy values using `numpy.arange`):
 
-.. Code Block 2
+.. Code Block Start 2
    
 .. code-block:: python
    :caption: *Create a field construct that contains at least one
@@ -2606,6 +2561,8 @@ been generated with dummy values using `numpy.arange`):
                     data=cfdm.Data(numpy.arange(90.).reshape(9, 10)))
    
    tas.set_construct(cell_measure, axes=[axis_X, axis_Y])
+
+.. Code Block End 2
 
 The new field construct may now be inspected:
 
@@ -2872,10 +2829,10 @@ Creating compressed constructs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ----
 
-.. _Copying-and-equality:
+.. _Copying:
 
-**Copying and equality**
-------------------------
+**Copying**
+-----------
 
 A field construct may be copied with its `~Field.copy` method. This
 produces a "deep copy", i.e. the new field construct is completely
@@ -2923,10 +2880,12 @@ that a copy takes up very little memory, even when the original
 constructs contain very large data arrays, and the copy operation is
 fast.
 
+----
+
 .. _Equality:
 
-Equality
-^^^^^^^^
+**Equality**
+------------
 
 Whether or not two field constructs are the same is tested with either
 field construct's `~Field.equals` method.
@@ -2969,27 +2928,43 @@ on relative differences) are positive, typically very small
 numbers. By default both are set to the system epsilon (the difference
 between 1 and the least value greater than 1 that is representable as
 a float). Their values may be inspected and changed with the
-`cfdm.atol` and `cfdm.rtol` functions:
-
-.. code-block:: python
-   :caption: *The atol and rtol functions allow the numerical equality
-             tolerances to be inspected and changed.*
-      
-   >>> cfdm.atol()
-   2.220446049250313e-16
-   >>> cfdm.rtol()
-   2.220446049250313e-16
-   >>> original = cfdm.rtol(0.00001)
-   >>> cfdm.rtol()
-   1e-05
-   >>> cfdm.rtol(original)
-   1e-05
-   >>> cfdm.rtol()
-   2.220446049250313e-16
+`cfdm.atol` and `cfdm.rtol` functions.
 
 Note that the above equation is not symmetric in :math:`x` and
 :math:`y`, so that for two fields ``f1`` and ``f2``, ``f1.equals(f2)``
 may be different from ``f2.equals(f1)`` in some rare cases.
+   
+.. code-block:: python
+   :caption: *The atol and rtol functions allow the numerical equality
+             tolerances to be inspected and changed.*
+      
+   >>> print(cfdm.atol())
+   2.220446049250313e-16
+   >>> print(cfdm.rtol())
+   2.220446049250313e-16
+   >>> original = cfdm.rtol(0.00001)
+   >>> print(cfdm.rtol())
+   1e-05
+   >>> print(cfdm.rtol(original))
+   1e-05
+   >>> print(cfdm.rtol())
+   2.220446049250313e-16
+
+The :math:`a_{tol}` and :math:`r_{tol}` constants may be set for a
+runtime context established using a `with` statement.
+
+.. code-block:: python
+   :caption: *Create a runtime contenxt with a different value of
+             'atol'.*
+	     
+   >>> print(cfdm.atol())
+   2.220446049250313e-16
+   >>> with cfdm.atol(1e-5):
+   ...     print(cfdm.atol())
+   ...     
+   1e-05
+   >>> print(cfdm.atol())
+   2.220446049250313e-16
    
 NetCDF elements, such as netCDF variable and dimension names, do not
 constitute part of the CF data model and so are not checked on any
@@ -3098,7 +3073,7 @@ Method                                               Description
 `~Field.nc_clear_variable_groups`                    Remove the netCDF group structure
 					             
 `~Field.nc_geometry_variable_groups`                 Return the netCDF geometry
-                                                     variable ggroup structure
+                                                     variable group structure
 					             
 `~Field.nc_set_geometry_variable_groups`             Set the netCDF geometry
                                                      variable group structure
@@ -4252,7 +4227,7 @@ the equivalent uncompressed field construct and then compress it with
 its `~Field.compress` method, which also compresses the metadata
 constructs as required.
    
-.. Code Block 3
+.. Code Block Start 3
 
 .. code-block:: python
    :caption: *Create a field construct and then compress it.*
@@ -4284,6 +4259,8 @@ constructs as required.
               count_properties={'long_name': 'number of obs for this timeseries'},
               inplace=True)
 		
+.. Code Block End 3
+
 The new field construct can now be inspected and written to a netCDF file:
 
 .. code-block:: python
@@ -4341,7 +4318,7 @@ array that is stored in one of three special array objects:
 `RaggedContiguousArray`, `RaggedIndexedArray` or
 `RaggedIndexedContiguousArray`.
 
-.. Code Block 4
+.. Code Block Start 4
 
 .. code-block:: python
    :caption: *Create a field construct with compressed data.*
@@ -4380,6 +4357,7 @@ array that is stored in one of three special array objects:
    # Set the data for the field
    T.set_data(cfdm.Data(array), axes=[Y, X])
 
+.. Code Block End 4
    
 .. _Gathering:
 
@@ -4502,7 +4480,7 @@ initializing a `Data` instance with a gathered array that is stored in
 the special `GatheredArray` array object. The following code creates a
 simple field construct with an underlying gathered array:
 
-.. Code Block 5
+.. Code Block Start 5
 
 .. code-block:: python
    :caption: *Create a field construct with compressed data.*
@@ -4539,6 +4517,8 @@ simple field construct with an underlying gathered array:
 
    # Set the data for the field
    P.set_data(cfdm.Data(array), axes=[T, Y, X])
+
+.. Code Block End 5
 
 Note that, because compression by gathering acts on a subset of the
 array dimensions, it is necessary to state the position of the
@@ -4633,6 +4613,7 @@ messaging:
 
 * **globally** i.e. for all cfdm operations, by setting the
   `cfdm.log_level` which controls the project-wide logging;
+  
 * **for a specific function only** (for many functions) by setting
   that function's *verbose* keyword (which overrides the global
   setting for the duration of the function call).

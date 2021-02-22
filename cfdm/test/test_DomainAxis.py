@@ -3,13 +3,18 @@ import inspect
 import os
 import unittest
 
-import numpy
+import faulthandler
+
+faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
 
 
 class DomainTest(unittest.TestCase):
+    """TODO DOCS."""
+
     def setUp(self):
+        """TODO DOCS."""
         # Disable log messages to silence expected warnings
         cfdm.log_level("DISABLE")
         # Note: to enable all messages for given methods, lines or
@@ -31,6 +36,7 @@ class DomainTest(unittest.TestCase):
         self.test_only = []
 
     def test_DomainAxis__repr__str_construct_type(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -42,6 +48,7 @@ class DomainTest(unittest.TestCase):
             self.assertEqual(d.construct_type, "domain_axis")
 
     def test_DomainAxis_equals(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -53,6 +60,7 @@ class DomainTest(unittest.TestCase):
         self.assertIsInstance(cfdm.DomainAxis(source=f), cfdm.DomainAxis)
 
     def test_DomainAxis_source(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -66,6 +74,7 @@ class DomainTest(unittest.TestCase):
         self.assertTrue(e.equals(d, verbose=3))
 
     def test_DomainAxis_size(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 
@@ -83,6 +92,7 @@ class DomainTest(unittest.TestCase):
         self.assertFalse(d.has_size())
 
     def test_DomainAxis_unlimited(self):
+        """TODO DOCS."""
         if self.test_only and inspect.stack()[0][3] not in self.test_only:
             return
 

@@ -149,6 +149,3 @@ class ParametersDomainAncillaries(Parameters):
         # Still here? Then the two instances are as equal as can be
         # ascertained in the absence of domains.
         return True
-
-
-# --- End: class

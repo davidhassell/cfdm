@@ -5,6 +5,7 @@ from ..data import Data
 from . import Properties
 
 from ..decorators import (
+    _display_or_return,
     _inplace_enabled,
     _inplace_enabled_define_and_cleanup,
     _manage_log_level_via_verbosity,
@@ -35,7 +36,7 @@ class PropertiesData(Properties):
         return instance
 
     def __getitem__(self, indices):
-        """Return a subspace defined by indices
+        """Return a subspace defined by indices.
 
         f.__getitem__(indices) <==> f[indices]
 
@@ -89,8 +90,6 @@ class PropertiesData(Properties):
         .. versionadded:: (cfdm) 1.7.0
 
         """
-        name = self.identity("")
-
         data = self.get_data(None)
         if data is not None:
             dims = ", ".join([str(x) for x in data.shape])
@@ -575,6 +574,7 @@ class PropertiesData(Properties):
 
         return out
 
+    @_display_or_return
     def dump(
         self,
         display=True,
@@ -643,12 +643,7 @@ class PropertiesData(Properties):
                 )
             )
 
-        string = "\n".join(string)
-
-        if display:
-            print(string)
-        else:
-            return string
+        return "\n".join(string)
 
     @_manage_log_level_via_verbosity
     def equals(
@@ -671,7 +666,6 @@ class PropertiesData(Properties):
           values and data types, and vector-valued properties must also
           have same the size and be element-wise equal (see the
           *ignore_properties* and *ignore_data_type* parameters), and
-
         ..
 
         * if there are data arrays then they must have same shape and data
@@ -809,7 +803,7 @@ class PropertiesData(Properties):
         return True
 
     def flag(self, meaning):
-        """TODO"""
+        """TODO."""
         properties = self.properties()
         flag_masks = properties.get("flag_masks")
         flag_values = properties.get("flag_values")
@@ -962,7 +956,6 @@ class PropertiesData(Properties):
 
         **Examples:**
 
-        >>> import numpy
         >>> f = {{package}}.{{class}}()
         >>> d = {{package}}.Data(numpy.arange(7008).reshape((1, 73, 1, 96)))
         >>> f.set_data(d)
@@ -1011,9 +1004,9 @@ class PropertiesData(Properties):
 
         >>> f.shape
         (19, 73, 96)
-        >>> f.tranpose().shape
+        >>> f.transpose().shape
         (96, 73, 19)
-        >>> f.tranpose([1, 0, 2]).shape
+        >>> f.transpose([1, 0, 2]).shape
         (73, 19, 96)
 
         """
@@ -1079,6 +1072,3 @@ class PropertiesData(Properties):
             data.uncompress(inplace=True)
 
         return f
-
-
-# --- End: class
