@@ -634,7 +634,7 @@ class CFDMImplementation(Implementation):
 
         :Returns:
 
-            `list` of `int`
+            `tuple` of `int`
 
         """
         return data.get_compressed_axes()
@@ -823,8 +823,9 @@ class CFDMImplementation(Implementation):
         """
         return field.domain_axes[axis].get_size()
 
-    def get_sample_dimension_position(self, construct):
-        """Returns the position of the compressed data sample dimension.
+    def get_source_compressed_axes(self, construct):
+        """Return the positions of the axes in the underlying compressed array
+        that correspond to the axes that have been compressed.
 
         :Parameters:
 
@@ -832,10 +833,17 @@ class CFDMImplementation(Implementation):
 
         :Returns:
 
-            `int`
-
+            `int` or `tuple`
+                The positions of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed. If two or more axes have been compressed
+                to one axis then its integer position is
+                returned. Otherwise a tuple of integer positions that
+                coorespond to the compressed axes is returned. If
+                there are no compressed axes then *default* is
+                returned, if provided.
         """
-        return construct.get_data().get_compressed_dimension()
+        return construct.get_data().get_source_compressed_axes()
 
     def nc_get_geometry_variable(self, field, default=None):
         """Return the netCDF variable name of the geometry container.

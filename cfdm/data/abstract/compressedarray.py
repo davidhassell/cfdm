@@ -253,11 +253,14 @@ class CompressedArray(Array):
     # Methods
     # ----------------------------------------------------------------
     def get_compressed_axes(self):
-        """Return axes that are compressed in the underlying array.
+        """Return the axes that have been compressed to create the underlying
+        compressed array.
+
+        .. seealso:: `get_source_compressed_axes`
 
         :Returns:
 
-            `list`
+            `tuple` of `int`
                 The compressed axes described by their integer positions.
 
         **Examples:**
@@ -270,23 +273,27 @@ class CompressedArray(Array):
         [1, 2]
 
         """
-        compressed_dimension = self.get_compressed_dimension()
+        compressed_dimension = self.get_source_compressed_axes()
+
+        if not isinstance(compressed_dimension, int):
+            return compressed_dimension
 
         compressed_ndim = self._get_compressed_Array().ndim
 
-        return list(
+        return tuple(
             range(
                 compressed_dimension,
                 self.ndim - (compressed_ndim - compressed_dimension - 1),
             )
         )
 
-    def get_compressed_dimension(self, *default):
-        """Returns the compressed dimension's position in the array.
+    def get_source_compressed_axes(self, *default):
+        """Return the axes in the underlying compressed array that correspond
+        to the axes that have been compressed.
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `get_compressed_axearray`, `get_compressed_axes`,
+        .. seealso:: `get_compressed_array`, `get_compressed_axes`,
                      `get_compressed_type`
 
         :Parameters:
@@ -297,17 +304,23 @@ class CompressedArray(Array):
 
         :Returns:
 
-            `int`
-                The position of the compressed dimension in the compressed
-                array. If the underlying is not compressed then *default*
-                is returned, if provided.
+            `int` or `tuple`
+                The positions of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed. If two or more axes have been compressed
+                to one axis then its integer position is
+                returned. Otherwise a tuple of integer positions that
+                coorespond to the compressed axes is returned. If
+                there are no compressed axes then *default* is
+                returned, if provided.
 
         **Examples:**
 
-        >>> i = d.get_compressed_dimension()
+        >>> d.get_sample_dimension()
+        ()
 
         """
-        return self._get_component("compressed_dimension", *default)
+        return self._get_component("sample_dimension", *default)
 
     def to_memory(self):
         """Bring an array on disk into memory and retain it there.

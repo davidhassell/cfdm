@@ -21,7 +21,7 @@ class SampledArray(CompressedArray):
         shape=None,
         size=None,
         ndim=None,
-        compressed_dimensions=None,
+        compressed_axes=None,
         interpolation=None,
         tie_points=None,
         tie_point_indices={},
@@ -44,9 +44,8 @@ class SampledArray(CompressedArray):
             ndim: `int`
                 The number of uncompressed array dimensions.
 
-            compressed_dimensions: sequence of `int`
-                The positions of the compressed dimensions in the
-                compressed array.
+            compressed_axes: sequence of `int`
+                The positions of the compressed axes.
 
             interpolation: `str`
                 TODO The interpolation method
@@ -66,7 +65,7 @@ class SampledArray(CompressedArray):
             shape=shape,
             size=size,
             ndim=ndim,
-            compressed_dimensions=compressed_dimensions,
+            compressed_axes=compressed_axes
             compression_type="sampled",
             interpolation=interpolation,
             tie_point_indices=tie_point_indices.copy(),
@@ -255,8 +254,6 @@ class SampledArray(CompressedArray):
         """
         tie_point_indices = self.get_tie_point_indices()
 
-        compressed_dimensions = self.get_compression_dimension()
-
         non_interpolation_dimension_value = slice(None)
 
         # Initialise the indices of the tie point array that
@@ -370,12 +367,11 @@ class SampledArray(CompressedArray):
         #  (True, None, False)]
         new_interpolation_area = [(None,)] * self.ndim
 
-        for d in self.get_compression_dimension():
+        for d in self.get_compressed_axes():
             tp_index = []
             u_index = []
             new_area = []
 
-            tie_point_indices = self.get_tie_point_indices()
             tie_point_indices = tie_point_indices[d].array.flatten().tolist()
 
             new = True
@@ -416,7 +412,7 @@ class SampledArray(CompressedArray):
         )
 
     def to_memory(self):
-        """Bring an array on disk into memory and retain it there.
+        """Bring an array on disk into memory.
 
         There is no change to an array that is already in memory.
 

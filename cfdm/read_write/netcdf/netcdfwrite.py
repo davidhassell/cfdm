@@ -484,9 +484,11 @@ class NetCDFWrite(IOWrite):
                 self.implementation.get_compressed_axes(field, key, construct)
             )
 
-            if compression_type != "sampled":
+            if compression_type == "sampled":
+                pass # TODO
+            else:
                 sample_dimension_position = (
-                    self.implementation.get_sample_dimension_position(
+                    self.implementation.get_source_compressed_axes(
                         construct
                     )
                 )
@@ -542,46 +544,74 @@ class NetCDFWrite(IOWrite):
                 # Compression by sampling
                 # TODO
                 # ----------------------------------------------------
+                # Move to other method
                 tp_index_variables = (
-                    self.implementation.get_tie_point_index_variables(
-                        construct
-                    )
+                    self.implementation.get_tie_point_indices(construct)
                 )
-                for axis in compressed_axes:
-                    tp_index_variable = (
-                        self.implementation.get_tie_point_index_variable(
-                            construct, domain_axes.index(axis)
-                        )
+                
+                for axis, tp_index in tp_index_variables.items():
+                    ncdim = self.implementation.nc_get_dimension(
+                        tp_index_variable, default="n_tp"
+                    )                    
+                    ncdims[axis] = self._write_tie_point_index_variable(
+                        field, tp_index, ncdim=ncdim, create_ncdim=True
                     )
-                    tp_index_ncdim = self._write_tie_point_index_variable(
-                        field, tp_index
-                    )
-                    g["tie_point_index_ncdim"][axis] = tp_index_ncdim
-
             else:
                 raise ValueError(
-                    "Can't write {!r}: Unknown compression type: {!r}".format(
-                        construct, compression_type
-                    )
+                    f"Can't write {construct!r}. Unknown compression type: "
+                    f"{compression_type!r}"
                 )
 
-            n = len(compressed_ncdims)
-            ncdims[
-                sample_dimension_position : sample_dimension_position + n
-            ] = [sample_ncdim]
+            if compression_type != "sampled":
+                n = len(compressed_ncdims)
+                ncdims[
+                    sample_dimension_position:sample_dimension_position + n
+                ] = [sample_ncdim]
         # --- End: if
 
         return tuple(ncdims)
 
-    def _write_tie_point_index_variable(self, field, tp_index, axis):
-        ncdims = g["axis_to_ncdim"][axis]
-        g["interpolation_dimension"][axis] = [ncdims]
+    def _write_tie_point_index_variable(self, field, tp_index,
+                                        ncdim=None, create_ncdim=True):
+        """Write a tie point index variable to the file.
 
+        .. versionadded:: (cfdm) TODO
+        
+        :Returns:
+
+            `str`
+                The name of the tie point index dimension.
+
+        """
+        g = self.write_vars
+        
+        if not self._already_in_file(tp_index):
+            ncvar = self._create_netcdf_variable_name(tp_index,
+                                                      default="tp_index")
+
+            if create_ncdim:
+                ncdim = self._netcdf_name(ncdim)
+                self._write_dimension(
+                    ncdim,
+                    f,
+                    None,
+                    size=self.implementation.get_data_size(tp_index)
+                )
+
+            # Create a new tie point index variable
+            self._write_netcdf_variable(ncvar, (ncdim,), tp_index)
+        else:
+            ncvar = g["seen"][id(tp_index)]["ncvar"]
+
+        return ncdim
+    
     def _write_dimension(
         self, ncdim, f, axis=None, unlimited=False, size=None
     ):
         """Write a netCDF dimension to the file.
 
+        .. versionadded:: (cfdm) 1.7.0
+        
         :Parameters:
 
             ncdim: `str`
@@ -821,10 +851,10 @@ class NetCDFWrite(IOWrite):
             # --------------------------------------------------------
             # Create the sample dimension
             # --------------------------------------------------------
-            _ = self.implementation.nc_get_sample_dimension(
+            x = self.implementation.nc_get_sample_dimension(
                 count_variable, "element"
             )
-            sample_ncdim = self._netcdf_name(_)
+            sample_ncdim = self._netcdf_name(x)
             self._write_dimension(
                 sample_ncdim,
                 f,
@@ -834,7 +864,7 @@ class NetCDFWrite(IOWrite):
 
             extra = {"sample_dimension": sample_ncdim}
 
-            # Create a new list variable
+            # Create a new count variable
             self._write_netcdf_variable(
                 ncvar, (ncdim,), count_variable, extra=extra
             )
@@ -2904,7 +2934,6 @@ class NetCDFWrite(IOWrite):
         g = self.write_vars
 
         if compressed:
-            # if set(ncdimensions).intersection(g['sample_ncdim'].values()):
             # Get the data as a compressed numpy array
             array = self.implementation.get_compressed_array(data)
         else:
@@ -2919,18 +2948,13 @@ class NetCDFWrite(IOWrite):
         # Check that the array doesn't contain any elements
         # which are equal to any of the missing data values
         if unset_values:
-            # if numpy.ma.is_masked(array):
-            #     temp_array = array.compressed()
-            # else:
-            #     temp_array = array
             if numpy.intersect1d(
                 unset_values, self._numpy_compressed(array)
             ).size:
                 raise ValueError(
                     "ERROR: Can't write data that has _FillValue or "
-                    "missing_value at unmasked point: {!r}".format(ncvar)
+                    f"missing_value at unmasked point: {ncvar!r}"
                 )
-        # --- End: if
 
         if (
             g["fmt"] == "NETCDF4"
@@ -3606,7 +3630,7 @@ class NetCDFWrite(IOWrite):
 
             n = len(compressed_ncdims)
             sample_dimension = (
-                self.implementation.get_sample_dimension_position(f)
+                self.implementation.get_source_compressed_axes(f)
             )
             #            sample_dimension = [i for i in range(len(field_data_axes)-n+1)
             #                                if field_data_axes[i:i+n] == compressed_axes]

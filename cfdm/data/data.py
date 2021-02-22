@@ -739,7 +739,8 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `get_compressed_axes`, `get_compressed_dimension`,
+        .. seealso:: `get_compressed_axes`,
+                     `get_source_compressed_axes`,
                      `get_compression_type`
 
         :Returns:
@@ -1523,7 +1524,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 "{!r} has no list variable".format(self.__class__.__name__),
             )
 
-    def get_compressed_dimension(self, default=ValueError()):
+    def get_source_compressed_axes(self, default=ValueError()):
         """Returns the compressed dimension's array position.
 
         That is, returns the position of the compressed dimension
@@ -1543,24 +1544,28 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         :Returns:
 
-            `int`
-                The position of the compressed dimension in the compressed
-                array.
+            `int` or `tuple`
+                The positions of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed. If two or more axes have been compressed
+                to one axis then its integer position is
+                returned. Otherwise a tuple of integer positions that
+                coorespond to the compressed axes is returned. If
+                there are no compressed axes then *default* is
+                returned, if provided.
 
         **Examples:**
 
-        >>> d.get_compressed_dimension()
+        >>> d.get_source_compressed_axes()
         2
 
         """
         try:
-            return self._get_Array().get_compressed_dimension()
+            return self._get_Array().get_source_compressed_axes()
         except (AttributeError, ValueError):
             return self._default(
                 default,
-                "{!r} has no compressed dimension".format(
-                    self.__class__.__name__
-                ),
+                f"{self.__class__.__name__!r} has no source_compressed_axes"
             )
 
     def _parse_indices(self, indices):
@@ -2043,7 +2048,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         :Returns:
 
-            `list`
+            `tuple`
                 The dimensions of the data that are compressed to a single
                 dimension in the underlying array. If the data are not
                 compressed then an empty list is returned.
@@ -2055,18 +2060,18 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> d.compressed_array.shape
         (2, 14, 6)
         >>> d.get_compressed_axes()
-        [1, 2, 3]
+        (1, 2, 3)
 
         >>> d.get_compression_type()
         ''
         >>> d.get_compressed_axes()
-        []
+        ()
 
         """
         ca = self._get_Array(None)
 
         if ca is None:
-            return []
+            return ()
 
         return ca.get_compressed_axes()
 
