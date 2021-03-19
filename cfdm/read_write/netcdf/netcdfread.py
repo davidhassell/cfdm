@@ -5037,7 +5037,7 @@ class NetCDFRead(IORead):
                         array = self._create_gathered_array(
                             gathered_array=self._create_Data(array),
                             uncompressed_shape=uncompressed_shape,
-                            compressed_dimension=compressed_dimension,
+                            source_compressed_axes=compressed_dimension,
                             list_variable=c["list_variable"],
                         )
                     elif "ragged_indexed_contiguous" in c:
@@ -5549,7 +5549,7 @@ class NetCDFRead(IORead):
         self,
         gathered_array=None,
         uncompressed_shape=None,
-        compressed_dimension=None,
+        source_compressed_axes=None,
         list_variable=None,
     ):
         """Creates Data for a compressed-by-gathering netCDF variable.
@@ -5561,6 +5561,11 @@ class NetCDFRead(IORead):
         :Parameters:
 
             gathered_array: `NetCDFArray`
+
+            source_compressed_axes: `int`
+                The position of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed.
 
             list_variable: `List`
 
@@ -5577,7 +5582,7 @@ class NetCDFRead(IORead):
             ndim=uncompressed_ndim,
             shape=uncompressed_shape,
             size=uncompressed_size,
-            compressed_dimension=compressed_dimension,
+            source_compressed_axes=compressed_dimension,
             list_variable=list_variable,
         )
 

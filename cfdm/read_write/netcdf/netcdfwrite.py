@@ -485,12 +485,10 @@ class NetCDFWrite(IOWrite):
             )
 
             if compression_type == "sampled":
-                pass # TODO
+                pass  # TODO
             else:
                 sample_dimension_position = (
-                    self.implementation.get_source_compressed_axes(
-                        construct
-                    )
+                    self.implementation.get_source_compressed_axes(construct)
                 )
 
                 compressed_ncdims = tuple(
@@ -544,15 +542,15 @@ class NetCDFWrite(IOWrite):
                 # Compression by sampling
                 # TODO
                 # ----------------------------------------------------
-                # Move to other method
-                tp_index_variables = (
-                    self.implementation.get_tie_point_indices(construct)
+                # Move to other method, a la geometry
+                tp_index_variables = self.implementation.get_tie_point_indices(
+                    construct
                 )
-                
+
                 for axis, tp_index in tp_index_variables.items():
                     ncdim = self.implementation.nc_get_dimension(
                         tp_index_variable, default="n_tp"
-                    )                    
+                    )
                     ncdims[axis] = self._write_tie_point_index_variable(
                         field, tp_index, ncdim=ncdim, create_ncdim=True
                     )
@@ -565,18 +563,19 @@ class NetCDFWrite(IOWrite):
             if compression_type != "sampled":
                 n = len(compressed_ncdims)
                 ncdims[
-                    sample_dimension_position:sample_dimension_position + n
+                    sample_dimension_position : sample_dimension_position + n
                 ] = [sample_ncdim]
         # --- End: if
 
         return tuple(ncdims)
 
-    def _write_tie_point_index_variable(self, field, tp_index,
-                                        ncdim=None, create_ncdim=True):
+    def _write_tie_point_index_variable(
+        self, field, tp_index, ncdim=None, create_ncdim=True
+    ):
         """Write a tie point index variable to the file.
 
         .. versionadded:: (cfdm) TODO
-        
+
         :Returns:
 
             `str`
@@ -584,10 +583,11 @@ class NetCDFWrite(IOWrite):
 
         """
         g = self.write_vars
-        
+
         if not self._already_in_file(tp_index):
-            ncvar = self._create_netcdf_variable_name(tp_index,
-                                                      default="tp_index")
+            ncvar = self._create_netcdf_variable_name(
+                tp_index, default="tp_index"
+            )
 
             if create_ncdim:
                 ncdim = self._netcdf_name(ncdim)
@@ -595,7 +595,7 @@ class NetCDFWrite(IOWrite):
                     ncdim,
                     f,
                     None,
-                    size=self.implementation.get_data_size(tp_index)
+                    size=self.implementation.get_data_size(tp_index),
                 )
 
             # Create a new tie point index variable
@@ -604,14 +604,14 @@ class NetCDFWrite(IOWrite):
             ncvar = g["seen"][id(tp_index)]["ncvar"]
 
         return ncdim
-    
+
     def _write_dimension(
         self, ncdim, f, axis=None, unlimited=False, size=None
     ):
         """Write a netCDF dimension to the file.
 
         .. versionadded:: (cfdm) 1.7.0
-        
+
         :Parameters:
 
             ncdim: `str`
@@ -3629,8 +3629,8 @@ class NetCDFWrite(IOWrite):
             g["sample_ncdim"][compressed_ncdims] = sample_ncdim
 
             n = len(compressed_ncdims)
-            sample_dimension = (
-                self.implementation.get_source_compressed_axes(f)
+            sample_dimension = self.implementation.get_source_compressed_axes(
+                f
             )
             #            sample_dimension = [i for i in range(len(field_data_axes)-n+1)
             #                                if field_data_axes[i:i+n] == compressed_axes]

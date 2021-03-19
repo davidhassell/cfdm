@@ -51,7 +51,8 @@ class SampledArray(CompressedArray):
                 TODO The interpolation method
 
             tie_point_indices: `dict`, optional
-                TODO
+                TODO. The set of keys must be the same as the set of
+                compressed_axes.
 
             interpolation_parameters: `dict`
                 TODO
@@ -65,7 +66,7 @@ class SampledArray(CompressedArray):
             shape=shape,
             size=size,
             ndim=ndim,
-            compressed_axes=compressed_axes
+            compressed_dimension=tuple(sorted(compressed_axes)),
             compression_type="sampled",
             interpolation=interpolation,
             tie_point_indices=tie_point_indices.copy(),
@@ -73,24 +74,44 @@ class SampledArray(CompressedArray):
             parameter_dimensions=parameter_dimensions.copy(),
         )
 
+    def __getitem__(self, indices):
+        """x.__getitem__(indices) <==> x[indices]
+
+        Runs the `_conform_interpolation_parameters` method and
+        returns `None`.
+
+        In subclasses, however, returns a subspace of the array as an
+        independent numpy array.
+
+        """
+        self._conform_interpolation_parameters()
+
+    # ----------------------------------------------------------------
+    # Private methods
+    # ----------------------------------------------------------------
     def _conform_interpolation_parameters(self):
-        """Make sure the interpolation parameters arrays have the same
-        relative dimension order as the tie point array."""
-        dims = tuple(range(ndim))
+        """Conform the interpolation parameters in-place.
 
-        term_dimensions = self.term_dimensions
+        Tranposes the interpolation parameters to have the same relative
+        dimension order as the tie point array.
 
-        interpolation_parameters = self.interpolation_parameters
+        """
+        parameters = self.get_interpolation_parameters()
+        if not parameters:
+            return
 
-        for term, c in tuple(self.interpolation_parameters.items()) + tuple(
-            self.get_interpolation_configuration.items()
-        ):
+        term_dimensions = self.get_parameter_dimensions()
+
+        dims = tuple(range(self.ndim))
+        for term, c in parameters.items():
             dimensions = term_dimensions[term]
-            new_order = [dimensions.index(i) for i in dims if i in dimensions]
-            if new_order == list(range(c.ndim)):
+            if dimensions == tuple(sorted(dimensions)):
+                # Interpoaltion parameters dimension are already in
+                # the correct order
                 continue
 
-            interpolation_ceofficients[term] = c.tranpose(new_order)
+            new_order = [dimensions.index(i) for i in dims if i in dimensions]
+            parameters[term] = c.tranpose(new_order)
             term_dimensions[term] = tuple([dimensions[i] for i in new_order])
 
     # ----------------------------------------------------------------
@@ -113,59 +134,34 @@ class SampledArray(CompressedArray):
     # ----------------------------------------------------------------
     # Methods
     # ----------------------------------------------------------------
-    def get_compressed_axes(self):
-        """Return axes that are compressed in the underlying array.
-
-        :Returns:
-
-            `list`
-                The compressed axes described by their integer positions.
-
-        **Examples:**
-
-        >>> c.ndim
-        4
-        >>> c.compressed_array.ndim
-        3
-        >>> c.compressed_axes()
-        [1, 2]
-
-        """
-        return list(self.get_compressed_dimension())
-
     def get_interpolation_parameters(self):
         """Return the interpolation parameter variables for sampled
         dimensions.
 
         .. versionadded:: (cfdm) TODO
 
+        .. seealso:: `get_parameter_dimensions`
+
         :Returns:
 
-        **Examples:**
-
-        >>> c = d.get_interpolation_parameters)
+            `dict`
 
         """
         return self._get_component("interpolation_parameters")
 
-    def get_sampled_dimensions(self):
-        """Return the positions of the sampled dimensions in array.
+    def get_parameter_dimensions(self):
+        """TODO.
 
         .. versionadded:: (cfdm) TODO
 
-        .. seealso:: TODO
+        .. seealso:: ` get_interpolation_parameters`
 
         :Returns:
 
-            `tuple` of `int`
-                The positions of the sampled dimensions in the array.
-
-        **Examples:**
-
-        >>> i = d.get_sampled_dimensions()
+            `dict`
 
         """
-        return self._get_component("sampled_dimensions")
+        return self._get_component("parameter_dimensions")
 
     def get_tie_point_indices(self, default=ValueError()):
         """Return the tie point index variables for sampled dimensions.
@@ -334,12 +330,13 @@ class SampledArray(CompressedArray):
 
         # Initialise the boolean flags which state, for each
         # interpolation dimension, whether each interplation zone is
-        # at the start of an interpolation area. Non-interpolation
-        # dimensions are given the flag `None`.
+        # at the start of an interpolation area, moving from left to
+        # right in index space. Non-interpolation dimensions are given
+        # the flag `None`.
         #
         # These flags allow the indices in u_interpolation_zones to be
-        # modified if it is desired to ot overwrite uncompressed
-        # values that have already been (or will otherwise be)
+        # modified if it is desired, or not, to overwrite uncompressed
+        # values that have otherwise already been (or will be)
         # computed.
         #
         # For the example given for tp_interpolation_zones, we would

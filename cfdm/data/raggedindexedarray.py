@@ -55,7 +55,7 @@ class RaggedIndexedArray(mixin.RaggedIndexed, abstract.CompressedArray):
             size=size,
             ndim=ndim,
             index_variable=index_variable,
-            compressed_dimension=0,
+            source_compressed_axes=0,
             compression_type="ragged indexed",
         )
 

@@ -32,10 +32,12 @@ class SampledLinearArray(Sampledrray):
         .. versionadded:: (cfdm) TODO
 
         """
+        super().__getitem__(indices)
+
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
-        d0 = self.get_compression_dimension()[0]
+        (d0,) = self.get_source_compressed_axes()
 
         tie_points = self.get_tie_points()
 
@@ -51,7 +53,7 @@ class SampledLinearArray(Sampledrray):
             tp_index0[d0] = tp_index0[d0][:1]
             tp_index1[d0] = tp_index1[d0][1:]
 
-            uarray[u1_indices] = self._linear_interpolation(
+            uarray[u_indices] = self._linear_interpolation(
                 d0,
                 u_indices[d0],
                 new_area[d0],
@@ -80,14 +82,12 @@ class SampledLinearArray(Sampledrray):
             u_slice: `slice`
 
             new_area: `bool`
-                Set to True if this interpolation is at the start of a
-                new interpolation area, otherwise set to False. If
-                False then the first element along the interpolation
-                dimension of the uncompressed array is removed.
+                True if the interpolation zone is the first of a new
+                area, otherwise False.
 
             a0, a1: array_like
                The arrays containing the points for pair-wise
-               interpolation along dimension *d*
+               interpolation along dimension *d*.
 
         """
         s, one_minus_s = self._calculate_s(d, u_slice, new_area)
@@ -95,6 +95,8 @@ class SampledLinearArray(Sampledrray):
         u = a0 * one_minus_s + a1 * s
 
         if not new_area:
+            # Remove the first point of an interpolation zone if it
+            # is not the first zone of a new area
             indices = [slice(None)] * u.ndim
             indices[d] = slice(1, None)
             u = u[tuple(indices)]
@@ -103,24 +105,27 @@ class SampledLinearArray(Sampledrray):
 
     @lru_cache(maxsize=32)
     def _calculate_s(self, d, u_slice, new_area):
-        """Create the interpolation coefficients and 1-s.
+        """Create the interpolation coefficients ``s`` and ``1-s``.
 
         .. versionadded:: (cfdm) TODO
 
         :Parameters:
 
             d: `int`
-                The position of the tie point interpolation dimension.
+                The position of the tie point interpolation dimension
+                in the tie point array.
 
             u_slice: `slice`
 
             new_area: `bool`
+                True if the interpolation zone is the first of a new
+                area, otherwise False.
 
         :Returns:
 
             2-`tuple`
                 The interpolation coefficents ``s`` and ``1 - s`` in
-                that order, each of which are numpy arrays containing
+                that order, each of which is a numpy array containing
                 floats in the range [0.0, 1.0]. The numpy arrays have
                 size 1 dimensions corresponding to all tie point
                 dimensions other than *d*.

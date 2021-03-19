@@ -26,7 +26,7 @@ class GatheredArray(abstract.CompressedArray):
         shape=None,
         size=None,
         ndim=None,
-        compressed_dimension=None,
+        source_compressed_axes=None,
         list_variable=None,
     ):
         """Initialisation.
@@ -45,9 +45,10 @@ class GatheredArray(abstract.CompressedArray):
             ndim: `int`
                 The number of uncompressed array dimensions
 
-            compressed_dimension: `int`
-                The position of the compressed dimension in the compressed
-                array.
+            source_compressed_axes: `int` or `tuple`
+                The position of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed.
 
             list_variable: `List`
                 The "list variable" required to uncompress the data,
@@ -59,7 +60,7 @@ class GatheredArray(abstract.CompressedArray):
             shape=shape,
             ndim=ndim,
             size=size,
-            compressed_dimension=compressed_dimension,
+            source_compressed_axes=source_compressed_axes,
             list_variable=list_variable,
             compression_type="gathered",
         )
@@ -94,7 +95,7 @@ class GatheredArray(abstract.CompressedArray):
         uarray = numpy.ma.masked_all(self.shape, dtype=self.dtype)
 
         # Initialise the uncomprssed array
-        compressed_dimension = self.get_compressed_dimension()
+        compressed_dimension = self.get_source_compressed_axes()
 
         compressed_axes = self.get_compressed_axes()
 

@@ -43,7 +43,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         dtype=None,
         mask=None,
         _use_array=True,
-        **kwargs
+        **kwargs,
     ):
         """Initialisation.
 
@@ -1565,7 +1565,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         except (AttributeError, ValueError):
             return self._default(
                 default,
-                f"{self.__class__.__name__!r} has no source_compressed_axes"
+                f"{self.__class__.__name__!r} has no source_compressed_axes",
             )
 
     def _parse_indices(self, indices):
@@ -2043,8 +2043,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `compressed_array`, `get_compressed_dimension`,
-                     `get_compression_type`
+        .. seealso:: `compressed_array`, `get_compression_type`
 
         :Returns:
 
@@ -2080,8 +2079,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `compressed_array`, `compression_axes`,
-                     `get_compressed_dimension`
+        .. seealso:: `compressed_array`, `compression_axes`
 
         :Returns:
 

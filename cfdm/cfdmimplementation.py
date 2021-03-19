@@ -824,8 +824,8 @@ class CFDMImplementation(Implementation):
         return field.domain_axes[axis].get_size()
 
     def get_source_compressed_axes(self, construct):
-        """Return the positions of the axes in the underlying compressed array
-        that correspond to the axes that have been compressed.
+        """Return the positions of the axes in the underlying compressed
+        array that correspond to the axes that have been compressed.
 
         :Parameters:
 
@@ -839,9 +839,8 @@ class CFDMImplementation(Implementation):
                 compressed. If two or more axes have been compressed
                 to one axis then its integer position is
                 returned. Otherwise a tuple of integer positions that
-                coorespond to the compressed axes is returned. If
-                there are no compressed axes then *default* is
-                returned, if provided.
+                coorespond to the compressed axes is returned.
+
         """
         return construct.get_data().get_source_compressed_axes()
 
@@ -1723,7 +1722,7 @@ class CFDMImplementation(Implementation):
         ndim=None,
         shape=None,
         size=None,
-        compressed_dimension=None,
+        source_compressed_axes=None,
         list_variable=None,
     ):
         """Return a gathered array instance.
@@ -1738,7 +1737,10 @@ class CFDMImplementation(Implementation):
 
             size: `int, optional
 
-            compressed_dimension: `int`, optional
+            source_compressed_axes: `int`
+                The position of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed.
 
             list_variable: optional
 
@@ -1753,7 +1755,7 @@ class CFDMImplementation(Implementation):
             ndim=ndim,
             shape=shape,
             size=size,
-            compressed_dimension=compressed_dimension,
+            source_compressed_axes=source_compressed_axes,
             list_variable=list_variable,
         )
 
@@ -1880,8 +1882,6 @@ class CFDMImplementation(Implementation):
 
             size: `int, optional
 
-            compressed_dimension: `int`, optional
-
             count_variable: optional
 
         :Returns:
@@ -1917,8 +1917,6 @@ class CFDMImplementation(Implementation):
             shape: sequence of `int`, optional
 
             size: `int, optional
-
-            compressed_dimension: `int`, optional
 
             index_variable: optional
 
@@ -1956,8 +1954,6 @@ class CFDMImplementation(Implementation):
             shape: sequence of `int`, optional
 
             size: `int, optional
-
-            compressed_dimension: `int`, optional
 
             count_variable: optional
 

@@ -14,7 +14,7 @@ class CompressedArray(Array):
         shape=None,
         size=None,
         ndim=None,
-        compressed_dimension=None,
+        source_compressed_axes=None,
         compression_type=None,
         **kwargs
     ):
@@ -34,9 +34,13 @@ class CompressedArray(Array):
             ndim: `int`
                 The number of uncompressed array dimensions
 
-            compressed_dimension: `int`
-                The position of the compressed dimension in the compressed
-                array.
+            source_compressed_axes: `int` or `tuple`
+                The positions of the axes in the underlying compressed
+                array that correspond to the axes that have been
+                compressed. If two or more axes have been compressed
+                to one axis then its integer position must be
+                provided. Otherwise a tuple of integer positions that
+                coorespond to the compressed axes is required.
 
             compression_type: `str`
                 The type of compression.
@@ -50,7 +54,7 @@ class CompressedArray(Array):
             shape=shape,
             size=size,
             ndim=ndim,
-            compressed_dimension=compressed_dimension,
+            source_compressed_axes=source_compressed_axes,
             compression_type=compression_type,
             **kwargs
         )
@@ -253,8 +257,7 @@ class CompressedArray(Array):
     # Methods
     # ----------------------------------------------------------------
     def get_compressed_axes(self):
-        """Return the axes that have been compressed to create the underlying
-        compressed array.
+        """Return the axes that have underlying compression.
 
         .. seealso:: `get_source_compressed_axes`
 
@@ -287,20 +290,14 @@ class CompressedArray(Array):
             )
         )
 
-    def get_source_compressed_axes(self, *default):
-        """Return the axes in the underlying compressed array that correspond
-        to the axes that have been compressed.
+    def get_source_compressed_axes(self):
+        """Return the source array axes that correspond to compressed
+        axes.
 
         .. versionadded:: (cfdm) 1.7.0
 
         .. seealso:: `get_compressed_array`, `get_compressed_axes`,
                      `get_compressed_type`
-
-        :Parameters:
-
-            default: optional
-                Return *default* if the underlying array is not
-                compressed.
 
         :Returns:
 
@@ -310,17 +307,21 @@ class CompressedArray(Array):
                 compressed. If two or more axes have been compressed
                 to one axis then its integer position is
                 returned. Otherwise a tuple of integer positions that
-                coorespond to the compressed axes is returned. If
-                there are no compressed axes then *default* is
-                returned, if provided.
+                coorespond to the compressed axes is returned.
 
         **Examples:**
 
-        >>> d.get_sample_dimension()
-        ()
+        >>> d.get_source_compressed_axes()
+        2
+
+        >>> d.get_source_compressed_axes()
+        (1,)
+
+        >>> d.get_source_compressed_axes()
+        (1, 3)
 
         """
-        return self._get_component("sample_dimension", *default)
+        return self._get_component("source_compressed_axes")
 
     def to_memory(self):
         """Bring an array on disk into memory and retain it there.

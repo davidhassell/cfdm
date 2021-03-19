@@ -58,7 +58,7 @@ class RaggedContiguousArray(mixin.RaggedContiguous, abstract.CompressedArray):
             ndim=ndim,
             count_variable=count_variable,
             compression_type="ragged contiguous",
-            compressed_dimension=0,
+            source_compressed_axes=0,
         )
 
     def __getitem__(self, indices):

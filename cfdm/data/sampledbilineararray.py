@@ -35,7 +35,7 @@ class SampledBiLinearArray(SampledLinearArray):
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
-        d0, d1 = self.get_compression_dimension()
+        d0, d1 = self.get_source_compressed_axes()
 
         tie_points = self.get_tie_points()
 
