@@ -112,8 +112,8 @@ class Subarray(Container):
             data = self.data
 
         data = np.asanyarray(data[self.indices])
-        if not np.ma.is_masked(data):
-            data = np.array(data)
+        if np.ma.isMA(data) and not np.ma.is_masked(data):
+            data = np.asarray(data)
 
         return data
 
