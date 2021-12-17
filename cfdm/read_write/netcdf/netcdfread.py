@@ -6432,14 +6432,14 @@ class NetCDFRead(IORead):
             `RaggedContiguousArray`
 
         """
-        uncompressed_ndim = len(uncompressed_shape)
-        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
+        #        uncompressed_ndim = len(uncompressed_shape)
+        #        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
 
         return self.implementation.initialise_RaggedContiguousArray(
             compressed_array=ragged_contiguous_array,
-            ndim=uncompressed_ndim,
+            #            ndim=uncompressed_ndim,
             shape=uncompressed_shape,
-            size=uncompressed_size,
+            #            size=uncompressed_size,
             count_variable=count_variable,
         )
 
@@ -6458,14 +6458,14 @@ class NetCDFRead(IORead):
             `RaggedIndexedArray`
 
         """
-        uncompressed_ndim = len(uncompressed_shape)
-        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
+        #        uncompressed_ndim = len(uncompressed_shape)
+        #        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
 
         return self.implementation.initialise_RaggedIndexedArray(
             compressed_array=ragged_indexed_array,
-            ndim=uncompressed_ndim,
+            #            ndim=uncompressed_ndim,
             shape=uncompressed_shape,
-            size=uncompressed_size,
+            #            size=uncompressed_size,
             index_variable=index_variable,
         )
 
@@ -6485,14 +6485,14 @@ class NetCDFRead(IORead):
             `RaggedIndexedContiguousArray`
 
         """
-        uncompressed_ndim = len(uncompressed_shape)
-        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
+        #        uncompressed_ndim = len(uncompressed_shape)
+        #        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
 
         return self.implementation.initialise_RaggedIndexedContiguousArray(
             compressed_array=ragged_indexed_contiguous_array,
-            ndim=uncompressed_ndim,
+            #            ndim=uncompressed_ndim,
             shape=uncompressed_shape,
-            size=uncompressed_size,
+            #            size=uncompressed_size,
             count_variable=count_variable,
             index_variable=index_variable,
         )

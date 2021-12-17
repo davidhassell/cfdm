@@ -1,5 +1,4 @@
 from functools import cached_property
-
 from itertools import product
 
 import numpy as np
@@ -12,8 +11,6 @@ from .subarray import (
     QuadraticLatitudeLongitudeSubarray,
     QuadraticSubarray,
 )
-
-_float64 = np.dtype(float)
 
 
 class SubsampledArray(CompressedArray):
@@ -314,7 +311,7 @@ class SubsampledArray(CompressedArray):
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
-        uarray = np.ma.masked_all(self.shape, dtype=_float64)
+        uarray = np.ma.masked_all(self.shape, dtype=self.dtype)
 
         subsampled_dimensions = self.compressed_dimensions()
 
@@ -519,14 +516,14 @@ class SubsampledArray(CompressedArray):
         """
         return self.ndim > self.source().ndim
 
-    @property
+    @cached_property
     def dtype(self):
         """Data-type of the uncompressed data.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
 
         """
-        return _float64
+        return np.dtype(float)
 
     def conformed_data(self):
         """The tie points and ancillary data in the forms required by

@@ -375,14 +375,8 @@ class DSGTest(unittest.TestCase):
 
         qa = q.data.array
 
-        message = (
-            repr(qa - self.b)
-            + "\n"
-            + repr(qa[2, 0])
-            + "\n"
-            + repr(self.b[2, 0])
-        )
-        self.assertTrue(q._equals(qa, self.b), message)
+        self.assertEqual(qa.shape, self.b.shape)
+        self.assertTrue(q._equals(qa, self.b), f"{repr(qa - self.b)}")
 
         cfdm.write(f, tempfile)
         g = cfdm.read(tempfile)

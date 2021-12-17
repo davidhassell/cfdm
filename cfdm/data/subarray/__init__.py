@@ -7,3 +7,4 @@ from .quadraticlatitudelongitudesubarray import (
     QuadraticLatitudeLongitudeSubarray,
 )
 from .quadraticsubarray import QuadraticSubarray
+from .raggedsubarray import RaggedSubarray

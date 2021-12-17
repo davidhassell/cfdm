@@ -124,6 +124,7 @@ from .data import (
     GatheredArray,
     NetCDFArray,
     NumpyArray,
+    RaggedArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,

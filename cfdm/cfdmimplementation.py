@@ -1819,7 +1819,7 @@ class CFDMImplementation(Implementation):
         return data.source(default)
 
     def get_tie_points(self, construct, default=None):
-        """TODO
+        """TODO.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
 
@@ -2358,10 +2358,14 @@ class CFDMImplementation(Implementation):
             compressed_array: optional
 
             ndim: `int`, optional
+                Deprecated at version 1.9.TODO.0. If set will be
+                ignored.
 
             shape: sequence of `int`, optional
 
             size: `int, optional
+                Deprecated at version 1.9.TODO.0. If set will be
+                ignored.
 
             count_variable: optional
 
@@ -2373,9 +2377,7 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedContiguousArray")
         return cls(
             compressed_array=compressed_array,
-            ndim=ndim,
             shape=shape,
-            size=size,
             count_variable=count_variable,
         )
 
@@ -2394,10 +2396,14 @@ class CFDMImplementation(Implementation):
             compressed_array: optional
 
             ndim: `int`, optional
+                Deprecated at version 1.9.TODO.0. If set will be
+                ignored.
 
             shape: sequence of `int`, optional
 
             size: `int, optional
+                Deprecated at version 1.9.TODO.0. If set will be
+                ignored.
 
             index_variable: optional
 
@@ -2409,9 +2415,7 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedIndexedArray")
         return cls(
             compressed_array=compressed_array,
-            ndim=ndim,
             shape=shape,
-            size=size,
             index_variable=index_variable,
         )
 
@@ -2431,10 +2435,14 @@ class CFDMImplementation(Implementation):
             compressed_array: optional
 
             ndim: `int`, optional
+                Deprecated at version 1.9.TODO.0. If set will be
+                ignored.
 
             shape: sequence of `int`, optional
 
             size: `int, optional
+                Deprecated at version 1.9.TODO.0. If set will be
+                ignored.
 
             count_variable: optional
 
@@ -2448,9 +2456,7 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedIndexedContiguousArray")
         return cls(
             compressed_array=compressed_array,
-            ndim=ndim,
             shape=shape,
-            size=size,
             count_variable=count_variable,
             index_variable=index_variable,
         )
@@ -2946,7 +2952,7 @@ class CFDMImplementation(Implementation):
         return field.set_construct(construct, copy=copy)
 
     def set_dependent_tie_points(self, construct, tie_points):
-        """TODO
+        """TODO.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
 
@@ -2955,7 +2961,7 @@ class CFDMImplementation(Implementation):
         data.set_dependent_tie_points(tie_points)
 
     def set_dependent_tie_point_dimensions(self, construct, dimensions):
-        """TODO
+        """TODO.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
 

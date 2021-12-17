@@ -29,13 +29,13 @@ class RaggedIndexedArrayTest(unittest.TestCase):
 
     def test_RaggedIndexedArray_to_memory(self):
         """Test the `to_memory` RaggedIndexedArray method."""
-        self.assertIsInstance(self.r.to_memory(), cfdm.RaggedIndexedArray)
+        self.assertIsNone(self.r.to_memory())
 
     def test_RaggedIndexedArray_get_index(self):
         """Test the `get_index` RaggedIndexedArray method."""
-        r = self.r
+        r = self.r.copy()
         self.assertIsInstance(r.get_index(), cfdm.Index)
-        r._del_component("index_variable")
+        r._del_component("index")
         self.assertIsNone(r.get_index(None))
 
 
