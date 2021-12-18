@@ -127,12 +127,18 @@ from .data import (
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
-    SubsampledArray,
+)
+
+# Subarrays
+from .data import (
     BiLinearSubarray,
     BiQuadraticLatitudeLongitudeSubarray,
+    GatheredSubarray,
     LinearSubarray,
     QuadraticLatitudeLongitudeSubarray,
     QuadraticSubarray,
+    Subarray,
+    SubsampledArray,
 )
 
 from .count import Count

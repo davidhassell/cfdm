@@ -3,9 +3,12 @@ from .abstract import Array, CompressedArray
 from .subarray import (
     BiLinearSubarray,
     BiQuadraticLatitudeLongitudeSubarray,
+    GatheredSubarray,
     LinearSubarray,
     QuadraticLatitudeLongitudeSubarray,
     QuadraticSubarray,
+    Subarray,
+    SubsampledSubarray,
 )
 
 from .gatheredarray import GatheredArray
