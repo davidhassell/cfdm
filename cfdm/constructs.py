@@ -20,6 +20,7 @@ class Constructs(mixin.Container, core.Constructs):
     * dimension coordinate constructs
     * domain ancillary constructs
     * domain axis constructs
+    * domain topology constructs
     * cell method constructs
     * field ancillary constructs
 
@@ -920,8 +921,8 @@ class Constructs(mixin.Container, core.Constructs):
     def _short_iteration(cls, x):
         """The default short cicuit test.
 
-        If this method returns True then only ther first identity
-        return by the construct's `!identities` method will be
+        If this method returns True then only the first identity
+        returned by the construct's `!identities` method will be
         checked.
 
         See `_filter_by_identity` for details.

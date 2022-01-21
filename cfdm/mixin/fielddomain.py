@@ -782,6 +782,56 @@ class FieldDomain:
             **filter_kwargs,
         )
 
+    def domain_topologies(self, *identities, **filter_kwargs):
+        """Return domain topology constructs.
+
+        Note that ``f.domain_topologies(*identities,
+        **filter_kwargs)`` is equivalent to
+        ``f.constructs.filter(filter_by_type=["domain_topology"],
+        filter_by_identity=identities, **filter_kwargs)``.
+
+        .. versionadded:: (cfdm) 1.10.0
+
+        .. seealso:: `constructs`
+
+        :Parameters:
+
+            identities: optional
+                Select domain topology constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                If no identities are provided then all domain topology
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{filter_kwargs: optional}} Also to configure the returned value.
+
+        :Returns:
+
+                {{Returns constructs}}
+
+        **Examples:**
+
+        >>> f.domain_topologies()
+        Constructs:
+        {}
+
+        >>> f.domain_topologies()
+        Constructs:
+        {'domaintopology0': TODOUGRID}
+
+        """
+        return self._filter_interface(
+            ("domain_topology",),
+            "domain_topologies",
+            identities,
+            **filter_kwargs,
+        )
+
     def cell_measures(self, *identities, **filter_kwargs):
         """Return cell measure constructs.
 

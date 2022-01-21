@@ -12,6 +12,7 @@ class Constructs(abstract.Container):
     * dimension coordinate constructs
     * domain ancillary constructs
     * domain axis constructs
+    * domain topology constructs
     * cell method constructs
     * field ancillary constructs
 
@@ -77,6 +78,14 @@ class Constructs(abstract.Container):
 
                 *Parameter example:*
                   ``cell_measure='cellmeasure'``
+
+            domain_topology: `str`, optional
+                The base name for keys of domain topology constructs.
+
+                *Parameter example:*
+                  ``'domaintopology'``
+
+                .. versionadded:: (cfdm) 1.10.0
 
             coordinate_reference: `str`, optional
                 The base name for keys of coordinate reference
@@ -222,6 +231,10 @@ class Constructs(abstract.Container):
         if cell_measure:
             self._key_base["cell_measure"] = cell_measure
             self._array_constructs.add("cell_measure")
+
+        if domain_topology:
+            self._key_base["domain_topology"] = domain_topology
+            self._array_constructs.add("domain_topology")
 
         if domain_axis:
             self._key_base["domain_axis"] = domain_axis
@@ -1076,6 +1089,7 @@ class Constructs(abstract.Container):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate
                 ``'cell_measure'``          Cell measure
                 ``'coordinate_reference'``  Coordinate reference
+                ``'domain_topology'``       Domain topology
                 ``'cell_method'``           Cell method
                 ``'field_ancillary'``       Field ancillary
                 ==========================  ==========================

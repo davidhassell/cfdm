@@ -27,6 +27,7 @@ class Domain(mixin.FieldDomain, abstract.Properties):
         "dimension_coordinate": "dimensioncoordinate",
         "domain_ancillary": "domainancillary",
         "domain_axis": "domainaxis",
+        "domain_topology": "domaintopology",
     }
 
     def __new__(cls, *args, **kwargs):

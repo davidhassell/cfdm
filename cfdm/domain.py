@@ -613,6 +613,7 @@ class Domain(
             "auxiliary_coordinate",
             "cell_measure",
             "domain_ancillary",
+            "domain_topology",
         ).items():
             out.extend(
                 c.creation_commands(
