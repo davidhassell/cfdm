@@ -4,7 +4,7 @@ from . import abstract
 class DomainTopology(abstract.PropertiesData):
     """TODO.
 
-    .. versionadded:: (cfdm) 1.10.0
+    .. versionadded:: (cfdm) 1.10.0.0
 
     """
 
@@ -12,7 +12,7 @@ class DomainTopology(abstract.PropertiesData):
     def construct_type(self):
         """Return a description of the construct type.
 
-        .. versionadded:: (cfdm) 1.10.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         :Returns:
 

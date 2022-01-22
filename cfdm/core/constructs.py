@@ -36,6 +36,7 @@ class Constructs(abstract.Container):
         cell_measure=None,
         coordinate_reference=None,
         domain_axis=None,
+        domain_topology=None,
         cell_method=None,
         source=None,
         copy=True,
@@ -85,7 +86,7 @@ class Constructs(abstract.Container):
                 *Parameter example:*
                   ``'domaintopology'``
 
-                .. versionadded:: (cfdm) 1.10.0
+                .. versionadded:: (cfdm) 1.10.0.0
 
             coordinate_reference: `str`, optional
                 The base name for keys of coordinate reference

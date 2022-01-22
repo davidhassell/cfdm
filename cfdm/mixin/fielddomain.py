@@ -13,9 +13,6 @@ class FieldDomain:
 
     """
 
-    # ----------------------------------------------------------------
-    # Private methods
-    # ----------------------------------------------------------------
     def _apply_masking_constructs(self):
         """Apply masking to metadata constructs in-place.
 
@@ -33,6 +30,81 @@ class FieldDomain:
         # Apply masking to the metadata constructs
         for c in self.constructs.filter_by_data(todict=True).values():
             c.apply_masking(inplace=True)
+
+    def _construct(
+        self,
+        _method,
+        _constructs_method,
+        identities,
+        key=False,
+        item=False,
+        default=ValueError(),
+        **filter_kwargs,
+    ):
+        """An interface to `Constructs.filter`.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Parameters:
+
+            _method: `str`
+                The name of the calling method.
+
+            _constructs_method: `str`
+                The name of the corresponding method that can return
+                any number of constructs.
+
+            identities: sequence
+                As for the *identities* parameter of the calling
+                method.
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        """
+        cached = filter_kwargs.get("cached")
+        if cached is not None:
+            return cached
+
+        filter_kwargs["todict"] = True
+
+        c = getattr(self, _constructs_method)(*identities, **filter_kwargs)
+
+        # Return construct, or key, or both, or default
+        n = len(c)
+        if n == 1:
+            k, construct = c.popitem()
+            if key:
+                return k
+
+            if item:
+                return k, construct
+
+            return construct
+
+        if default is None:
+            return default
+
+        return self._default(
+            default,
+            f"{self.__class__.__name__}.{_method} can't return {n} "
+            "constructs",
+        )
 
     def _get_data_compression_variables(self, component):
         """TODO."""
@@ -316,6 +388,7 @@ class FieldDomain:
          'dimensioncoordinate0': 'latitude',
          'dimensioncoordinate1': 'longitude',
          'dimensioncoordinate2': 'time',
+         'auxiliarycoordinate0': 'long_name=station id',
          'domainaxis0': 'ncdim%lat',
          'domainaxis1': 'ncdim%lon',
          'domainaxis2': 'key%domainaxis2'}
@@ -378,6 +451,68 @@ class FieldDomain:
                     key_to_name[key] = f"{name}{{{found}}}({size})"
 
         return key_to_name
+
+    def domain_topology(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select an domain topology construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        .. seealso:: `construct`, `domain_topologies`
+
+        :Parameters:
+
+            identity: optional
+                Select domain topology constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                If no values are provided then all domein toplogy
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        **Examples**
+
+        """
+        return self._construct(
+            "domain_topology",
+            "domain_topologies",
+            identity,
+            key=key,
+            item=item,
+            default=default,
+            **filter_kwargs,
+        )
 
     def auxiliary_coordinates(self, *identities, **filter_kwargs):
         """Return auxiliary coordinate constructs.
@@ -790,7 +925,7 @@ class FieldDomain:
         ``f.constructs.filter(filter_by_type=["domain_topology"],
         filter_by_identity=identities, **filter_kwargs)``.
 
-        .. versionadded:: (cfdm) 1.10.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         .. seealso:: `constructs`
 

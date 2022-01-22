@@ -1941,6 +1941,7 @@ class Field(
 
         if not hasattr(c, "has_data"):  # i.e. a construct that never has data
             raise ValueError("Can't convert a construct that cannot have data")
+
         # ------------------------------------------------------------
         # Create a new field with the properties and data from the
         # construct
@@ -1976,6 +1977,7 @@ class Field(
                 "dimension_coordinate",
                 "auxiliary_coordinate",
                 "cell_measure",
+                "domain_topology",
                 todict=True,
             ).items():
                 axes = constructs_data_axes.get(ccid)
