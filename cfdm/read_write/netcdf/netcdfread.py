@@ -695,12 +695,15 @@ class NetCDFRead(IORead):
             # Domains
             # --------------------------------------------------------
             "domain": bool(domain),
+            # --------------------------------------------------------
+            # UGRID mesh topologies (CF>=1.10)
+            # --------------------------------------------------------
         }
 
         g = self.read_vars
 
         # Set versions
-        for version in ("1.6", "1.7", "1.8", "1.9"):
+        for version in ("1.6", "1.7", "1.8", "1.9", "1.10"):
             g["version"][version] = LooseVersion(version)
 
         # ------------------------------------------------------------
@@ -814,7 +817,7 @@ class NetCDFRead(IORead):
         g["file_version"] = LooseVersion(file_version)
 
         # Set minimum/maximum versions
-        for vn in ("1.6", "1.7", "1.8", "1.9"):
+        for vn in ("1.6", "1.7", "1.8", "1.9", "1.10"):
             g["CF>=" + vn] = g["file_version"] >= g["version"][vn]
 
         # ------------------------------------------------------------
@@ -1325,6 +1328,23 @@ class NetCDFRead(IORead):
                 netcdf_external_variables, parsed_external_variables
             )
             g["external_variables"] = set(parsed_external_variables)
+
+        # ------------------------------------------------------------
+        # Parse UGRID mesh topologies (CF>=1.10)
+        # ------------------------------------------------------------
+        if g["CF>=1.10"]:
+            for ncvar, attributes in variable_attributes.items():
+                mesh = attributes.get("mesh")
+                location = attributes.get("location")
+                location_index_set = attributes.get("location_index_set")
+                if (mesh is not None and location is not None) or location_index_set is not None:
+                    # This variable has a mesh topology
+                    self._parse_mesh topology(
+                        mesh_ncvar=mesh,
+                        location=location,
+                        location_index_set_ncvar=location_index_set,
+                        parent_ncvar=ncvar
+                    )
 
         # Now that all of the variables have been scanned, customize
         # the read parameters.
@@ -5272,6 +5292,60 @@ class NetCDFRead(IORead):
 
         return out
 
+    def _parse_mesh_topology(self, mesh_ncvar=None, location=None,
+                             location_index_set_ncvar=None, parent_nvcar=None):
+        """Parse a CF mesh topology.
+
+        Populate the ``self.read_vars`` dictionary with information
+        needed to create `Data` objects that represent TODOUGRID.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+        
+        :Parameters:
+
+            mesh_ncvar: `str`, optional
+                The netCDF name of a mesh topology variable.
+
+            location: `str`, optional
+                The name of the location within the mesh at which the
+                variable is defined.
+
+                *Parameter example:*
+                  ``"face"``
+
+            location_index_set_ncvar: `str`, optional
+                The netCDF name of a location index set variable.
+
+            parent_ncvar: `str`
+                The netCDF name of the variable containing the
+                ``mesh`` or ``location_index_set`` attribute.
+
+        :Returns:
+
+             `None`
+
+        """
+        g = self.read_vars
+
+        start_index = 0
+        if location_index_set_ncvar is not None:
+            ok = self._check_location_index_set(
+                parent_ncvar, location_index_set_ncvar, mesh_ncvar
+            )
+            if not ok:
+                return
+
+            attr = attributes[location_index_set_ncvar]
+            mesh_ncvar = attr["mesh"]
+            location = attr["location"]
+            start_index = attr.get("start_index", 0)
+            
+        ok = self._check_mesh_topology(
+            parent_ncvar, mesh_ncvar, location
+        )
+        if not ok:
+            return
+            
     def _create_formula_terms_ref(self, f, key, coord, formula_terms):
         """Create a formula terms coordinate reference.
 

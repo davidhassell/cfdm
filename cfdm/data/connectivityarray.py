@@ -135,6 +135,10 @@ class ConnectivityArray(CompressedArray):
         {1: (1,)}
         >>> a.subarray_shapes(-1)
         [(4,), (4)]
+        >>> a.subarray_shapes("auto")
+        ["auto", (4)]
+        >>> a.subarray_shapes(2)
+        [2, (4)]
         >>> a.subarray_shapes((2, None))
         [2, (4,)]
         >>> a.subarray_shapes(((1, 3), None))
@@ -152,7 +156,7 @@ class ConnectivityArray(CompressedArray):
         ... )
         [(4,), (4,)]
         >>> da.core.normalize_chunks(
-        ...   a.subarray_shapes((2, None)), shape=a.shape, dtype=a.dtype
+        ...   a.subarray_shapes(2), shape=a.shape, dtype=a.dtype
         ... )
         [(2, 2), (4,)]
 
