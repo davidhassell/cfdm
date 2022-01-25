@@ -153,10 +153,7 @@ class NetCDFRead(IORead):
                 "latitude",
                 "longitude",
             ),
-            "latitude_longitude": (
-                "latitude",
-                "longitude",
-            ),
+            "latitude_longitude": ("latitude", "longitude"),
             "mercator": (
                 "projection_x_coordinate",
                 "projection_y_coordinate",
@@ -1334,16 +1331,25 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         if g["CF>=1.10"]:
             for ncvar, attributes in variable_attributes.items():
-                mesh = attributes.get("mesh")
-                location = attributes.get("location")
-                location_index_set = attributes.get("location_index_set")
-                if (mesh is not None and location is not None) or location_index_set is not None:
-                    # This variable has a mesh topology
-                    self._parse_mesh topology(
+                cf_role = attributes.get("cf_role")
+                if cf_role is None:
+                    mesh = attributes.get("mesh")
+                    location_index_set = attributes.get("location_index_set")
+                    parent_ncvar = ncvar
+                elif cf_role == "mesh_topology":
+                    mesh = ncvar
+                    location_index_set = None
+                    parent_ncvar = None
+                elif cf_role == "location_index_set":
+                    mesh = None
+                    location_index_set = ncvar
+                    parent_ncvar = None
+
+                if mesh is not None or location_index_set is not None:
+                    self._parse_mesh_topology(
                         mesh_ncvar=mesh,
-                        location=location,
                         location_index_set_ncvar=location_index_set,
-                        parent_ncvar=ncvar
+                        parent_ncvar=parent_ncvar,
                     )
 
         # Now that all of the variables have been scanned, customize
@@ -3304,7 +3310,7 @@ class NetCDFRead(IORead):
                         ncvar=None,
                         f=f,
                         bounds_ncvar=node_ncvar,
-                        nodes=True,
+                        geometry_nodes=True,
                     )
 
                     geometry_type = geometry["geometry_type"]
@@ -3502,10 +3508,8 @@ class NetCDFRead(IORead):
                         parameters=datum_parameters
                     )
 
-                    coordinate_conversion = (
-                        self.implementation.initialise_CoordinateConversion(
-                            parameters=coordinate_conversion_parameters
-                        )
+                    coordinate_conversion = self.implementation.initialise_CoordinateConversion(
+                        parameters=coordinate_conversion_parameters
                     )
 
                     create_new = True
@@ -3993,11 +3997,7 @@ class NetCDFRead(IORead):
         else:
             code = None
 
-        d = {
-            "code": code,
-            "attribute": attribute,
-            "reason": message,
-        }
+        d = {"code": code, "attribute": attribute, "reason": message}
 
         if dimensions is not None:
             d["dimensions"] = dimensions
@@ -4099,7 +4099,7 @@ class NetCDFRead(IORead):
         return g["flattener_dimensions"].get(ncdim, ncdim)
 
     def _create_auxiliary_coordinate(
-        self, field_ncvar, ncvar, f, bounds_ncvar=None, nodes=False
+        self, field_ncvar, ncvar, f, bounds_ncvar=None, geometry_nodes=False
     ):
         """Create an auxiliary coordinate construct.
 
@@ -4111,8 +4111,8 @@ class NetCDFRead(IORead):
                 The netCDF variable name of the parent field construct.
 
             ncvar: `str` or `None`
-                The netCDF name of the variable. See the *nodes*
-                parameter.
+                The netCDF name of the variable. See the
+                *geometry_nodes* parameter.
 
             field: field construct
                 The parent field construct.
@@ -4120,7 +4120,7 @@ class NetCDFRead(IORead):
             bounds_ncvar: `str`, optional
                 The netCDF variable name of the coordinate bounds.
 
-            nodes: `bool`
+            geometry_nodes: `bool`
                 Set to True only if and only if the coordinate construct
                 is to be created with only bounds from a node coordinates
                 variable, whose netCDF name is given by *bounds_ncvar*. In
@@ -4137,7 +4137,7 @@ class NetCDFRead(IORead):
             f=f,
             auxiliary=True,
             bounds_ncvar=bounds_ncvar,
-            nodes=nodes,
+            geometry_nodes=geometry_nodes,
         )
 
     def _create_dimension_coordinate(
@@ -4204,7 +4204,7 @@ class NetCDFRead(IORead):
         domain_ancillary=False,
         bounds_ncvar=None,
         has_coordinates=True,
-        nodes=False,
+        geometry_nodes=False,
     ):
         """Create a variable which might have bounds.
 
@@ -4213,8 +4213,8 @@ class NetCDFRead(IORead):
         :Parameters:
 
             ncvar: `str` or `None`
-                The netCDF name of the variable. See the *nodes*
-                parameter.
+                The netCDF name of the variable. See the
+                *geometry_nodes* parameter.
 
             f: `Field`
                 The parent field construct.
@@ -4228,7 +4228,7 @@ class NetCDFRead(IORead):
             domain_ancillary: `bool`, optional
                 If True then a domain ancillary construct is created.
 
-            nodes: `bool`
+            geometry_nodes: `bool`
                 Set to True only if and only if the coordinate construct
                 is to be created with only bounds from a node coordinates
                 variable, whose netCDF name is given by *bounds_ncvar*. In
@@ -4271,7 +4271,7 @@ class NetCDFRead(IORead):
                     bounds_ncvar = properties.pop("nodes", None)
                     if bounds_ncvar is not None:
                         attribute = "nodes"
-        elif nodes:
+        elif geometry_nodes:
             attribute = "nodes"
 
         if dimension:
@@ -5292,8 +5292,9 @@ class NetCDFRead(IORead):
 
         return out
 
-    def _parse_mesh_topology(self, mesh_ncvar=None, location=None,
-                             location_index_set_ncvar=None, parent_nvcar=None):
+    def _parse_mesh_topology(
+        self, mesh_ncvar=None, location_index_set_ncvar=None, parent_nvcar=None
+    ):
         """Parse a CF mesh topology.
 
         Populate the ``self.read_vars`` dictionary with information
@@ -5306,19 +5307,14 @@ class NetCDFRead(IORead):
             mesh_ncvar: `str`, optional
                 The netCDF name of a mesh topology variable.
 
-            location: `str`, optional
-                The name of the location within the mesh at which the
-                variable is defined.
-
-                *Parameter example:*
-                  ``"face"``
-
             location_index_set_ncvar: `str`, optional
                 The netCDF name of a location index set variable.
 
-            parent_ncvar: `str`
+            parent_ncvar: `str` or `None`
                 The netCDF name of the variable containing the
-                ``mesh`` or ``location_index_set`` attribute.
+                ``mesh`` or ``location_index_set`` attribute. If the
+                parent variable is a mesh topology variable, then
+                *parent_ncvar* must be `None`.
 
         :Returns:
 
@@ -5336,16 +5332,23 @@ class NetCDFRead(IORead):
                 return
 
             attr = attributes[location_index_set_ncvar]
-            mesh_ncvar = attr["mesh"]
-            location = attr["location"]
-            start_index = attr.get("start_index", 0)
+            mesh_ncvar = attr.get("mesh")
+
+            self._parse_mesh_topology( 
             
-        ok = self._check_mesh_topology(
-            parent_ncvar, mesh_ncvar, location
-        )
+            location = attr.get("location")
+            start_index = attr.get("start_index", 0)
+            if mesh is None:
+                
+            
+        else:
+            location = attributes[parent_ncvar].get("location")
+
+            
+        ok = self._check_mesh_topology(parent_ncvar, mesh_ncvar, location)
         if not ok:
             return
-            
+
     def _create_formula_terms_ref(self, f, key, coord, formula_terms):
         """Create a formula terms coordinate reference.
 
@@ -5405,11 +5408,9 @@ class NetCDFRead(IORead):
             parameters=datum_parameters
         )
 
-        coordinate_conversion = (
-            self.implementation.initialise_CoordinateConversion(
-                parameters=coordinate_conversion_parameters,
-                domain_ancillaries=domain_ancillaries,
-            )
+        coordinate_conversion = self.implementation.initialise_CoordinateConversion(
+            parameters=coordinate_conversion_parameters,
+            domain_ancillaries=domain_ancillaries,
         )
 
         coordref = self.implementation.initialise_CoordinateReference()
@@ -6365,8 +6366,7 @@ class NetCDFRead(IORead):
             # file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._check_missing_variable(
-                    ncvar,
-                    "Node coordinate variable",
+                    ncvar, "Node coordinate variable"
                 )
                 self._add_message(
                     field_ncvar, ncvar, message=message, attribute=attribute
@@ -6406,8 +6406,7 @@ class NetCDFRead(IORead):
             # Check that the node count variable exists in the file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._check_missing_variable(
-                    ncvar,
-                    "Node count variable",
+                    ncvar, "Node count variable"
                 )
                 self._add_message(
                     field_ncvar, ncvar, message=message, attribute=attribute
@@ -6451,8 +6450,7 @@ class NetCDFRead(IORead):
             # Check that the variable exists in the file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._check_missing_variable(
-                    ncvar,
-                    "Part node count variable",
+                    ncvar, "Part node count variable"
                 )
                 self._add_message(
                     field_ncvar, ncvar, message=message, attribute=attribute
