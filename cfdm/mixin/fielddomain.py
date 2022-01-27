@@ -345,10 +345,7 @@ class FieldDomain:
         if construct:
             kwargs["todict"] = True
 
-        c = self.constructs.filter(
-            _identity_config=_identity_config,
-            **kwargs,
-        )
+        c = self.constructs.filter(_identity_config=_identity_config, **kwargs)
 
         if not construct:
             # Return Constructs or dict
@@ -622,10 +619,7 @@ class FieldDomain:
 
         """
         return self._filter_interface(
-            (
-                "dimension_coordinate",
-                "auxiliary_coordinate",
-            ),
+            ("dimension_coordinate", "auxiliary_coordinate"),
             "coordinates",
             identities,
             **filter_kwargs,
@@ -1318,8 +1312,7 @@ class FieldDomain:
                 return default
 
             return self._default(
-                default,
-                "There are no 1-d coordinate constructs",
+                default, "There are no 1-d coordinate constructs"
             )
 
         data_axes = self.constructs.data_axes()

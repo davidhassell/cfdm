@@ -148,6 +148,7 @@ from .coordinatereference import CoordinateReference
 from .dimensioncoordinate import DimensionCoordinate
 from .domainancillary import DomainAncillary
 from .domainaxis import DomainAxis
+from .domaintopology import DomainTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
 

@@ -7,10 +7,7 @@ __version__ = "1.9.0.1"
 from distutils.version import LooseVersion
 import platform
 
-_requires = (
-    "numpy",
-    "netCDF4",
-)
+_requires = ("numpy", "netCDF4")
 
 _error0 = f"cfdm.core requires the modules {', '.join(_requires)}. "
 
@@ -67,6 +64,7 @@ from .coordinatereference import CoordinateReference
 from .dimensioncoordinate import DimensionCoordinate
 from .domainancillary import DomainAncillary
 from .domainaxis import DomainAxis
+from .domaintopology import DomainTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
 

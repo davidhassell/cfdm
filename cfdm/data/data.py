@@ -204,6 +204,32 @@ class Data(Container, NetCDFHDF5, core.Data):
         else:
             return array.astype(dtype[0], copy=False)
 
+    def __len__(self):
+        """The built-in function `len`
+
+        x.__len__() <==> len(x)
+
+        .. versionadded:: 1.10.0.0
+
+        **Examples**
+
+        >>>
+        >>> len({{package}}.{{class}}([1, 2, 3]))
+        3
+        >>> len({{package}}.{{class}}([[1, 2, 3]]))
+        1
+        >>> len({{package}}.{{class}}([[1, 2, 3], [4, 5, 6]]))
+        2
+        >>> len({{package}}.{{class}}(1))
+        TypeError: len() of scalar <{{repr}}Data(): 1>
+
+        """
+        shape = self.shape
+        if shape:
+            return shape[0]
+
+        raise TypeError(f"len() of scalar {self!r}")
+
     def __repr__(self):
         """Called by the `repr` built-in function.
 

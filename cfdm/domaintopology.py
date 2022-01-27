@@ -4,9 +4,19 @@ from . import core, mixin
 class DomainTopology(
     mixin.NetCDFVariable, mixin.PropertiesData, core.DomainTopology
 ):
-    """TODO.
+    """A domain topology construct of the CF data model.
 
-    TODO
+    A domain topology construct describes explicitly the connectivity
+    of domain cells indexed by a single domain axis construct. When
+    two cells are connected, operations on the data stored on them may
+    be assumed to be continuous across their common boundary.
+
+    The domain topology array must be a symmetric matrix (i.e. a
+    square matrix that is equal to its transpose), and is interpreted
+    in a boolean context. The diagonal elements of this array must be
+    False.
+
+    See CF Appendix I "The CF Data Model".
 
     **NetCDF interface**
 

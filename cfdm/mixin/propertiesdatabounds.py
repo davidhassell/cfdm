@@ -204,7 +204,7 @@ class PropertiesDataBounds(PropertiesData):
                             # reversed so reverse its bounds (as per
                             # 7.1 of the conventions)
                             bounds_indices[-1] = slice(None, None, -1)
-                    elif data.size > 1 and index[-1] < index[0]:
+                    elif data.size > 1 and int(index[-1]) < int(index[0]):
                         # This 1-d variable has been reversed so
                         # reverse its bounds (as per 7.1 of the
                         # conventions)
