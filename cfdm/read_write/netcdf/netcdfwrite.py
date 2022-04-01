@@ -2146,12 +2146,18 @@ class NetCDFWrite(IOWrite):
 
                 # If this auxiliary coordinate has bounds then create
                 # the bounds netCDF variable and add the 'bounds',
-                # 'climatology' or 'nodes' attribute (as appropriate)
-                # to the dictionary of extra attributes.
+                # 'climatology', 'nodes', or 'bounds_tie_points'
+                # attribute (as appropriate) to the dictionary of
+                # extra attributes.
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
-
-                # Create a new auxiliary coordinate variable, if it has data
+                
+                # Create a new auxiliary coordinate variable, if it
+                # has data
                 if self.implementation.get_data(coord, None) is not None:
+                    c_type = self.implementation.get_compression_type(coord)
+                    if ctype == "subsampled":
+                        pass
+
                     self._write_netcdf_variable(
                         ncvar, ncdimensions, coord, extra=extra
                     )
