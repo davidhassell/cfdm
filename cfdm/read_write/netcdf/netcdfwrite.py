@@ -719,7 +719,32 @@ class NetCDFWrite(IOWrite):
     def _write_count_variable(
         self, f, count_variable, ncdim=None, create_ncdim=True
     ):
-        """Write a count variable to the netCDF file."""
+        """Write a count variable to the netCDF file.
+
+        :Parameters:
+
+            f: `Field` or `Domain`
+                The parent field or domain
+
+            count_variable: `Count`
+                The count variable.
+
+            ncdim: `str`, optional
+                The netCDF name of the dimension spanned by the count
+                variable. If *create_ncdim* is True *ncdim* must be
+                set, and the name may get modified.
+
+            create_ncdim: `bool`, optional
+                If True them create the netCDF dimension named by
+                *ncdim*, which may involve modifying the name if a
+                dimension with that name already exists.
+
+        :Returns:
+
+            `str`
+                The name of the netCDF count variable.
+
+        """
         g = self.write_vars
 
         if not self._already_in_file(count_variable):
@@ -2088,9 +2113,9 @@ class NetCDFWrite(IOWrite):
         if already_in_file:
             ncvar = g["seen"][id(coord)]["ncvar"]
 
-            # Register that bounds as being the file, too. This is so
-            # that a geometry container variable can be created later
-            # on, if required.
+            # Register bounds as being the file, too. This is so that
+            # a geometry container variable can be created later on,
+            # if required.
             bounds_ncvar = g["bounds"].get(ncvar)
             if bounds_ncvar is not None:
                 bounds = self.implementation.get_bounds(coord, None)
