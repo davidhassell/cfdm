@@ -141,8 +141,8 @@ class Subarray(Array):
         The conversion takes place with a runtime context, if one has
         been provided.
 
-        By default, the returned array will only a masked array if the
-        data contains missing values.
+        By default, the returned array will only be a masked array if
+        the data contains missing values.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
 
