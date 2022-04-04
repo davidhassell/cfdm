@@ -1120,7 +1120,7 @@ class CFDMImplementation(Implementation):
         return field.nc_get_geometry_variable(default)
 
     def nc_get_group_attributes(self, field):
-        """Returns the netCDF sub-group attribtues for the field.
+        """Returns the netCDF sub-group attributes for the field.
 
         .. versionadded:: (cfdm) 1.8.6
 
@@ -1135,6 +1135,32 @@ class CFDMImplementation(Implementation):
         """
         return field.nc_group_attributes()
 
+    def nc_get_subsampled_dimension(self, construct, axis, default=None):
+        """Return the netCDF subsampled dimension name.
+
+        .. versionadded:: (cfdm) 1.9.TODO.0
+
+        :Parameters:
+
+            construct:
+                A coordinate construct whose data is compressed by
+                subsampling.
+
+            axis: `int`
+                The position of the subsampled dimension.
+
+            default: optional
+                The default value of the netCDF dimension name if one
+                could not be found.
+
+        :Returns:
+
+            `str`
+
+        """
+        index =  self.get_tie_point_index(construct, axis)
+        return index.nc_get_subsampled_dimension(default=default)
+    
     def nc_get_variable_groups(self, field):
         """Return the netCDF groups for the field construct.
 
@@ -1818,6 +1844,50 @@ class CFDMImplementation(Implementation):
 
         return data.source(default)
 
+    def get_tie_point_index(self, construct, axis)
+        """Return a tie point index variable.
+
+        .. versionadded:: (cfdm) 1.9.TODO.0
+
+        :Parameters:
+
+            construct:
+                A coordinate construct whose data is compressed by
+                subsampling.
+
+            axis: `int`
+                The position of the subsampled dimension.
+
+        :Returns:
+
+            `TiePointIndex`
+
+        """
+        subsampled_array = construct.get_data().source()
+        tie_point_indices = subsampled_array.get_tie_point_indices()
+        return tie_point_indices[axis]
+    
+    def get_tie_point_index_size(self, construct, axis)
+        """Return the size of tie point index variable
+
+        .. versionadded:: (cfdm) 1.9.TODO.0
+
+        :Parameters:
+
+            construct:
+                A coordinate construct whose data is compressed by
+                subsampling.
+
+            axis: `int`
+                The position of the subsampled dimension.
+
+        :Returns:
+
+            `int`
+        
+        """
+        return self.get_tie_point_index(construct, axis).size
+    
     def get_tie_points(self, construct, default=None):
         """TODO.
 

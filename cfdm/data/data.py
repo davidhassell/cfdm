@@ -1267,6 +1267,37 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         return d
 
+    def compressed_dimensions(self):
+        """Mapping of compressed to uncompressed dimensions.
+
+        A dictionary key is a position of a dimension in the
+        compressed data, with a value of the positions of the
+        corresponding dimensions in the uncompressed data. Compressed
+        array dimensions that are not compressed are omitted from the
+        mapping.
+
+        .. versionadded:: (cfdm) 1.9.TODO.0
+
+        .. seealso:: `get_compressed_axes`, `get_compression_type`
+
+        :Returns:
+
+            `dict`
+                The mapping of dimensions of the compressed array to
+                their corresponding dimensions in the uncompressed
+                array. Compressed array dimensions that are not
+                compressed are omitted from the mapping.
+
+        """
+        ca = self._get_Array(None)
+        if ca is None:
+            return {}
+
+        try:
+            return ca.compressed_dimensions()
+        except ValueError:
+            return {}
+
     def copy(self, array=True):
         """Return a deep copy.
 

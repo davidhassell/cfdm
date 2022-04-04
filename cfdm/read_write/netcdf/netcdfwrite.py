@@ -430,7 +430,7 @@ class NetCDFWrite(IOWrite):
 
         :Parameters:
 
-            field: Field construct
+            field: `Field` or `Domain`
 
             key: `str`
                 The construct identifier of the metadata construct.
@@ -457,19 +457,44 @@ class NetCDFWrite(IOWrite):
         ncdims = [g["axis_to_ncdim"][axis] for axis in domain_axes]
 
         compression_type = self.implementation.get_compression_type(construct)
-        if compression_type:
+        if not compression_type:
+            # No compression
+            return tuple(ncdims)
+
+        compressed_axes = tuple(
+            self.implementation.get_compressed_axes(field, key, construct)
+        )
+        
+        compressed_ncdims = tuple(
+            [g["axis_to_ncdim"][axis] for axis in compressed_axes]
+        )
+        
+        if compression_type == "subsampled":
+            shape =  self.implementation.get_data_shape(construct)
+            for i, (ncdim, size) in enumerate(ncdims[:], shape):
+                if i not in compressed_axes:
+                    continue
+
+                # Get tie point index dimension name
+                base = self.implementation.nc_get_subsampled_dimension(
+                    construct, i, default=f"tp_{ncdim}"                
+                )
+                tp_ncdim = self._netcdf_name(base, dimsize=size, role="tie_point_index")
+
+                if tp_ncdim not in g["ncdim_to_size"]:
+                    # Create tie point index netCDF dimension
+                    index_size = self.implementation.get_tie_point_index_size(
+                        construct
+                    )
+                    self._write_dimension(tp_ncdim, field, size=index_size)
+               
+                ncdim[i] = tp_ncdim
+        else:
             sample_dimension_position = (
                 self.implementation.get_sample_dimension_position(construct)
             )
-            compressed_axes = tuple(
-                self.implementation.get_compressed_axes(field, key, construct)
-            )
-
-            compressed_ncdims = tuple(
-                [g["axis_to_ncdim"][axis] for axis in compressed_axes]
-            )
             sample_ncdim = g["sample_ncdim"].get(compressed_ncdims)
-
+            
             if compression_type == "gathered":
                 # ----------------------------------------------------
                 # Compression by gathering
@@ -2079,12 +2104,12 @@ class NetCDFWrite(IOWrite):
     def _write_auxiliary_coordinate(self, f, key, coord, coordinates):
         """Write auxiliary coordinates and bounds to the netCDF file.
 
-        If an equal auxiliary coordinate has already been written to the file
-        then the input coordinate is not written.
+        If an equal auxiliary coordinate has already been written to
+        the file then the input coordinate is not written.
 
         :Parameters:
 
-            f: Field construct
+            f: `Field` or `Domain`
 
             key: `str`
 
@@ -2095,8 +2120,8 @@ class NetCDFWrite(IOWrite):
         :Returns:
 
             `list`
-                The list of netCDF auxiliary coordinate names updated in
-                place.
+                The list of netCDF auxiliary coordinate names updated
+                in place.
 
         """
         g = self.write_vars
@@ -3115,6 +3140,9 @@ class NetCDFWrite(IOWrite):
         #
         g["sample_ncdim"] = {}
 
+        # TODO
+        g["compression"] = {}
+        
         #
         g["part_ncdim"] = None
 
