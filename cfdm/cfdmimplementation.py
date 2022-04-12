@@ -1158,9 +1158,9 @@ class CFDMImplementation(Implementation):
             `str`
 
         """
-        index =  self.get_tie_point_index(construct, axis)
+        index = self.get_tie_point_index(construct, axis)
         return index.nc_get_subsampled_dimension(default=default)
-    
+
     def nc_get_variable_groups(self, field):
         """Return the netCDF groups for the field construct.
 
@@ -1844,7 +1844,7 @@ class CFDMImplementation(Implementation):
 
         return data.source(default)
 
-    def get_tie_point_index(self, construct, axis)
+    def get_tie_point_index(self, construct, axis):
         """Return a tie point index variable.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
@@ -1866,9 +1866,9 @@ class CFDMImplementation(Implementation):
         subsampled_array = construct.get_data().source()
         tie_point_indices = subsampled_array.get_tie_point_indices()
         return tie_point_indices[axis]
-    
-    def get_tie_point_index_size(self, construct, axis)
-        """Return the size of tie point index variable
+
+    def get_tie_point_index_size(self, construct, axis):
+        """Return the size of tie point index variable.
 
         .. versionadded:: (cfdm) 1.9.TODO.0
 
@@ -1884,10 +1884,10 @@ class CFDMImplementation(Implementation):
         :Returns:
 
             `int`
-        
+
         """
         return self.get_tie_point_index(construct, axis).size
-    
+
     def get_tie_points(self, construct, default=None):
         """TODO.
 

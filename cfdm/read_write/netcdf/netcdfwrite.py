@@ -464,37 +464,43 @@ class NetCDFWrite(IOWrite):
         compressed_axes = tuple(
             self.implementation.get_compressed_axes(field, key, construct)
         )
-        
-        compressed_ncdims = tuple(
+
+        uncompressed_ncdims = tuple(
             [g["axis_to_ncdim"][axis] for axis in compressed_axes]
         )
-        
+
         if compression_type == "subsampled":
-            shape =  self.implementation.get_data_shape(construct)
-            for i, (ncdim, size) in enumerate(ncdims[:], shape):
+            # Replace each interpolation dimension name with its
+            # corresponding subsampled dimension name
+#            shape = self.implementation.get_data_shape(construct)
+#            for i, (ncdim, size) in enumerate(ncdims[:], shape):
+            for i, ncdim in enumerate(ncdims[:]):
                 if i not in compressed_axes:
                     continue
 
-                # Get tie point index dimension name
-                base = self.implementation.nc_get_subsampled_dimension(
-                    construct, i, default=f"tp_{ncdim}"                
+                index_size = self.implementation.get_tie_point_index_size(
+                    construct
                 )
-                tp_ncdim = self._netcdf_name(base, dimsize=size, role="tie_point_index")
+                base = self.implementation.nc_get_subsampled_dimension(
+                    construct, i, default=f"tp_{ncdim}"
+                )
+                tp_ncdim = self._netcdf_name(
+                    base, dimsize=index_size, role="tie_point_index"
+                )
 
                 if tp_ncdim not in g["ncdim_to_size"]:
                     # Create tie point index netCDF dimension
-                    index_size = self.implementation.get_tie_point_index_size(
-                        construct
-                    )
                     self._write_dimension(tp_ncdim, field, size=index_size)
-               
+
                 ncdim[i] = tp_ncdim
+
+                g["sample_ncdim"][(ncdim,)] = tp_ncdim
         else:
             sample_dimension_position = (
                 self.implementation.get_sample_dimension_position(construct)
             )
-            sample_ncdim = g["sample_ncdim"].get(compressed_ncdims)
-            
+            sample_ncdim = g["sample_ncdim"].get(uncompressed_ncdims)
+
             if compression_type == "gathered":
                 # ----------------------------------------------------
                 # Compression by gathering
@@ -507,9 +513,9 @@ class NetCDFWrite(IOWrite):
                     sample_ncdim = self._write_list_variable(
                         field,
                         list_variable,
-                        compress=" ".join(compressed_ncdims),
+                        compress=" ".join(uncompressed_ncdims),
                     )
-                    g["sample_ncdim"][compressed_ncdims] = sample_ncdim
+                    g["sample_ncdim"][uncompressed_ncdims] = sample_ncdim
 
             elif compression_type == "ragged contiguous":
                 # ----------------------------------------------------
@@ -542,7 +548,7 @@ class NetCDFWrite(IOWrite):
                     f"type: {compression_type!r}"
                 )
 
-            n = len(compressed_ncdims)
+            n = len(uncompressed_ncdims)
             ncdims[
                 sample_dimension_position : sample_dimension_position + n
             ] = [sample_ncdim]
@@ -1274,7 +1280,6 @@ class NetCDFWrite(IOWrite):
         if g["output_version"] >= g[
             "CF-1.8"
         ] and self.implementation.is_geometry(coord):
-
             # --------------------------------------------------------
             # CF>=1.8 and we have geometry bounds, which are dealt
             # with separately
@@ -1321,27 +1326,29 @@ class NetCDFWrite(IOWrite):
                     f"    Writing size {size} netCDF dimension for "
                     f"bounds: {bounds_ncdim}"
                 )  # pragma: no cover
-
-                ncdim_to_size[bounds_ncdim] = size
-
-                # Define (and create if necessary) the group in which
-                # to place this netCDF dimension.
-                parent_group = self._parent_group(bounds_ncdim)
-
-                if g["group"] and "/" in bounds_ncdim:
-                    # This dimension needs to go into a sub-group so
-                    # replace its name with its basename (CF>=1.8)
-                    base_bounds_ncdim = self._remove_group_structure(
-                        bounds_ncdim
-                    )
-                else:
-                    base_bounds_ncdim = bounds_ncdim
-
-                if not g["dry_run"]:
-                    try:
-                        parent_group.createDimension(base_bounds_ncdim, size)
-                    except RuntimeError:
-                        raise
+                
+                self._write_netcdf_dimension(bounds_ncdim, size)
+                
+#                ncdim_to_size[bounds_ncdim] = size
+#
+#                # Define (and create if necessary) the group in which
+#                # to place this netCDF dimension.
+#                parent_group = self._parent_group(bounds_ncdim)
+#
+#                if g["group"] and "/" in bounds_ncdim:
+#                    # This dimension needs to go into a sub-group so
+#                    # replace its name with its basename (CF>=1.8)
+#                    base_bounds_ncdim = self._remove_group_structure(
+#                        bounds_ncdim
+#                    )
+#                else:
+#                    base_bounds_ncdim = bounds_ncdim
+#
+#                if not g["dry_run"]:
+#                    try:
+#                        parent_group.createDimension(base_bounds_ncdim, size)
+#                    except RuntimeError:
+#                        raise
 
                 # Set the netCDF bounds variable name
                 default = coord_ncvar + "_bounds"
@@ -1394,6 +1401,275 @@ class NetCDFWrite(IOWrite):
 
         return extra
 
+    def _write_tie_point_indices(
+            self, f, coord, coord_ncdimensions
+    ):
+        """TODO
+
+        Creates a bounds netCDF variable and returns its name.
+
+        Specifically, creates a bounds netCDF variable, creating a new
+        bounds netCDF dimension if required. Returns the bounds
+        variable's netCDF variable name.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        :Parameters:
+
+            f: `Field` or `Domain`
+
+            coord: `Coordinate`
+
+            coord_ncdimensions: `tuple` of `str`
+                The ordered netCDF dimension names of the coordinate's
+                dimensions (which do not include the bounds dimension).
+
+        :Returns:
+
+            `dict`
+
+        ppp
+
+        """
+        xxx = self.implementation.get_tie_point_indices(coord)
+
+        out = {}        
+        for axis, tp_index in xxx.items():
+            already_in_file = self._already_in_file(tp_index, (axis,))
+            if already_in_file:
+                ncvar = g["seen"][id(tp_index)]["ncvar"]
+            else:       
+                ncvar = self._create_netcdf_variable_name(tp_index, default="tp_index")
+                ncdimensions = (coord_ncdimensions[axis],)
+                self._write_netcdf_variable(ncvar, ncdimensions, tp_index)
+                
+            out[axis] = (ncvar, ncdim)
+            
+        return out
+        
+    def _write_interpolation_parameters(
+        self, f, coord, coord_key, coord_ncdimensions, coord_ncvar=None
+    ):
+        """TODO
+
+        Creates a bounds netCDF variable and returns its name.
+
+        Specifically, creates a bounds netCDF variable, creating a new
+        bounds netCDF dimension if required. Returns the bounds
+        variable's netCDF variable name.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        :Parameters:
+
+            f: Field construct
+
+            coord:
+
+            coord_key: `str`
+                The coordinate construct key.
+
+            coord_ncdimensions: `tuple` of `str`
+                The ordered netCDF dimension names of the coordinate's
+                dimensions (which do not include the bounds dimension).
+
+            coord_ncvar: `str`
+                The netCDF variable name of the parent variable
+
+        :Returns:
+
+            `dict`
+
+        **Examples**
+
+        >>> _write_bounds(c, ('dim2',))
+        {'bounds': 'lat_bounds'}
+
+        >>> _write_bounds(c, ('dim2',))
+        {'nodes': 'x'}
+
+        >>> _write_bounds(c, ('dim2',))
+        {'climatology': 'time_bnds'}
+
+        """
+        g = self.write_vars
+
+        xxx = self.implementation.get_interpolation_parameters(coord, None)
+        if bounds is None:
+            return {}
+
+        data = self.implementation.get_data(bounds, None)
+        if data is None:
+            return {}
+
+        if g["output_version"] >= g[
+            "CF-1.8"
+        ] and self.implementation.is_geometry(coord):
+            # --------------------------------------------------------
+            # CF>=1.8 and we have geometry bounds, which are dealt
+            # with separately
+            # --------------------------------------------------------
+            extra = self._write_node_coordinates(
+                coord, coord_ncvar, coord_ncdimensions
+            )
+            return extra
+
+        # Still here? Then this coordinate has non-geometry bounds
+        # with data
+        extra = {}
+
+        size = data.shape[-1]
+
+        #        bounds_ncdim = self._netcdf_name('bounds{0}'.format(size),
+        #                                  dimsize=size, role='bounds')
+
+        bounds_ncdim = self.implementation.nc_get_dimension(
+            bounds, f"bounds{size}"
+        )
+        if not g["group"]:
+            # A flat file has been requested, so strip off any group
+            # structure from the name.
+            bounds_ncdim = self._remove_group_structure(bounds_ncdim)
+
+        bounds_ncdim = self._netcdf_name(
+            bounds_ncdim, dimsize=size, role="bounds"
+        )
+
+        # Check if this bounds variable has not been previously
+        # created.
+        ncdimensions = coord_ncdimensions + (bounds_ncdim,)
+        if self._already_in_file(bounds, ncdimensions):
+            # This bounds variable has been previously created, so no
+            # need to do so again.
+            ncvar = g["seen"][id(bounds)]["ncvar"]
+        else:
+            # This bounds variable has not been previously created, so
+            # create it now.
+            ncdim_to_size = g["ncdim_to_size"]
+            if bounds_ncdim not in ncdim_to_size:
+                logger.info(
+                    f"    Writing size {size} netCDF dimension for "
+                    f"bounds: {bounds_ncdim}"
+                )  # pragma: no cover
+                
+                self._write_netcdf_dimension(bounds_ncdim, size)
+                
+#                ncdim_to_size[bounds_ncdim] = size
+#
+#                # Define (and create if necessary) the group in which
+#                # to place this netCDF dimension.
+#                parent_group = self._parent_group(bounds_ncdim)
+#
+#                if g["group"] and "/" in bounds_ncdim:
+#                    # This dimension needs to go into a sub-group so
+#                    # replace its name with its basename (CF>=1.8)
+#                    base_bounds_ncdim = self._remove_group_structure(
+#                        bounds_ncdim
+#                    )
+#                else:
+#                    base_bounds_ncdim = bounds_ncdim
+#
+#                if not g["dry_run"]:
+#                    try:
+#                        parent_group.createDimension(base_bounds_ncdim, size)
+#                    except RuntimeError:
+#                        raise
+
+                # Set the netCDF bounds variable name
+                default = coord_ncvar + "_bounds"
+            else:
+                default = "bounds"
+
+            ncvar = self.implementation.nc_get_variable(
+                bounds, default=default
+            )
+
+            if not self.write_vars["group"]:
+                # A flat file has been requested, so strip off any
+                # group structure from the name (for now).
+                ncvar = self._remove_group_structure(ncvar)
+
+            ncvar = self._netcdf_name(ncvar)
+
+            # If no groups have been set on the bounds, then put the
+            # bounds variable in the same group as its parent
+            # coordinates
+            bounds_groups = self._groups(ncvar)
+            coord_groups = self._groups(coord_ncvar)
+            if not bounds_groups and coord_groups:
+                ncvar = coord_groups + ncvar
+
+            # Note that, in a field, bounds always have equal units to
+            # their parent coordinate
+
+            # Select properties to omit
+            omit = []
+            for prop in g["omit_bounds_properties"]:
+                if self.implementation.has_property(coord, prop):
+                    omit.append(prop)
+
+            # Create the bounds netCDF variable
+            self._write_netcdf_variable(ncvar, ncdimensions, bounds, omit=omit)
+
+        extra["bounds"] = ncvar
+        axes = self.implementation.get_construct_data_axes(f, coord_key)
+        for clim_axis in self.implementation.climatological_time_axes(f):
+            if (clim_axis,) == axes:
+                logger.info(
+                    "    Setting climatological bounds"
+                )  # pragma: no cover
+
+                extra["climatology"] = extra.pop("bounds")
+                break
+
+        g["bounds"][coord_ncvar] = ncvar
+
+        return extra
+
+    def _write_interpolation_parameters(self, TODO):
+        """TODO
+
+        .. versionadded: :1.9.TODO.0
+
+        :Parameters:
+
+            ncdim: `str`
+                The name of the netCDF dimension, including its group
+                structure, if any. E.g. ``'bounds2'``,
+                ``'/group1/lat'``.
+
+            size: `int`
+                The size of the netCDF dimension.
+
+        :Returns:
+
+            `str`
+                The name of the netCDF dimension without its group
+                structure.
+
+        """
+        g = self.write_vars
+        g["ncdim_to_size"][ncdim] = size
+        
+        # Define (and create if necessary) the group in which to place
+        # this netCDF dimension.
+        parent_group = self._parent_group(ncdim)
+        
+        if g["group"] and "/" in ncdim:
+            # This dimension needs to go into a sub-group so replace
+            # its name with its basename (CF>=1.8)
+            base_bounds_ncdim = self._remove_group_structure(ncdim)
+        else:
+            base_ncdim = ncdim
+            
+        if not g["dry_run"]:
+            try:
+                parent_group.createDimension(base_ncdim, size)
+            except RuntimeError:
+                raise
+            
+        return base_ncdim
+    
     def _write_node_coordinates(self, coord, coord_ncvar, coord_ncdimensions):
         """Create a netCDF node coordinates variable.
 
@@ -2175,14 +2451,38 @@ class NetCDFWrite(IOWrite):
                 # attribute (as appropriate) to the dictionary of
                 # extra attributes.
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
-                
+
                 # Create a new auxiliary coordinate variable, if it
                 # has data
                 if self.implementation.get_data(coord, None) is not None:
                     c_type = self.implementation.get_compression_type(coord)
-                    if ctype == "subsampled":
-                        pass
+                    if c_type == "subsampled":
+                        if g["output_version"] < g["CF-1.9"]:
+                            raise ValueError(
+                                "TODO bad CF version for susbanpled coords"
+                            )
+                    
+                        xx = self._pppwrite_tie_point_indices(
+                            field,
+                            coord,
+                            ncdimensions,
+                        )
 
+                        yy = self._write_interpolation_parameters(
+                            field,
+                            coord,
+                            ncdimensions,
+                        )
+
+                        interp_ncvar = self._write_interpolation_variable(
+                            field,
+                            coord,
+                            xx, yy
+                        )
+                        g['coordinate_interpolation'].setdefault(
+                            interp_ncvar, []
+                        ).append(ncvar)
+                        
                     self._write_netcdf_variable(
                         ncvar, ncdimensions, coord, extra=extra
                     )
@@ -3142,9 +3442,15 @@ class NetCDFWrite(IOWrite):
 
         # TODO
         g["compression"] = {}
-        
+
         #
         g["part_ncdim"] = None
+
+        # Mapping of interpolation variable netCDF names to coordinate
+        # netCDF names (CF>=1.9)
+        #
+        # For example: {'tp_interpolation': ['lat', 'lon']}
+        g["coordinate_interpolation"] = {}
 
         # Initialize the list of the field/domain's auxiliary/scalar
         # coordinates
@@ -3494,7 +3800,7 @@ class NetCDFWrite(IOWrite):
         if compression_type:
             compressed_axes = tuple(self.implementation.get_compressed_axes(f))
             #            g['compressed_axes'] = compressed_axes
-            compressed_ncdims = tuple(
+            uncompressed_ncdims = tuple(
                 [g["axis_to_ncdim"][axis] for axis in compressed_axes]
             )
 
@@ -3506,7 +3812,7 @@ class NetCDFWrite(IOWrite):
                 # of the netCDF sample dimension.
                 # ----------------------------------------------------
                 list_variable = self.implementation.get_list(f)
-                compress = " ".join(compressed_ncdims)
+                compress = " ".join(uncompressed_ncdims)
                 sample_ncdim = self._write_list_variable(
                     f, list_variable, compress=compress
                 )
@@ -3585,17 +3891,17 @@ class NetCDFWrite(IOWrite):
                     instance_dimension=data_ncdimensions[0],
                 )
 
-                g["sample_ncdim"][compressed_ncdims[0:2]] = index_ncdim
+                g["sample_ncdim"][uncompressed_ncdims[0:2]] = index_ncdim
             else:
                 raise ValueError(
                     f"Can't write {org_f!r}: Unknown compression type: "
                     f"{compression_type!r}"
                 )
 
-            g["sample_ncdim"][compressed_ncdims] = sample_ncdim
+            g["sample_ncdim"][uncompressed_ncdims] = sample_ncdim
 
             if field:
-                n = len(compressed_ncdims)
+                n = len(uncompressed_ncdims)
                 sample_dimension = (
                     self.implementation.get_sample_dimension_position(f)
                 )
@@ -3608,7 +3914,7 @@ class NetCDFWrite(IOWrite):
                 data_ncdimensions = [
                     ncdim
                     for ncdim in data_ncdimensions
-                    if ncdim not in compressed_ncdims
+                    if ncdim not in uncompressed_ncdims
                 ]
                 data_ncdimensions.append(sample_ncdim)
 
@@ -3960,7 +4266,9 @@ class NetCDFWrite(IOWrite):
             g["ncdim_size_to_spanning_constructs"].extend(
                 ncdim_size_to_spanning_constructs
             )
-
+        import pprint
+        pprint.pprint(g)
+            
     def _create_vertical_datum(self, ref, coord_key):
         """Deal with a vertical datum.
 
