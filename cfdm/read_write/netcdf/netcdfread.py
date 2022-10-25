@@ -4854,7 +4854,7 @@ class NetCDFRead(IORead):
         if not g["mask"]:
             self._set_default_FillValue(param, ncvar)
 
-        data = self._create_data(ncvar, uncompress_override=True)
+        data = self._create_data(ncvar, param, uncompress_override=True)
         self.implementation.set_data(param, data, copy=False)
 
         # Store the original file names
@@ -4925,7 +4925,7 @@ class NetCDFRead(IORead):
                 variable, self._ncdim_abspath(subarea_ncdim)
             )
 
-        data = self._create_data(ncvar, uncompress_override=True)
+        data = self._create_data(ncvar, variable, uncompress_override=True)
 
         self.implementation.set_data(variable, data, copy=False)
 
@@ -5632,6 +5632,7 @@ class NetCDFRead(IORead):
             units=units,
             calendar=calendar,
             ncvar=ncvar,
+            ncdimensions=dimensions,
         )
         data._original_filenames(define=filename)
 
@@ -6631,6 +6632,7 @@ class NetCDFRead(IORead):
         units=None,
         calendar=None,
         ncvar=None,
+        ncdimensions=(),
         filenames=None,
         **kwargs,
     ):
@@ -6647,8 +6649,13 @@ class NetCDFRead(IORead):
             calendar:
 
             ncvar: `str`, optional
-                Not used here, but frequently set in calls. Leaving
-                here for now as no harm appears to be going on ...
+                The netCDF variable containing the array. Not used
+                here at present, but is available to subclasses.
+
+            ncdimensions: sequence of `str`, optional
+               The netCDF dimensions spanned by the array.
+
+                .. versionadded:: (cfdm) 1.10.0.1
 
             filenames: (sequence of) `str`, optional
                 Set the names of any files that contain (parts of)
