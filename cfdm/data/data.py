@@ -547,15 +547,11 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 out = f"{open_brackets}{first}, ..., {last}{close_brackets}"
             elif shape[-1:] == (3,):
                 middle = self.second_element()
-                if isreftime:
+                if isreftime and middle is not numpy.ma.masked:
                     # Convert reference time to date-time
-                    if middle is numpy.ma.masked:
-                        middle = 0
-                        mask[1] = True
-
                     try:
                         middle = type(self)(
-                            numpy.ma.array(middle, mask=mask[1]),
+                            numpy.ma.array(middle),
                             units,
                             calendar,
                         ).datetime_array
