@@ -279,7 +279,10 @@ class Constructs(abstract.Container):
         if construct_type is None:
             raise KeyError(key)
 
-        return self._constructs[construct_type][key]
+        construct = self._constructs[construct_type][key]
+#        construct._set_component("constructs", self, copy=False)
+        return construct
+#        return self._constructs[construct_type][key]
 
     def __iter__(self):
         """Called when an iterator is required.
@@ -634,7 +637,10 @@ class Constructs(abstract.Container):
             # Create a deep copy of the construct
             construct = construct.copy()
 
-        # Insert the construct
+        # Set the parent 'Constructs' instance on the constuct
+        construct._set_component("constructs", self, copy=False)
+
+        # Insert the construct    
         self._constructs[construct_type][key] = construct
 
         # Return the identifier of the construct
@@ -805,7 +811,11 @@ class Constructs(abstract.Container):
         """
         construct_type = self.construct_type(key)
         if construct_type is not None:
-            return self._constructs[construct_type][key]
+            print (999, id(self))
+            construct = self._constructs[construct_type][key]
+#            construct._set_component("constructs", self, copy=False)
+            return construct
+        #            return self._constructs[construct_type][key]
 
         return default
 
@@ -1455,6 +1465,7 @@ class Constructs(abstract.Container):
         n = len(d)
         if n == 1:
             _, construct = d.popitem()
+#            construct._set_component("constructs", self, copy=False)
             return construct
 
         if default is None:

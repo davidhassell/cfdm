@@ -81,6 +81,7 @@ class Domain(mixin.FieldDomain, abstract.Properties):
             constructs = constructs.copy(data=_use_data)
 
         self._set_component("constructs", constructs, copy=False)
+        constructs._set_parent(self)
 
     # ----------------------------------------------------------------
     # Attributes

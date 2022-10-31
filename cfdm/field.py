@@ -1839,6 +1839,7 @@ class Field(
                 if len(axes) == 1 and axes[0] in climatological_time_axes:
                     c.set_climatology(True)
 
+        domain.constructs._set_parent(domain)
         return domain
 
     def get_filenames(self):

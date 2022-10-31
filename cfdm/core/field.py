@@ -117,12 +117,13 @@ class Field(mixin.FieldDomain, abstract.PropertiesData):
             constructs = self._Constructs(**self._construct_key_base)
 
         self._set_component("constructs", constructs, copy=False)
-
+        
         if data is not None and _use_data:
             self.set_data(data, data_axes, copy=copy)
         elif data_axes is not None:
             self.set_data_axes(data_axes)
 
+        
     # ----------------------------------------------------------------
     # Attributes
     # ----------------------------------------------------------------
