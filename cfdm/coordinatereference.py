@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class CoordinateReference(
-    mixin.NetCDFVariable, mixin.Container, core.CoordinateReference
+    mixin.NetCDFVariable,
+    mixin.Container,
+    mixin.Files,
+    core.CoordinateReference,
 ):
     """A coordinate reference construct of the CF data model.
 
@@ -65,7 +68,7 @@ class CoordinateReference(
     """
 
     def __new__(cls, *args, **kwargs):
-        """This must be overridden in subclasses."""
+        """Store component classes."""
         instance = super().__new__(cls)
         instance._CoordinateConversion = CoordinateConversion
         instance._Data = Data
@@ -133,6 +136,7 @@ class CoordinateReference(
         )
 
         self._initialise_netcdf(source)
+        self._initialise_original_filenames(source)
 
     def __str__(self):
         """Called by the `str` built-in function.
@@ -193,7 +197,7 @@ class CoordinateReference(
 
             {{returns creation_commands}}
 
-        **Examples:**
+        **Examples**
 
         >>> x = {{package}}.{{class}}(
         ...     coordinates=['dimensioncoordinate0']
@@ -423,7 +427,7 @@ class CoordinateReference(
             `bool`
                 Whether the two coordinate reference constructs are equal.
 
-        **Examples:**
+        **Examples**
 
         >>> c = {{package}}.{{class}}(
         ...     coordinates=['dimensioncoordinate0']
@@ -509,7 +513,7 @@ class CoordinateReference(
 
                 The identity.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(1)
         >>> c = f.get_construct('coordinatereference0')
@@ -573,7 +577,7 @@ class CoordinateReference(
             `list` or generator
                 The identities.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(1)
         >>> c = f.get_construct('coordinatereference0')

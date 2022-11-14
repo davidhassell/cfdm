@@ -79,7 +79,9 @@ Data
    :toctree: ../attribute/
    :template: attribute.rst
 
+   ~cfdm.DimensionCoordinate.array
    ~cfdm.DimensionCoordinate.data
+   ~cfdm.DimensionCoordinate.datetime_array
    ~cfdm.DimensionCoordinate.dtype
    ~cfdm.DimensionCoordinate.ndim
    ~cfdm.DimensionCoordinate.shape
@@ -176,6 +178,8 @@ Miscellaneous
    ~cfdm.DimensionCoordinate.equals
    ~cfdm.DimensionCoordinate.uncompress
    ~cfdm.DimensionCoordinate.get_filenames
+   ~cfdm.DimensionCoordinate.original_filenames
+   ~cfdm.DimensionCoordinate.to_memory
 
 NetCDF
 ------

@@ -1,7 +1,89 @@
-Version 1.9.?.?
+Version 1.10.0.2
+----------------
+
+**202?-??-??**
+
+* New class: `cfdm.InterpolationSubarray`
+  (https://github.com/NCAS-CMS/cfdm/issues/228)
+ 
+
+Version 1.10.0.1
+----------------
+
+**2022-10-31**
+
+* New method: `cfdm.Data.get_tie_point_indices`
+* New method: `cfdm.Data.get_interpolation_parameters`
+* New method: `cfdm.Data.get_dependent_tie_points`
+* Record the names of files that contain the original data
+  (https://github.com/NCAS-CMS/cfdm/issues/215)
+* New method: `cfdm.Field.get_original_filenames`
+* New method: `cfdm.Data.get_original_filenames`
+* New keyword parameter to `cfdm.write`: ``omit_data``
+  (https://github.com/NCAS-CMS/cfdm/issues/221)
+* Fixed bug that caused incorrect data assignment with some multiple
+  list indices (https://github.com/NCAS-CMS/cfdm/issues/217)
+* Fixed bug that caused a failure when printing date-time data with
+  the first element masked
+  (https://github.com/NCAS-CMS/cfdm/issues/211)
+
+Version 1.10.0.0
+----------------
+
+**2022-08-17**
+
+* New method: `cfdm.Field.auxiliary_coordinate`
+* New method: `cfdm.Field.cell_measure`
+* New method: `cfdm.Field.cell_method`
+* New method: `cfdm.Field.coordinate`
+* New method: `cfdm.Field.coordinate_reference`
+* New method: `cfdm.Field.dimension_coordinate`
+* New method: `cfdm.Field.domain_ancillary`
+* New method: `cfdm.Field.domain_axis`
+* New method: `cfdm.Field.field_ancillary`
+* New method: `cfdm.Field.indices`
+* New attribute: `cfdm.Field.array`
+* New attribute: `cfdm.Field.datetime_array`
+* New construct retrieval API methods
+  (https://github.com/NCAS-CMS/cfdm/issues/179)
+* Implement (bar writing to netCDF files) lossy compression by
+  coordinate subsampling (https://github.com/NCAS-CMS/cfdm/issues/167)
+
+----
+  
+Version 1.9.0.4
 ---------------
 
-**2021-??-??**
+**2022-07-18**
+
+* Upgrade to allow cfdm to work with Python 3.10
+  (https://github.com/NCAS-CMS/cfdm/issues/187)
+* Fix bug that caused a hang when reading zero-length files
+  (https://github.com/NCAS-CMS/cfdm/issues/190)
+* Fix bug to prevent error when writing vlen strings to a netCDF file
+  when compression has been set (for `netCDF4>=1.6.0`)
+  (https://github.com/NCAS-CMS/cfdm/issues/199)
+  
+Version 1.9.0.3
+---------------
+
+**2022-03-10**
+
+* Fixed bug that caused a failure from `cfdm.write` when writing
+  identical (auxiliary) coordinates to different data variables in
+  different groups (https://github.com/NCAS-CMS/cfdm/issues/177)
+* Fixed bug that caused `cf.Domain.__str__` to fail when a dimension
+  coordinate construct does not have data
+  (https://github.com/NCAS-CMS/cfdm/issues/174)
+* New dependency: ``packaging>=20.0``
+* Changed dependency: ``cftime>=1.6.0``
+
+----
+  
+Version 1.9.0.2
+---------------
+
+**2022-01-31**
 
 * Fixed bug that caused a `cfdm.write` failure when a vertical
   coordinate reference construct has no coordinates

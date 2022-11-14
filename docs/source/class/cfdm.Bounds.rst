@@ -69,7 +69,9 @@ Data
    :toctree: ../attribute/
    :template: attribute.rst
 
+   ~cfdm.Bounds.array
    ~cfdm.Bounds.data
+   ~cfdm.Bounds.datetime_array
    ~cfdm.Bounds.dtype
    ~cfdm.Bounds.ndim
    ~cfdm.Bounds.shape
@@ -91,6 +93,8 @@ Miscellaneous
    ~cfdm.Bounds.has_bounds
    ~cfdm.Bounds.uncompress
    ~cfdm.Bounds.get_filenames
+   ~cfdm.Bounds.original_filenames
+   ~cfdm.Bounds.to_memory
 
 NetCDF
 ------

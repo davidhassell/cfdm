@@ -82,7 +82,7 @@ def configuration(atol=None, rtol=None, log_level=None):
             of the project-wide constants prior to the change, or the
             current names and values if no new values are specified.
 
-    **Examples:**
+    **Examples**
 
     View full global configuration of constants:
 
@@ -303,7 +303,8 @@ def environment(display=True, paths=True):
             a string. By default the description is printed.
 
         paths: `bool`, optional
-            If False then do not output the locations of each package.
+            If True (the default) then output the locations of each
+            package.
 
     :Returns:
 
@@ -312,27 +313,30 @@ def environment(display=True, paths=True):
             environment is printed and `None` is returned. Otherwise
             the description is returned as in a `list`.
 
-    **Examples:**
+    **Examples**
 
     >>> cfdm.environment()
-    Platform: Linux-4.15.0-72-generic-x86_64-with-debian-stretch-sid
-    HDF5 library: 1.10.6
-    netcdf library: 4.7.4
-    python: 3.8.2 /home/user/anaconda3/bin/python
-    netCDF4: 1.5.6 /home/user/anaconda3/lib/python3.7/site-packages/netCDF4/__init__.py
-    cftime: 1.5.0 /home/user/anaconda3/lib/python3.7/site-packages/cftime/__init__.py
-    numpy: 1.18.1 /home/user/anaconda3/lib/python3.7/site-packages/numpy/__init__.py
-    cfdm: 1.9.0.0
+    Platform: Linux-5.14.0-1048-oem-x86_64-with-glibc2.31
+    HDF5 library: 1.12.1
+    netcdf library: 4.8.1
+    Python: 3.9.12 /home/user/miniconda3/bin/python
+    netCDF4: 1.6.0 /home/user/miniconda3/lib/python3.9/site-packages/netCDF4/__init__.py
+    numpy: 1.22.3 /home/user/miniconda3/lib/python3.9/site-packages/numpy/__init__.py
+    cfdm.core: 1.10.0.0 /home/user/miniconda3/lib/python3.9/site-packages/cfdm/core/__init__.py
+    cftime: 1.6.1 /home/user/miniconda3/lib/python3.9/site-packages/cftime/__init__.py
+    netcdf_flattener: 1.2.0 /home/user/miniconda3/lib/python3.9/site-packages/netcdf_flattener/__init__.py
+    cfdm: 1.10.0.0 /home/user/miniconda3/lib/python3.9/site-packages/cfdm/__init__.py
 
     >>> cfdm.environment(paths=False)
-    Platform: Linux-4.15.0-72-generic-x86_64-with-debian-stretch-sid
-    HDF5 library: 1.10.6
-    netcdf library: 4.7.4
-    python: 3.8.2
-    netCDF4: 1.5.6
-    cftime: 1.5.0
-    numpy: 1.18.1
-    cfdm: 1.9.0.0
+    HDF5 library: 1.12.1
+    netcdf library: 4.8.1
+    Python: 3.9.12
+    netCDF4: 1.6.0
+    numpy: 1.22.3
+    cfdm.core: 1.10.0.0
+    cftime: 1.6.1
+    netcdf_flattener: 1.2.0
+    cfdm: 1.10.0.0
 
     """
     out = core.environment(display=False, paths=paths)  # get all core env
@@ -381,10 +385,10 @@ def CF():
             The version of the CF conventions represented by this
             release of the cfdm package.
 
-    **Examples:**
+    **Examples**
 
     >>> CF()
-    '1.9'
+    '1.10'
 
     """
     return __cf_version__
@@ -408,7 +412,7 @@ def abspath(filename):
         `str`
             The normalised absolutised version of *filename*.
 
-    **Examples:**
+    **Examples**
 
     >>> import os
     >>> os.getcwd()
@@ -440,15 +444,15 @@ def unique_constructs(constructs, copy=True):
             a mixture of types. The sequence can be empty.
 
         copy: `bool`, optional
-            If False then do not copy returned constructs. By default
-            they are deep copies.
+            If True (the default) then deep copy returned constructs,
+            else they are not (deep) copied.
 
     :Returns:
 
         `list`
             The unique constructs. May be an empty list.
 
-    **Examples:**
+    **Examples**
 
     >>> f = cfdm.example_field(0)
     >>> g = cfdm.example_field(1)
@@ -533,20 +537,20 @@ class Constant(metaclass=DocstringRewriteMeta):
 
     The constant value is accessed via the `value` attribute:
 
-       >>> c = {{package}}.{{class}}(1.9)
+       >>> c = {{package}}.{{class}}(1.2)
        >>> c.value
-       1.9
+       1.2
 
     Conversion to `int`, `float`, `str` and `bool` is with the usual
     built-in functions:
 
-       >>> c = {{package}}.{{class}}(1.9)
+       >>> c = {{package}}.{{class}}(1.2)
        >>> int(c)
        1
        >>> float(c)
-       1.9
+       1.2
        >>> str(c)
-       '1.9'
+       '1.2'
        >>> bool(c)
        True
 
@@ -996,7 +1000,7 @@ class Configuration(dict, metaclass=DocstringRewriteMeta):
     """
 
     def __new__(cls, *args, **kwargs):
-        """Must override this method in subclasses."""
+        """Store components."""
         instance = super().__new__(cls)
         instance._func = configuration
         return instance
@@ -1194,7 +1198,7 @@ class atol(ConstantAccess):
             The value prior to the change, or the current value if no
             new value was specified.
 
-    **Examples:**
+    **Examples**
 
     >>> {{package}}.{{class}}()
     <{{repr}}Constant: 2.220446049250313e-16>
@@ -1279,7 +1283,7 @@ class rtol(ConstantAccess):
             The value prior to the change, or the current value if no
             new value was specified.
 
-    **Examples:**
+    **Examples**
 
     >>> {{package}}.{{class}}()
     <{{repr}}Constant: 2.220446049250313e-16>
@@ -1379,7 +1383,7 @@ class log_level(ConstantAccess):
             not valid). Note the string name, rather than the
             equivalent integer, will always be returned.
 
-    **Examples:**
+    **Examples**
 
     >>> {{package}}.{{class}}()
     <{{repr}}Constant: 'WARNING'>

@@ -42,6 +42,20 @@ class DomainTest(unittest.TestCase):
         for title in (None, "title"):
             d.dump(display=False, _title=title)
 
+        # Test when any construct which can have data in fact has no data.
+        d = d.copy()
+        for identity in [
+            "time",  # a dimension coordinate
+            "latitude",  # an auxiliary coordinate
+            "measure:area",  # a cell measure
+            "surface_altitude",  # a domain ancillary
+        ]:
+            c = d.construct(identity)  # get relevant construct, type as above
+            c.del_data()
+            self.assertFalse(c.has_data())
+            str(d)
+            repr(d)
+
     def test_Domain__init__(self):
         """Test the Domain constructor and source keyword."""
         cfdm.Domain(source="qwerty")
@@ -152,6 +166,38 @@ class DomainTest(unittest.TestCase):
     def test_Domain_has_bounds(self):
         """Test that Domain instances do not have cell bounds."""
         self.assertFalse(self.d.has_bounds())
+
+    def test_Domain_get_data_axes(self):
+        """Test Domain.get_data_axes."""
+        d = cfdm.example_domain(0)
+        self.assertEqual(d.get_data_axes("latitude"), ("domainaxis0",))
+
+        with self.assertRaises(ValueError):
+            d.get_data_axes(None)
+
+        with self.assertRaises(ValueError):
+            d.get_data_axes("domainaxis0")
+
+    def test_Domain_get_original_filenames(self):
+        """Test Domain.get_original_filenames."""
+        d = cfdm.example_field(0).domain
+        self.assertEqual(d.get_original_filenames(), set())
+
+        x = d.coordinate("longitude")
+        x._original_filenames(define=["file1.nc", "file3.nc"])
+        b = x.bounds
+        b._original_filenames(define=["file1.nc", "file4.nc"])
+
+        self.assertEqual(
+            d.get_original_filenames(),
+            set(
+                (
+                    cfdm.abspath("file1.nc"),
+                    cfdm.abspath("file3.nc"),
+                    cfdm.abspath("file4.nc"),
+                )
+            ),
+        )
 
 
 if __name__ == "__main__":

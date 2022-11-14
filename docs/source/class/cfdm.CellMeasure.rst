@@ -84,7 +84,9 @@ Data
    :toctree: ../attribute/
    :template: attribute.rst
 
+   ~cfdm.CellMeasure.array
    ~cfdm.CellMeasure.data
+   ~cfdm.CellMeasure.datetime_array
    ~cfdm.CellMeasure.dtype
    ~cfdm.CellMeasure.ndim
    ~cfdm.CellMeasure.shape
@@ -106,6 +108,8 @@ Miscellaneous
    ~cfdm.CellMeasure.has_bounds
    ~cfdm.CellMeasure.uncompress
    ~cfdm.CellMeasure.get_filenames
+   ~cfdm.CellMeasure.original_filenames
+   ~cfdm.CellMeasure.to_memory
 
 NetCDF
 ------

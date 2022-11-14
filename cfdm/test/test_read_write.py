@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import unittest
 
-import numpy
+import numpy as np
 
 faulthandler.enable()  # to debug seg faults and timeouts
 
@@ -21,7 +21,7 @@ tmpfiles = [
     tempfile.mkstemp("_test_read_write.nc", dir=os.getcwd())[1]
     for i in range(n_tmpfiles)
 ]
-(
+[
     tmpfile,
     tmpfileh,
     tmpfileh2,
@@ -31,7 +31,7 @@ tmpfiles = [
     tmpfilec3,
     tmpfile0,
     tmpfile1,
-) = tmpfiles
+] = tmpfiles
 
 
 def _remove_tmpfiles():
@@ -474,45 +474,45 @@ class read_writeTest(unittest.TestCase):
         cfdm.write(f, tmpfile)
 
         g = cfdm.read(tmpfile)[0]
-        self.assertEqual(numpy.ma.count(g.data.array), N - 2)
+        self.assertEqual(np.ma.count(g.data.array), N - 2)
 
         g = cfdm.read(tmpfile, mask=False)[0]
-        self.assertEqual(numpy.ma.count(g.data.array), N)
+        self.assertEqual(np.ma.count(g.data.array), N)
 
         g.apply_masking(inplace=True)
-        self.assertEqual(numpy.ma.count(g.data.array), N - 2)
+        self.assertEqual(np.ma.count(g.data.array), N - 2)
 
         f.set_property("_FillValue", 999)
         f.set_property("missing_value", -111)
         cfdm.write(f, tmpfile)
 
         g = cfdm.read(tmpfile)[0]
-        self.assertEqual(numpy.ma.count(g.data.array), N - 2)
+        self.assertEqual(np.ma.count(g.data.array), N - 2)
 
         g = cfdm.read(tmpfile, mask=False)[0]
-        self.assertEqual(numpy.ma.count(g.data.array), N)
+        self.assertEqual(np.ma.count(g.data.array), N)
 
         g.apply_masking(inplace=True)
-        self.assertEqual(numpy.ma.count(g.data.array), N - 2)
+        self.assertEqual(np.ma.count(g.data.array), N - 2)
 
     def test_write_datatype(self):
         """Test the `datatype` keyword argument to `write`."""
         f = cfdm.read(self.filename)[0]
-        self.assertEqual(f.data.dtype, numpy.dtype(float))
+        self.assertEqual(f.data.dtype, np.dtype(float))
 
-        f.set_property("_FillValue", numpy.float64(-999.0))
-        f.set_property("missing_value", numpy.float64(-999.0))
+        f.set_property("_FillValue", np.float64(-999.0))
+        f.set_property("missing_value", np.float64(-999.0))
 
         cfdm.write(
             f,
             tmpfile,
             fmt="NETCDF4",
-            datatype={numpy.dtype(float): numpy.dtype("float32")},
+            datatype={np.dtype(float): np.dtype("float32")},
         )
         g = cfdm.read(tmpfile)[0]
         self.assertEqual(
             g.data.dtype,
-            numpy.dtype("float32"),
+            np.dtype("float32"),
             "datatype read in is " + str(g.data.dtype),
         )
 
@@ -841,6 +841,102 @@ class read_writeTest(unittest.TestCase):
         f = cfdm.example_field(0)
         filename = os.path.join("$PWD", os.path.basename(tmpfile))
         cfdm.write(f, filename)
+
+    def test_read_zero_length_file(self):
+        """Test reading a zero length file raises an exception."""
+        # Create zero-length file
+        tmpfile = tempfile.mkstemp("_test_read_write.nc", dir=os.getcwd())[1]
+        tmpfiles.append(tmpfile)
+        subprocess.run(f"touch {tmpfile}", shell=True, check=True)
+
+        with self.assertRaises(OSError):
+            cfdm.read(tmpfile)
+
+    def test_read_subsampled_coordinates(self):
+        """Test the reading subsampled coordinates."""
+        for i in cfdm.read("subsampled_2.nc"):
+            identity = i.identity()
+            if identity == "long_name=radiance":
+                # Field with subsampled coordinates
+                r = i
+                continue
+
+            if identity == "latitude":
+                # Original latitudes
+                olat = i
+                continue
+
+            if identity == "longitude":
+                # Original longitudes
+                olon = i
+                continue
+
+        # Check that reconstituted coordinates equal the original
+        # coordinates
+        rlat = r.construct("latitude").data.array
+        rlon = r.construct("longitude").data.array
+
+        self.assertTrue(rlat.shape, olat.shape)
+        self.assertTrue(rlon.shape, olon.shape)
+
+        self.assertTrue(
+            np.allclose(rlat, olat.data.array, atol=5.4e-06, rtol=0)
+        )
+        self.assertTrue(
+            np.allclose(rlon, olon.data.array, atol=2.2e-05, rtol=0)
+        )
+
+    def test_read_original_filenames(self):
+        """Test the setting of original file names."""
+        f = cfdm.read(self.filename)[0]
+        x = f.dimension_coordinate("grid_longitude")
+
+        for a in (x, f):
+            self.assertEqual(
+                a.get_original_filenames(), set([cfdm.abspath(self.filename)])
+            )
+
+        # Two original files
+        parent_file = "parent.nc"
+        external_file = "external.nc"
+        f = cfdm.read(parent_file, external=external_file)[0]
+        self.assertEqual(
+            f.get_original_filenames(),
+            set((cfdm.abspath(parent_file), cfdm.abspath(external_file))),
+        )
+
+    def test_write_omit_data(self):
+        """Test the `omit_data` parameter to `write`."""
+        f = cfdm.example_field(1)
+        cfdm.write(f, tmpfile)
+
+        cfdm.write(f, tmpfile, omit_data="all")
+        g = cfdm.read(tmpfile)
+        self.assertEqual(len(g), 1)
+        g = g[0]
+
+        # Check that the data are missing
+        self.assertFalse(g.array.count())
+        self.assertFalse(g.construct("grid_latitude").array.count())
+
+        # Check that a dump works
+        g.dump(display=False)
+
+        cfdm.write(f, tmpfile, omit_data=("field", "dimension_coordinate"))
+        g = cfdm.read(tmpfile)[0]
+
+        # Check that only the field and dimension coordinate data are
+        # missing
+        self.assertFalse(g.array.count())
+        self.assertFalse(g.construct("grid_latitude").array.count())
+        self.assertTrue(g.construct("latitude").array.count())
+
+        cfdm.write(f, tmpfile, omit_data="field")
+        g = cfdm.read(tmpfile)[0]
+
+        # Check that only the field data are missing
+        self.assertFalse(g.array.count())
+        self.assertTrue(g.construct("grid_latitude").array.count())
 
 
 if __name__ == "__main__":

@@ -21,13 +21,7 @@ class PropertiesData(Properties):
     """
 
     def __new__(cls, *args, **kwargs):
-        """Store component classes.
-
-        NOTE: If a child class requires a different component classes
-        than the ones defined here, then they must be redefined in the
-        child class.
-
-        """
+        """Store component classes."""
         instance = super().__new__(cls)
         instance._Data = Data
         return instance
@@ -55,7 +49,7 @@ class PropertiesData(Properties):
 
                 The subspace.
 
-        **Examples:**
+        **Examples**
 
         >>> f.shape
         (1, 10, 9)
@@ -76,6 +70,13 @@ class PropertiesData(Properties):
         data = self.get_data(None, _fill_value=False)
         if data is not None:
             new.set_data(data[indices], copy=False)
+
+        if 0 in new.shape:
+            raise IndexError(
+                f"Indices {indices!r} result in a subspaced shape of "
+                f"{new.shape}, but can't create a subspace of "
+                f"{self.__class__.__name__} that has a size 0 axis"
+            )
 
         return new
 
@@ -106,9 +107,6 @@ class PropertiesData(Properties):
 
         return f"{self.identity('')}{dims} {units}"
 
-    # ----------------------------------------------------------------
-    # Private methods
-    # ----------------------------------------------------------------
     def _parse_axes(self, axes):
         """Conform axes.
 
@@ -189,14 +187,78 @@ class PropertiesData(Properties):
         """
         print("In _test_docstring_substitution")
 
-    # ----------------------------------------------------------------
-    # Attributes
-    # ----------------------------------------------------------------
+    @property
+    def array(self):
+        """A numpy array deep copy of the data.
+
+        Changing the returned numpy array does not change the data
+        array.
+
+        .. versionadded:: 1.10.0.0
+
+        .. seealso:: `data`, `datetime_array`
+
+        **Examples**
+
+        >>> f.data
+        <{{repr}}Data(5): [0, ... 4] kg m-1 s-2>
+        >>> a = f.array
+        >>> type(a)
+        <type 'numpy.ndarray'>
+        >>> print(a)
+        [0 1 2 3 4]
+        >>> a[0] = 999
+        >>> print(a)
+        [999 1 2 3 4]
+        >>> print(f.array)
+        [0 1 2 3 4]
+        >>> f.data
+        <{{repr}}Data(5): [0, ... 4] kg m-1 s-2>
+
+        """
+        data = self.get_data(None)
+        if data is None:
+            raise AttributeError(f"{self.__class__.__name__} has no data")
+
+        return data.array
+
+    @property
+    def datetime_array(self):
+        """An independent numpy array of date-time objects.
+
+        Only applicable for data with reference time units.
+
+        If the calendar has not been set then the CF default calendar
+        will be used and the units will be updated accordingly.
+
+        .. versionadded:: 1.10.0.0
+
+        .. seealso:: `array`, `data`
+
+        **Examples**
+
+        >>> f.units
+        'days since 2000-01-01'
+        >>> print(f.array)
+        [ 0 31 60 91]
+        >>> print(f.datetime_array)
+        [cftime.DatetimeGregorian(2000-01-01 00:00:00)
+         cftime.DatetimeGregorian(2000-02-01 00:00:00)
+         cftime.DatetimeGregorian(2000-03-01 00:00:00)
+         cftime.DatetimeGregorian(2000-04-01 00:00:00)]
+
+        """
+        data = self.get_data(None)
+        if data is None:
+            raise AttributeError(f"{self.__class__.__name__} has no data")
+
+        return data.datetime_array
+
     @property
     def dtype(self):
         """Data-type of the data elements.
 
-        **Examples:**
+        **Examples**
 
         >>> d.dtype
         dtype('float64')
@@ -218,7 +280,7 @@ class PropertiesData(Properties):
 
         .. seealso:: `data`, `has_data`, `isscalar`, `shape`, `size`
 
-        **Examples:**
+        **Examples**
 
         >>> f.shape
         (73, 96)
@@ -263,7 +325,7 @@ class PropertiesData(Properties):
 
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
-        **Examples:**
+        **Examples**
 
         >>> f.shape
         (73, 96)
@@ -308,7 +370,7 @@ class PropertiesData(Properties):
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 
-        **Examples:**
+        **Examples**
 
         >>> f.shape
         (73, 96)
@@ -398,7 +460,7 @@ class PropertiesData(Properties):
                 A new instance with masked values, or `None` if the
                 operation was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> print(v.data.array)
         [9.96920997e+36, 9.96920997e+36, 9.96920997e+36, 9.96920997e+36,
@@ -483,7 +545,7 @@ class PropertiesData(Properties):
 
             {{returns creation_commands}}
 
-        **Examples:**
+        **Examples**
 
         >>> x = {{package}}.{{class}}(
         ...     properties={'units': 'Kelvin',
@@ -674,7 +736,7 @@ class PropertiesData(Properties):
             `bool`
                 Whether the two instances are equal.
 
-        **Examples:**
+        **Examples**
 
         >>> x.equals(x)
         True
@@ -804,7 +866,7 @@ class PropertiesData(Properties):
                 A new instance with expanded data axes. If the
                 operation was in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f.shape
         (19, 73, 96)
@@ -849,7 +911,7 @@ class PropertiesData(Properties):
                 A new instance with removed size 1 one data axes. If
                 the operation was in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
 
         >>> f = {{package}}.{{class}}()
@@ -870,6 +932,32 @@ class PropertiesData(Properties):
         data = v.get_data(None, _units=False, _fill_value=False)
         if data is not None:
             data.squeeze(axes, inplace=True)
+
+        return v
+
+    @_inplace_enabled(default=False)
+    def to_memory(self, inplace=False):
+        """Bring data on disk into memory.
+
+        There is no change to data that is already in memory.
+
+        :Parameters:
+
+            inplace: `bool`, optional
+                If True then do the operation in-place and return `None`.
+
+        :Returns:
+
+            `{{class}}` or `None`
+                A copy with the data in memory, or `None` if the
+                operation was in-place.
+
+        """
+        v = _inplace_enabled_define_and_cleanup(self)
+
+        data = v.get_data(None)
+        if data is not None:
+            data.to_memory(inplace=True)
 
         return v
 
@@ -896,7 +984,7 @@ class PropertiesData(Properties):
                 A new instance with permuted data axes. If the operation
                 was in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f.shape
         (19, 73, 96)
@@ -918,10 +1006,6 @@ class PropertiesData(Properties):
     def uncompress(self, inplace=False):
         """Uncompress the construct.
 
-        Compression saves space by identifying and removing unwanted
-        missing data. Such compression techniques store the data more
-        efficiently and result in no precision loss.
-
         Whether or not the construct is compressed does not alter its
         functionality nor external appearance.
 
@@ -938,6 +1022,10 @@ class PropertiesData(Properties):
 
             * Compression by gathering.
 
+            ..
+
+            * Compression by coordinate subsampling
+
         .. versionadded:: (cfdm) 1.7.11
 
         :Parameters:
@@ -950,7 +1038,7 @@ class PropertiesData(Properties):
                 The uncompressed construct, or `None` if the operation
                 was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.get_compression_type()
         'ragged contiguous'

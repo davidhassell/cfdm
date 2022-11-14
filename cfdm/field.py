@@ -1,7 +1,8 @@
 import logging
 
+import numpy as np
+
 from . import Constructs, Count, Domain, Index, List, core, mixin
-from .constants import masked as cfdm_masked
 from .data import (
     GatheredArray,
     RaggedContiguousArray,
@@ -28,6 +29,7 @@ class Field(
     mixin.NetCDFUnreferenced,
     mixin.FieldDomain,
     mixin.PropertiesData,
+    mixin.Files,
     core.Field,
 ):
     """A field construct of the CF data model.
@@ -89,13 +91,7 @@ class Field(
     """
 
     def __new__(cls, *args, **kwargs):
-        """Store component classes.
-
-        .. note:: If a child class requires a different component
-        classes           than the ones defined here, then they must be
-        redefined           in the child class.
-
-        """
+        """Store component classes."""
         instance = super().__new__(cls)
         instance._Constructs = Constructs
         instance._Domain = Domain
@@ -139,6 +135,7 @@ class Field(
         )
 
         self._initialise_netcdf(source)
+        self._initialise_original_filenames(source)
 
         self._set_dataset_compliance(self.dataset_compliance(), copy=True)
 
@@ -271,7 +268,7 @@ class Field(
             `Field`
                 The subspace of the field construct.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.shape
         (1, 10, 9)
@@ -300,6 +297,13 @@ class Field(
         # Subspace the field's data
         # ------------------------------------------------------------
         new_data = data[tuple(indices)]
+
+        if 0 in new_data.shape:
+            raise IndexError(
+                f"Indices {indices!r} result in a subspaced shape of "
+                f"{new_data.shape}, but can't create a subspace of "
+                f"{self.__class__.__name__} that has a size 0 axis"
+            )
 
         # Replace domain axes
         domain_axes = new.domain_axes(todict=True)
@@ -409,9 +413,68 @@ class Field(
         """
         print("_test_docstring_substitution_Field")
 
-    # ----------------------------------------------------------------
-    # Attributes
-    # ----------------------------------------------------------------
+    def field_ancillary(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select a field ancillary construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        .. seealso:: `construct`, `field_ancillaries`
+
+        :Parameters:
+
+            identity: optional
+                Select field ancillary constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                If no values are provided then all field ancillary
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        **Examples**
+
+        """
+        return self._construct(
+            "field_ancillary",
+            "field_ancillaries",
+            identity,
+            key=key,
+            item=item,
+            default=default,
+            **filter_kwargs,
+        )
+
     def field_ancillaries(self, *identities, **filter_kwargs):
         """Return field ancillary constructs.
 
@@ -443,7 +506,7 @@ class Field(
 
                 {{Returns constructs}}
 
-        **Examples:**
+        **Examples**
 
         >>> print(f.field_ancillaries())
         Constructs:
@@ -463,6 +526,74 @@ class Field(
             ("field_ancillary",),
             "field_ancillaries",
             identities,
+            **filter_kwargs,
+        )
+
+    def cell_method(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select a cell method construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        .. seealso:: `construct`, `cell_methods`
+
+        :Parameters:
+
+            identity: optional
+                Select cell method constructs that have an identity,
+                defined by their `!identities` methods, that matches
+                any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                Additionally, if for a given value
+                ``f.domain_axes(value)`` returns a unique domain axis
+                construct then any cell method constructs that span
+                exactly that axis are selected. See `domain_axes` for
+                details.
+
+                If no values are provided then all cell method
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        **Examples**
+
+        """
+        return self._construct(
+            "cell_method",
+            "cell_methods",
+            identity,
+            key=key,
+            item=item,
+            default=default,
             **filter_kwargs,
         )
 
@@ -505,7 +636,7 @@ class Field(
 
                  {{Returns constructs}}
 
-        **Examples:**
+        **Examples**
 
         """
         cached = filter_kwargs.get("cached")
@@ -611,7 +742,7 @@ class Field(
                 A new field construct with masked values, or `None` if
                 the operation was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(0)
         >>> f.data[[0, -1]] = numpy.ma.masked
@@ -664,7 +795,7 @@ class Field(
                 The axes on the field which are climatological time
                 axes. If there are none, this will be an empty set.
 
-        **Examples:**
+        **Examples**
 
         >>> f
         <{{repr}}Field: air_temperature(time(12), latitude(145), longitude(192)) K>
@@ -701,34 +832,9 @@ class Field(
                 continue
 
             # Still here? Then this axis is a climatological time axis
-            #            out.append((axis,))
             out.add(axis)
 
         return out
-
-    #        out = []
-    #
-    #        domain_axes = None
-    #
-    #        for key, cm in self.cell_methods(todict=True).items():
-    #            qualifiers = cm.qualifiers()
-    #            if not ("within" in qualifiers or "over" in qualifiers):
-    #                continue
-    #
-    #            axes = cm.get_axes(default=())
-    #            if len(axes) != 1:
-    #                continue
-    #
-    #            domain_axes = self.domain_axes(cached=domain_axes, todict=True)
-    #
-    #            axis = axes[0]
-    #            if axis not in domain_axes:
-    #                continue
-    #
-    #            # Still here? Then this axis is a climatological time axis
-    #            out.append((axis,))
-    #
-    #        return out
 
     @_inplace_enabled(default=False)
     def compress(
@@ -860,7 +966,7 @@ class Field(
                 The compressed field construct, or `None` if the
                 operation was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.get_compression_type()
         ''
@@ -907,8 +1013,8 @@ class Field(
             return self._RaggedContiguousArray(
                 compressed_data,
                 shape=data.shape,
-                size=data.size,
-                ndim=data.ndim,
+                #                size=data.size,
+                #                ndim=data.ndim,
                 count_variable=count_variable,
             )
 
@@ -916,8 +1022,8 @@ class Field(
             return self._RaggedIndexedArray(
                 compressed_data,
                 shape=data.shape,
-                size=data.size,
-                ndim=data.ndim,
+                #                size=data.size,
+                #                ndim=data.ndim,
                 index_variable=index_variable,
             )
 
@@ -927,8 +1033,8 @@ class Field(
             return self._RaggedIndexedContiguousArray(
                 compressed_data,
                 shape=data.shape,
-                size=data.size,
-                ndim=data.ndim,
+                #                size=data.size,
+                #                ndim=data.ndim,
                 count_variable=count_variable,
                 index_variable=index_variable,
             )
@@ -1101,13 +1207,15 @@ class Field(
             flattened_data = data.flatten(range(data.ndim - 1))
 
             count = []
+            masked = np.ma.masked
             for d in flattened_data:
+                d = d.array
                 last = d.size
                 for i in d[::-1]:
-                    if i is not cfdm_masked:
+                    if i is not masked:
                         break
-                    else:
-                        last -= 1
+
+                    last -= 1
 
                 count.append(last)
 
@@ -1295,7 +1403,7 @@ class Field(
 
             {{returns creation_commands}}
 
-        **Examples:**
+        **Examples**
 
         >>> q = {{package}}.example_field(0)
         >>> print(q)
@@ -1310,7 +1418,7 @@ class Field(
         #
         # field: specific_humidity
         field = {{package}}.Field()
-        field.set_properties({'Conventions': 'CF-1.9', 'project': 'research', 'standard_name': 'specific_humidity', 'units': '1'})
+        field.set_properties({'Conventions': 'CF-1.10', 'project': 'research', 'standard_name': 'specific_humidity', 'units': '1'})
         field.nc_set_variable('q')
         data = {{package}}.Data([[0.007, 0.034, 0.003, 0.014, 0.018, 0.037, 0.024, 0.029], [0.023, 0.036, 0.045, 0.062, 0.046, 0.073, 0.006, 0.066], [0.11, 0.131, 0.124, 0.146, 0.087, 0.103, 0.057, 0.011], [0.029, 0.059, 0.039, 0.07, 0.058, 0.072, 0.009, 0.017], [0.006, 0.036, 0.019, 0.035, 0.018, 0.037, 0.034, 0.013]], units='1', dtype='f8')
         field.set_data(data)
@@ -1377,7 +1485,7 @@ class Field(
         >>> print(q.creation_commands(representative_data=True, namespace='',
         ...                           indent=4, header=False))
             field = Field()
-            field.set_properties({'Conventions': 'CF-1.9', 'project': 'research', 'standard_name': 'specific_humidity', 'units': '1'})
+            field.set_properties({'Conventions': 'CF-1.10', 'project': 'research', 'standard_name': 'specific_humidity', 'units': '1'})
             field.nc_set_variable('q')
             data = <Data(5, 8): [[0.007, ..., 0.013]] 1>  # Representative data
             field.set_data(data)
@@ -1619,7 +1727,7 @@ class Field(
 
         return "\n".join(string)
 
-    def get_data_axes(self, key=None, default=ValueError()):
+    def get_data_axes(self, *identity, default=ValueError(), **filter_kwargs):
         """Gets the keys of the axes spanned by the construct data.
 
         Specifically, returns the keys of the domain axis constructs
@@ -1631,12 +1739,16 @@ class Field(
 
         :Parameters:
 
-            key: `str`, optional
-                Specify a metadata construct, instead of the field
-                construct.
+            identity, filter_kwargs: optional
+                Select the unique construct returned by
+                ``f.construct(*identity, **filter_kwargs)``. See
+                `construct` for details.
 
-                *Parameter example:*
-                  ``key='auxiliarycoordinate0'``
+                If neither *identity* nor *filter_kwargs* are set then
+                the domain of the field construct's data are
+                returned.
+
+                .. versionadded:: (cfdm) 1.10.0.0
 
             default: optional
                 Return the value of the *default* parameter if the data
@@ -1644,18 +1756,24 @@ class Field(
 
                 {{default Exception}}
 
+            {{filter_kwargs: optional}}
+
+                .. versionadded:: (cfdm) 1.10.0.0
+
         :Returns:
 
             `tuple`
                 The keys of the domain axis constructs spanned by the
                 data.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(0)
         >>> f.get_data_axes()
         ('domainaxis0', 'domainaxis1')
-        >>> f.get_data_axes(key='dimensioncoordinate2')
+        >>> f.get_data_axes('latitude')
+        ('domainaxis0',)
+        >>> f.get_data_axes('time')
         ('domainaxis2',)
         >>> f.has_data_axes()
         True
@@ -1667,16 +1785,31 @@ class Field(
         'no axes'
 
         """
-        if key is not None:
-            return super().get_data_axes(key, default=default)
+        if not identity and not filter_kwargs:
+            # Get axes of the Field data array
+            return super().get_data_axes(default=default)
 
-        try:
-            return self._get_component("data_axes")
-        except ValueError:
+        key = self.construct(
+            *identity, key=True, default=None, **filter_kwargs
+        )
+        if key is None:
+            if default is None:
+                return default
+
             return self._default(
-                default,
-                "{!r} has no data axes".format(self.__class__.__name__),
+                default, "Can't get axes for non-existent construct"
             )
+
+        axes = super().get_data_axes(key, default=None)
+        if axes is None:
+            if default is None:
+                return default
+
+            return self._default(
+                default, f"Construct {key!r} has not had axes set"
+            )
+
+        return axes
 
     def get_domain(self):
         """Return the domain.
@@ -1690,7 +1823,7 @@ class Field(
             `Domain`
                  The domain.
 
-        **Examples:**
+        **Examples**
 
         >>> d = f.get_domain()
 
@@ -1721,7 +1854,7 @@ class Field(
                 the data are in memory then an empty `set` is
                 returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(0)
         >>> {{package}}.write(f, 'temp_file.nc')
@@ -1748,7 +1881,7 @@ class Field(
     #                Whether or not there is a geometry type on any coordinate
     #                construct.
     #
-    #        **Examples:**
+    #        **Examples**
     #
     #        >>> f = {{package}}.Field()
     #        >>> f.has_geometry()
@@ -1760,6 +1893,194 @@ class Field(
     #                return True
     #
     #        return False
+
+    def indices(self, **kwargs):
+        """Create indices that define a subspace of the field construct.
+
+        The subspace is defined by defining indices based on the
+        positions of the given data values of 1-d metadata constructs.
+
+        The returned tuple of indices may be used to created a subspace by
+        indexing the original field construct with them.
+
+        Metadata constructs and the conditions on their data are defined
+        by keyword parameters.
+
+        * Any domain axes that have not been identified remain unchanged.
+
+        * Multiple domain axes may be subspaced simultaneously, and it
+          doesn't matter which order they are specified in.
+
+        * Subspace criteria may be provided for size 1 domain axes that
+          are not spanned by the field construct's data.
+
+        .. versionadded:: 1.10.0.0
+
+        .. seealso:: `__getitem__`, `__setitem__`
+
+        :Parameters:
+
+            kwargs: *optional*
+                Each keyword parameter specifies a value or values
+                whose positions in the 1-d metadata construct's data,
+                identified by the parameter name, define the indices
+                for that dimension.
+
+        :Returns:
+
+            `tuple`
+                The indices meeting the conditions.
+
+        **Examples**
+
+        >>> f = cfdm.example_field(0)
+        >>> print(f)
+        Field: specific_humidity (ncvar%q)
+        ----------------------------------
+        Data            : specific_humidity(latitude(5), longitude(8)) 1
+        Cell methods    : area: mean
+        Dimension coords: latitude(5) = [-75.0, ..., 75.0] degrees_north
+                        : longitude(8) = [22.5, ..., 337.5] degrees_east
+                        : time(1) = [2019-01-01 00:00:00]
+
+        >>> indices = f.indices(longitude=112.5)
+        >>> indices
+        (slice(None, None, None),
+         array([False, False,  True, False, False, False, False, False]))
+        >>> print(f[indices])
+        Field: specific_humidity (ncvar%q)
+        ----------------------------------
+        Data            : specific_humidity(latitude(5), longitude(1)) 1
+        Cell methods    : area: mean
+        Dimension coords: latitude(5) = [-75.0, ..., 75.0] degrees_north
+                        : longitude(1) = [112.5] degrees_east
+                        : time(1) = [2019-01-01 00:00:00]
+
+        >>> indices = f.indices(longitude=112.5, latitude=[-45, 75])
+        >>> indices
+        (array([False,  True, False, False,  True]),
+         array([False, False,  True, False, False, False, False, False]))
+        >>> print(f[indices])
+        Field: specific_humidity (ncvar%q)
+        ----------------------------------
+        Data            : specific_humidity(latitude(2), longitude(1)) 1
+        Cell methods    : area: mean
+        Dimension coords: latitude(2) = [-45.0, 75.0] degrees_north
+                        : longitude(1) = [112.5] degrees_east
+                        : time(1) = [2019-01-01 00:00:00]
+
+        >>> indices = f.indices(time=31)
+        >>> indices
+        (slice(None, None, None), slice(None, None, None))
+        >>> print(f[indices])
+        Field: specific_humidity (ncvar%q)
+        ----------------------------------
+        Data            : specific_humidity(latitude(5), longitude(8)) 1
+        Cell methods    : area: mean
+        Dimension coords: latitude(5) = [-75.0, ..., 75.0] degrees_north
+                        : longitude(8) = [22.5, ..., 337.5] degrees_east
+                        : time(1) = [2019-01-01 00:00:00]
+
+        """
+        # Initialise indices dictionary
+        indices = {axis: slice(None) for axis in self.domain_axes(todict=True)}
+
+        parsed = {}
+        unique_axes = set()
+        n_axes = 0
+
+        for identity, value in kwargs.items():
+            key, construct = self.construct(
+                identity,
+                filter_by_data=True,
+                item=True,
+                default=(None, None),
+                filter_by_naxes=(1,),
+            )
+            if construct is not None:
+                axes = self.get_data_axes(key)
+            else:
+                da_key = self.domain_axis(identity, key=True, default=None)
+                if da_key is not None:
+                    axes = (da_key,)
+                    key = None
+                    construct = None
+                else:
+                    raise ValueError(
+                        f"Can't find indices. Ambiguous axis or axes "
+                        f"defined by {identity!r}"
+                    )
+
+            if axes in parsed:
+                # The axes are the same as an existing key
+                parsed[axes].append((axes, key, construct, value, identity))
+            else:
+                new_key = True
+                y = set(axes)
+                for x in parsed:
+                    if set(x) == set(y):
+                        # The axes are the same but in a different
+                        # order, so we don't need a new key.
+                        parsed[x].append(
+                            (axes, key, construct, value, identity)
+                        )
+                        new_key = False
+                        break
+
+                if new_key:
+                    # The axes, taken in any order, are not the same
+                    # as any keys, so create an new key.
+                    n_axes += len(axes)
+                    parsed[axes] = [(axes, key, construct, value, identity)]
+
+            unique_axes.update(axes)
+
+        if len(unique_axes) < n_axes:
+            raise ValueError(
+                "Can't find indices: Multiple constructs with incompatible "
+                "domain axes"
+            )
+
+        for canonical_axes, axes_key_construct_value in parsed.items():
+            axes, keys, constructs, points, identities = list(
+                zip(*axes_key_construct_value)
+            )
+
+            n_items = len(constructs)
+            n_axes = len(canonical_axes)
+
+            if n_axes != 1:
+                raise ValueError("TODO")
+
+            if n_items > n_axes:
+                raise ValueError(
+                    "Can't specify the same axis more than once. Got: "
+                    f"{identities}"
+                )
+
+            axis = axes[0][0]
+            item = constructs[0]
+            value = points[0]
+
+            if item is None:
+                raise ValueError(
+                    "Can only specify 1-d metadata constructs from which "
+                    f"to create indices. Got: {identities[0]!r}"
+                )
+
+            index = np.isin(item, np.asanyarray(value).astype(item.dtype))
+            if np.ma.is_masked(index):
+                index = index.filled(False)
+
+            if not index.any():
+                raise ValueError(
+                    f"{value!r} does not match any {item!r} data values"
+                )
+
+            indices[axis] = index
+
+        # Return indices tuple
+        return tuple([indices[axis] for axis in self.get_data_axes()])
 
     @_inplace_enabled(default=False)
     def insert_dimension(self, axis, position=0, inplace=False):
@@ -1801,7 +2122,7 @@ class Field(
                 The new field construct with expanded data axes. If
                 the operation was in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.shape
         (19, 73, 96)
@@ -1893,7 +2214,7 @@ class Field(
             `Field`
                 The new field construct.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.read('file.nc')[0]
         >>> print(f)
@@ -1935,7 +2256,7 @@ class Field(
 
         """
         filter_kwargs.pop("item", None)
-        key, c = self.construct_item(*identity, **filter_kwargs)
+        key, c = self.construct(*identity, item=True, **filter_kwargs)
         if c is None:
             raise ValueError("Can't return zero constructs")
 
@@ -2059,7 +2380,7 @@ class Field(
                 The field construct with removed data axes. If the
                 operation was in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.shape
         (1, 73, 1, 96)
@@ -2125,7 +2446,7 @@ class Field(
                 The field construct with permuted data axes. If the
                 operation was in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.shape
         (19, 73, 96)
@@ -2198,13 +2519,12 @@ class Field(
 
         Compression saves space by identifying and removing unwanted
         missing data. Such compression techniques store the data more
-        efficiently and result in no precision loss.
+        efficiently and result in no precision loss. Whether or not
+        the construct is compressed does not alter its functionality
+        nor external appearance.
 
         The field construct data is uncompressed, along with any
         applicable metadata constructs.
-
-        Whether or not the construct is compressed does not alter its
-        functionality nor external appearance.
 
         A field construct that is already uncompressed will be returned
         uncompressed.
@@ -2243,7 +2563,7 @@ class Field(
                 The uncompressed field construct, or `None` if the
                 operation was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> f.data.get_compression_type()
         'ragged contiguous'
@@ -2257,7 +2577,13 @@ class Field(
         f = _inplace_enabled_define_and_cleanup(self)
         super(Field, f).uncompress(inplace=True)
 
-        for c in f.constructs.filter_by_data(todict=True).values():
+        # Uncompress the domain
+        f.domain.uncompress(inplace=True)
+
+        # Uncompress any field ancillaries
+        for c in f.constructs.filter_by_type(
+            "field_ancillary", todict=True
+        ).values():
             c.uncompress(inplace=True)
 
         return f

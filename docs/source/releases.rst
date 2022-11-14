@@ -13,9 +13,20 @@ Documentation for all versions of cfdm.
    :local:
    :backlinks: entry
 
+**CF-1.10**
+----------
+
+* `Version 1.10.0.1 <https://ncas-cms.github.io/cfdm/1.10.0.1>`_ (2022-10-31)
+* `Version 1.10.0.0 <https://ncas-cms.github.io/cfdm/1.10.0.0>`_ (2022-08-17)
+
+----
+
 **CF-1.9**
 ----------
 
+* `Version 1.9.0.4 <https://ncas-cms.github.io/cfdm/1.9.0.4>`_ (2022-07-18)
+* `Version 1.9.0.3 <https://ncas-cms.github.io/cfdm/1.9.0.3>`_ (2022-03-10)
+* `Version 1.9.0.2 <https://ncas-cms.github.io/cfdm/1.9.0.2>`_ (2022-01-31)
 * `Version 1.9.0.1 <https://ncas-cms.github.io/cfdm/1.9.0.1>`_ (2021-10-12)
 * `Version 1.9.0.0 <https://ncas-cms.github.io/cfdm/1.9.0.0>`_ (2021-09-21)
 
@@ -63,8 +74,6 @@ Documentation for all versions of cfdm.
 Finding versions
 ^^^^^^^^^^^^^^^^
 
-Version |release| for version |version| of the CF conventions.
-
 The version of the CF conventions and the CF data model being used may
 be found with the `cfdm.CF` function:
 
@@ -73,7 +82,7 @@ be found with the `cfdm.CF` function:
 	     
    >>> import cfdm
    >>> cfdm.CF()
-   '1.9'
+   '1.10'
 
 This indicates which version of the CF conventions are represented by
 this release of the cfdm package, and therefore the version can not be
@@ -87,7 +96,7 @@ integer values for updates that apply to the same version of CF:
    :caption: *Retrieve the version of the cfdm package.*
 	     	     
    >>> cfdm.__version__
-   '1.9.0.0'
+   '1.10.0.0'
 
 The next section outlines the scheme used to set version identifiers.
 
@@ -95,7 +104,7 @@ Versioning strategy
 ^^^^^^^^^^^^^^^^^^^
 
 A ``CF.major.minor`` numeric version scheme is used, where ``CF`` is
-the version of the CF conventions (e.g. ``1.9``) to which a particular
+the version of the CF conventions (e.g. ``1.10``) to which a particular
 version of cfdm applies.
 
 **Major** changes comprise:

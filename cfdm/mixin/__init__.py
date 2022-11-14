@@ -1,4 +1,5 @@
 from .container import Container
+from .files import Files
 from .properties import Properties
 from .propertiesdata import PropertiesData
 from .propertiesdatabounds import PropertiesDataBounds
@@ -16,7 +17,9 @@ from .netcdf import (
     NetCDFExternal,
     NetCDFGeometry,
     NetCDFHDF5,
+    NetCDFInterpolationSubareaDimension,
     NetCDFSampleDimension,
+    NetCDFSubsampledDimension,
     NetCDFUnreferenced,
     NetCDFVariable,
 )

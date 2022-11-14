@@ -68,7 +68,9 @@ Data
    :toctree: ../attribute/
    :template: attribute.rst
 
+   ~cfdm.Count.array
    ~cfdm.Count.data
+   ~cfdm.Count.datetime_array
    ~cfdm.Count.dtype
    ~cfdm.Count.ndim
    ~cfdm.Count.shape
@@ -88,8 +90,10 @@ Miscellaneous
    ~cfdm.Count.creation_commands
    ~cfdm.Count.equals
    ~cfdm.Count.get_filenames
+   ~cfdm.Count.original_filenames
    ~cfdm.Count.has_bounds
    ~cfdm.Count.uncompress
+   ~cfdm.Count.to_memory
 
 NetCDF
 ------

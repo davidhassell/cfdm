@@ -68,7 +68,9 @@ Data
    :toctree: ../attribute/
    :template: attribute.rst
 
+   ~cfdm.InteriorRing.array
    ~cfdm.InteriorRing.data
+   ~cfdm.InteriorRing.datetime_array
    ~cfdm.InteriorRing.dtype
    ~cfdm.InteriorRing.ndim
    ~cfdm.InteriorRing.shape
@@ -90,6 +92,8 @@ Miscellaneous
    ~cfdm.InteriorRing.has_bounds
    ~cfdm.InteriorRing.uncompress
    ~cfdm.InteriorRing.get_filenames
+   ~cfdm.InteriorRing.original_filenames
+   ~cfdm.InteriorRing.to_memory
 
 NetCDF
 ------

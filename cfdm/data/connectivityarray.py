@@ -13,7 +13,7 @@ class ConnectivityArray(CompressedArray):
 
     See CF section 5.9 "Mesh Topology Variables".
 
-    .. versionadded:: (cfdm) 1.10.0.0
+    .. versionadded:: (cfdm) 1.11.0.0
 
     """
 
@@ -24,7 +24,7 @@ class ConnectivityArray(CompressedArray):
         ones defined here, then they must be defined in the __new__
         method of the child class.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) 1.11.0.0
 
         """
         instance = super().__new__(cls)
@@ -72,7 +72,7 @@ class ConnectivityArray(CompressedArray):
         Returns a subspace of the uncompressed array as an independent
         numpy array.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) 1.11.0.0
 
         """
         # ------------------------------------------------------------
@@ -106,7 +106,7 @@ class ConnectivityArray(CompressedArray):
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) 1.11.0.0
 
         """
         return np.dtype(bool)
@@ -114,7 +114,7 @@ class ConnectivityArray(CompressedArray):
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) 1.11.0.0
 
         .. seealso:: `subarray`
 
@@ -185,7 +185,7 @@ class ConnectivityArray(CompressedArray):
 
         These descriptors are used during subarray decompression.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) 1.11.0.0
 
         :Parameters:
 

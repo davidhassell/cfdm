@@ -3,6 +3,7 @@ import logging
 
 import netCDF4
 import numpy
+import numpy as np
 
 from .. import core
 from ..constants import masked as cfdm_masked
@@ -13,13 +14,14 @@ from ..decorators import (
 )
 from ..functions import abspath
 from ..mixin.container import Container
+from ..mixin.files import Files
 from ..mixin.netcdf import NetCDFHDF5
 from . import NumpyArray, abstract
 
 logger = logging.getLogger(__name__)
 
 
-class Data(Container, NetCDFHDF5, core.Data):
+class Data(Container, NetCDFHDF5, Files, core.Data):
     """An orthogonal multidimensional array with masking and units.
 
     .. versionadded:: (cfdm) 1.7.0
@@ -129,10 +131,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 {{init source}}
 
-            copy: `bool`, optional
-                If False then do not deep copy input parameters prior
-                to initialisation. By default arguments are deep
-                copied.
+            {{deep copy}}
 
             kwargs: ignored
                 Not used. Present to facilitate subclassing.
@@ -166,7 +165,9 @@ class Data(Container, NetCDFHDF5, core.Data):
             _use_array=_use_array,
         )
 
+        # Initialise the netCDF components
         self._initialise_netcdf(source)
+        self._initialise_original_filenames(source)
 
     def __array__(self, *dtype):
         """The numpy array interface.
@@ -183,7 +184,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `numpy.ndarray`
                 An independent numpy array of the data.
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}([1, 2, 3])
@@ -249,7 +250,7 @@ class Data(Container, NetCDFHDF5, core.Data):
     def __format__(self, format_spec):
         """Interpret format specifiers for size 1 arrays.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}(9, 'metres')
         >>> f"{d}"
@@ -322,7 +323,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `{{class}}`
                 The subspace of the data.
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(100, 190).reshape(1, 10, 9))
@@ -357,6 +358,22 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         return out
 
+    def __and__(self, other):
+        """The binary bitwise operation ``&``
+
+        x.__and__(y) <==> x&y
+
+        """
+        return self._binary_operation(other, "__and__")
+
+    def __eq__(self, other):
+        """The rich comparison operator ``==``
+
+        x.__eq__(y) <==> x==y
+
+        """
+        return self._binary_operation(other, "__eq__")
+
     def __int__(self):
         """Called by the `int` built-in function.
 
@@ -376,7 +393,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         x.__iter__() <==> iter(x)
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([1, 2, 3], 'metres')
         >>> for e in d:
@@ -456,7 +473,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             `None`
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(100, 190).reshape(1, 10, 9))
@@ -518,13 +535,13 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         mask = [False, False, False]
 
+        if isreftime and first is np.ma.masked:
+            first = 0
+            mask[0] = True
+
         if size == 1:
             if isreftime:
                 # Convert reference time to date-time
-                if first is numpy.ma.masked:
-                    first = 0
-                    mask[0] = True
-
                 try:
                     first = type(self)(
                         numpy.ma.array(first, mask=mask[0]), units, calendar
@@ -587,9 +604,59 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         return out
 
-    # ----------------------------------------------------------------
-    # Private methods
-    # ----------------------------------------------------------------
+    def _binary_operation(self, other, method):
+        """Implement binary arithmetic and comparison operations.
+
+        Implements binary arithmetic and comparison operations with
+        the numpy broadcasting rules.
+
+        It is called by the binary arithmetic and comparison methods,
+        such as `__sub__`, `__imul__`, `__rdiv__`, `__lt__`, etc.
+
+        .. seealso:: `_unary_operation`
+
+        :Parameters:
+
+            other:
+                The object on the right hand side of the operator.
+
+            method: `str`
+                The binary arithmetic or comparison method name (such as
+                ``'__imul__'`` or ``'__ge__'``).
+
+        :Returns:
+
+            `Data`
+                A new data object, or if the operation was in place, the
+                same data object.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}([0, 1, 2, 3])
+        >>> e = {{package}}.{{class}}([1, 1, 3, 4])
+        >>> f = d._binary_operation(e, '__add__')
+        >>> print(f.array)
+        [1 2 5 7]
+        >>> e = d._binary_operation(e, '__lt__')
+        >>> print(e.array)
+        [ True False  True  True]
+        >>> d._binary_operation(2, '__imul__')
+        >>> print(d.array)
+        [0 2 4 6]
+
+        """
+        inplace = method[2] == "i"
+        if inplace:
+            d = self
+        else:
+            d = self.copy(array=False)
+
+        array = np.asanyarray(getattr(self.array, method)(other))
+
+        d._set_Array(array, copy=False)
+
+        return d
+
     def _item(self, index):
         """Return an element of the data as a scalar.
 
@@ -604,7 +671,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The selected element of the data.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([[1, 2, 3]], 'km')
         >>> x = d._item((0, -1))
@@ -629,6 +696,96 @@ class Data(Container, NetCDFHDF5, core.Data):
 
         return numpy.ma.masked
 
+    def _original_filenames(self, define=None, update=None, clear=False):
+        """Return the names of files that contain the original data.
+
+        {{original filenames}}
+
+        .. note:: The original filenames are **not** inherited by
+                  parent constructs that contain the data.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        :Parameters:
+
+            {{define: (sequence of) `str`, optional}}
+
+            {{update: (sequence of) `str`, optional}}
+
+            {{clear: `bool` optional}}
+
+        :Returns:
+
+            `set` or `None`
+                {{Returns original filenames}}
+
+                If the *define* or *update* parameter is set then
+                `None` is returned.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}(9)
+        >>> d._original_filenames()
+        ()
+        >>> d._original_filenames(define="file1.nc")
+        >>> d._original_filenames()
+        ('/data/user/file1.nc',)
+        >>> d._original_filenames(update=["file1.nc"])
+        >>> d._original_filenames()
+        ('/data/user/file1.nc',)
+        >>> d._original_filenames(update="file2.nc")
+        >>> d._original_filenames()
+        ('/data/user/file1.nc', '/data/user/file2.nc')
+        >>> d._original_filenames(define="file3.nc")
+        >>> d._original_filenames()
+        ('/data/user/file3.nc',)
+        >>> d._original_filenames(clear=True)
+        >>> d._original_filenames()
+        ()
+
+        >>> d = {{package}}.{{class}}(9, _filenames=["file1.nc", "file2.nc"])
+        >>> d._original_filenames()
+        ('/data/user/file1.nc', '/data/user/file2.nc',)
+
+        """
+        old = super()._original_filenames(
+            define=define, update=update, clear=clear
+        )
+
+        if old is None:
+            return
+
+        # Find any compression ancillary data variables
+        ancils = []
+        compression = self.get_compression_type()
+        if compression:
+            if compression == "gathered":
+                ancils.extend(self.get_list([]))
+            elif compression == "subsampled":
+                ancils.extend(self.get_tie_point_indices({}).values())
+                ancils.extend(self.get_interpolation_parameters({}).values())
+                ancils.extend(self.get_dependent_tie_points({}).values())
+            else:
+                if compression in (
+                    "ragged contiguous",
+                    "ragged indexed contiguous",
+                ):
+                    ancils.extend(self.get_count([]))
+
+                if compression in (
+                    "ragged indexed",
+                    "ragged indexed contiguous",
+                ):
+                    ancils.extend(self.get_index([]))
+
+            if ancils:
+                # Include original file names from ancillary variables
+                for a in ancils:
+                    old.update(a._original_filenames(clear=clear))
+
+        # Return the old file names
+        return old
+
     def _parse_axes(self, axes):
         """Parses the data axes and returns valid non-duplicate axes.
 
@@ -643,7 +800,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             `tuple`
 
-        **Examples:**
+        **Examples**
 
         >>> d._parse_axes(1)
         (1,)
@@ -690,7 +847,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             `None`
 
-        **Examples:**
+        **Examples**
 
         >>> d._set_Array(a)
 
@@ -719,7 +876,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             `None`
 
-        **Examples:**
+        **Examples**
 
         >>> d._set_CompressedArray(a)
 
@@ -727,71 +884,208 @@ class Data(Container, NetCDFHDF5, core.Data):
         self._set_Array(array, copy=copy)
 
     @classmethod
-    def _set_subspace(cls, array, indices, value):
-        """Set a subspace of the data array defined by indices."""
+    def _set_subspace(cls, array, indices, value, orthogonal_indexing=True):
+        """Assign to a subspace of an array.
+
+        :Parameters:
+
+            array: array_like
+                The array to be assigned to. Must support
+                `numpy`-style indexing. The array is changed in-place.
+
+            indices: sequence
+                The indices to be applied.
+
+            value: array_like
+                The value being assigned. Must support fancy indexing.
+
+            orthogonal_indexing: `bool`, optional
+                If True then apply 'orthogonal indexing', for which
+                indices that are 1-d arrays or lists subspace along
+                each dimension independently. This behaviour is
+                similar to Fortran but different to, for instance,
+                `numpy` or `dask`.
+
+        :Returns:
+
+            `None`
+
+        **Examples**
+
+        Note that ``a`` is redefined for each example, as it is
+        changed in-place.
+
+        >>> a = np.arange(40).reshape(5, 8)
+        >>> {{package}}.Data._set_subspace(a, [[1, 4 ,3], [7, 6, 1]],
+        ...                    np.array([[-1, -2, -3]]))
+        >>> print(a)
+        [[ 0  1  2  3  4  5  6  7]
+         [ 8 -3 10 11 12 13 -2 -1]
+         [16 17 18 19 20 21 22 23]
+         [24 -3 26 27 28 29 -2 -1]
+         [32 -3 34 35 36 37 -2 -1]]
+
+        >>> a = np.arange(40).reshape(5, 8)
+        >>> {{package}}.Data._set_subspace(a, [[1, 4 ,3], [7, 6, 1]],
+        ...                    np.array([[-1, -2, -3]]),
+        ...                    orthogonal_indexing=False)
+        >>> print(a)
+        [[ 0  1  2  3  4  5  6  7]
+         [ 8  9 10 11 12 13 14 -1]
+         [16 17 18 19 20 21 22 23]
+         [24 -3 26 27 28 29 30 31]
+         [32 33 34 35 36 37 -2 39]]
+
+        >>> a = np.arange(40).reshape(5, 8)
+        >>> value = np.linspace(-1, -9, 9).reshape(3, 3)
+        >>> print(value)
+        [[-1. -2. -3.]
+         [-4. -5. -6.]
+         [-7. -8. -9.]]
+        >>> {{package}}.Data._set_subspace(a, [[4, 4 ,1], [7, 6, 1]], value)
+        >>> print(a)
+        [[ 0  1  2  3  4  5  6  7]
+         [ 8 -9 10 11 12 13 -8 -7]
+         [16 17 18 19 20 21 22 23]
+         [24 25 26 27 28 29 30 31]
+         [32 -6 34 35 36 37 -5 -4]]
+
+        """
+        if not orthogonal_indexing:
+            # --------------------------------------------------------
+            # Apply non-orthogonal indexing
+            # --------------------------------------------------------
+            array[tuple(indices)] = value
+            return
+
+        # ------------------------------------------------------------
+        # Still here? Then apply orthogonal indexing
+        # ------------------------------------------------------------
         axes_with_list_indices = [
-            i for i, x in enumerate(indices) if not isinstance(x, slice)
+            i
+            for i, x in enumerate(indices)
+            if isinstance(x, list) or getattr(x, "shape", False)
         ]
 
         if len(axes_with_list_indices) < 2:
-            # --------------------------------------------------------
             # At most one axis has a list-of-integers index so we can
-            # do a normal numpy assignment
-            # --------------------------------------------------------
+            # do a normal assignment
             array[tuple(indices)] = value
         else:
-            # --------------------------------------------------------
             # At least two axes have list-of-integers indices so we
-            # can't do a normal numpy assignment
-            # --------------------------------------------------------
+            # can't do a normal assignment.
+            #
+            # The brute-force approach would be to do a separate
+            # assignment to each set of elements of 'array' that are
+            # defined by every possible combination of the integers
+            # defined by the two index lists.
+            #
+            # For example, if the input 'indices' are ([1, 2, 4, 5],
+            # slice(0:10), [8, 9]) then the brute-force approach would
+            # be to do 4*2=8 separate assignments of 10 elements each.
+            #
+            # This can be reduced by a factor of ~2 per axis that has
+            # list indices if we convert it to a sequence of "size 2"
+            # slices (with a "size 1" slice at the end if there are an
+            # odd number of list elements).
+            #
+            # In the above example, the input list index [1, 2, 4, 5]
+            # can be mapped to two slices: slice(1,3,1), slice(4,6,1);
+            # the input list index [8, 9] is mapped to slice(8,10,1)
+            # and only 2 separate assignments of 40 elements each are
+            # needed.
             indices1 = indices[:]
-            for i, x in enumerate(indices):
+            for i, (x, size) in enumerate(zip(indices, array.shape)):
                 if i in axes_with_list_indices:
-                    # This index is a list of integers
+                    # This index is a list (or similar) of integers
+                    if not isinstance(x, list):
+                        x = np.asanyarray(x).tolist()
+
                     y = []
                     args = [iter(x)] * 2
                     for start, stop in itertools.zip_longest(*args):
-                        if not stop:
+                        if start < 0:
+                            start += size
+
+                        if stop is None:
                             y.append(slice(start, start + 1))
+                            break
+
+                        if stop < 0:
+                            stop += size
+
+                        step = stop - start
+                        if not step:
+                            # (*) There is a repeated index in
+                            #     positions 2N and 2N+1 (N>=0). Store
+                            #     this as a single-element list
+                            #     instead of a "size 2" slice, mainly
+                            #     as an indicator that a special index
+                            #     to 'value' might need to be
+                            #     created. See below, where this
+                            #     comment is referenced.
+                            #
+                            #     For example, the input list index
+                            #     [1, 4, 4, 4, 6, 2, 7] will be mapped
+                            #     to slice(1,5,3), [4], slice(6,1,-4),
+                            #     slice(7,8,1)
+                            y.append([start])
                         else:
-                            step = stop - start
-                            stop += 1
+                            if step > 0:
+                                stop += 1
+                            else:
+                                stop -= 1
+
                             y.append(slice(start, stop, step))
 
                     indices1[i] = y
                 else:
                     indices1[i] = (x,)
 
-            if numpy.size(value) == 1:
+            if value.size == 1:
+                # 'value' is logically scalar => simply assign it to
+                # all index combinations.
                 for i in itertools.product(*indices1):
                     array[i] = value
-
             else:
+                # 'value' has two or more elements => for each index
+                # combination for 'array' assign the corresponding
+                # part of 'value'.
                 indices2 = []
-                ndim_difference = array.ndim - numpy.ndim(value)
-                for i, n in enumerate(numpy.shape(value)):
-                    if n == 1:
+                ndim_difference = array.ndim - value.ndim
+                for i2, size in enumerate(value.shape):
+                    i1 = i2 + ndim_difference
+                    if i1 not in axes_with_list_indices:
+                        # The input 'indices[i1]' is a slice
                         indices2.append((slice(None),))
-                    elif i + ndim_difference in axes_with_list_indices:
+                        continue
+
+                    index1 = indices1[i1]
+                    if size == 1:
+                        indices2.append((slice(None),) * len(index1))
+                    else:
                         y = []
                         start = 0
-                        while start < n:
+                        for index in index1:
                             stop = start + 2
+                            if isinstance(index, list):
+                                # Two consecutive elements of 'value'
+                                # are assigned to the same integer
+                                # index of 'array'.
+                                #
+                                # See the (*) comment above.
+                                start += 1
+
                             y.append(slice(start, stop))
                             start = stop
 
                         indices2.append(y)
-                    else:
-                        indices2.append((slice(None),))
 
                 for i, j in zip(
                     itertools.product(*indices1), itertools.product(*indices2)
                 ):
                     array[i] = value[j]
 
-    # ----------------------------------------------------------------
-    # Attributes
-    # ----------------------------------------------------------------
     @property
     def compressed_array(self):
         """Returns an independent numpy array of the compressed data.
@@ -806,17 +1100,28 @@ class Data(Container, NetCDFHDF5, core.Data):
             `numpy.ndarray`
                 An independent numpy array of the compressed data.
 
-        **Examples:**
+        **Examples**
 
         >>> a = d.compressed_array
 
         """
         ca = self._get_Array(None)
-
-        if not ca.get_compression_type():
+        if ca is None or not ca.get_compression_type():
             raise ValueError("not compressed: can't get compressed array")
 
         return ca.compressed_array
+
+    @property
+    def data(self):
+        """The data as an object identity.
+
+        **Examples**
+
+        >>> d.data is d
+        True
+
+        """
+        return self
 
     @property
     def datetime_array(self):
@@ -843,7 +1148,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `numpy.ndarray`
                 An independent numpy array of the date-time objects.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([31, 62, 90], units='days since 2018-12-01')
         >>> a = d.datetime_array
@@ -922,7 +1227,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `numpy.ndarray`
                 An independent numpy array of the date-time strings.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([31, 62, 90], units='days since 2018-12-01')
         >>> print(d.datetime_as_string)
@@ -948,7 +1253,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `{{class}}`
                 The Boolean mask as data.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}(numpy.ma.array(
         ...     [[280.0,   -99,   -99,   -99],
@@ -984,7 +1289,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 `True` if any data array elements evaluate to True,
                 otherwise `False`.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([[0, 0, 0]])
         >>> d.any()
@@ -1090,7 +1395,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The data with masked values. If the operation was in-place
                 then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(12).reshape(3, 4), 'm')
@@ -1225,15 +1530,15 @@ class Data(Container, NetCDFHDF5, core.Data):
         :Parameters:
 
             array: `bool`, optional
-                If False then do not copy the array. By default the array
-                is copied.
+                If True (the default) then copy the array, else it
+                is not copied.
 
         :Returns:
 
             `{{class}}`
                 The deep copy.
 
-        **Examples:**
+        **Examples**
 
         >>> e = d.copy()
         >>> e = d.copy(array=False)
@@ -1264,7 +1569,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             {{returns creation_commands}}
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([[0.0, 45.0], [45.0, 90.0]],
         ...                           units='degrees_east')
@@ -1364,7 +1669,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `Data` or `None`
                 The filled data, or `None` if the operation was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([[1, 2, 3]])
         >>> print(d.filled().array)
@@ -1438,7 +1743,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The data with expanded axes. If the operation was in-place
                 then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> d.shape
         (19, 73, 96)
@@ -1489,7 +1794,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The count variable.
 
-        **Examples:**
+        **Examples**
 
         >>> c = d.get_count()
 
@@ -1499,6 +1804,45 @@ class Data(Container, NetCDFHDF5, core.Data):
         except (AttributeError, ValueError):
             return self._default(
                 default, f"{self.__class__.__name__!r} has no count variable"
+            )
+
+    def get_dependent_tie_points(self, default=ValueError()):
+        """Return the list variable for a compressed array.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        .. seealso:: `get_tie_point_indices`,
+                     `get_interpolation_parameters`, `get_index`,
+                     `get_list`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if no
+                dependent tie point index variables have been set. If
+                set to an `Exception` instance then it will be raised
+                instead.
+
+        :Returns:
+
+            `dict`
+                The dependent tie point arrays needed by the
+                interpolation method, keyed by the dependent tie point
+                identities. Each key is a dependent tie point
+                identity, whose value is a `Data` variable.
+
+        **Examples**
+
+        >>> l = d.get_dependent_tie_points()
+
+        """
+        try:
+            return self._get_Array().get_dependent_tie_points()
+        except (AttributeError, ValueError):
+            return self._default(
+                default,
+                f"{self.__class__.__name__!r} has no dependent "
+                "tie point index variables",
             )
 
     def get_index(self, default=ValueError()):
@@ -1522,7 +1866,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The index variable.
 
-        **Examples:**
+        **Examples**
 
         >>> i = d.get_index()
 
@@ -1532,6 +1876,48 @@ class Data(Container, NetCDFHDF5, core.Data):
         except (AttributeError, ValueError):
             return self._default(
                 default, f"{self.__class__.__name__!r} has no index variable"
+            )
+
+    def get_interpolation_parameters(self, default=ValueError()):
+        """Return the list variable for a compressed array.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        .. seealso:: `get_dependent_tie_points`,
+                     `get_tie_point_indices`, `get_index`,
+                     `get_list`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if no
+                interpolation parameters have been set. If set to an
+                `Exception` instance then it will be raised instead.
+
+        :Returns:
+
+            `dict`
+                Interpolation parameters required by the subsampling
+                interpolation method. Each key is an interpolation
+                parameter term name, whose value is an
+                `InterpolationParameter` variable.
+
+                Interpolation parameter term names for the
+                standardised interpolation methods are defined in CF
+                Appendix J "Coordinate Interpolation Methods".
+
+        **Examples**
+
+        >>> l = d.get_interpolation_parameters()
+
+        """
+        try:
+            return self._get_Array().get_interpolation_parameters()
+        except (AttributeError, ValueError):
+            return self._default(
+                default,
+                f"{self.__class__.__name__!r} has no subsampling "
+                "interpolation parameters",
             )
 
     def get_list(self, default=ValueError()):
@@ -1552,7 +1938,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The list variable.
 
-        **Examples:**
+        **Examples**
 
         >>> l = d.get_list()
 
@@ -1562,6 +1948,44 @@ class Data(Container, NetCDFHDF5, core.Data):
         except (AttributeError, ValueError):
             return self._default(
                 default, f"{self.__class__.__name__!r} has no list variable"
+            )
+
+    def get_tie_point_indices(self, default=ValueError()):
+        """Return the list variable for a compressed array.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        .. seealso:: `get_dependent_tie_points`,
+                     `get_interpolation_parameters`,
+                     `get_index`, `get_list`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if no tie
+                point index variables have been set. If set to an
+                `Exception` instance then it will be raised instead.
+
+        :Returns:
+
+            `dict`
+                The tie point index variable for each subsampled
+                dimension. A key indentifies a subsampled dimension by
+                its integer position in the compressed array, and its
+                value is a `TiePointIndex` variable.
+
+        **Examples**
+
+        >>> l = d.get_tie_point_indices()
+
+        """
+        try:
+            return self._get_Array().get_tie_point_indices()
+        except (AttributeError, ValueError):
+            return self._default(
+                default,
+                f"{self.__class__.__name__!r} has no "
+                "tie point index variables",
             )
 
     def get_compressed_dimension(self, default=ValueError()):
@@ -1588,7 +2012,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The position of the compressed dimension in the compressed
                 array.
 
-        **Examples:**
+        **Examples**
 
         >>> d.get_compressed_dimension()
         2
@@ -1613,7 +2037,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             `list`
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(100, 190).reshape(1, 10, 9))
@@ -1731,7 +2155,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `{{class}}`
                 Maximum of the data along the specified axes.
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(24).reshape(1, 2, 3, 4))
@@ -1803,7 +2227,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `{{class}}`
                 Minimum of the data along the specified axes.
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(24).reshape(1, 2, 3, 4))
@@ -1881,7 +2305,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The data with removed data axes. If the operation was
                 in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> d.shape
         (1, 73, 1, 96)
@@ -1949,7 +2373,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `{{class}}`
                 The sum of the data along the specified axes.
 
-        **Examples:**
+        **Examples**
 
 
         >>> d = {{package}}.{{class}}(numpy.arange(24).reshape(1, 2, 3, 4))
@@ -2022,7 +2446,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The data with permuted data axes. If the operation was
                 in-place then `None` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> d.shape
         (19, 73, 96)
@@ -2081,7 +2505,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 dimension in the underlying array. If the data are not
                 compressed then an empty list is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> d.shape
         (2, 3, 4, 5, 6)
@@ -2117,7 +2541,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The compression type. An empty string means that no
                 compression has been applied.
 
-        **Examples:**
+        **Examples**
 
         >>> d.get_compression_type()
         ''
@@ -2162,7 +2586,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
             `{{class}}`
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}.empty((96, 73))
 
@@ -2242,7 +2666,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `bool`
                 Whether the two data arrays are equal.
 
-        **Examples:**
+        **Examples**
 
         >>> d.equals(d)
         True
@@ -2255,6 +2679,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         pp = super()._equals_preprocess(
             other, verbose=verbose, ignore_type=ignore_type
         )
+
         if pp is True or pp is False:
             return pp
 
@@ -2334,7 +2759,13 @@ class Data(Container, NetCDFHDF5, core.Data):
         # ------------------------------------------------------------
         # Check for equal (uncompressed) array values
         # ------------------------------------------------------------
-        if not self._equals(self.array, other.array, rtol=rtol, atol=atol):
+        if not self._equals(
+            self.array,
+            other.array,
+            ignore_data_type=ignore_data_type,
+            rtol=rtol,
+            atol=atol,
+        ):
             logger.info(
                 f"{self.__class__.__name__}: Different array values "
                 f"(atol={atol}, rtol={rtol})"
@@ -2350,13 +2781,15 @@ class Data(Container, NetCDFHDF5, core.Data):
     def get_filenames(self):
         """Return the name of the file containing the data array.
 
+        .. seealso:: `original_filenames`
+
         :Returns:
 
             `set`
                 The file name in normalised, absolute form. If the
                 data is are memory then an empty `set` is returned.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(0)
         >>> {{package}}.write(f, 'temp_file.nc')
@@ -2391,7 +2824,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The first element of the data.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}(9.0)
         >>> x = d.first_element()
@@ -2413,7 +2846,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         foo <class 'str'>
 
         """
-        return self._item((slice(0, 1),) * self.ndim)
+        return self._item((slice(0, 1, 1),) * self.ndim)
 
     @_inplace_enabled(default=False)
     def flatten(self, axes=None, inplace=False):
@@ -2558,7 +2991,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The last element of the data.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}(9.0)
         >>> x = d.last_element()
@@ -2580,7 +3013,7 @@ class Data(Container, NetCDFHDF5, core.Data):
         bar <class 'str'>
 
         """
-        return self._item((slice(-1, None),) * self.ndim)
+        return self._item((slice(-1, None, 1),) * self.ndim)
 
     def second_element(self):
         """Return the second element of the data as a scalar.
@@ -2593,7 +3026,7 @@ class Data(Container, NetCDFHDF5, core.Data):
 
                 The second element of the data.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([[1, 2], [3, 4]])
         >>> x = d.second_element()
@@ -2610,18 +3043,28 @@ class Data(Container, NetCDFHDF5, core.Data):
         bar <class 'str'>
 
         """
-        return self._item((slice(0, 1),) * (self.ndim - 1) + (slice(1, 2),))
+        return self._item(
+            (slice(0, 1, 1),) * (self.ndim - 1) + (slice(1, 2, 1),)
+        )
 
-    def to_memory(self):
-        """Bring data on disk into memory and retain it there.
+    @_inplace_enabled(default=False)
+    def to_memory(self, inplace=False):
+        """Bring data on disk into memory.
 
         There is no change to data that is already in memory.
 
+        :Parameters:
+
+            inplace: `bool`, optional
+                If True then do the operation in-place and return `None`.
+
         :Returns:
 
-            `None`
+            `{{class}}` or `None`
+                A copy of the data in memory, or `None` if the
+                operation was in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(4)
         >>> f.data
@@ -2629,7 +3072,9 @@ class Data(Container, NetCDFHDF5, core.Data):
         >>> f.data.to_memory()
 
         """
-        self._set_Array(self.source().to_memory())
+        d = _inplace_enabled_define_and_cleanup(self)
+        d._set_Array(self.source().to_memory())
+        return d
 
     @_inplace_enabled(default=False)
     def uncompress(self, inplace=False):
@@ -2650,7 +3095,7 @@ class Data(Container, NetCDFHDF5, core.Data):
                 The uncompressed data, or `None` if the operation was
                 in-place.
 
-        **Examples:**
+        **Examples**
 
         >>> d.get_compression_type()
         'ragged contiguous'
@@ -2683,7 +3128,7 @@ class Data(Container, NetCDFHDF5, core.Data):
             `{{class}}`
                 The unique elements.
 
-        **Examples:**
+        **Examples**
 
         >>> d = {{package}}.{{class}}([[4, 2, 1], [1, 2, 3]], 'metre')
         >>> d.unique()

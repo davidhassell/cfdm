@@ -22,7 +22,7 @@ class DomainTopology(
 
     {{netCDF variable}}
 
-    .. versionadded:: (cfdm) 1.10.0.0
+    .. versionadded:: (cfdm) 1.11.0.0
 
     """
 
@@ -79,7 +79,7 @@ class DomainTopology(
         Returns a description of all properties, including those of
         components, and provides selected values of all data arrays.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) 1.11.0.0
 
         :Parameters:
 

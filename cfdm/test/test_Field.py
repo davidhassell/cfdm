@@ -6,7 +6,7 @@ import re
 import tempfile
 import unittest
 
-import numpy
+import numpy as np
 
 faulthandler.enable()  # to debug seg faults and timeouts
 
@@ -59,6 +59,21 @@ class FieldTest(unittest.TestCase):
         str(f)
         self.assertIsInstance(f.dump(display=False), str)
         self.assertEqual(f.construct_type, "field")
+
+        # Test when any construct which can have data in fact has no data.
+        f = f.copy()
+        for identity in [
+            "time",  # a dimension coordinate
+            "latitude",  # an auxiliary coordinate
+            "measure:area",  # a cell measure
+            "surface_altitude",  # a domain ancillary,
+            "air_temperature standard_error",  # a field ancillary
+        ]:
+            c = f.construct(identity)  # get relevant construct, type as above
+            c.del_data()
+            self.assertFalse(c.has_data())
+            str(f)
+            repr(f)
 
     def test_Field__init__(self):
         """Test the Field constructor and source keyword."""
@@ -115,7 +130,7 @@ class FieldTest(unittest.TestCase):
                 indices = list(indices)
                 for axis, i in enumerate(indices):
                     if isinstance(i, list):
-                        e = numpy.take(e, indices=i, axis=axis)
+                        e = np.take(e, indices=i, axis=axis)
                         indices[axis] = slice(None)
 
                 e = e[tuple(indices)]
@@ -136,6 +151,10 @@ class FieldTest(unittest.TestCase):
         b = c.bounds
         self.assertEqual(c.data.shape, (4,))
         self.assertEqual(b.data.shape, (4, 2))
+
+        # Indices result in a subspaced shape that has a size 0 axis
+        with self.assertRaises(IndexError):
+            f[..., [False] * f.shape[-1]]
 
     #    def test_Field___setitem__(self):
     #        f = self.f.squeeze()
@@ -162,32 +181,32 @@ class FieldTest(unittest.TestCase):
     #            array = f[indices].data.array
     #            self.assertTrue((array == -1).all())
     #
-    #            values, counts = numpy.unique(f.data.array, return_counts=True)
+    #            values, counts = np.unique(f.data.array, return_counts=True)
     #            self.assertEqual(counts[0], array.size)
 
-    def test_Field_get_filenames(self):
-        """Test the `get_filenames` Field method."""
-        cfdm.write(self.f0, tmpfile)
-        g = cfdm.read(tmpfile)[0]
-
-        abspath_tmpfile = os.path.abspath(tmpfile)
-        self.assertEqual(g.get_filenames(), set([abspath_tmpfile]))
-
-        g.data[...] = -99
-        self.assertEqual(g.get_filenames(), set([abspath_tmpfile]))
-
-        for c in g.constructs.filter_by_data().values():
-            c.data[...] = -99
-
-        self.assertEqual(g.get_filenames(), set([abspath_tmpfile]))
-
-        for c in g.constructs.filter_by_data().values():
-            if c.has_bounds():
-                c.bounds.data[...] = -99
-
-        self.assertEqual(g.get_filenames(), set())
-
-        os.remove(tmpfile)
+    #    def test_Field_get_filenames(self):
+    #        """Test the `get_filenames` Field method."""
+    #        cfdm.write(self.f0, tmpfile)
+    #        g = cfdm.read(tmpfile)[0]
+    #
+    #        abspath_tmpfile = os.path.abspath(tmpfile)
+    #        self.assertEqual(g.get_filenames(), set([abspath_tmpfile]))
+    #
+    #        g.data[...] = -99
+    #        self.assertEqual(g.get_filenames(), set([abspath_tmpfile]))
+    #
+    #        for c in g.constructs.filter_by_data().values():
+    #            c.data[...] = -99
+    #
+    #        self.assertEqual(g.get_filenames(), set([abspath_tmpfile]))
+    #
+    #        for c in g.constructs.filter_by_data().values():
+    #            if c.has_bounds():
+    #                c.bounds.data[...] = -99
+    #
+    #        self.assertEqual(g.get_filenames(), set())
+    #
+    #        os.remove(tmpfile)
 
     def test_Field_apply_masking(self):
         """Test the `apply_masking` Field method."""
@@ -634,6 +653,207 @@ class FieldTest(unittest.TestCase):
         """Test that Field instances do not have cell bounds."""
         f = cfdm.example_field(0)
         self.assertFalse(f.has_bounds())
+
+    def test_Field_auxiliary_coordinate(self):
+        """Test Field.auxiliary_coordinate."""
+        f = self.f1
+
+        for identity in ("auxiliarycoordinate1", "latitude"):
+            key, c = f.construct(identity, item=True)
+            self.assertTrue(f.auxiliary_coordinate(identity).equals(c))
+            self.assertEqual(f.auxiliary_coordinate(identity, key=True), key)
+
+        with self.assertRaises(ValueError):
+            f.auxiliary_coordinate("long_name:qwerty")
+
+    def test_Field_coordinate(self):
+        """Test Field.coordinate."""
+        f = self.f1
+
+        for identity in (
+            "latitude",
+            "grid_longitude",
+            "auxiliarycoordinate1",
+            "dimensioncoordinate1",
+        ):
+            key, c = f.construct(identity, item=True)
+
+        with self.assertRaises(ValueError):
+            f.coordinate("long_name:qweRty")
+
+    def test_Field_coordinate_reference(self):
+        """Test Field.coordinate_reference."""
+        f = self.f1
+
+        for identity in (
+            "coordinatereference1",
+            "key%coordinatereference0",
+            "standard_name:atmosphere_hybrid_height_coordinate",
+            "grid_mapping_name:rotated_latitude_longitude",
+        ):
+            key, c = f.construct(identity, item=True)
+            self.assertTrue(f.coordinate_reference(identity).equals(c))
+            self.assertEqual(f.coordinate_reference(identity, key=True), key)
+
+        with self.assertRaises(ValueError):
+            f.coordinate_reference("qwerty")
+
+    def test_Field_dimension_coordinate(self):
+        """Test Field.dimension_coordinate."""
+        f = self.f1
+
+        for identity in ("grid_latitude", "dimensioncoordinate1"):
+            if identity == "X":
+                key, c = f.construct("grid_longitude", item=True)
+            else:
+                key, c = f.construct(identity, item=True)
+
+            self.assertTrue(f.dimension_coordinate(identity).equals(c))
+            self.assertEqual(f.dimension_coordinate(identity, key=True), key)
+
+            k, v = f.dimension_coordinate(identity, item=True)
+            self.assertEqual(k, key)
+            self.assertTrue(v.equals(c))
+
+        self.assertIsNone(
+            f.dimension_coordinate("long_name=qwerty:asd", default=None)
+        )
+        self.assertEqual(
+            len(f.dimension_coordinates("long_name=qwerty:asd")), 0
+        )
+
+        with self.assertRaises(ValueError):
+            f.dimension_coordinate("long_name:qwerty")
+
+    def test_Field_cell_measure(self):
+        """Test Field.cell_measure."""
+        f = self.f1
+
+        for identity in ("measure:area", "cellmeasure0"):
+            key, c = f.construct(identity, item=True)
+
+            self.assertTrue(f.cell_measure(identity).equals(c))
+            self.assertEqual(f.cell_measure(identity, key=True), key)
+
+            self.assertTrue(f.cell_measure(identity).equals(c))
+            self.assertEqual(f.cell_measure(identity, key=True), key)
+
+        self.assertEqual(len(f.cell_measures()), 1)
+        self.assertEqual(len(f.cell_measures("measure:area")), 1)
+        self.assertEqual(len(f.cell_measures(*["measure:area"])), 1)
+
+        self.assertIsNone(f.cell_measure("long_name=qwerty:asd", default=None))
+        self.assertEqual(len(f.cell_measures("long_name=qwerty:asd")), 0)
+
+        with self.assertRaises(ValueError):
+            f.cell_measure("long_name:qwerty")
+
+    def test_Field_cell_method(self):
+        """Test Field.cell_method."""
+        f = self.f1
+
+        for identity in ("method:mean", "cellmethod0"):
+            key, c = f.construct(identity, item=True)
+            self.assertTrue(f.cell_method(identity).equals(c))
+            self.assertEqual(f.cell_method(identity, key=True), key)
+
+    def test_Field_domain_ancillary(self):
+        """Test Field.domain_ancillary."""
+        f = self.f1
+
+        for identity in ("surface_altitude", "domainancillary0"):
+            key, c = f.construct(identity, item=True)
+            self.assertTrue(f.domain_ancillary(identity).equals(c))
+            self.assertEqual(f.domain_ancillary(identity, key=True), key)
+
+        with self.assertRaises(ValueError):
+            f.domain_ancillary("long_name:qwerty")
+
+    def test_Field_field_ancillary(self):
+        """Test Field.field_ancillary."""
+        f = self.f1
+
+        for identity in ("air_temperature standard_error", "fieldancillary0"):
+            key, c = f.construct_item(identity)
+            self.assertTrue(f.field_ancillary(identity).equals(c))
+            self.assertEqual(f.field_ancillary(identity, key=True), key)
+
+        with self.assertRaises(ValueError):
+            f.field_ancillary("long_name:qwerty")
+
+    def test_Field_domain_axis(self):
+        """Test Field.domain_axis."""
+        f = self.f1
+
+        f.domain_axis(1)
+        f.domain_axis("domainaxis2")
+
+        with self.assertRaises(ValueError):
+            f.domain_axis(99)
+
+        with self.assertRaises(ValueError):
+            f.domain_axis("qwerty")
+
+    def test_Field_indices(self):
+        """Test Field.indices."""
+        f = cfdm.example_field(0)
+
+        g = f[f.indices(longitude=112.5)]
+        self.assertEqual(g.shape, (5, 1))
+        x = g.dimension_coordinate("longitude").data.array
+        self.assertTrue((x == 112.5).all())
+
+        g = f[f.indices(longitude=112.5, latitude=[-45, 75])]
+        self.assertEqual(g.shape, (2, 1))
+        x = g.dimension_coordinate("longitude").data.array
+        y = g.dimension_coordinate("latitude").data.array
+        self.assertTrue((x == 112.5).all())
+        self.assertTrue((y == [-45, 75]).all())
+
+        g = f[f.indices(time=31)]
+        self.assertTrue(g.equals(f))
+
+        g = f[f.indices(time=np.array([31, 9999]))]
+        self.assertTrue(g.equals(f))
+
+        with self.assertRaises(ValueError):
+            f.indices(bad_name=23)
+
+        with self.assertRaises(ValueError):
+            f.indices(longitude=-999)
+
+        with self.assertRaises(ValueError):
+            f.indices(longitude="bad_value_type")
+
+        # Test for same axis specified twice
+        key = f.construct("longitude", key=True)
+        with self.assertRaises(ValueError):
+            f.indices(**{"longitude": 112.5, key: 22.5})
+
+    def test_Field_get_original_filenames(self):
+        """Test Field.orignal_filenames."""
+        f = cfdm.example_field(0)
+        f._original_filenames(define=["file1.nc", "file2.nc"])
+        x = f.coordinate("longitude")
+        x._original_filenames(define=["file1.nc", "file3.nc"])
+        b = x.bounds
+        b._original_filenames(define=["file1.nc", "file4.nc"])
+
+        self.assertEqual(
+            f.get_original_filenames(),
+            set(
+                (
+                    cfdm.abspath("file1.nc"),
+                    cfdm.abspath("file2.nc"),
+                    cfdm.abspath("file3.nc"),
+                    cfdm.abspath("file4.nc"),
+                )
+            ),
+        )
+
+        self.assertEqual(
+            f.get_original_filenames(), f.copy().get_original_filenames()
+        )
 
 
 if __name__ == "__main__":

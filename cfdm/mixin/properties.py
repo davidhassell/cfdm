@@ -98,9 +98,6 @@ class Properties(Container):
         if ncvar is not None:
             yield f"ncvar%{ncvar}"
 
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
     def creation_commands(
         self, namespace=None, indent=0, string=True, name="c", header=True
     ):
@@ -127,7 +124,7 @@ class Properties(Container):
 
             {{returns creation_commands}}
 
-        **Examples:**
+        **Examples**
 
         >>> x = {{package}}.{{class}}(
         ...     properties={'units': 'Kelvin',
@@ -293,7 +290,7 @@ class Properties(Container):
             `bool`
                 Whether the two instances are equal.
 
-        **Examples:**
+        **Examples**
 
         >>> p.equals(p)
         True
@@ -391,7 +388,7 @@ class Properties(Container):
 
                 The identity.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.{{class}}()
         >>> f.set_properties({'foo': 'bar',
@@ -467,7 +464,7 @@ class Properties(Container):
             `list` or generator
                 The identities.
 
-        **Examples:**
+        **Examples**
 
         >>> f.properties()
         {'foo': 'bar',

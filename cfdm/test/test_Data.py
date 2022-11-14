@@ -6,6 +6,7 @@ import os
 import unittest
 
 import numpy
+import numpy as np
 
 faulthandler.enable()  # to debug seg faults and timeouts
 
@@ -68,10 +69,16 @@ class DataTest(unittest.TestCase):
             _ = repr(d)
             _ = str(d)
 
-    #    def test_Data__getitem__(self):
+        # Test when the data contains date-times with the first
+        # element masked
+        dt = numpy.ma.array([10, 20], mask=[True, False])
+        d = cfdm.Data(dt, units="days since 2000-01-01")
+        self.assertTrue(str(d) == "[--, 2000-01-21 00:00:00]")
+        self.assertTrue(repr(d) == "<Data(2): [--, 2000-01-21 00:00:00]>")
+
     def test_Data__setitem__(self):
         """Test the assignment of data items on Data."""
-        a = numpy.ma.arange(3000).reshape(50, 60)
+        a = np.ma.arange(3000).reshape(50, 60)
 
         d = cfdm.Data(a.filled(), units="m")
 
@@ -88,47 +95,138 @@ class DataTest(unittest.TestCase):
             n = -n - 1
             for dvalue, avalue in (
                 (n, n),
-                (cfdm.masked, numpy.ma.masked),
+                (cfdm.masked, np.ma.masked),
                 (n, n),
             ):
-                message = f"cfdm.Data[{j}, {i}]={dvalue}={avalue} failed"
                 d[j, i] = dvalue
                 a[j, i] = avalue
                 x = d.array
-                self.assertTrue(
-                    (x == a).all() in (True, numpy.ma.masked), message
-                )
-                m = numpy.ma.getmaskarray(x)
-                self.assertTrue(
-                    (m == numpy.ma.getmaskarray(a)).all(),
-                    "d.mask.array="
-                    + repr(m)
-                    + "\nnumpy.ma.getmaskarray(a)="
-                    + repr(numpy.ma.getmaskarray(a)),
-                )
+                self.assertTrue((x == a).all() in (True, np.ma.masked))
+                m = np.ma.getmaskarray(x)
+                self.assertTrue((m == np.ma.getmaskarray(a)).all())
 
-        a = numpy.ma.arange(3000).reshape(50, 60)
+        a = np.ma.arange(3000).reshape(50, 60)
 
         d = cfdm.Data(a.filled(), "m")
 
         (j, i) = (slice(0, 2), slice(0, 3))
-        array = numpy.array([[1, 2, 6], [3, 4, 5]]) * -1
+        array = np.array([[1, 2, 6], [3, 4, 5]]) * -1
 
-        for dvalue in (array, numpy.ma.masked_where(array < -2, array), array):
-            message = "cfdm.Data[%s, %s]=%s failed" % (j, i, dvalue)
+        for dvalue in (array, np.ma.masked_where(array < -2, array), array):
             d[j, i] = dvalue
             a[j, i] = dvalue
             x = d.array
-            self.assertTrue((x == a).all() in (True, numpy.ma.masked), message)
-            m = numpy.ma.getmaskarray(x)
-            self.assertTrue((m == numpy.ma.getmaskarray(a)).all(), message)
+            self.assertTrue((x == a).all() in (True, np.ma.masked))
+            m = np.ma.getmaskarray(x)
+            self.assertTrue((m == np.ma.getmaskarray(a)).all())
 
         # Scalar numeric array
         d = cfdm.Data(9, units="km")
         d[...] = cfdm.masked
         a = d.array
         self.assertEqual(a.shape, ())
-        self.assertIs(a[()], numpy.ma.masked)
+        self.assertIs(a[()], np.ma.masked)
+
+        # Multiple list indices, scalar value
+        d = cfdm.Data(np.arange(40).reshape(5, 8), units="km")
+
+        value = -1
+        for indices in (
+            ([0, 3, 4], [1, 6, 7]),
+            ([0, 3, 4], [1, 7, 6]),
+            ([0, 4, 3], [1, 6, 7]),
+            ([0, 4, 3], [1, 7, 6]),
+            ([4, 3, 0], [7, 6, 1]),
+            ([4, 3, 0], [1, 6, 7]),
+            ([0, 3, 4], [7, 6, 1]),
+            ([0, 3, -1], [7, 6, 1]),
+            ([0, 3, 4], [-1, 6, 1]),
+            ([0, 3, -1], [-1, 6, 1]),
+        ):
+            d[indices] = value
+            self.assertEqual((d.array == value).sum(), 9)
+            value -= 1
+
+        # Repeated list elements
+        for indices in (
+            ([0, 3, 3], [7, 6, 1]),
+            ([3, 3, 0], [7, 6, 1]),
+            ([0, 4, 3], [7, 6, 7]),
+        ):
+            d[indices] = value
+            self.assertEqual((d.array == value).sum(), 6)
+            value -= 1
+
+        for indices in (
+            ([3, 4, 3], [7, 6, 7]),
+            ([3, 3, 4], [7, 7, 6]),
+            ([4, 3, 3], [6, 7, 7]),
+        ):
+            d[indices] = value
+            self.assertEqual((d.array == value).sum(), 4)
+            value -= 1
+
+        # Multiple list indices, array value
+        a = np.arange(40).reshape(1, 5, 8)
+
+        value = np.arange(9).reshape(3, 3) - 9
+
+        for indices in (
+            (slice(None), [0, 3, 4], [1, 6, 7]),
+            (slice(None), [0, 3, 4], [1, 7, 6]),
+            (slice(None), [0, 4, 3], [1, 6, 7]),
+            (slice(None), [0, 4, 3], [1, 7, 6]),
+            (slice(None), [4, 3, 0], [7, 6, 1]),
+            (slice(None), [4, 3, 0], [1, 6, 7]),
+            (slice(None), [0, 3, 4], [7, 6, 1]),
+            (slice(None), [0, 3, -1], [7, 6, 1]),
+            (slice(None), [0, 3, 4], [-1, 6, 1]),
+            (slice(None), [0, 3, -1], [-1, 6, 1]),
+        ):
+            d = cfdm.Data(a.copy())
+            d[indices] = value
+            self.assertEqual((d.array < 0).sum(), 9)
+
+        # Repeated list elements
+        for indices in (
+            (slice(None), [0, 3, 3], [7, 6, 1]),
+            (slice(None), [0, 4, 3], [7, 6, 7]),
+            (slice(None), [3, 3, 4], [1, 6, 7]),
+            (slice(None), [0, 4, 3], [7, 7, 6]),
+        ):
+            d = cfdm.Data(a.copy())
+            d[indices] = value
+            self.assertEqual((d.array < 0).sum(), 6)
+
+        for indices in (
+            (slice(None), [3, 4, 3], [7, 6, 7]),
+            (slice(None), [4, 3, 3], [6, 7, 7]),
+            (slice(None), [3, 3, 4], [6, 7, 7]),
+            (slice(None), [3, 3, 4], [7, 7, 6]),
+            (slice(None), [4, 3, 3], [7, 7, 6]),
+        ):
+            d = cfdm.Data(a.copy())
+            d[indices] = value
+            self.assertEqual((d.array < 0).sum(), 4)
+
+        # Multiple list indices, array value + broadcasting
+        value = np.arange(3).reshape(1, 3) - 9
+
+        for indices in ((slice(None), [0, 3, 4], [1, 6, 7]),):
+            d = cfdm.Data(a.copy())
+            d[indices] = value
+            self.assertEqual((d.array < 0).sum(), 9)
+
+        # Repeated list elements
+        for indices in ((slice(None), [0, 3, 3], [7, 6, 1]),):
+            d = cfdm.Data(a.copy())
+            d[indices] = value
+            self.assertEqual((d.array < 0).sum(), 6)
+
+        for indices in ((slice(None), [4, 3, 3], [7, 7, 6]),):
+            d = cfdm.Data(a.copy())
+            d[indices] = value
+            self.assertEqual((d.array < 0).sum(), 4)
 
     def test_Data_apply_masking(self):
         """Test the `apply_masking` Data method."""
@@ -581,6 +679,56 @@ class DataTest(unittest.TestCase):
         self.assertEqual(f"{d!r}", "<Data(2): [9, 10] metres>")
         with self.assertRaises(ValueError):
             f"{d:.3f}"
+
+    def test_Data_orginal_filenames(self):
+        """Test the `original_filenames` Data method."""
+        d = cfdm.Data(9, "metres")
+        self.assertEqual(d.get_original_filenames(), set())
+
+        self.assertIsNone(d._original_filenames(define="file1.nc"))
+        self.assertEqual(
+            d.get_original_filenames(), set([cfdm.abspath("file1.nc")])
+        )
+
+        self.assertIsNone(d._original_filenames(update=["file1.nc"]))
+        self.assertEqual(len(d.get_original_filenames()), 1)
+
+        d._original_filenames(update="file2.nc")
+        self.assertEqual(len(d.get_original_filenames()), 2)
+
+        d._original_filenames(update=["file1.nc", "file2.nc"])
+        self.assertEqual(len(d.get_original_filenames()), 2)
+
+        d._original_filenames(define="file3.nc")
+        self.assertEqual(len(d.get_original_filenames()), 1)
+
+        self.assertEqual(len(d._original_filenames(clear=True)), 1)
+        self.assertEqual(d.get_original_filenames(), set())
+
+        d._original_filenames(update=["file1.nc", "file2.nc"])
+        self.assertEqual(len(d.get_original_filenames()), 2)
+
+        d = cfdm.Data(9, filenames=None)
+        self.assertEqual(d.get_original_filenames(), set())
+
+        d = cfdm.Data(9, filenames=[])
+        self.assertEqual(d.get_original_filenames(), set())
+
+        # Check source
+        e = cfdm.Data(source=d)
+        self.assertEqual(
+            e.get_original_filenames(), d.get_original_filenames()
+        )
+
+        # Check illegal parameter combinations
+        with self.assertRaises(ValueError):
+            d._original_filenames(define="file1.nc", update="file2.nc")
+
+        with self.assertRaises(ValueError):
+            d._original_filenames(define="file3.nc", clear=True)
+
+        with self.assertRaises(ValueError):
+            d._original_filenames(update="file4.nc", clear=True)
 
 
 if __name__ == "__main__":

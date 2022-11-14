@@ -23,6 +23,10 @@ class NetCDFArray(abstract.Array):
         shape=None,
         size=None,
         mask=True,
+        units=False,
+        calendar=False,
+        source=None,
+        copy=True,
     ):
         """**Initialisation**
 
@@ -78,8 +82,8 @@ class NetCDFArray(abstract.Array):
                 The number of array dimensions in the netCDF file.
 
             mask: `bool`
-                If False then do not mask by convention when reading data
-                from disk. By default data is masked by convention.
+                If True (the default) then mask by convention when
+                reading data from disk.
 
                 A netCDF array is masked depending on the values of any of
                 the netCDF variable attributes ``valid_min``,
@@ -88,35 +92,101 @@ class NetCDFArray(abstract.Array):
 
                 .. versionadded:: (cfdm) 1.8.2
 
-        **Examples:**
+            units: `str` or `None`, optional
+                The units of the netCDF variable. Set to `None` to
+                indicate that there are no units. If unset then the
+                units will be set during the first `__getitem__` call.
 
-        >>> import netCDF4
-        >>> nc = netCDF4.Dataset('file.nc', 'r')
-        >>> v = nc.variable['tas']
-        >>> a = NetCDFFileArray(filename='file.nc', ncvar='tas',
-        ...                     group=['forecast'], dtype=v.dtype,
-        ...                     ndim=v.ndim, shape=v.shape, size=v.size)
+                .. versionadded:: (cfdm) 1.10.0.1
+
+            calendar: `str` or `None`, optional
+                The calendar of the netCDF variable. By default, or if
+                set to `None`, then the CF default calendar is
+                assumed, if applicable. If unset then the calendar
+                will be set during the first `__getitem__` call.
+
+                .. versionadded:: (cfdm) 1.10.0.1
+
+            source: optional
+                Initialise the array from the given object.
+
+                {{init source}}
+
+                .. versionadded:: (cfdm) 1.10.0.0
+
+            {{deep copy}}
+
+                .. versionadded:: (cfdm) 1.10.0.0
 
         """
-        super().__init__(filename=filename, ncvar=ncvar, varid=varid)
+        super().__init__(source=source, copy=copy)
 
-        self._set_component("netcdf", None, copy=False)
-        self._set_component("group", group, copy=False)
+        if source is not None:
+            try:
+                shape = source._get_component("shape", None)
+            except AttributeError:
+                shape = None
 
-        # By default, close the netCDF file after data array access
-        self._set_component("close", True, copy=False)
+            try:
+                filename = source._get_component("filename", None)
+            except AttributeError:
+                filename = None
 
-        if ndim is not None:
-            self._set_component("ndim", ndim, copy=False)
+            try:
+                ncvar = source._get_component("ncvar", None)
+            except AttributeError:
+                ncvar = None
 
-        if size is not None:
-            self._set_component("size", size, copy=False)
+            try:
+                varid = source._get_component("varid", None)
+            except AttributeError:
+                varid = None
+
+            try:
+                group = source._get_component("group", None)
+            except AttributeError:
+                group = None
+
+            try:
+                dtype = source._get_component("dtype", None)
+            except AttributeError:
+                dtype = None
+
+            try:
+                mask = source._get_component("mask", True)
+            except AttributeError:
+                mask = True
+
+            try:
+                units = source._get_component("units", False)
+            except AttributeError:
+                units = False
+
+            try:
+                calendar = source._get_component("calendar", False)
+            except AttributeError:
+                calendar = False
 
         if shape is not None:
             self._set_component("shape", shape, copy=False)
 
+        if filename is not None:
+            self._set_component("filename", filename, copy=False)
+
+        if ncvar is not None:
+            self._set_component("ncvar", ncvar, copy=False)
+
+        if varid is not None:
+            self._set_component("varid", varid, copy=False)
+
+        self._set_component("group", group, copy=False)
         self._set_component("dtype", dtype, copy=False)
         self._set_component("mask", mask, copy=False)
+        self._set_component("units", units, copy=False)
+        self._set_component("calendar", calendar, copy=False)
+
+        # By default, close the netCDF file after data array access
+        self._set_component("close", True, copy=False)
 
     def __getitem__(self, indices):
         """Returns a subspace of the array as a numpy array.
@@ -140,6 +210,7 @@ class NetCDFArray(abstract.Array):
 
         """
         netcdf = self.open()
+        dataset = netcdf
 
         # Traverse the group structure, if there is one (CF>=1.8).
         group = self.get_group()
@@ -167,9 +238,11 @@ class NetCDFArray(abstract.Array):
                     array = variable[indices]
                     break
 
-        if self._get_component("close"):
-            # Close the netCDF file
-            self.close()
+        # Set the units, if they haven't been set already.
+        self._set_units(variable)
+
+        self.close(dataset)
+        del netcdf, dataset
 
         string_type = isinstance(array, str)
         if string_type:
@@ -217,77 +290,117 @@ class NetCDFArray(abstract.Array):
         return array
 
     def __repr__(self):
-        """Returns a printable representation of the `NetCDFArray`.
+        """Called by the `repr` built-in function.
 
-        x.__repr__() is logically equivalent to repr(x)
+        x.__repr__() <==> repr(x)
 
         """
         return f"<{self.__class__.__name__}{self.shape}: {self}>"
 
     def __str__(self):
-        """Returns a string version of the `NetCDFArray` object.
+        """Called by the `str` built-in function.
 
-        x.__str__() is logically equivalent to str(x)
+        x.__str__() <==> str(x)
 
         """
-        name = self.get_ncvar()
-        if name is None:
-            name = f"varid={self.get_varid()}"
-        else:
-            name = f"variable={name}"
+        return f"{self.get_filename()}, {self.get_address()}"
 
-        return f"file={self.get_filename()} {name}"
+    def _set_units(self, var):
+        """The units and calendar properties.
 
-    # ----------------------------------------------------------------
-    # Attributes
-    # ----------------------------------------------------------------
+        These are set from the netCDF variable attributes, but only if
+        they have already not been defined, either during {{class}}
+        instantiation or by a previous call to `_set_units`.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        :Parameters:
+
+            var: `netCDF4.Variable`
+                The variable containing the units and calendar
+                definitions.
+
+        :Returns:
+
+            `tuple`
+                The units and calendar values, either of which may be
+                `None`.
+
+        """
+        # Note: Can't use None as the default since it is a valid
+        #       `units` or 'calendar' value that indicates that the
+        #       attribute has not been set in the dataset.
+        units = self._get_component("units", False)
+        if units is False:
+            try:
+                units = var.getncattr("units")
+            except AttributeError:
+                units = None
+
+            self._set_component("units", units, copy=False)
+
+        calendar = self._get_component("calendar", False)
+        if calendar is False:
+            try:
+                calendar = var.getncattr("calendar")
+            except AttributeError:
+                calendar = None
+
+            self._set_component("calendar", calendar, copy=False)
+
+        return units, calendar
+
+    @property
+    def array(self):
+        """Return an independent numpy array containing the data.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        :Returns:
+
+            `numpy.ndarray`
+                An independent numpy array of the data.
+
+        **Examples**
+
+        >>> n = numpy.asanyarray(a)
+        >>> isinstance(n, numpy.ndarray)
+        True
+
+        """
+        return self[...]
+
     @property
     def dtype(self):
         """Data-type of the data elements.
 
         .. versionadded:: (cfdm) 1.7.0
 
-        **Examples:**
-
-        >>> a.dtype
-        dtype('float64')
-        >>> print(type(a.dtype))
-        <type 'numpy.dtype'>
-
         """
         return self._get_component("dtype")
 
     @property
-    def ndim(self):
-        """Number of array dimensions.
+    def file_address(self):
+        """The file name and address.
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
-        **Examples:**
+        :Returns:
 
-        >>> a.shape
-        (73, 96)
-        >>> a.ndim
-        2
-        >>> a.size
-        7008
+            `tuple`
+                The file name and file address.
 
-        >>> a.shape
-        (1, 1, 1)
-        >>> a.ndim
-        3
-        >>> a.size
-        1
+        **Examples**
 
-        >>> a.shape
-        ()
-        >>> a.ndim
-        0
-        >>> a.size
-        1
+        >>> a.file_address()
+        ('file.nc', 'latitude')
 
         """
-        return self._get_component("ndim")
+        pointer = self._get_component("ncvar", None)
+        if pointer is None:
+            pointer = self.get_varid()
+
+        return (self.get_filename(), pointer)
 
     @property
     def shape(self):
@@ -295,83 +408,55 @@ class NetCDFArray(abstract.Array):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        **Examples:**
-
-        >>> a.shape
-        (73, 96)
-        >>> a.ndim
-        2
-        >>> a.size
-        7008
-
-        >>> a.shape
-        (1, 1, 1)
-        >>> a.ndim
-        3
-        >>> a.size
-        1
-
-        >>> a.shape
-        ()
-        >>> a.ndim
-        0
-        >>> a.size
-        1
-
         """
         return self._get_component("shape")
 
-    @property
-    def size(self):
-        """Number of elements in the array.
+    def get_address(self):
+        """The address in the file of the variable.
 
-        .. versionadded:: (cfdm) 1.7.0
+        Either the netCDF variable name, or else the UNIDATA netCDF
+        interface ID.
 
-        **Examples:**
+        .. versionadded:: (cfdm) 1.10.0.1
 
-        >>> a.shape
-        (73, 96)
-        >>> a.size
-        7008
-        >>> a.ndim
-        2
+        .. seealso:: `get_filename`, `get_varid`
 
-        >>> a.shape
-        (1, 1, 1)
-        >>> a.ndim
-        3
-        >>> a.size
-        1
+        :Returns:
 
-        >>> a.shape
-        ()
-        >>> a.ndim
-        0
-        >>> a.size
-        1
+            `str` or `None`
+                The address, or `None` if there isn't one.
 
         """
-        return self._get_component("size")
+        address = self.get_ncvar()
+        if address is None:
+            address = self.get_varid()
+
+        return address
 
     def get_filename(self):
         """The name of the netCDF file containing the array.
 
         .. versionadded:: (cfdm) 1.7.0
 
-        **Examples:**
+        :Returns:
+
+            `str` or `None`
+                The filename, or `None` if there isn't one.
+
+        **Examples**
 
         >>> a.get_filename()
         'file.nc'
 
         """
-        return self._get_component("filename")
+        return self._get_component("filename", None)
 
     def get_group(self):
         """The netCDF4 group structure of the netCDF variable.
 
         .. versionadded:: (cfdm) 1.8.6.0
 
-        **Examples:**
+        **Examples**
 
         >>> b = a.get_group()
 
@@ -379,11 +464,11 @@ class NetCDFArray(abstract.Array):
         return self._get_component("group")
 
     def get_mask(self):
-        """The mask of the data array.
+        """Whether or not to automatically mask the data.
 
         .. versionadded:: (cfdm) 1.8.2
 
-        **Examples:**
+        **Examples**
 
         >>> b = a.get_mask()
 
@@ -395,7 +480,7 @@ class NetCDFArray(abstract.Array):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        **Examples:**
+        **Examples**
 
         >>> print(a.netcdf)
         'tas'
@@ -415,7 +500,7 @@ class NetCDFArray(abstract.Array):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        **Examples:**
+        **Examples**
 
         >>> print(a.netcdf)
         'tas'
@@ -428,54 +513,28 @@ class NetCDFArray(abstract.Array):
         4
 
         """
-        return self._get_component("varid")
+        return self._get_component("varid", None)
 
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
-    def close(self):
-        """Close the `netCDF4.Dataset` for the file containing the data.
+    def close(self, netcdf):
+        """Close the dataset containing the data.
 
         .. versionadded:: (cfdm) 1.7.0
+
+        :Parameters:
+
+            netcdf: `netCDF4.Dataset`
+                The netCDF dataset to be be closed.
 
         :Returns:
 
             `None`
 
-        **Examples:**
-
-        >>> a.close()
-
         """
-        netcdf = self._get_component("netcdf")
-        if netcdf is None:
-            return
-
-        netcdf.close()
-        self._set_component("netcdf", None, copy=False)
-
-    @property
-    def array(self):
-        """Return an independent numpy array containing the data.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Returns:
-
-            `numpy.ndarray`
-                An independent numpy array of the data.
-
-        **Examples:**
-
-        >>> n = numpy.asanyarray(a)
-        >>> isinstance(n, numpy.ndarray)
-        True
-
-        """
-        return self[...]
+        if self._get_component("close"):
+            netcdf.close()
 
     def open(self):
-        """Returns an open `netCDF4.Dataset` for the array's file.
+        """Returns an open dataset containing the data array.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -483,7 +542,7 @@ class NetCDFArray(abstract.Array):
 
             `netCDF4.Dataset`
 
-        **Examples:**
+        **Examples**
 
         >>> netcdf = a.open()
         >>> variable = netcdf.variables[a.get_ncvar()]
@@ -491,31 +550,20 @@ class NetCDFArray(abstract.Array):
         'eastward_wind'
 
         """
-        if self._get_component("netcdf") is None:
-            try:
-                netcdf = netCDF4.Dataset(self.get_filename(), "r")
-            except RuntimeError as error:
-                raise RuntimeError(f"{error}: {self.get_filename()}")
-
-            self._set_component("netcdf", netcdf, copy=False)
-
-        return netcdf
+        try:
+            return netCDF4.Dataset(self.get_filename(), "r")
+        except RuntimeError as error:
+            raise RuntimeError(f"{error}: {self.get_filename()}")
 
     def to_memory(self):
-        """Bring an array on disk into memory and retain it there.
-
-        There is no change to an array that is already in memory.
+        """Bring data on disk into memory.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Returns:
 
             `NumpyArray`
-                The array that is stored in memory.
-
-        **Examples:**
-
-        >>> b = a.to_memory()
+                The new with all of its data in memory.
 
         """
         return NumpyArray(self[...])

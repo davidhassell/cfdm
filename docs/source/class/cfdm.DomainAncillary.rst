@@ -79,7 +79,9 @@ Data
    :toctree: ../attribute/
    :template: attribute.rst
 
+   ~cfdm.DomainAncillary.array
    ~cfdm.DomainAncillary.data
+   ~cfdm.DomainAncillary.datetime_array
    ~cfdm.DomainAncillary.dtype
    ~cfdm.DomainAncillary.ndim
    ~cfdm.DomainAncillary.shape
@@ -161,6 +163,8 @@ Miscellaneous
    ~cfdm.DomainAncillary.equals
    ~cfdm.DomainAncillary.uncompress
    ~cfdm.DomainAncillary.get_filenames
+   ~cfdm.DomainAncillary.original_filenames
+   ~cfdm.DomainAncillary.to_memory
 
 NetCDF
 ------

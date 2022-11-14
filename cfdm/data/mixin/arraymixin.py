@@ -18,7 +18,7 @@ class ArrayMixin:
             `numpy.ndarray`
                 An independent numpy array of the data.
 
-        **Examples:**
+        **Examples**
 
         >>> isinstance(a, Array)
         True
@@ -34,30 +34,18 @@ class ArrayMixin:
             return array.astype(dtype[0], copy=False)
 
     def __getitem__(self, indices):
-        """Return a subspace as an independent numpy array.
+        """Return a subspace of the uncompressed subarray.
 
         x.__getitem__(indices) <==> x[indices]
 
-        Indexing follows rules that are very similar to the numpy
-        indexing rules, the only differences being:
-
-        * An integer index i takes the i-th element but does not
-          reduce the rank by one.
-
-        ..
-
-        * When two or more dimensions' indices are sequences of
-          integers then these indices work independently along each
-          dimension (similar to the way vector subscripts work in
-          Fortran). This is the same behaviour as indexing on a
-          Variable object of the netCDF4 package.
+        Returns a subspace of the uncompressed subarray as an
+        independent numpy array.
 
         .. versionadded:: (cfdm) 1.8.7.0
 
         """
         raise NotImplementedError(
-            "Subclasses of cfdm.data.abstract.Array "
-            "must implement '__getitem__'"
+            f"Must implement {self.__class__.__name__}.__getitem__"
         )  # pragma: no cover
 
     def __repr__(self):
@@ -88,6 +76,39 @@ class ArrayMixin:
         """
         return 0
 
+    def get_calendar(self, default=ValueError()):
+        """The calendar of the array.
+
+        If the calendar is `None` then the CF default calendar is
+        assumed, if applicable.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                calendar has not been set. If set to an `Exception`
+                instance then it will be raised instead.
+
+        :Returns:
+
+            `str` or `None`
+                The calendar value.
+
+        """
+        calendar = self._get_component("calendar", False)
+        if calendar is False:
+            if default is None:
+                return
+
+            return self._default(
+                default,
+                f"{self.__class__.__name__} 'calendar' has not been set",
+            )
+
+        return calendar
+
     def get_compression_type(self):
         """Returns the array's compression type.
 
@@ -102,7 +123,7 @@ class ArrayMixin:
                 The compression type. An empty string means that no
                 compression has been applied.
 
-        **Examples:**
+        **Examples**
 
         >>> a.compression_type
         ''
@@ -172,6 +193,9 @@ class ArrayMixin:
 
         """
         if indices is not Ellipsis:
+            if not isinstance(indices, tuple):
+                indices = (indices,)
+
             axes_with_list_indices = [
                 i for i, x in enumerate(indices) if not isinstance(x, slice)
             ]
@@ -213,3 +237,37 @@ class ArrayMixin:
                 array = array.copy()
 
         return array
+
+    def get_units(self, default=ValueError()):
+        """The units of the array.
+
+        If the units are `None` then the array has no defined units.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        .. seealso:: `get_calendar`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                units have not been set. If set to an `Exception`
+                instance then it will be raised instead.
+
+        :Returns:
+
+            `str` or `None`
+                The units value.
+
+        """
+        units = self._get_component("units", False)
+        if units is False:
+            if default is None:
+                return
+
+            return self._default(
+                default,
+                f"{self.__class__.__name__} 'units' have not been set",
+            )
+
+        return units

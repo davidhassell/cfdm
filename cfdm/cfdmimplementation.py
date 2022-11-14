@@ -16,9 +16,11 @@ from . import (
     FieldAncillary,
     Index,
     InteriorRing,
+    InterpolationParameter,
     List,
     NodeCountProperties,
     PartNodeCountProperties,
+    TiePointIndex,
 )
 from .abstract import Implementation
 from .data import (
@@ -28,6 +30,7 @@ from .data import (
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
+    SubsampledArray,
 )
 
 
@@ -37,144 +40,6 @@ class CFDMImplementation(Implementation):
     .. versionadded:: (cfdm) 1.7.0
 
     """
-
-    def __init__(
-        self,
-        cf_version=None,
-        AuxiliaryCoordinate=None,
-        CellMeasure=None,
-        CellMethod=None,
-        CoordinateReference=None,
-        DimensionCoordinate=None,
-        Domain=None,
-        DomainAncillary=None,
-        DomainAxis=None,
-        Field=None,
-        FieldAncillary=None,
-        Bounds=None,
-        InteriorRing=None,
-        CoordinateConversion=None,
-        Datum=None,
-        Data=None,
-        GatheredArray=None,
-        NetCDFArray=None,
-        RaggedContiguousArray=None,
-        RaggedIndexedArray=None,
-        RaggedIndexedContiguousArray=None,
-        List=None,
-        Count=None,
-        Index=None,
-        NodeCountProperties=None,
-        PartNodeCountProperties=None,
-    ):
-        """**Initialisation**
-
-        :Parameters:
-
-            AuxiliaryCoordinate:
-                An auxiliary coordinate construct class.
-
-            CellMeasure:
-                A cell measure construct class.
-
-            CellMethod:
-                A cell method construct class.
-
-            CoordinateReference:
-                A coordinate reference construct class.
-
-            DimensionCoordinate:
-                A dimension coordinate construct class.
-
-            Domain:
-                A domain construct class.
-
-            DomainAncillary:
-                A domain ancillary construct class.
-
-            DomainAxis:
-                A domain axis construct class.
-
-            Field:
-                A field construct class.
-
-            FieldAncillary:
-                A field ancillary construct class.
-
-            Bounds:
-                A cell bounds component class.
-
-            InteriorRing:
-                An interior ring array class.
-
-            CoordinateConversion:
-                A coordinate conversion component class.
-
-            Datum:
-                A datum component class.
-
-            Data:
-                A data array class.
-
-            GatheredArray:
-                A class for an underlying gathered array.
-
-            NetCDFArray:
-                A class for an underlying array stored in a netCDF file.
-
-            RaggedContiguousArray:
-                A class for an underlying contiguous ragged array.
-
-            RaggedIndexedArray:
-                A class for an underlying indexed ragged array.
-
-            RaggedIndexedContiguousArray:
-                A class for an underlying indexed contiguous ragged array.
-
-            List:
-                A list variable class.
-
-            Count:
-                A count variable class.
-
-            Index:
-                An index variable class.
-
-            NodeCountProperties:
-                A class for properties of a netCDF node count variable.
-
-            PartNodeCountProperties:
-                A class for properties of a netCDF part node count variable.
-
-        """
-        super().__init__(
-            cf_version=cf_version,
-            AuxiliaryCoordinate=AuxiliaryCoordinate,
-            CellMeasure=CellMeasure,
-            CellMethod=CellMethod,
-            CoordinateReference=CoordinateReference,
-            DimensionCoordinate=DimensionCoordinate,
-            Domain=Domain,
-            DomainAncillary=DomainAncillary,
-            DomainAxis=DomainAxis,
-            Field=Field,
-            FieldAncillary=FieldAncillary,
-            Bounds=Bounds,
-            InteriorRing=InteriorRing,
-            CoordinateConversion=CoordinateConversion,
-            Datum=Datum,
-            Data=Data,
-            GatheredArray=GatheredArray,
-            NetCDFArray=NetCDFArray,
-            RaggedContiguousArray=RaggedContiguousArray,
-            RaggedIndexedArray=RaggedIndexedArray,
-            RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
-            List=List,
-            Count=Count,
-            Index=Index,
-            NodeCountProperties=NodeCountProperties,
-            PartNodeCountProperties=PartNodeCountProperties,
-        )
 
     def __repr__(self):
         """Called by the `repr` built-in function.
@@ -187,7 +52,7 @@ class CFDMImplementation(Implementation):
     def _get_domain_compression_variable(self, variable_type, domain):
         """Get the compression variable of a type of compressed data.
 
-        ..versionadded:: 1.9.0.0
+        ..versionadded:: (cfdm) 1.9.0.0
 
         :Parameters:
 
@@ -245,7 +110,6 @@ class CFDMImplementation(Implementation):
                 )
 
             variable = variable1
-        # --- End: for
 
         return variable
 
@@ -583,7 +447,7 @@ class CFDMImplementation(Implementation):
         return data.compressed_array
 
     def get_compressed_axes(self, field_or_domain, key=None, construct=None):
-        """Return the indices of the compressed axes.
+        """Return the axes that have been compressed.
 
         :Parameters:
 
@@ -596,7 +460,9 @@ class CFDMImplementation(Implementation):
 
         :Returns:
 
-            `list` of `int`
+            `list` of `str`
+                The domain axis identifiers of dimensions that are
+                compressed.
 
         """
         if construct is not None:
@@ -619,6 +485,7 @@ class CFDMImplementation(Implementation):
             "ragged indexed contiguous",
             "ragged indexed",
             "ragged contiguous",
+            "subsampled",
         )
 
         compressed_axes = {
@@ -648,7 +515,6 @@ class CFDMImplementation(Implementation):
         for compression_type in compression_types:
             if compressed_axes[compression_type]:
                 return list(compressed_axes[compression_type])
-        # --- End: for
 
         return []
 
@@ -732,14 +598,33 @@ class CFDMImplementation(Implementation):
         :Returns:
 
             `tuple` or `None`
-                The axes (may be an empty tuple), or `None` if there
-                is no data.
+                The axis identifiers (may be an empty tuple), or
+                `None` if there is no data.
 
         """
         try:
             return field.constructs.data_axes()[key]
         except KeyError:
             return None
+
+    def get_construct_type(self, variable):
+        """Return the construct type of a variable.
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        :Parameters:
+
+            variable: object
+                The object to get a construct type from.
+
+        :Returns:
+
+            `str` or `None`
+                The construct type, or `None` if the variable is not a
+                construct.
+
+        """
+        return getattr(variable, "construct_type", None)
 
     def get_constructs(self, field, axes=(), data=False):
         """Return constructs that span particular axes.
@@ -813,17 +698,17 @@ class CFDMImplementation(Implementation):
         """
         return field.coordinate_references()
 
-    def get_coordinates(self, field):
-        """Return all of the coordinate constructs of a field.
+    def get_coordinates(self, f):
+        """Return all of the coordinate constructs of a field or domain.
 
         :Parameters:
 
-            field: field construct
+            f: field or domain construct
 
         :Returns:
 
         """
-        return field.coordinates()
+        return f.coordinates()
 
     def get_data_calendar(self, data, default=None):
         """Return the calendar of date-time data.
@@ -842,7 +727,7 @@ class CFDMImplementation(Implementation):
         return data.get_calendar(default=default)
 
     def get_data_compressed_axes(self, data):
-        """Return the indices of the compressed axes.
+        """Return the indices of the axes that have been compressed.
 
         :Parameters:
 
@@ -868,7 +753,7 @@ class CFDMImplementation(Implementation):
             `int`
                 The number of dimensions spanned by the data array.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> d = cfdm.DimensionCoordinate(
@@ -903,14 +788,14 @@ class CFDMImplementation(Implementation):
                 The object containing the data array.
 
             isdata: `bool`
-                If True then the prent is already a data object
+                If True then the parent is already a data object
 
         :Returns:
 
             `tuple`
                 The shape of the data array.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> d = cfdm.DimensionCoordinate(
@@ -952,7 +837,7 @@ class CFDMImplementation(Implementation):
             `int`
                 The number of elements in the data array.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> d = cfdm.DimensionCoordinate(
@@ -1292,7 +1177,7 @@ class CFDMImplementation(Implementation):
         A "component" is either a metadata construct or a metadata
         construct component (such as a bounds component).
 
-        .. versionadded::: 1.7.0
+        .. versionadded::: (cfdm) 1.7.0
 
         :Parameter:
 
@@ -1394,7 +1279,7 @@ class CFDMImplementation(Implementation):
                 A dictionary whose values are field ancillary objects, keyed
                 by unique identifiers.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> f = cfdm.example_field(1)
@@ -1536,6 +1421,29 @@ class CFDMImplementation(Implementation):
         """
         return construct.get_interior_ring(default=None)
 
+    def get_interpolation_name(self, construct, default=None):
+        """Return the interior ring variable of geometry coordinates.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Parameters:
+
+            construct: construct
+
+            default:
+
+        :Returns:
+
+            `str`
+
+        """
+        try:
+            return self.get_data_source(construct).get_interpolation_name(
+                default
+            )
+        except AttributeError:
+            return default
+
     def get_list(self, construct):
         """Return the list variable of compressed data.
 
@@ -1568,7 +1476,7 @@ class CFDMImplementation(Implementation):
             `str` or `None`
                 The measure property, or `None` if it has not been set.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> c = cfdm.CellMeasure(
@@ -1582,6 +1490,22 @@ class CFDMImplementation(Implementation):
 
         """
         return cell_measure.get_measure(default=None)
+
+    def get_original_filenames(self, parent):
+        """Get the original names of the files containing the construct.
+
+        :Parameters:
+
+            parent: Construct
+                The construct to query of original filenames.
+
+        :Returns:
+
+            `set`
+                The original filenames
+
+        """
+        return parent.get_original_filenames()
 
     def nc_get_dimension(self, parent, default=None):
         """Return the netCDF variable name.
@@ -1663,7 +1587,7 @@ class CFDMImplementation(Implementation):
             `dict`
                 The property names and their values
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> d = cfdm.DimensionCoordinate(
@@ -1729,7 +1653,7 @@ class CFDMImplementation(Implementation):
 
                 The data.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> d = cfdm.DimensionCoordinate(
@@ -1754,6 +1678,48 @@ class CFDMImplementation(Implementation):
 
         """
         return parent.get_data(default=default)
+
+    def get_data_source(self, parent, default=None):
+        """Return the data array.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Parameters:
+
+            parent:
+                The object containing the data array.
+
+        :Returns:
+
+                The data.
+
+        """
+        data = self.get_data(parent, default=None)
+        if data is None:
+            return default
+
+        return data.source(default)
+
+    def get_tie_points(self, construct, default=None):
+        """TODO.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Parameters:
+
+            parent:
+                The object containing the data array.
+
+        :Returns:
+
+                The data.
+
+        """
+        data = self.get_data_source(construct, None)
+        if data is None:
+            return default
+
+        return data.source(default)
 
     def initialise_AuxiliaryCoordinate(self):
         """Return an auxiliary coordinate construct.
@@ -1855,7 +1821,12 @@ class CFDMImplementation(Implementation):
         return cls()
 
     def initialise_Data(
-        self, array=None, units=None, calendar=None, copy=True, **kwargs
+        self,
+        array=None,
+        units=None,
+        calendar=None,
+        copy=True,
+        **kwargs,
     ):
         """Return a data instance.
 
@@ -1878,7 +1849,11 @@ class CFDMImplementation(Implementation):
         """
         cls = self.get_class("Data")
         return cls(
-            array=array, units=units, calendar=calendar, copy=copy, **kwargs
+            array=array,
+            units=units,
+            calendar=calendar,
+            copy=copy,
+            **kwargs,
         )
 
     def initialise_Datum(self, parameters=None):
@@ -2016,6 +1991,7 @@ class CFDMImplementation(Implementation):
         shape=None,
         size=None,
         compressed_dimension=None,
+        compressed_dimensions=None,
         list_variable=None,
     ):
         """Return a gathered array instance.
@@ -2030,9 +2006,16 @@ class CFDMImplementation(Implementation):
 
             size: `int, optional
 
-            compressed_dimension: `int`, optional
+            compressed_dimensions: sequence of `int`, optional
+                The position of the compressed dimension in the
+                compressed array.
+
+                 .. versionadded:: (cfdm) 1.10.0.0
 
             list_variable: optional
+
+            compressed_dimension: deprecated at version 1.10.0.0
+                Use the *compressed_dimensions* parameter instead.
 
         :Returns:
 
@@ -2045,8 +2028,75 @@ class CFDMImplementation(Implementation):
             ndim=ndim,
             shape=shape,
             size=size,
-            compressed_dimension=compressed_dimension,
+            compressed_dimensions=compressed_dimensions,
             list_variable=list_variable,
+        )
+
+    def initialise_SubsampledArray(
+        self,
+        interpolation_name=None,
+        compressed_array=None,
+        shape=None,
+        tie_point_indices=None,
+        computational_precision=None,
+        interpolation_description=None,
+        parameters=None,
+        parameter_dimensions=None,
+        dependent_tie_points=None,
+        dependent_tie_point_dimensions=None,
+    ):
+        """Return a subsampled array instance.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        .. seealso:: `set_dependent_tie_points`,
+                     `set_dependent_tie_point_dimensions`
+
+        :Parameters:
+
+            interpolation_name: `str`
+
+            interpolation_description: `str`, optional
+
+            compressed_array: optional
+
+            shape: sequence of `int`, optional
+
+            computational_precision: `str`, optional
+                The floating-point arithmetic precision used during
+                the preparation and validation of the compressed
+                coordinates.
+
+            tie_point_indices: `dict`, optional
+
+            parameters: `dict`, optional
+
+            parameter_dimensions: `dict`, optional
+
+            parameters: `dict`, optional
+
+            parameter_dimensions: `dict`, optional
+
+            dependent_tie_points: `dict`, optional
+
+            dependent_tie_point_dimensions: `dict`, optional
+
+        :Returns:
+
+            Subsampled array
+
+        """
+        return self.get_class("SubsampledArray")(
+            interpolation_name=interpolation_name,
+            compressed_array=compressed_array,
+            shape=shape,
+            tie_point_indices=tie_point_indices,
+            computational_precision=computational_precision,
+            interpolation_description=interpolation_description,
+            parameters=parameters,
+            parameter_dimensions=parameter_dimensions,
+            dependent_tie_points=dependent_tie_points,
+            dependent_tie_point_dimensions=dependent_tie_point_dimensions,
         )
 
     def initialise_Index(self):
@@ -2071,6 +2121,19 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("InteriorRing")
         return cls()
 
+    def initialise_InterpolationParameter(self):
+        """Return an interpolation parameter variable.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Returns:
+
+            Interpolation parameter variable
+
+        """
+        cls = self.get_class("InterpolationParameter")
+        return cls()
+
     def initialise_List(self):
         """Return a list variable.
 
@@ -2080,6 +2143,17 @@ class CFDMImplementation(Implementation):
 
         """
         cls = self.get_class("List")
+        return cls()
+
+    def initialise_TiePointIndex(self):
+        """Return an index variable.
+
+        :Returns:
+
+            Index variable
+
+        """
+        cls = self.get_class("TiePointIndex")
         return cls()
 
     def initialise_NetCDFArray(
@@ -2092,6 +2166,8 @@ class CFDMImplementation(Implementation):
         shape=None,
         size=None,
         mask=True,
+        units=False,
+        calendar=None,
     ):
         """Return a netCDF array instance.
 
@@ -2113,6 +2189,20 @@ class CFDMImplementation(Implementation):
 
             mask: `bool`, optional
 
+            units: `str` or `None` or False, optional
+                The units of the netCDF variable. Set to `None` to
+                indicate that there are no units. If False (the
+                default) then the units are considered unset.
+
+                .. versionadded:: (cfdm) 1.10.0.2
+
+            calendar: `str` or `None`, optional
+                The calendar of the netCDF variable. By default, or if
+                set to `None`, then the CF default calendar is
+                assumed, if applicable.
+
+                .. versionadded:: (cfdm) 1.10.0.2
+
         :Returns:
 
             NetCDF array instance
@@ -2128,9 +2218,11 @@ class CFDMImplementation(Implementation):
             shape=shape,
             size=size,
             mask=mask,
+            units=units,
+            calendar=calendar,
         )
 
-    def initialise_NodeCount(self):
+    def initialise_NodeCountProperties(self):
         """Return a node count properties variable.
 
         :Returns:
@@ -2167,12 +2259,12 @@ class CFDMImplementation(Implementation):
             compressed_array: optional
 
             ndim: `int`, optional
+                Deprecated at version 1.10.0.0. Ignored if set.
 
             shape: sequence of `int`, optional
 
             size: `int, optional
-
-            compressed_dimension: `int`, optional
+                Deprecated at version 1.10.0.0. Ignored if set.
 
             count_variable: optional
 
@@ -2184,9 +2276,9 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedContiguousArray")
         return cls(
             compressed_array=compressed_array,
-            ndim=ndim,
+            #            ndim=ndim,
             shape=shape,
-            size=size,
+            #            size=size,
             count_variable=count_variable,
         )
 
@@ -2205,12 +2297,12 @@ class CFDMImplementation(Implementation):
             compressed_array: optional
 
             ndim: `int`, optional
+                Deprecated at version 1.10.0.0. Ignored if set.
 
             shape: sequence of `int`, optional
 
             size: `int, optional
-
-            compressed_dimension: `int`, optional
+                Deprecated at version 1.10.0.0. Ignored if set.
 
             index_variable: optional
 
@@ -2222,9 +2314,9 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedIndexedArray")
         return cls(
             compressed_array=compressed_array,
-            ndim=ndim,
+            #            ndim=ndim,
             shape=shape,
-            size=size,
+            #            size=size,
             index_variable=index_variable,
         )
 
@@ -2244,12 +2336,12 @@ class CFDMImplementation(Implementation):
             compressed_array: optional
 
             ndim: `int`, optional
+                Deprecated at version 1.10.0.0. Ignored if set.
 
             shape: sequence of `int`, optional
 
             size: `int, optional
-
-            compressed_dimension: `int`, optional
+                Deprecated at version 1.10.0.0. Ignored if set.
 
             count_variable: optional
 
@@ -2263,9 +2355,9 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedIndexedContiguousArray")
         return cls(
             compressed_array=compressed_array,
-            ndim=ndim,
+            #            ndim=ndim,
             shape=shape,
-            size=size,
+            #            size=size,
             count_variable=count_variable,
             index_variable=index_variable,
         )
@@ -2358,8 +2450,8 @@ class CFDMImplementation(Implementation):
             variable:
 
             ncdim: `str` or `None`
-                The netCDF dimension name. If `None` then the name is not
-                set.
+                The netCDF dimension name. If `None` then the name is
+                not set.
 
         :Returns:
 
@@ -2388,14 +2480,53 @@ class CFDMImplementation(Implementation):
         if ncdim is not None:
             variable.nc_set_sample_dimension(ncdim)
 
+    def nc_set_interpolation_subarea_dimension(self, variable, ncdim):
+        """Set the netCDF sample dimension name.
+
+        :Parameters:
+
+            variable:
+
+            ncdim: `str` or `None`
+                The netCDF interpolation subarea dimension name. If
+                `None` then the name is not set.
+
+        :Returns:
+
+            `None`
+
+        """
+        if ncdim is not None:
+            variable.nc_set_interpolation_subarea_dimension(ncdim)
+
+    def nc_set_subsampled_dimension(self, variable, ncdim):
+        """Set the netCDF subsampled dimension name.
+
+        :Parameters:
+
+            variable:
+
+            ncdim: `str` or `None`
+                The netCDF dimension name. If `None` then the name is
+                not set.
+
+        :Returns:
+
+            `None`
+
+        """
+        if ncdim is not None:
+            variable.nc_set_subsampled_dimension(ncdim)
+
     def set_auxiliary_coordinate(
-        self, field, construct, axes, copy=True, **kwargs
+        self, parent, construct, axes, copy=True, **kwargs
     ):
         """Insert a auxiliary coordinate object into a field.
 
         :Parameters:
 
-            field: field construct
+            parent: `Field` or `Domain`
+               On what to set the construct
 
             construct: auxiliary coordinate construct
 
@@ -2405,7 +2536,7 @@ class CFDMImplementation(Implementation):
 
             kwargs: optional
                 Additional parameters to `Field.set_construct` that
-                may be used by sublcasses.
+                may be used by subclasses.
 
                 .. versionadded:: (cfdm) 1.8.9.0
 
@@ -2414,7 +2545,9 @@ class CFDMImplementation(Implementation):
             `str`
 
         """
-        return field.set_construct(construct, axes=axes, copy=copy, **kwargs)
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
 
     def set_bounds(self, construct, bounds, copy=True):
         """Set the bounds component of a construct.
@@ -2447,14 +2580,15 @@ class CFDMImplementation(Implementation):
 
         return ""
 
-    def set_cell_measure(self, field, construct, axes, copy=True):
+    def set_cell_measure(self, parent, construct, axes, copy=True, **kwargs):
         """Insert a cell_measure object into a field.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
-            field: field construct
+            parent: `Field` or `Domain`
+               On what to set the construct
 
             construct: cell measure construct
 
@@ -2462,32 +2596,47 @@ class CFDMImplementation(Implementation):
 
             copy: `bool`, optional
 
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+                .. versionadded:: (cfdm) 1.10.0.2
+
         :Returns:
 
             `str`
 
         """
-        return field.set_construct(construct, axes=axes, copy=copy)
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
 
-    def set_cell_method(self, field, construct, copy=True):
+    def set_cell_method(self, field, construct, copy=True, **kwargs):
         """Insert a cell_method object into a field.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
-            field: field construct
+            field: `Field`
+               On what to set the construct
 
             construct: cell method construct
 
             copy: `bool`, optional
+
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *field* that may be used by subclasses.
+
+                .. versionadded:: (cfdm) 1.10.0.2
 
         :Returns:
 
             `str`
 
         """
-        return field.set_construct(construct, copy=copy)
+        return self.set_construct(field, construct, copy=copy, **kwargs)
 
     def set_cell_method_axes(self, cell_method, axes):
         """Set the axes of a cell method construct.
@@ -2539,6 +2688,37 @@ class CFDMImplementation(Implementation):
         """
         construct.set_climatology(True)
 
+    def set_construct(self, parent, construct, axes=None, copy=True, **kwargs):
+        """Insert a construct into a field or domain.
+
+        .. versionadded:: (cfdm) 1.10.0.2
+
+        :Parameters:
+
+            parent: `Field` or `Domain`
+               On what to set the construct
+
+            construct:
+                The construct to set.
+
+            axes: `tuple` or `None`, optional
+                The construct domain axes, if applicable.
+
+            copy: `bool`, optional
+                Whether or not to set a copy of *construct*.
+
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+        :Returns:
+
+            `str`
+                The construct identifier.
+
+        """
+        return parent.set_construct(construct, axes=axes, copy=copy, **kwargs)
+
     def set_coordinate_conversion(
         self, coordinate_reference, coordinate_conversion
     ):
@@ -2559,25 +2739,32 @@ class CFDMImplementation(Implementation):
         """
         coordinate_reference.set_coordinate_conversion(coordinate_conversion)
 
-    def set_coordinate_reference(self, field, construct, copy=True):
+    def set_coordinate_reference(self, parent, construct, copy=True, **kwargs):
         """Insert a coordinate reference object into a field.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
-            field: field construct
+            parent: `Field` or `Domain`
+               On what to set the construct
 
             construct: coordinate reference construct
 
             copy: `bool`, optional
+
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+                .. versionadded:: (cfdm) 1.10.0.2
 
         :Returns:
 
             `str`
 
         """
-        return field.set_construct(construct, copy=copy)
+        return self.set_construct(parent, construct, copy=copy, **kwargs)
 
     def set_coordinate_reference_coordinates(
         self, coordinate_reference, coordinates
@@ -2657,13 +2844,14 @@ class CFDMImplementation(Implementation):
         coordinate_reference.set_datum(datum)
 
     def set_dimension_coordinate(
-        self, field, construct, axes, copy=True, **kwargs
+        self, parent, construct, axes, copy=True, **kwargs
     ):
         """Insert a dimension coordinate object into a field.
 
         :Parameters:
 
-            field: field construct
+            parent: `Field` or `Domain`
+               On what to set the construct
 
             construct: dimension coordinate construct
 
@@ -2672,8 +2860,8 @@ class CFDMImplementation(Implementation):
             copy: `bool`, optional
 
             kwargs: optional
-                Additional parameters to `Field.set_construct` that
-                may be used by sublcasses.
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
 
                 .. versionadded:: (cfdm) 1.8.9.0
 
@@ -2682,14 +2870,19 @@ class CFDMImplementation(Implementation):
             `str`
 
         """
-        return field.set_construct(construct, axes=axes, copy=copy, **kwargs)
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
 
-    def set_domain_ancillary(self, field, construct, axes, copy=True):
+    def set_domain_ancillary(
+        self, parent, construct, axes, copy=True, **kwargs
+    ):
         """Insert a domain ancillary object into a field.
 
         :Parameters:
 
-            field: field construct
+            parent: `Field` or `Domain`
+               On what to set the construct
 
             construct: domain ancillary construct`
 
@@ -2697,30 +2890,89 @@ class CFDMImplementation(Implementation):
 
             copy: `bool`, optional
 
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+                .. versionadded:: (cfdm) 1.10.0.2
+
         :Returns:
 
             `str`
 
         """
-        return field.set_construct(construct, axes=axes, copy=copy)
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
 
-    def set_domain_axis(self, field, construct, copy=True):
+    def set_domain_axis(self, parent, construct, copy=True, **kwargs):
         """Insert a domain_axis object into a field.
 
         :Parameters:
 
-            field: field construct
+            parent: `Field` or `Domain`
+               On what to set the construct
 
             construct: domain axis construct
 
             copy: `bool`, optional
 
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+                .. versionadded:: (cfdm) 1.10.0.2
+
         :Returns:
 
             `str`
 
         """
-        return field.set_construct(construct, copy=copy)
+        return self.set_construct(parent, construct, copy=copy, **kwargs)
+
+    def set_dependent_tie_points(self, construct, tie_points, dimensions):
+        """Set dependent tie points and their dimensions.
+
+        This applies to arrays compressed by subsampling.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Parameters:
+
+            construct:
+                The construct containing the ccompressed data. Will be
+                changed in-place.
+
+            tie_points: `dict`
+                The dependent tie point arrays, keyed by their
+                identities.
+
+            dimensions: `dict`
+                The dimensions spanned by the tie point ararys, keyed
+                by their identities.
+
+        :Returns:
+
+            `None`
+
+        """
+        data = self.get_data(construct)
+        source = data.source()
+
+        source.set_dependent_tie_points(tie_points)
+        source.set_dependent_tie_point_dimensions(dimensions)
+
+        # Reset the construct's data with the new dependent tie point
+        # definitions. Currently cfdm doesn't need to do this, but it
+        # doesn't do any harm, and downstream applications (like
+        # cf-python) may not be able to correctly instantiate the data
+        # when all of its elements have not been set.
+        data = construct._Data(
+            source,
+            units=data.get_units(None),
+            calendar=data.get_calendar(None),
+        )
+        construct.set_data(data)
 
     def nc_set_external(self, construct):
         """Set the external status of a construct.
@@ -2736,12 +2988,13 @@ class CFDMImplementation(Implementation):
         """
         construct.nc_set_external(True)
 
-    def set_field_ancillary(self, field, construct, axes, copy=True):
+    def set_field_ancillary(self, field, construct, axes, copy=True, **kwargs):
         """Insert a field ancillary object into a field.
 
         :Parameters:
 
-            field: field construct`
+            field: `Field`
+               On what to set the construct
 
             construct: field ancillary construct
 
@@ -2749,12 +3002,20 @@ class CFDMImplementation(Implementation):
 
             copy: `bool`, optional
 
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *field* that may be used by subclasses.
+
+                .. versionadded:: (cfdm) 1.10.0.2
+
         :Returns:
 
             `str`
 
         """
-        return field.set_construct(construct, axes=axes, copy=copy)
+        return self.set_construct(
+            field, construct, axes=axes, copy=copy, **kwargs
+        )
 
     def set_geometry(self, coordinate, value):
         """Set the geometry type of a coordinate construct.
@@ -2797,7 +3058,27 @@ class CFDMImplementation(Implementation):
         """
         parent.set_properties(inherited_properties, copy=copy)
 
-    def set_node_count(self, parent, node_count, copy=True):
+    def set_interpolation(self, parent, interpolation, copy=True):
+        """Set an interpolation variable.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        :Parameters:
+
+            parent:
+
+            interpolation: Interpolation properties variable
+
+            copy: `bool`, optional
+
+        :Returns:
+
+            `None`
+
+        """
+        parent.set_interpolation(interpolation, copy=copy)
+
+    def set_node_count_properties(self, parent, node_count, copy=True):
         """Set a node count properties variable.
 
         .. versionadded:: (cfdm) 1.8.0
@@ -2817,7 +3098,43 @@ class CFDMImplementation(Implementation):
         """
         parent.set_node_count(node_count, copy=copy)
 
-    def set_part_node_count(self, parent, part_node_count, copy=True):
+    def set_original_filenames(self, parent, filename):
+        """Set the original files.
+
+        Set the original files to the *filename* parameter plus any
+        original files stored on the data (if present).
+
+        .. versionadded:: (cfdm) 1.10.0.1
+
+        :Parameters:
+
+            parent: Parent construct on which to set original files
+
+            filename: `str`
+                The file that contains the corresponding variable.
+
+        :Returns:
+
+            `None`
+
+        """
+        if filename is None:
+            filenames = ()
+        else:
+            filenames = (filename,)
+        try:
+            data = parent.get_data(None)
+        except AttributeError:
+            pass
+        else:
+            if data is not None:
+                filenames += tuple(data._original_filenames())
+
+        parent._original_filenames(define=set(filenames))
+
+    def set_part_node_count_properties(
+        self, parent, part_node_count, copy=True
+    ):
         """Set a part node count properties variable.
 
         .. versionadded:: (cfdm) 1.8.0
@@ -2887,8 +3204,8 @@ class CFDMImplementation(Implementation):
             construct: construct
 
             ncdim: `str` or `None`
-                The netCDF dimension name. If `None` then the name is not
-                set.
+                The netCDF dimension name. If `None` then the name is
+                not set.
 
         :Returns:
 
@@ -2906,8 +3223,8 @@ class CFDMImplementation(Implementation):
             field: field construct
 
             ncvar: `str` or `None`
-                The netCDF variable name. If `None` then the name is not
-                set.
+                The netCDF variable name. If `None` then the name is
+                not set.
 
         :Returns:
 
@@ -2925,8 +3242,8 @@ class CFDMImplementation(Implementation):
             parent:
 
             ncvar: `str` or `None`
-                The netCDF variable name. If `None` then the name is not
-                set.
+                The netCDF variable name. If `None` then the name is
+                not set.
 
         :Returns:
 
@@ -3016,7 +3333,7 @@ class CFDMImplementation(Implementation):
 
             `bool`
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
 
@@ -3031,6 +3348,28 @@ class CFDMImplementation(Implementation):
         """
         return bool(coordinate_reference.datum)
 
+    #    def has_identity(self, construct, identity):
+    #        """Return True if a construct has the given identity.
+    #
+    #        .. versionadded:: (cfdm) 1.10.0.0
+    #
+    #        :Parameters:
+    #
+    #            construct:
+    #
+    #            identity: `str`
+    #                The identity
+    #
+    #                *Parameter example:*
+    #                   ``'latitude'``
+    #
+    #        :Returns:
+    #
+    #            `bool`
+    #
+    #        """
+    #        return bool(getattr(construct, identity, False))
+
     def has_property(self, parent, prop):
         """Return True if a property exists.
 
@@ -3044,7 +3383,7 @@ class CFDMImplementation(Implementation):
             `bool`
                 `True` if the property exists, otherwise `False`.
 
-        **Examples:**
+        **Examples**
 
         >>> w = cfdm.implementation()
         >>> d = cfdm.DimensionCoordinate(
@@ -3101,6 +3440,7 @@ _implementation = CFDMImplementation(
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,
     InteriorRing=InteriorRing,
+    InterpolationParameter=InterpolationParameter,
     CoordinateConversion=CoordinateConversion,
     Datum=Datum,
     List=List,
@@ -3114,6 +3454,8 @@ _implementation = CFDMImplementation(
     RaggedContiguousArray=RaggedContiguousArray,
     RaggedIndexedArray=RaggedIndexedArray,
     RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
+    SubsampledArray=SubsampledArray,
+    TiePointIndex=TiePointIndex,
 )
 
 
@@ -3129,7 +3471,7 @@ def implementation():
         `CFDMImplementation`
             A container for the CF data model implementation.
 
-    **Examples:**
+    **Examples**
 
     >>> i = cfdm.implementation()
     >>> i
@@ -3154,6 +3496,7 @@ def implementation():
      'RaggedContiguousArray': <class 'cfdm.data.raggedcontiguousarray.RaggedContiguousArray'>,
      'RaggedIndexedArray': <class 'cfdm.data.raggedindexedarray.RaggedIndexedArray'>,
      'RaggedIndexedContiguousArray': <class 'cfdm.data.raggedindexedcontiguousarray.RaggedIndexedContiguousArray'>,
+     'SubsampledArray': <class 'cfdm.data.subsampledrray.SubsampledArray'>,
      'List': <class 'cfdm.list.List'>,
      'Count': <class 'cfdm.count.Count'>,
      'Index': <class 'cfdm.index.Index'>,

@@ -10,6 +10,7 @@ class CellMeasure(
     mixin.NetCDFVariable,
     mixin.NetCDFExternal,
     mixin.PropertiesData,
+    mixin.Files,
     core.CellMeasure,
 ):
     """A cell measure construct of the CF data model.
@@ -92,6 +93,7 @@ class CellMeasure(
         )
 
         self._initialise_netcdf(source)
+        self._initialise_original_filenames(source)
 
     def creation_commands(
         self,
@@ -130,7 +132,7 @@ class CellMeasure(
 
             {{returns creation_commands}}
 
-        **Examples:**
+        **Examples**
 
         >>> x = {{package}}.CellMeasure(
         ...     measure='area',
@@ -285,7 +287,7 @@ class CellMeasure(
             `bool`
                 Whether the two cell measure constructs are equal.
 
-        **Examples:**
+        **Examples**
 
         >>> c = {{package}}.CellMeasure()
         >>> c.set_properties({'units': 'm2'})
@@ -355,7 +357,7 @@ class CellMeasure(
 
                 The identity.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(1)
         >>> c = f.get_construct('cellmeasure0')
@@ -434,7 +436,7 @@ class CellMeasure(
             `list` or generator
                 The identities.
 
-        **Examples:**
+        **Examples**
 
         >>> f = {{package}}.example_field(1)
         >>> c = f.get_construct('cellmeasure0')

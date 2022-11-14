@@ -5,6 +5,7 @@ class InteriorRing(
     mixin.NetCDFDimension,
     mixin.NetCDFVariable,
     mixin.PropertiesData,
+    mixin.Files,
     core.InteriorRing,
 ):
     """An interior ring array with properties.
@@ -30,7 +31,7 @@ class InteriorRing(
     The name of the netCDF dimension spanned by the interior ring
     variable's data (which does not correspond to a domain axis
     construct) may be accessed with the `nc_set_dimension`,
-    `nc_get_dimension`, `nc_del_dimension` and `nc_has_dimension`
+    `nc_get_dimension`, `nc_del_dimension`, and `nc_has_dimension`
     methods.
 
     .. versionadded:: (cfdm) 1.8.0
@@ -74,6 +75,7 @@ class InteriorRing(
         )
 
         self._initialise_netcdf(source)
+        self._initialise_original_filenames(source)
 
     def dump(
         self,
