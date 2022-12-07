@@ -1236,6 +1236,10 @@ class NetCDFRead(IORead):
                 f"    netCDF dimensions: {internal_dimension_sizes}"
             )  # pragma: no cover
 
+        # Now that all of the variables have been scanned, customize
+        # the read parameters.
+        self._customize_read_vars()
+
         # ------------------------------------------------------------
         # List variables
         #
@@ -1448,10 +1452,6 @@ ppp
                 self._parse_coordinate_interpolation(
                     attributes["coordinate_interpolation"], ncvar
                 )
-
-        # Now that all of the variables have been scanned, customize
-        # the read parameters.
-        self._customize_read_vars()
 
         if _scan_only:
             return self.read_vars
