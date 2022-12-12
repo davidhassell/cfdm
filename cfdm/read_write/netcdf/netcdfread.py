@@ -3324,207 +3324,39 @@ class NetCDFRead(IORead):
                     ncscalar_to_axis[ncvar] = dimensions[0]
 
         # ------------------------------------------------------------
-        # Add dimension or auxiliary coordinate constructs derived
-        # from from tie point coordinate variables and bounds tie
-        # point variables (CF>=1.9)
-        #
-        # Note on methodology: All of the coordinate constructs must
-        #                      be created before any are set on the
-        #                      parent field/domain construct. This is
-        #                      so that constructs with multivariate
-        #                      interpolation methods can be modified
-        #                      to contain their dependent tie points.
-        #
-        # ------------------------------------------------------------
-        string = self.implementation.del_property(
-            f, "coordinate_interpolation", None
-        )
-        tie_point_ncvars = g["tie_point_ncvar"].get(field_ncvar, ())
-
-        coordinates = {}
-        for ncvar in tie_point_ncvars:
-            ok = self._check_tie_point_coordinates(field_ncvar, ncvar, string)
-            if not ok:
-                continue
-
-            # Find out if the coordinates are to be dimension or
-            # auxiliary coordinate constructs
-            axes = self._get_domain_axes(ncvar, parent_ncvar=field_ncvar)
-            is_dimension_coordinate = len(axes) == 1 and ncvar == g[
-                "axis_to_ncdim"
-            ].get(axes[0])
-
-            # Don't try to use an existing coordinate object derived
-            # from this netCDF variable, since such an instance may
-            # have been created from a different interpolation
-            # variable (and therefore could have used different tie
-            # point indices).
-            if is_dimension_coordinate:
-                coord = self._create_dimension_coordinate(
-                    field_ncvar, ncvar, f
-                )
-            else:
-                coord = self._create_auxiliary_coordinate(
-                    field_ncvar, ncvar, f
-                )
-
-            coordinates[ncvar] = (coord, axes, is_dimension_coordinate)
-
-        # Add any dependent tie points required for multivariate
-        # interpolations. This allows each cooridnate to be operated
-        # on (e.g. subspaced, collapsed, etc.) independently
-        #
-        # For example, when decompression is by the
-        # quadratic_latitude_longitude method, the interpolation of
-        # latitudes depends on the longitude, and vice verse -
-        # e.g. uncompressed latitudes = f(subsampled latitudes,
-        # subsampled longitudes). So that the latitude coordinate
-        # construct can be accessed independently of the longitude
-        # construct, then longitude tie points need to be stored
-        # within the latitude coordinate construct.
-        multivariate_interpolations = self.cf_multivariate_interpolations()
-        for (
-            ncvar,
-            (coord, axes, is_dimension_coordinate),
-        ) in coordinates.items():
-            compression_type = self.implementation.get_compression_type(coord)
-            if compression_type != "subsampled":
-                continue
-
-            interpolation_name = self.implementation.get_interpolation_name(
-                coord
-            )
-            identities = multivariate_interpolations.get(interpolation_name)
-            if not identities:
-                continue
-
-            bounds = self.implementation.get_bounds(coord, default=None)
-
-            tp_dims = {}
-            c_tp = {}
-            b_tp = {}
-            for n, (c, a, _) in coordinates.items():
-                if n == ncvar:
-                    continue
-
-                if (
-                    self.implementation.get_interpolation_name(c)
-                    != interpolation_name
-                ):
-                    continue
-
-                for identity in identities:
-                    if not self._has_identity(c, identity):
-                        continue
-
-                    tp_dims[identity] = tuple([a.index(i) for i in axes])
-
-                    c_tp[identity] = self.implementation.get_tie_points(c)
-                    if bounds is None:
-                        continue
-
-                    b = self.implementation.get_bounds(c, None)
-                    if b is None:
-                        continue
-
-                    b_tp[identity] = self.implementation.get_tie_points(b)
-                    break
-
-            self.implementation.set_dependent_tie_points(coord, c_tp, tp_dims)
-
-            if bounds is not None:
-                self.implementation.set_dependent_tie_points(
-                    bounds, b_tp, tp_dims
-                )
-
-        # Set the coordinate constructs on the parent field/domain
-        for (
-            ncvar,
-            (coord, axes, is_dimension_coordinate),
-        ) in coordinates.items():
-            logger.detail(
-                f"        [k] Inserting {coord.__class__.__name__}"
-            )  # pragma: no cover
-            if is_dimension_coordinate:
-                key = self.implementation.set_dimension_coordinate(
-                    f, coord, axes=axes, copy=False
-                )
-            else:
-                key = self.implementation.set_auxiliary_coordinate(
-                    f, coord, axes=axes, copy=False
-                )
-
-            self._reference(ncvar, field_ncvar)
-            if self.implementation.has_bounds(coord):
-                bounds = self.implementation.get_bounds(coord)
-                self._reference(
-                    self.implementation.nc_get_variable(bounds), field_ncvar
-                )
-
-            ncvar_to_key[ncvar] = key
-
-        # ------------------------------------------------------------
         # Add auxiliary coordinate constructs from geometry node
         # coordinates that are not already bounds of existing
         # auxiliary coordinate constructs (CF>=1.8)
         # ------------------------------------------------------------
         geometry = self._get_geometry(field_ncvar)
         if geometry is not None:
-            for node_ncvar in geometry["node_coordinates"]:
-                found = any(
-                    [
-                        self.implementation.get_bounds_ncvar(a) == node_ncvar
-                        for a in self.implementation.get_auxiliary_coordinates(
-                            f
-                        ).values()
-                    ]
-                )
-                # TODO: remove explicit API dependency:
-                # f.auxiliary_coordinates.values()
-                if found:
-                    continue
+            self._create_auxiliary_coordinates_from_geometries(
+                f, field_ncvar, ncvar_to_key, geometry
+            )
 
-                #
-                if node_ncvar in g["auxiliary_coordinate"]:
-                    coord = g["auxiliary_coordinate"][node_ncvar].copy()
-                else:
-                    coord = self._create_auxiliary_coordinate(
-                        field_ncvar=field_ncvar,
-                        ncvar=None,
-                        f=f,
-                        bounds_ncvar=node_ncvar,
-                        nodes=True,
-                    )
+        # ------------------------------------------------------------
+        # Add dimension or auxiliary coordinate constructs derived
+        # from tie point coordinate variables and bounds tie point
+        # variables (CF>=1.9)
+        #
+        # Note: All of the CF coordinate constructs must be created
+        #       before any derived from tie points are set on the
+        #       parent field/domain construct. This is so that
+        #       constructs with multivariate interpolation methods can
+        #       be modified to contain their dependent tie points.
+        # ------------------------------------------------------------
+        tie_point_ncvars = g["tie_point_ncvar"].get(field_ncvar, ())
+        if tie_point_ncvars:
+            self._create_coordinates_from_tie_points(
+                f, field_ncvar, ncvar_to_key, tie_point_ncvars
+            )
 
-                    geometry_type = geometry["geometry_type"]
-                    if geometry_type is not None:
-                        self.implementation.set_geometry(coord, geometry_type)
-
-                    g["auxiliary_coordinate"][node_ncvar] = coord
-
-                # Insert auxiliary coordinate
-                logger.detail(
-                    f"        [f] Inserting {coord.__class__.__name__}"
-                )  # pragma: no cover
-
-                # TODO check that geometry_dimension is a dimension of
-                # the data variable
-                geometry_dimension = geometry["geometry_dimension"]
-                if geometry_dimension not in g["ncdim_to_axis"]:
-                    raise ValueError(
-                        f"Geometry dimension {geometry_dimension!r} is not in "
-                        f"read_vars['ncdim_to_axis']: {g['ncdim_to_axis']}"
-                    )
-
-                aux = self.implementation.set_auxiliary_coordinate(
-                    f,
-                    coord,
-                    axes=(g["ncdim_to_axis"][geometry_dimension],),
-                    copy=False,
-                )
-
-                self._reference(node_ncvar, field_ncvar)
-                ncvar_to_key[node_ncvar] = aux
+        # ------------------------------------------------------------
+        # Add extra coordinates that are not defined by the CF
+        # conventions. Do this after all other coordinate constructs
+        # have been created.
+        # ------------------------------------------------------------
+        self._extra_coordinates(f, field_ncvar, ncvar_to_key)
 
         # ------------------------------------------------------------
         # Add coordinate reference constructs from formula_terms
@@ -3910,6 +3742,290 @@ class NetCDFRead(IORead):
 
         # Return the finished field/domain
         return f
+
+    def _create_coordinates_from_tie_points(
+        self, f, parent_ncvar, ncvar_to_key, tie_point_ncvars
+    ):
+        """Add coordinate constructs derived from tie point variables.
+
+        For CF>=1.9, adds dimension or auxiliary coordinate constructs
+        derived from tie point coordinate variables and bounds tie
+        point variables.
+
+        .. note:: All of the CF coordinate constructs must be created
+                  before any derived from tie points are set on the
+                  parent field/domain construct. This is so that
+                  constructs with multivariate interpolation methods
+                  can be modified to contain their dependent tie
+                  points.
+
+        .. versionadded:: TODO
+
+        :Parameters:
+
+            f: `Field or `Domain``
+                The parent field or domain construct.
+
+            parent_ncvar: `str` or `None`
+                The netCDF name of the parent variable.
+
+            ncvar_to_key: `dict`
+                Mapping of netCDF variable names to construct
+                identifiers, e.g. ``{'lat':
+                'auxiliarycoordinate1'}``. This must be updated
+                in-place for any newly created coordinate constructs.
+
+            tie_point_ncvars: sequence of `str`
+                The names of the netCDF tie point variables.
+
+        :Returns:
+
+            `None`
+
+        """
+        g = self.read_vars
+
+        string = self.implementation.del_property(
+            f, "coordinate_interpolation", None
+        )
+
+        coordinates = {}
+        for ncvar in tie_point_ncvars:
+            ok = self._check_tie_point_coordinates(parent_ncvar, ncvar, string)
+            if not ok:
+                continue
+
+            # Find out if the coordinates are to be dimension or
+            # auxiliary coordinate constructs
+            axes = self._get_domain_axes(ncvar, parent_ncvar=parent_ncvar)
+            is_dimension_coordinate = len(axes) == 1 and ncvar == g[
+                "axis_to_ncdim"
+            ].get(axes[0])
+
+            # Don't try to use an existing coordinate object derived
+            # from this netCDF variable, since such an instance may
+            # have been created from a different interpolation
+            # variable (and therefore could have used different tie
+            # point indices).
+            if is_dimension_coordinate:
+                coord = self._create_dimension_coordinate(
+                    parent_ncvar, ncvar, f
+                )
+            else:
+                coord = self._create_auxiliary_coordinate(
+                    parent_ncvar, ncvar, f
+                )
+
+            coordinates[ncvar] = (coord, axes, is_dimension_coordinate)
+
+        # Add any dependent tie points required for multivariate
+        # interpolations. This allows each cooridnate to be operated
+        # on (e.g. subspaced, collapsed, etc.) independently
+        #
+        # For example, when decompression is by the
+        # quadratic_latitude_longitude method, the interpolation of
+        # latitudes depends on the longitude, and vice verse -
+        # e.g. uncompressed latitudes = f(subsampled latitudes,
+        # subsampled longitudes). So that the latitude coordinate
+        # construct can be accessed independently of the longitude
+        # construct, then longitude tie points need to be stored
+        # within the latitude coordinate construct.
+        multivariate_interpolations = self.cf_multivariate_interpolations()
+        for (
+            ncvar,
+            (coord, axes, is_dimension_coordinate),
+        ) in coordinates.items():
+            compression_type = self.implementation.get_compression_type(coord)
+            if compression_type != "subsampled":
+                continue
+
+            interpolation_name = self.implementation.get_interpolation_name(
+                coord
+            )
+            identities = multivariate_interpolations.get(interpolation_name)
+            if not identities:
+                continue
+
+            bounds = self.implementation.get_bounds(coord, default=None)
+
+            tp_dims = {}
+            c_tp = {}
+            b_tp = {}
+            for n, (c, a, _) in coordinates.items():
+                if n == ncvar:
+                    continue
+
+                if (
+                    self.implementation.get_interpolation_name(c)
+                    != interpolation_name
+                ):
+                    continue
+
+                for identity in identities:
+                    if not self._has_identity(c, identity):
+                        continue
+
+                    tp_dims[identity] = tuple([a.index(i) for i in axes])
+
+                    c_tp[identity] = self.implementation.get_tie_points(c)
+                    if bounds is None:
+                        continue
+
+                    b = self.implementation.get_bounds(c, None)
+                    if b is None:
+                        continue
+
+                    b_tp[identity] = self.implementation.get_tie_points(b)
+                    break
+
+            self.implementation.set_dependent_tie_points(coord, c_tp, tp_dims)
+
+            if bounds is not None:
+                self.implementation.set_dependent_tie_points(
+                    bounds, b_tp, tp_dims
+                )
+
+        # Set the coordinate constructs on the parent field/domain
+        for (
+            ncvar,
+            (coord, axes, is_dimension_coordinate),
+        ) in coordinates.items():
+            logger.detail(
+                f"        [k] Inserting {coord.__class__.__name__}"
+            )  # pragma: no cover
+            if is_dimension_coordinate:
+                key = self.implementation.set_dimension_coordinate(
+                    f, coord, axes=axes, copy=False
+                )
+            else:
+                key = self.implementation.set_auxiliary_coordinate(
+                    f, coord, axes=axes, copy=False
+                )
+
+            self._reference(ncvar, parent_ncvar)
+            if self.implementation.has_bounds(coord):
+                bounds = self.implementation.get_bounds(coord)
+                self._reference(
+                    self.implementation.nc_get_variable(bounds), parent_ncvar
+                )
+
+            ncvar_to_key[ncvar] = key
+
+    #    ppp
+    def _create_auxiliary_coordinates_from_geometries(
+        self, f, parent_ncvar, ncvar_to_key, geometry
+    ):
+        """TODO.
+
+        (CF>=1.8)
+        .. versionadded:: TODO
+
+        :Parameters:
+
+            f: `Field or `Domain``
+                The parent field or domain construct.
+
+            parent_ncvar: `str` or `None`
+                The netCDF name of the parent variable.
+
+            ncvar_to_key: `dict`
+                Mapping of netCDF variable names to construct
+                identifiers, e.g. ``{'lat':
+                'auxiliarycoordinate1'}``. This must be updated
+                in-place for any newly created coordinate constructs.
+
+            geometry: `dict`
+
+        :Returns:
+
+            `None`
+
+        """
+        g = self.read_vars
+
+        for node_ncvar in geometry["node_coordinates"]:
+            found = any(
+                [
+                    self.implementation.get_bounds_ncvar(a) == node_ncvar
+                    for a in self.implementation.get_auxiliary_coordinates(
+                        f
+                    ).values()
+                ]
+            )
+            # TODO: remove explicit API dependency:
+            # f.auxiliary_coordinates.values()
+            if found:
+                continue
+
+            #
+            if node_ncvar in g["auxiliary_coordinate"]:
+                coord = g["auxiliary_coordinate"][node_ncvar].copy()
+            else:
+                coord = self._create_auxiliary_coordinate(
+                    field_ncvar=parent_ncvar,
+                    ncvar=None,
+                    f=f,
+                    bounds_ncvar=node_ncvar,
+                    nodes=True,
+                )
+
+                geometry_type = geometry["geometry_type"]
+                if geometry_type is not None:
+                    self.implementation.set_geometry(coord, geometry_type)
+
+                g["auxiliary_coordinate"][node_ncvar] = coord
+
+            # Insert auxiliary coordinate
+            logger.detail(
+                f"        [f] Inserting {coord.__class__.__name__}"
+            )  # pragma: no cover
+
+            # TODO check that geometry_dimension is a dimension of
+            # the data variable
+            geometry_dimension = geometry["geometry_dimension"]
+            if geometry_dimension not in g["ncdim_to_axis"]:
+                raise ValueError(
+                    f"Geometry dimension {geometry_dimension!r} is not in "
+                    f"read_vars['ncdim_to_axis']: {g['ncdim_to_axis']}"
+                )
+
+            aux = self.implementation.set_auxiliary_coordinate(
+                f,
+                coord,
+                axes=(g["ncdim_to_axis"][geometry_dimension],),
+                copy=False,
+            )
+
+            self._reference(node_ncvar, parent_ncvar)
+            ncvar_to_key[node_ncvar] = aux
+
+    # ppp
+    def _extra_coordinates(self, f, parent_ncvar, ncvar_to_key):
+        """Add extra coordinates that are not defined by the CF
+        conventions.
+
+        .. versionadded:: TODO
+
+        :Parameters:
+
+            f: `Field or `Domain``
+                The parent field or domain construct.
+
+            parent_ncvar: `str` or `None`
+                The netCDF name of the parent variable.
+
+            ncvar_to_key: `dict`
+                Mapping of netCDF variable names to construct
+                identifiers, e.g. ``{'lat':
+                'auxiliarycoordinate1'}``. This must be updated
+                in-place for any newly created coordinate constructs.
+
+        :Returns:
+
+            `None`
+
+        """
+        pass
 
     def _find_coordinate_variable(self, field_ncvar, field_groups, ncdim):
         """Find a coordinate variable for a data-dimension combination.
@@ -5711,7 +5827,7 @@ class NetCDFRead(IORead):
         # Create a field ancillary object
         field_ancillary = self.implementation.initialise_FieldAncillary()
 
-        # Insert propertpppies
+        # Insert properties
         self.implementation.set_properties(
             field_ancillary,
             g["variable_attributes"][ncvar],
