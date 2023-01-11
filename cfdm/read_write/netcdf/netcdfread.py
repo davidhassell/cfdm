@@ -1399,46 +1399,11 @@ class NetCDFRead(IORead):
                 if not cf_role:
                     continue
                 
-                if cf_role == "location_index_set":
-                    self._parse_mesh_topology(
-                        ncvar,
-                        mesh_ncvar=mesh,
-                    location_index_set_ncvar=location_index_set,
-                )
-
-                    mesh = None
-                    location_index_set = ncvar
-                if cf_role == "mesh_topology":
-                    mesh = ncvar
-                    location_index_set = None
-                elif cf_role == "location_index_set":
-                    mesh = None
-                    location_index_set = ncvar
-                else:
-                    continue
-                
-                mesh = attributes.get("mesh")
-                location_index_set = attributes.get("location_index_set")
-                if location_index_set is not None:                    
-                    self._parse_location_index_set(
-                        ncvar,
-                        location_index_set_ncvar=location_index_set,
-                    )
-                elif mesh is None:                    
-                    self._parse_mesh_topology(
-                        ncvar,
-                        mesh_ncvar=mesh,
-                    )
-
-
-                if mesh is None and location_index_set is None:
-                    continue
-ppp
-                self._parse_mesh_topology(
-                    ncvar,
-                    mesh_ncvar=mesh,
-                    location_index_set_ncvar=location_index_set,
-
+                ncvars = self._parse_mesh_topology(ncvar, attributes)
+                if ncvars:
+                    for nc in ncvars:
+                        g["do_not_create_field"].add(nc)
+                    
         # ------------------------------------------------------------
         # Compression by coordinate subsampling (CF>=1.9)
         # ------------------------------------------------------------
@@ -3102,6 +3067,7 @@ ppp
         # field/domain
         # ------------------------------------------------------------
         has_dimensions_attr = self.implementation.has_property(f, "dimensions")
+        has_mesh_attrs = self.implementation.get_property(f, "cf_role") in ("mesh_topology", "location_index_set")
 #        ndim = g["variables"][field_ncvar].ndim
 
         if field:
@@ -3109,7 +3075,8 @@ ppp
                 # ----------------------------------------------------
                 # This netCDF variable has a 'dimensions'
                 # attribute. Therefore it is a domain variable and is
-                # to be ignored. CF>=1.9 (Introduced at v1.9.0.0)
+                # therefore to be ignored. CF>=1.9 (Introduced at
+                # v1.9.0.0)
                 # ----------------------------------------------------
                 logger.info(
                     f"        {field_ncvar} is a domain variable"
@@ -3117,11 +3084,12 @@ ppp
 
                 return None
             
-            if g["CF>=1.11"] and self.implementation.get_property(f, "cf_role") in ("mesh_topology", "location_index_set"):
+            if g["CF>=1.11"] and has_mesh_attrs:
                 # ----------------------------------------------------
                 # This netCDF variable is a mesh topology. Therefore
-                # it is a domain variable and is to be
-                # ignored. CF>=1.11 (Introduced at v1.11.0.0)
+                # it is maps to one or more domain variables and is
+                # therefore to be ignored. CF>=1.11 (Introduced at
+                # v1.11.0.0)
                 # ----------------------------------------------------
                 logger.info(
                     f"        {field_ncvar} is a mesh topology variable"
@@ -3130,8 +3098,7 @@ ppp
                 return None
 
             ncdimensions = None
-        else:
-            if not (g["CF>=1.9"] and has_dimensions_attr) or not (g["CF>=1.11"] and self.implementation.get_property(f, "cf_role") in ("mesh_topology", "location_index_set")):
+        elif not ((g["CF>=1.9"] and has_dimensions_attr) or (g["CF>=1.11"] and has_mesh_attrs)):
                 # ----------------------------------------------------
                 # This netCDF variable is not a domain nor mesh
                 # topology variable
@@ -6010,10 +5977,8 @@ ppp
 
         return out
 
-    def _parse_mesh_topology(
-        self, mesh_ncvar=None, location_index_set_ncvar=None
-    ):
-        """Parse a CF mesh topology.
+    def _parse_mesh_topology(self, ncvar, attribute):
+        """Parse a CF mesh topology or location index set variable.
 
         Populate the ``self.read_vars`` dictionary with information
         needed to create `Data` objects that represent TODOUGRID.
@@ -6022,19 +5987,28 @@ ppp
 
         :Parameters:
 
-            mesh_ncvar: `str`, optional
-                The netCDF name of a mesh topology variable. Must only
-                be set if *location_index_set_ncvar* is not set.
+            ncvar: `str`, optional
+                The netCDF name of a mesh topology or location index
+                set variable
 
-            location_index_set_ncvar: `str`, optional
-                The netCDF name of a location index set variable. Must
-                only be set if *mesh_ncvar* is not set.
+            attributes: `dict`
+                TODOUGRID
 
         :Returns:
 
             `None`
+
         """
         g = self.read_vars
+
+        mesh_ncvar = attributes.get("mesh")
+        location_index_set_ncvar = attributes.get("location_index_set")
+
+        if mesh_ncvar is None and location_index_set_ncvar is None:
+            return None, None
+
+        if mesh_ncvar is not None and location_index_set_ncvar is not None:
+            return None, None
 
         if location_index_set_ncvar is not None:
             if location_index_set_ncvar in g["location_index_set"]:
@@ -6060,7 +6034,7 @@ ppp
             }
 
             # Do not attempt to create a field construct from a
-            # node coordinate variable
+            # location_index_set
             g["do_not_create_field"].add(location_index_set_ncvar)
 
         if mesh_ncvar in g["mesh"]:
