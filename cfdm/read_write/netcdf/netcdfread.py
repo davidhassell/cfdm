@@ -3096,7 +3096,7 @@ class NetCDFRead(IORead):
                 )  # pragma: no cover
 
                 return None
-
+0
             ncdimensions = None
         elif not ((g["CF>=1.9"] and has_dimensions_attr) or (g["CF>=1.11"] and has_mesh_attrs)):
                 # ----------------------------------------------------
@@ -3411,7 +3411,7 @@ class NetCDFRead(IORead):
             coordinates[ncvar] = (coord, axes, is_dimension_coordinate)
 
         # Add any dependent tie points required for multivariate
-        # interpolations. This allows each cooridnate to be operated
+        # interpolations. This allows each coordinate to be operated
         # on (e.g. subspaced, collapsed, etc.) independently
         #
         # For example, when decompression is by the
@@ -3420,8 +3420,8 @@ class NetCDFRead(IORead):
         # e.g. uncompressed latitudes = f(subsampled latitudes,
         # subsampled longitudes). So that the latitude coordinate
         # construct can be accessed independently of the longitude
-        # construct, then longitude tie points need to be stored
-        # within the latitude coordinate construct.
+        # construct, the longitude tie points need to be stored within
+        # the latitude coordinate construct.
         multivariate_interpolations = self.cf_multivariate_interpolations()
         for (
             ncvar,
@@ -3566,6 +3566,29 @@ class NetCDFRead(IORead):
                 self._reference(node_ncvar, field_ncvar)
                 ncvar_to_key[node_ncvar] = aux
 
+        # ------------------------------------------------------------
+        # Add auxiliary coordinate constructs from mesh topology
+        # variables and location index set variables (CF>=1.11)
+        # ------------------------------------------------------------
+        if g['CF>=1.11']:
+            # TODOUGRID test that UGRID conventions are in play before
+            #           carrying on
+            mesh_ncvar = self.implementation.del_property(f, "mesh", None)
+            location_index_set = self.implementation.del_property(f, "location_index_set", None)
+            if mesh_ncvar:
+                location = self.implementation.del_property(f, "location", None)
+                index = None
+            elif location_index_set is not None:
+                location_index_set = g['lcoation_index_set'][location_index_set]
+                mesh_ncvar = location_index_set['mesh_ncvar']
+                location = location_index_set['location']
+                index = location_index_set['index']
+
+            if mesh_ncvar is not None and location is not None:
+                if location == "face":
+                    pass
+                
+            
         # ------------------------------------------------------------
         # Add coordinate reference constructs from formula_terms
         # properties
@@ -4040,7 +4063,7 @@ class NetCDFRead(IORead):
                 )
             ]
             ncvar = ncvars[0][0]
-            return ncvar, " (found by proximal serach)"
+            return ncvar, " (found by proximal search)"
 
         if lateral_candidates:
             # Choose the coordinate variable that is closest the local
@@ -4547,6 +4570,7 @@ class NetCDFRead(IORead):
         bounds_ncvar=None,
         has_coordinates=True,
         geometry_nodes=False,
+        mesh_nodes=False
     ):
         """Create a variable which might have bounds.
 
@@ -4580,6 +4604,11 @@ class NetCDFRead(IORead):
                 variable, whose netCDF name is given by *bounds_ncvar*. In
                 this case *ncvar* must be `None`.
 
+            mesh_nodes: `bool`
+                TODOUGRID 
+
+                .. versionadded:: 1.11.0.0
+
         :Returns:
 
             `DimensionCoordinate` or `AuxiliaryCoordinate` or `DomainAncillary`
@@ -4607,6 +4636,12 @@ class NetCDFRead(IORead):
 
         attribute = "bounds"  # TODO Bad default? consider if bounds != None
 
+        if mesh_nodes:
+            # get boiund from noded connectivity variable (somewhow)
+            # and set 'bounds_ncvar'
+            pass
+
+        
         # If there are bounds then find the name of the attribute that
         # names them, and the netCDF variable name of the bounds.
         if bounds_ncvar is None:
@@ -4625,7 +4660,6 @@ class NetCDFRead(IORead):
                     bounds_ncvar = properties.pop("bounds_tie_points", None)
                     if bounds_ncvar is not None:
                         attribute = "bounds_tie_points"
-
         elif nodes:
             attribute = "nodes"
 
@@ -5996,61 +6030,63 @@ class NetCDFRead(IORead):
 
         :Returns:
 
-            `None`
+            `tuple`
 
         """
         g = self.read_vars
+        cf_role =  attributes['cf_role'] 
 
-        mesh_ncvar = attributes.get("mesh")
-        location_index_set_ncvar = attributes.get("location_index_set")
+        mesh = cf_role == "mesh_topology"
+        location_index_set = cf_role == "location_index_set"
 
-        if mesh_ncvar is None and location_index_set_ncvar is None:
-            return None, None
+        if mesh and location_index_set:
+            return
 
-        if mesh_ncvar is not None and location_index_set_ncvar is not None:
-            return None, None
+        if not (mesh_ncvar or location_index_set):
+            return
 
-        if location_index_set_ncvar is not None:
-            if location_index_set_ncvar in g["location_index_set"]:
+        if location_index_set:
+            if ncvar in g["location_index_set"]:
                 # This location index set has already been parsed
                 return
 
-            ok = self._check_location_index_set(location_index_set_ncvar)
+            ok = self._check_location_index_set(ncvar)
             if not ok:
                 return
 
-            attr = g["variable_attributes"][location_index_set_ncvar]
-            mesh_ncvar = attr["mesh"]
+            index = self._create_data(ncvar)
+            index = self._x_minus_n(index, attributes.get("start_index", 0))
 
-            index = self._x_minus_n(
-                self._create_data(location_index_set_ncvar),
-                attr.get("start_index", 0),
-            )
-
-            g["location_index_set"][location_index_set_ncvar] = {
-                "mesh_ncvar": mesh_ncvar,
+            g["location_index_set"][ncvar] = {
+                "mesh_ncvar": attributes['mesh'],
                 "location": attr["location"],
                 "index": index,
             }
 
             # Do not attempt to create a field construct from a
             # location_index_set
-            g["do_not_create_field"].add(location_index_set_ncvar)
-
+            g["do_not_create_field"].add(ncvar)
+            return 
+            
+        # Still here? Then parse this mesh topology
         if mesh_ncvar in g["mesh"]:
             # This mesh topology has already been parsed
             return
 
-        # Still here? Then parse this mesh topology
-        ok = self._check_mesh_topology(mesh_ncvar)
+        ok = self._check_mesh_topology(ncvar)
         if not ok:
             return
 
+        g["mesh_topology"][ncvar] = {
+            "mesh_ncvar": attributes['mesh'],
+            "location": attr["location"],
+            "start_index": 0,
+            "index": index,
+        }
+
         # Do not attempt to create a field or domain construct from a
         # mesh topology variable
-        g["do_not_create_field"].add(mesh_ncvar)
-
-        # Store a location index set
+        g["do_not_create_field"].add(ncvar)
 
     def _x_minus_n(self, x, n):
         """TODOUGRID.
