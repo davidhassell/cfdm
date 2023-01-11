@@ -40,6 +40,19 @@ Inspection
    ~cfdm.RaggedContiguousArray.shape
    ~cfdm.RaggedContiguousArray.size
 
+Units
+-----
+
+.. rubric:: Methods
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+      
+   ~cfdm.RaggedContiguousArray.get_calendar
+   ~cfdm.RaggedContiguousArray.get_units
+
 Miscellaneous
 -------------
 
@@ -59,6 +72,8 @@ Miscellaneous
    ~cfdm.RaggedContiguousArray.get_Subarray
    ~cfdm.RaggedContiguousArray.conformed_data
    ~cfdm.RaggedContiguousArray.get_index
+   ~cfdm.RaggedContiguousArray.get_filename
+   ~cfdm.RaggedContiguousArray.get_filenames
 
 Special
 -------

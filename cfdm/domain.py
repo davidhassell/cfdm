@@ -87,11 +87,7 @@ class Domain(
                 *Parameter example:*
                    ``properties={'long_name': 'Domain for model'}``
 
-            source: optional
-                Initialise the metadata constructs from those of
-                *source*.
-
-                {{init source}}
+            {{init source: optional}}
 
                 A new domain may also be instantiated with the
                 `fromconstructs` class method.
@@ -909,7 +905,7 @@ class Domain(
         :Returns:
 
             `set`
-                The file names in normalized, absolute form. If all of
+                The file names in normalised, absolute form. If all of
                 the data are in memory then an empty `set` is
                 returned.
 

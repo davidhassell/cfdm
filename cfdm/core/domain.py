@@ -48,11 +48,7 @@ class Domain(mixin.FieldDomain, abstract.Properties):
             *Parameter example:*
                ``properties={'long_name': 'Domain for model'}``
 
-            source: optional
-                Initialise the metadata constructs from those of
-                *source*.
-
-                {{init source}}
+            {{init source: optional}}
 
                 A new domain may also be instantiated with the
                 `fromconstructs` class method.
@@ -225,7 +221,7 @@ class Domain(mixin.FieldDomain, abstract.Properties):
 
             copy: `bool`, optional
                 If True then deep copy the metadata constructs prior
-                to initialization. By default the metadata constructs
+                to initialisation. By default the metadata constructs
                 are not copied. Note that even when *copy* is True,
                 the input `Constructs` container is not copied.
 

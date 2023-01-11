@@ -40,6 +40,19 @@ Inspection
    ~cfdm.GatheredArray.shape
    ~cfdm.GatheredArray.size
 
+Units
+-----
+
+.. rubric:: Methods
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+      
+   ~cfdm.GatheredArray.get_calendar
+   ~cfdm.GatheredArray.get_units
+
 Miscellaneous
 -------------
 
@@ -58,6 +71,8 @@ Miscellaneous
    ~cfdm.GatheredArray.subarrays
    ~cfdm.GatheredArray.get_Subarray
    ~cfdm.GatheredArray.conformed_data
+   ~cfdm.GatheredArray.get_filename
+   ~cfdm.GatheredArray.get_filenames
 
 Special
 -------
