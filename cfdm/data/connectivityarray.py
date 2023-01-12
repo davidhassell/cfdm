@@ -44,21 +44,15 @@ class ConnectivityArray(CompressedArray):
             shape: `tuple`
                 The shape of the uncompressed array.
 
-            source: optional
-                Initialise the array from the given object.
+            {{init source: optional}}
 
-                {{init source}}
-
-            copy: `bool`, optional
-                If False then do not deep copy input parameters prior
-                to initialisation. By default arguments are deep
-                copied.
+            {{init copy: `bool`, optional}}
 
         """
         super().__init__(
             compressed_array=compressed_array,
             shape=shape,
-            compressed_dimensions={1: (1,)},
+            compressed_dimensions={1: (1,)}, # ??
             compression_type="connectivity",
             source=source,
             copy=copy,
@@ -79,8 +73,51 @@ class ConnectivityArray(CompressedArray):
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
-        u = np.filled(self.shape, False, dtype=self.dtype)
+        u = np.full(self.shape, False, dtype=self.dtype)
+        n_cells = u.shape[0]
+        
+        connectivity = self.get_connectivity().array
 
+        if location == "face":
+            if Type == "face_face_connectivity":
+                for i, x in enumerate(connectivity):
+                    j = x.compressed()
+                    u[i, j.compressed()] = True
+                    
+            elif Type == "face_node_connectivity":
+                for i, x in enumerate(c):
+                    y = c==x[0]
+                    for k in x[1:]:
+                        y |= c==k
+
+                    j = np.unique(np.where(y)[0])
+                    u[i, j] = True
+                    
+                u.fill_diagonal(u, False)
+        elif location == "edge":
+            if Type == "edge_node_connectivity":
+                for i, x in enumerate(c):
+                    j = np.unique(np.where((c==x[0] )| (c==x[1]))[0])
+                    u[i, j] = True
+
+                u.fill_diagonal(u, False)
+        elif location == "node":
+            for i in range(n_cells):
+                j = np.unique(connectivity[np.where(connectivity==i)[0]])
+                u[i, j] = True
+                
+            u.fill_diagonal(u, False)
+
+        if indices is Ellipsis:
+            return u
+
+        # TODOUGRID: (indices,) -> (indices, indices)
+        
+        return self.get_subspace(u, indices, copy=True)
+
+
+
+        
         Subarray = self.get_Subarray()
 
         compressed_dimensions = self.compressed_dimensions()
@@ -111,6 +148,28 @@ class ConnectivityArray(CompressedArray):
         """
         return np.dtype(bool)
 
+    def get_connectivity(self, default=, default=ValueError()):
+        """TODOUGIRD Return the list variable for a compressed array.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the list
+                variable has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+            `List`
+                The list variable. TODOUGRID
+
+        """
+        return self._get_component("connectivity_variable", default=default)
+
+    
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 
