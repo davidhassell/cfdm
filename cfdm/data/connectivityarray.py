@@ -85,10 +85,10 @@ class ConnectivityArray(CompressedArray):
                     u[i, j.compressed()] = True
                     
             elif Type == "face_node_connectivity":
-                for i, x in enumerate(c):
-                    y = c==x[0]
+                for i, x in enumerate(connectivity):
+                    y = connectivity==x[0]
                     for k in x[1:]:
-                        y |= c==k
+                        y |= connectivity==k
 
                     j = np.unique(np.where(y)[0])
                     u[i, j] = True
@@ -96,8 +96,12 @@ class ConnectivityArray(CompressedArray):
                 u.fill_diagonal(u, False)
         elif location == "edge":
             if Type == "edge_node_connectivity":
-                for i, x in enumerate(c):
-                    j = np.unique(np.where((c==x[0] )| (c==x[1]))[0])
+                for i, x in enumerate(connectivity):
+                    y = connectivity==x[0]
+                    for k in x[1:]:
+                        y |= connectivity==k
+
+                    j = np.unique(np.where(y)[0])
                     u[i, j] = True
 
                 u.fill_diagonal(u, False)
