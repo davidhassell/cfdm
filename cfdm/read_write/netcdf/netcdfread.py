@@ -743,8 +743,8 @@ class NetCDFRead(IORead):
             # --------------------------------------------------------
             # UGRID mesh topologies (CF>=1.11)
             # --------------------------------------------------------
-#            "mesh": {},
-            "location_index_set": {},
+            "mesh_topology": {},
+            # --------------------------------------------------------
             # Compression by coordinate subsampling (CF>=1.9)
             # --------------------------------------------------------
             # NetCDF names of tie point coordinate variables
@@ -3064,7 +3064,7 @@ class NetCDFRead(IORead):
         # field/domain
         # ------------------------------------------------------------
         has_dimensions_attr = self.implementation.has_property(f, "dimensions")
-        has_mesh_attrs = self.implementation.get_property(f, "cf_role") in ("mesh_topology", "location_index_set")
+        is_mesh = self.implementation.get_property(f, "cf_role") in ("mesh_topology", "location_index_set")
 #        ndim = g["variables"][field_ncvar].ndim
 
         if field:
@@ -3081,7 +3081,7 @@ class NetCDFRead(IORead):
 
                 return None
             
-            if g["CF>=1.11"] and has_mesh_attrs:
+            if g["CF>=1.11"] and is_mesh:
                 # ----------------------------------------------------
                 # This netCDF variable is a mesh topology. Therefore
                 # it is maps to one or more domain variables and is
@@ -3095,17 +3095,17 @@ class NetCDFRead(IORead):
                 return None
 
             ncdimensions = None
-        elif not ((g["CF>=1.9"] and has_dimensions_attr) or (g["CF>=1.11"] and has_mesh_attrs)):
-                # ----------------------------------------------------
-                # This netCDF variable is not a domain nor mesh
-                # topology variable
-                # ----------------------------------------------------
-                logger.info(
-                    "        {field_ncvar} is not a domain nor "
-                    "mesh topology variable"
-                )  # pragma: no cover
-
-                return None
+        elif not ((g["CF>=1.9"] and has_dimensions_attr) or (g["CF>=1.11"] and is_mesh)):
+            # ----------------------------------------------------
+            # This netCDF variable is not a domain nor mesh
+            # topology variable
+            # ----------------------------------------------------
+            logger.info(
+                "        {field_ncvar} is not a domain nor a "
+                "mesh topology variable"
+            )  # pragma: no cover
+            
+            return None
 
             # --------------------------------------------------------
             # Get the netCDF dimensions for the domain variable from
@@ -3575,73 +3575,77 @@ class NetCDFRead(IORead):
                 f, "location_index_set", None
             )
             if mesh_ncvar is not None:
-                mesh_topology = g['mesh_topology'][mesh_ncvar]
+                mesh = g['mesh_topology'][mesh_ncvar]
                 location = self.implementation.del_property(
                     f, "location", None
                 )
             elif location_index_set is not None:
-                mesh_topology = g['mesh_topology'][location_index_set]
-                location = mesh_topology['location']
-                mesh_ncvar = mesh_topology['mesh_ncvar']
+                mesh = g['mesh_topology'][location_index_set]
+                location = mesh['location']
+                mesh_ncvar = mesh['mesh_ncvar']
 
-            if location is None:
-                # TODOUGRID: This is bad. Do something.
-                pass
-    
-            ncdim = None
-            # TODOUGRID: Infer the mesh dimension ncdim from
-            #            the mesh variable and the location
-            coords = g["avariable_attributes"][mesh_ncvar].get(
-                f"{location}_coordinates}", ()
-            )
-            for ncvar in coords:
-                if ncvar in g["auxiliary_coordinate"]:
-                    aux = g["auxiliary_coordinate"][ncvar].copy()
-                else:
-                    aux = self._create_auxiliary_coordinate(
-                        field_ncvar, ncvar, f
+            if mesh is not None:
+                if location is None:
+                    # TODOUGRID: This is bad. Do something.
+                    pass
+        
+                ncdim = None
+                # TODOUGRID: Infer the mesh dimension ncdim from
+                #            the mesh variable and the location
+                coords_ncvar = g["avariable_attributes"][mesh_ncvar].get(
+                    f"{location}_coordinates}", ()
+                )
+                for ncvar in coords_ncvar:
+                    if ncvar in g["auxiliary_coordinate"]:
+                        aux = g["auxiliary_coordinate"][ncvar].copy()
+                    else:
+                        aux = self._create_auxiliary_coordinate(
+                            field_ncvar, ncvar, f
+                        )
+                        if not self.implementation.has_bounds(aux):
+                            # TODOUGRID: Add bounds from
+                            #            "face|edge_node_connectivity"
+                            pass
+                        
+                        g["auxiliary_coordinate"][ncvar] = aux
+                        
+                    aux_ncdim = self._ncdimensions(ncvar)
+                    # TODOUGRID: Check that aux_ncdim==ncdim
+                    
+                    key = self.implementation.set_auxiliary_coordinate(
+                        f,
+                        aux,
+                        axes=aux_ncdim
+                        copy=False,
                     )
-                    if not self.implementation.has_bounds(aux):
-                        # TODOUGRID: Add bounds from
-                        #            "face|edge_node_connectivity"
-                        pass
                     
-                    g["auxiliary_coordinate"][ncvar] = aux
+                    self._reference(ncvar, field_ncvar)
+                    ncvar_to_key[ncvar] = key
                     
-                coord_ncdim = self._ncdimensions(ncvar)
-                # TODOUGRID: Check that coord_ncdim==ncdim
-                
-                key = self.implementation.set_auxiliary_coordinate(
-                    f,
-                    aux,
-                    axes=coord_ncdim
-                    copy=False,
-                )
-                
-                self._reference(ncvar, field_ncvar)
-                ncvar_to_key[ncvar] = key
-                
-            # ------------------------------------------------
-            # Domain topology (CF>=1.11)
-            # ------------------------------------------------
-            try:
-                # Look for an existing domain topology construct
-                domain_topology = g["domain_topology"].get(mesh_ncvar, {})[location]
-            except KeyError:                        
-                domain_topology = self._create_domain_topology(
-                    field_ncvar, mesh_ncvar, f, location
-                )
-            else:
-                # Found an existing domain topology construct
-                domain_topology = domain_topology.copy()
+                # ------------------------------------------------
+                # Add a domain topology construct (CF>=1.11)
+                # ------------------------------------------------
+                if location in mesh['domain_topology']
+                    # Look for an existing domain topology construct
+                    domain_topology = mesh['domain_topology'][location]
+                else
+                    domain_topology = self._create_domain_topology(
+                        field_ncvar, mesh_ncvar, f, mesh, location
+                    )
                     
-            if domain_topology is not None:
-                key = self.implementation.set_domain_topology(
-                    f,
-                    domain_topology,
-                    axes=ncdim
-                    copy=False,
-                )
+                    mesh['domain_topology'][location] = domain_topology 
+                else:
+                    # Found an existing domain topology construct
+                    domain_topology = domain_topology.copy()
+                        
+                if domain_topology is not None:
+                    key = self.implementation.set_domain_topology(
+                        f,
+                        domain_topology,
+                        axes=ncdim
+                        copy=False,
+                    )
+
                     
         # ------------------------------------------------------------
         # Add coordinate reference constructs from formula_terms
@@ -4033,25 +4037,28 @@ class NetCDFRead(IORead):
         g = self.read_vars
         mesh_attrs = g["variable_attributes"][mesh_ncvar]
         
-        if topology_dimension == 1:
-            connectivity = mesh_attrs.get("edge_node_connectivity")
-            if location == "node":
-                pass
-            elif location == "edge":
-                pass
-        elif topology_dimension == 2:
-            if location == "node":
-                connectivity = mesh_attrs.get("edge_node_connectivity")
-                pass
-            elif location == "edge":
-                connectivity = mesh_attrs.get("edge_node_connectivity")
-            elif location == "face":
-                connectivity = mesh_attrs.get("face_face_connectivity")
-        else:
-            # TODOUGRID: Message about unsupported
-            #            topology_dimension
-            pass
-                
+       #if topology_dimension == 1:
+       #    connectivity = mesh_attrs.get("edge_node_connectivity")
+       #    if location == "node":
+       #        pass
+       #    elif location == "edge":
+       #        pass
+       #elif topology_dimension == 2:
+       #    if location == "node":
+       #        connectivity = mesh_attrs.get("edge_node_connectivity")
+       #        pass
+       #    elif location == "edge":
+       #        connectivity = mesh_attrs.get("edge_node_connectivity")
+       #    elif location == "face":
+       #        connectivity = mesh_attrs.get("face_face_connectivity")
+       #else:
+       #    # TODOUGRID: Message about unsupported
+       #    #            topology_dimension
+       #    pass
+
+
+        mesh['domain_topology'][location] = domain_topology 
+                    # 
     def _find_coordinate_variable(self, field_ncvar, field_groups, ncdim):
         """Find a coordinate variable for a data-dimension combination.
 
@@ -6151,6 +6158,7 @@ class NetCDFRead(IORead):
             "location": location,
             "start_index": attributes['start_index'],
             "index": index,
+            'domain_topology': {}
         }
 
         # Do not attempt to create a field or domain construct from a
