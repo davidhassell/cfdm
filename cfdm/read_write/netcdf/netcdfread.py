@@ -4032,11 +4032,65 @@ class NetCDFRead(IORead):
         # Return the finished field/domain
         return f
 
-    def _create_domain_topology(self, mesh_ncvar):
+    def _create_domain_topology(self, mesh_ncvar, cell_ncdim):
         """TODOUGRID"""
         g = self.read_vars
         mesh_attrs = g["variable_attributes"][mesh_ncvar]
+
+        if location == "face":
+            connectivity_type = "face_face_connectivity"
+            if connectivity_type not in mesh_attrs
+                connectivity_type = "face_node_connectivity"
+        elif location in ("node", "edge"):
+            connectivity_type = "edge_node_connectivity"
+
+        ncvar = mesh_attrs.get(connectivity_type)
+        if ncvar is None:
+            pass # TODOUGRID Do something
+
+
+        ncdims = self._ncdimensions(ncvar)
         
+
+        
+        # Initialise the domain topology variable
+        variable = self.implementation.initialise_DomainTopology()
+
+        array, kwargs = self._create_netcdfarray(ncvar)
+        array = self._create_connectivity_array(
+            connectivity_array=self._create_Data(array, ncvar=ncvar),
+            uncompressed_shape=uncompressed_shape,
+            compressed_dimensions=compressed_dimensions,
+            index=mesh['index'],
+            start_index=mesh['start_index'],
+            location=mesh['location'],
+            connectivity_type=None, # e.g. "edge_node_connectivity"
+            cell_dimension=ncdims.index(cell_ncdim),
+        )
+        data = self._create_Data(
+            array,
+            units=kwargs["units"],
+            calendar=kwargs["calendar"],
+            ncvar=ncvar,
+        )
+        data._original_filenames(define=kwargs["filename"])
+        self.implementation.set_data(variable, data, copy=False)
+
+        # Set the CF properties
+        properties = g["variable_attributes"][ncvar]
+        self.implementation.set_properties(variable, properties)
+
+        # Set the netCDF variable name
+        self.implementation.nc_set_variable(variable, ncvar)
+
+        # Store the original file names
+        self.implementation.set_original_filenames(
+            variable, g["variable_filename"][ncvar]
+        )
+
+        mesh['domain_topology'][location] = variable
+                    
+        return variable
        #if topology_dimension == 1:
        #    connectivity = mesh_attrs.get("edge_node_connectivity")
        #    if location == "node":
@@ -4057,8 +4111,6 @@ class NetCDFRead(IORead):
        #    pass
 
 
-        mesh['domain_topology'][location] = domain_topology 
-                    # 
     def _find_coordinate_variable(self, field_ncvar, field_groups, ncdim):
         """Find a coordinate variable for a data-dimension combination.
 

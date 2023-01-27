@@ -74,42 +74,40 @@ class ConnectivityArray(CompressedArray):
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
         u = np.full(self.shape, False, dtype=self.dtype)
-        n_cells = u.shape[0]
         
         connectivity = self.get_connectivity().array
 
-        if location == "face":
-            if Type == "face_face_connectivity":
-                for i, x in enumerate(connectivity):
-                    j = x.compressed()
-                    u[i, j.compressed()] = True
-                    
-            elif Type == "face_node_connectivity":
-                for i, x in enumerate(connectivity):
-                    y = connectivity==x[0]
-                    for k in x[1:]:
-                        y |= connectivity==k
-
-                    j = np.unique(np.where(y)[0])
-                    u[i, j] = True
-                    
-                u.fill_diagonal(u, False)
-        elif location == "edge":
-            if Type == "edge_node_connectivity":
-                for i, x in enumerate(connectivity):
-                    y = connectivity==x[0]
-                    for k in x[1:]:
-                        y |= connectivity==k
-
-                    j = np.unique(np.where(y)[0])
-                    u[i, j] = True
-
-                u.fill_diagonal(u, False)
+        if index is None:
+            if cell_dimension == 1:
+                connectivity = np.tranpose(connectivity)
+        elif cell_dimension == 1:
+            connectivity = np.tranpose(connectivity[:, index])
+        else:
+            connectivity = connectivity[index, :]
+            
+        if location == "face" and connectivity_type == "face_face_connectivity":
+            for i, x in enumerate(connectivity):
+                j = x.compressed()
+                u[i, j] = True
+                
         elif location == "node":
-            for i in range(n_cells):
+            # In this case 'connectivity' is edge_node_connectivity
+            for i in range(u.shape[0]):
                 j = np.unique(connectivity[np.where(connectivity==i)[0]])
                 u[i, j] = True
                 
+            u.fill_diagonal(u, False)
+        else:
+            # In this case 'connectivity' is either
+            # edge_node_connectivity or face_node_connectivity
+            for i, x in enumerate(connectivity):
+                y = connectivity == x[0]
+                for k in x[1:]:
+                    y |= connectivity == k
+                
+                j = np.unique(np.where(y)[0])
+                u[i, j] = True
+                    
             u.fill_diagonal(u, False)
 
         if indices is Ellipsis:
