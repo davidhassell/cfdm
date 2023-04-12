@@ -25,6 +25,7 @@ class NetCDFArray(abstract.Array):
         mask=True,
         units=False,
         calendar=False,
+        missing_values=None,
         source=None,
         copy=True,
     ):
@@ -107,6 +108,13 @@ class NetCDFArray(abstract.Array):
 
                 .. versionadded:: (cfdm) 1.10.0.1
 
+            missing_values: `dict`, optional
+                The missing value indicators defined by the netCDF
+                variable attributes. See `get_missing_values` for
+                details.
+
+                .. versionadded:: (cfdm) 1.10.0.3
+
             {{init source: optional}}
 
                 .. versionadded:: (cfdm) 1.10.0.0
@@ -164,6 +172,11 @@ class NetCDFArray(abstract.Array):
             except AttributeError:
                 calendar = False
 
+            try:
+                missing_values = source._get_component("missing_values", None)
+            except AttributeError:
+                missing_values = None
+
         if shape is not None:
             self._set_component("shape", shape, copy=False)
 
@@ -175,6 +188,11 @@ class NetCDFArray(abstract.Array):
 
         if varid is not None:
             self._set_component("varid", varid, copy=False)
+
+        if missing_values is not None:
+            self._set_component(
+                "missing_values", missing_values.copy(), copy=False
+            )
 
         self._set_component("group", group, copy=False)
         self._set_component("dtype", dtype, copy=False)
@@ -247,7 +265,7 @@ class NetCDFArray(abstract.Array):
             # A netCDF string type scalar variable comes out as Python
             # str object, so convert it to a numpy array.
             # --------------------------------------------------------
-            array = numpy.array(array, dtype=f"S{len(array)}")
+            array = numpy.array(array, dtype=f"U{len(array)}")
 
         if not self.ndim:
             # Hmm netCDF4 has a thing for making scalar size 1 , 1d
@@ -264,25 +282,24 @@ class NetCDFArray(abstract.Array):
             # memory. E.g. [['a','b','c']] becomes ['abc']
             # --------------------------------------------------------
             if kind == "U":
-                array = array.astype("S")
+                array = array.astype("S", copy=False)
 
             array = netCDF4.chartostring(array)
             shape = array.shape
-            array = numpy.array([x.rstrip() for x in array.flat], dtype="S")
+            array = numpy.array([x.rstrip() for x in array.flat], dtype="U")
             array = numpy.reshape(array, shape)
-            array = numpy.ma.masked_where(array == b"", array)
-
+            array = numpy.ma.masked_where(array == "", array)
         elif not string_type and kind == "O":
             # --------------------------------------------------------
             # A netCDF string type N-d (N>=1) variable comes out as a
             # numpy object array, so convert it to numpy string array.
             # --------------------------------------------------------
-            array = array.astype("S")  # , copy=False)
+            array = array.astype("U", copy=False)
 
             # --------------------------------------------------------
             # netCDF4 does not auto-mask VLEN variable, so do it here.
             # --------------------------------------------------------
-            array = numpy.ma.where(array == b"", numpy.ma.masked, array)
+            array = numpy.ma.where(array == "", numpy.ma.masked, array)
 
         return array
 
@@ -453,6 +470,41 @@ class NetCDFArray(abstract.Array):
 
         """
         return self._get_component("mask")
+
+    def get_missing_values(self):
+        """The missing value indicators from the netCDF variable.
+
+        .. versionadded:: (cfdm) 1.10.0.3
+
+        :Returns:
+
+            `dict` or `None`
+                The missing value indicators from the netCDF variable,
+                keyed by their netCDF attribute names. An empty
+                dictionary signifies that no missing values are given
+                in the file. `None` signifies that the missing values
+                have not been set.
+
+        **Examples**
+
+        >>> a.get_missing_values()
+        None
+
+        >>> b.get_missing_values()
+        {}
+
+        >>> c.get_missing_values()
+        {'missing_value': 1e20, 'valid_range': (-10, 20)}
+
+        >>> d.get_missing_values()
+        {'valid_min': -999}
+
+        """
+        out = self._get_component("missing_values", None)
+        if out is None:
+            return
+
+        return out.copy()
 
     def get_ncvar(self):
         """The name of the netCDF variable containing the array.

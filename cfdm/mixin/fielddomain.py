@@ -1883,7 +1883,7 @@ class FieldDomain:
         verbose=None,
         ignore_data_type=False,
         ignore_fill_value=False,
-        ignore_properties=(),
+        ignore_properties=None,
         ignore_compression=True,
         ignore_type=False,
     ):
@@ -1928,7 +1928,7 @@ class FieldDomain:
 
             {{ignore_fill_value: `bool`, optional}}
 
-            ignore_properties: sequence of `str`, optional
+            ignore_properties: (sequence of) `str`, optional
                 The names of properties of the construct (not the
                 metadata constructs) to omit from the comparison. Note
                 that the ``Conventions`` property is always omitted.
@@ -1968,7 +1968,12 @@ class FieldDomain:
 
         """
         # Check the properties and data
-        ignore_properties = tuple(ignore_properties) + ("Conventions",)
+        if not ignore_properties:
+            ignore_properties = ("Conventions",)
+        elif isinstance(ignore_properties, str):
+            ignore_properties = (ignore_properties, "Conventions")
+        else:
+            ignore_properties = tuple(ignore_properties) + ("Conventions",)
 
         if not super().equals(
             other,
