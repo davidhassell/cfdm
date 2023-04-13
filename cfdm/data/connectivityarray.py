@@ -52,7 +52,7 @@ class ConnectivityArray(CompressedArray):
         super().__init__(
             compressed_array=compressed_array,
             shape=shape,
-            compressed_dimensions={1: (1,)}, # ??
+            compressed_dimensions={1: (1,)},  # ??
             compression_type="connectivity",
             source=source,
             copy=copy,
@@ -74,7 +74,7 @@ class ConnectivityArray(CompressedArray):
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
         u = np.full(self.shape, False, dtype=self.dtype)
-        
+
         connectivity = self.get_connectivity().array
 
         if index is None:
@@ -84,18 +84,21 @@ class ConnectivityArray(CompressedArray):
             connectivity = np.tranpose(connectivity[:, index])
         else:
             connectivity = connectivity[index, :]
-            
-        if location == "face" and connectivity_type == "face_face_connectivity":
+
+        if (
+            location == "face"
+            and connectivity_type == "face_face_connectivity"
+        ):
             for i, x in enumerate(connectivity):
                 j = x.compressed()
                 u[i, j] = True
-                
+
         elif location == "node":
             # In this case 'connectivity' is edge_node_connectivity
             for i in range(u.shape[0]):
-                j = np.unique(connectivity[np.where(connectivity==i)[0]])
+                j = np.unique(connectivity[np.where(connectivity == i)[0]])
                 u[i, j] = True
-                
+
             u.fill_diagonal(u, False)
         else:
             # In this case 'connectivity' is either
@@ -104,22 +107,19 @@ class ConnectivityArray(CompressedArray):
                 y = connectivity == x[0]
                 for k in x[1:]:
                     y |= connectivity == k
-                
+
                 j = np.unique(np.where(y)[0])
                 u[i, j] = True
-                    
+
             u.fill_diagonal(u, False)
 
         if indices is Ellipsis:
             return u
 
         # TODOUGRID: (indices,) -> (indices, indices)
-        
+
         return self.get_subspace(u, indices, copy=True)
 
-
-
-        
         Subarray = self.get_Subarray()
 
         compressed_dimensions = self.compressed_dimensions()
@@ -150,7 +150,7 @@ class ConnectivityArray(CompressedArray):
         """
         return np.dtype(bool)
 
-    def get_connectivity(self, default=, default=ValueError()):
+    def get_connectivity(self, default=ValueError()):
         """TODOUGIRD Return the list variable for a compressed array.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -171,7 +171,6 @@ class ConnectivityArray(CompressedArray):
         """
         return self._get_component("connectivity_variable", default=default)
 
-    
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 

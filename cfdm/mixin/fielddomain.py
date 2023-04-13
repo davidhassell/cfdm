@@ -1759,7 +1759,7 @@ class FieldDomain:
             "The selected 1-d coordinate constructs "
             f"span multiple domain axes: {keys!r}",
         )
-    
+
     def domain_topology(
         self,
         *identity,
