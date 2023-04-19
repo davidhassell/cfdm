@@ -32,7 +32,7 @@ class ConnectivityArray(CompressedArray):
         return instance
 
     def __init__(
-        self, compressed_array=None, shape=None, source=None, copy=True
+        self, compressed_array=None, source=None, copy=True
     ):
         """**Initialisation**
 
@@ -51,9 +51,10 @@ class ConnectivityArray(CompressedArray):
         """
         super().__init__(
             compressed_array=compressed_array,
-            shape=shape,
-            compressed_dimensions={1: (1,)},  # ??
+            shape=(compressed_array.shape[0],) * 2,
+            compressed_dimensions={2: (2,)},
             compression_type="connectivity",
+            start_index=0,
             source=source,
             copy=copy,
         )
@@ -63,83 +64,55 @@ class ConnectivityArray(CompressedArray):
 
         x.__getitem__(indices) <==> x[indices]
 
-        Returns a subspace of the uncompressed array as an independent
-        numpy array.
+        Returns a subspace of the connectivity array as an independent
+        scipy sparse array.
 
         .. versionadded:: (cfdm) 1.11.0.0
 
         """
-        # ------------------------------------------------------------
-        # Method: Uncompress the entire array and then subspace it
-        # ------------------------------------------------------------
-        # Initialise the un-sliced uncompressed array
-        u = np.full(self.shape, False, dtype=self.dtype)
+        from scipy.sparse import csc_array
 
-        connectivity = self.get_connectivity().array
+        # It is expected that this is a 1-d thing - ... or is it?
 
-        if index is None:
-            if cell_dimension == 1:
-                connectivity = np.tranpose(connectivity)
-        elif cell_dimension == 1:
-            connectivity = np.tranpose(connectivity[:, index])
+        full_slice = indices is Ellipsis # and others?
+        
+        connectivity = self.get_connectivity()
+        if not full_slice:
+            connectivity = connectivity[indices]
+
+        connectivity = connectivity.array
+        
+        shape = connectivity.shape
+        if np.ma.is_masked(connectivity):
+            indptr = shape[1] - np.ma.getmaskarray(connectivity).sum(axis=1)
+            indptr = np.insert(indptr, 0, 0)
+            connectivity = connectivity.compressed()
         else:
-            connectivity = connectivity[index, :]
+            indptr = np.full((shape[0] + 1,), shape[1])
+            indptr[0] = 0
+            connectivity = connectivity.flatten()
+        
+        indptr = np.cumsum(indptr, out=indptr)
 
-        if (
-            location == "face"
-            and connectivity_type == "face_face_connectivity"
-        ):
-            for i, x in enumerate(connectivity):
-                j = x.compressed()
-                u[i, j] = True
+        start_index = self.get_start_index()
+        if start_index:
+            connectivity -= start_index
+            
+        data = np.ones((connectivity.size,), bool)
 
-        elif location == "node":
-            # In this case 'connectivity' is edge_node_connectivity
-            for i in range(u.shape[0]):
-                j = np.unique(connectivity[np.where(connectivity == i)[0]])
-                u[i, j] = True
+        c = csc_array((data, connectivity, indptr))
+        if not full_slice:
+            c = c[:, indices]
 
-            u.fill_diagonal(u, False)
-        else:
-            # In this case 'connectivity' is either
-            # edge_node_connectivity or face_node_connectivity
-            for i, x in enumerate(connectivity):
-                y = connectivity == x[0]
-                for k in x[1:]:
-                    y |= connectivity == k
+        return c
 
-                j = np.unique(np.where(y)[0])
-                u[i, j] = True
+    def array(self):
+        """TODOUGRID
 
-            u.fill_diagonal(u, False)
+        .. versionadded:: (cfdm) 1.11.0.0
 
-        if indices is Ellipsis:
-            return u
-
-        # TODOUGRID: (indices,) -> (indices, indices)
-
-        return self.get_subspace(u, indices, copy=True)
-
-        Subarray = self.get_Subarray()
-
-        compressed_dimensions = self.compressed_dimensions()
-
-        conformed_data = self.conformed_data()
-        compressed_data = conformed_data["data"]
-
-        for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
-            subarray = Subarray(
-                data=compressed_data,
-                indices=c_indices,
-                shape=u_shape,
-                compressed_dimensions=compressed_dimensions,
-            )
-            u[u_indices] = subarray[...]
-
-        if indices is Ellipsis:
-            return u
-
-        return self.get_subspace(u, indices, copy=True)
+        """
+        return self[...].toarray()
 
     @cached_property
     def dtype(self):
@@ -153,7 +126,7 @@ class ConnectivityArray(CompressedArray):
     def get_connectivity(self, default=ValueError()):
         """TODOUGIRD Return the list variable for a compressed array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) 1.11.0.0
 
         :Parameters:
 
@@ -165,7 +138,7 @@ class ConnectivityArray(CompressedArray):
 
         :Returns:
 
-            `List`
+            `Connectivity`
                 The list variable. TODOUGRID
 
         """

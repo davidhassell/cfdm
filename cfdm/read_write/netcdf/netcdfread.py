@@ -295,9 +295,9 @@ class NetCDFRead(IORead):
 
         :Parameters:
 
-            ncvar: `str`
+            ncvar: `str` or `None`
                 The netCDF variable name of the variable being
-                referenced.
+                referenced. If `None` then ``0`` is always returned.
 
             referencing_ncvar: `str`
                 The netCDF name of the the variable that is doing the
@@ -312,6 +312,8 @@ class NetCDFRead(IORead):
 
         **Examples**
 
+        >>> r._reference(None, 'tas')
+        0
         >>> r._reference('longitude', 'tas')
         1
         >>> r._reference('longitude', 'pr')
@@ -322,6 +324,9 @@ class NetCDFRead(IORead):
         {'tas', 'pr'}
 
         """
+        if ncvar is None:
+            return 0
+
         g = self.read_vars
 
         count = g["references"].setdefault(ncvar, 0) + 1
@@ -1419,11 +1424,8 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         if g["CF>=1.11"]:
             for ncvar, attributes in variable_attributes.items():
-                self._parse_ugrid_mesh_topology(ncvar, attributes)
-
-            for ncvar, attributes in variable_attributes.items():
                 if "mesh" in attributes or "location_index_set" in attributes:
-                    # This data variable has mesh topology
+                    # This data variable has a mesh topology
                     self._parse_mesh_topology(ncvar, attributes)
 
         if _scan_only:
@@ -3705,7 +3707,7 @@ class NetCDFRead(IORead):
                     field_ncvar, f, mesh, location
                 )
                 if ncdim is not None:
-                    # Add xauxiliary coordinate constructs derived from
+                    # Add auxiliary coordinate constructs derived from
                     # the mesh topology
                     auxs = self._create_ugrid_auxiliary_coordinates(
                         field_ncvar, f, mesh, location
@@ -3717,8 +3719,15 @@ class NetCDFRead(IORead):
                             axes=ncdim,
                             copy=False,
                         )
+                        ncvar = self.implementation.nc_get_variable(aux)
                         self._reference(ncvar, field_ncvar)
                         ncvar_to_key[ncvar] = key
+                        if self.implementation.has_bounds(aux):
+                            bounds = self.implementation.get_bounds(aux)
+                            self._reference(
+                                self.implementation.nc_get_variable(bounds),
+                                field_ncvar,
+                            )
 
                     # Add the domain topology construct derived from
                     # the mesh topology
@@ -8500,6 +8509,8 @@ class NetCDFRead(IORead):
         # Get the location index set (which may be None)
         index_set = mesh["index_set"]
 
+        node_ncvar = mesh_attributes.get("node_coordinates")
+
         # Get the netCDF variable names of the cell coordinates (if
         # any). E.g. ("Mesh1_face_x", "Mesh1_face_y")
         coords_ncvar = mesh_attributes.get(f"{location}_coordinates")
@@ -8519,7 +8530,7 @@ class NetCDFRead(IORead):
                     # coordinates.
                     aux = self._create_bounds_from_mesh_nodes(
                         parent_ncvar,
-                        ncvar,
+                        node_ncvar,
                         f,
                         mesh,
                         location,
@@ -8554,7 +8565,7 @@ class NetCDFRead(IORead):
     def _create_bounds_from_mesh_nodes(
         self, parent_ncvar, node_ncvar, f, mesh, location, aux=None
     ):
-        """TODOUGRID.
+        """Create auxiliary coordinate bounds from UGRID node coordinates.
 
         .. versionadded:: (cfdm) 1.11.0.0
 
@@ -8605,13 +8616,14 @@ class NetCDFRead(IORead):
 
         bounds_data = self._create_Data(
             array,
-            ncvar=None,
+            ncvar=node_ncvar,
             units=properties.get("units"),
             calendar=properties.get("calendar"),
         )
         self.implementation.set_data(bounds, bounds_data, copy=False)
 
-        # Store the original file names
+        # Set the netCDF variable name and the original file names
+        self.implementation.nc_set_variable(bounds, node_ncvar)
         self.implementation.set_original_filenames(
             bounds, g["variable_filename"][node_ncvar]
         )
@@ -8679,17 +8691,21 @@ class NetCDFRead(IORead):
         self.implementation.set_properties(domain_topology, properties)
 
         # Set the data
-        array, kwargs = self._create_netcdfarray(connectivity_ncvar)
-        array = self._create_connectivity_array(
-            array=self._create_Data(array, ncvar=connectivity_ncvar),
-            start_index=properties.get("start_index", 0),
-        )
+        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+        connectivity = self.implementation.initialise_ConnectivityArray(
+            indices, start_index
+        )        
         data = self._create_Data(
-            array,
+            connectivity,
             units=kwargs["units"],
             calendar=kwargs["calendar"],
             ncvar=connectivity_ncvar,
         )
+
+#        data = self._create_connectivity_data(
+#            connectivity_ncvar,
+#            start_index=properties.get("start_index", 0),
+#        )
         self.implementation.set_data(domain_topology, data, copy=False)
 
         # Set the netCDF variable name and the original file names
@@ -8727,54 +8743,111 @@ class NetCDFRead(IORead):
     #    #            topology_dimension
     #    pass
 
-    def _create_connectivity_array(
-        self,
-        connectivity_array,
-        start_index,
-    ):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            array: `NetCDFArray`
-                TODOUGRID
-
-            start_index: `int`
-                Specify whether the UGRID indexing is 0- or 1-based
-                indexing.
-
-        :Returns:
-
-            scipy sparse array CSR
-                TODOUGRID
-
-        """
-        pass
-
-        # In [49]: start_index = 1
-        #
-        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
-        #
-        # In [51]: iptr = np.array([0,3,6,8,10])
-        #
-        # In [52]: data = np.ones ((i.size,), bool)
-        #
-        # In [53]: a = csr_array((data, i, iptr))
-        #
-        # In [54]: a
-        # Out[54]:
-        # <4x4 sparse array of type '<class 'numpy.bool_'>'
-        #    with 10 stored elements in Compressed Sparse Row format>
-
-        # Can you slice a CSR with an integer list?: b = a[[1, 4, 78], :]
-
-        if start_index:
-            a = a - start_index
-
-        pass
-
+#    def  self._create_connectivityarray(self, indces)
+#        """TODOUGRID.
+#
+#        See http://ugrid-conventions.github.io/ugrid-conventions for
+#        details.
+#
+#        .. versionadded:: (cfdm) 1.11.0.0
+#
+#        :Parameters:
+#
+#            connectivity_ncvar: `str`
+#                The netCDF variable name of the UGRID connectiviety
+#                variable.
+#
+#            start_index: `int`
+#                Specify whether the UGRID indexing is 0- or 1-based
+#                indexing.
+#
+#        :Returns:
+#
+#            `Data`
+#                TODOUGRID
+#
+#        **Examples**
+#
+#        >>> print(indices.array)
+#        [[1  2  3]
+#         [0 -- --]
+#         [0  4 --]
+#         [0 -- --]
+#         [2 -- --]]
+#        >>> indices.shape
+#        (5, 3)
+#        >>> c = r._create_connectivity_data(indices, 0)
+#        >>> print(c.array)
+#        [[False  True  True  True False]
+#         [ True False False False False]
+#         [ True False False False  True]
+#         [ True False False False False]
+#         [False False  True False False]]
+#        >>> c.shape
+#        (5, 5)
+#
+#        # In [49]: start_index = 1
+#        #
+#        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
+#        #
+#        # In [51]: iptr = np.array([0,3,6,8,10])
+#        #
+#        # In [52]: data = np.ones ((i.size,), bool)
+#        #
+#        # In [53]: a = csr_array((data, i, iptr))
+#        #
+#        # In [54]: a
+#        # Out[54]:
+#        # <4x4 sparse array of type '<class 'numpy.bool_'>'
+#        #    with 10 stored elements in Compressed Sparse Row format>
+#
+#        """
+#        connectivity = self.implementation.initialise_ConnectivityArray(
+#            compressed_array=indices
+#        )
+#        
+#
+#        
+#        """Return a bounds component.
+#
+#        from scipy.sparse import csr_array
+#
+#        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+#        array = self._create_connectivityarray(indces)
+#        
+#
+#
+#        indices = indices.array
+#
+#        shape = indices.shape
+#
+#        if np.ma.is_masked(indices):
+#            pointers = shape[1] - np.ma.getmaskarray(indices).sum(axis=1)
+#            pointers = np.insert(pointers, 0, 0)
+#            indices = indices.compressed()
+#        else:
+#            pointers = np.full((shape[0] + 1,), shape[1])
+#            pointers[0] = 0
+#            indices = indices.flatten()
+#        
+#        pointers = np.cumsum(pointers, out=pointers)
+#
+#        if start_index:
+#            indices -= start_index
+#            
+#        ones = np.ones((indices.size,), bool)
+#
+#        c = csr_array((ones, indices, pointers))
+#        
+#        data = self._create_Data(
+#            c,
+#            units=kwargs["units"],
+#            calendar=kwargs["calendar"],
+#            ncvar=connectivity_ncvar,
+#        )
+#
+#        return data
+    
     def _check_mesh_topology(
         self,
         parent_ncvar,

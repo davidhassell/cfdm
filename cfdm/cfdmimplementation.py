@@ -2246,6 +2246,15 @@ class CFDMImplementation(Implementation):
             missing_values=missing_values,
         )
 
+    def initialise_ConnectivityArray(self, compressed_array):
+        """TODOUGRID.
+
+        .. versionadded:: (cfdm) 1.11.0.0
+
+        """
+        cls = self.get_class("ConnectivityArray")
+        return cls(compressed_array=compressed_array)
+
     def initialise_NodeCountProperties(self):
         """Return a node count properties variable.
 

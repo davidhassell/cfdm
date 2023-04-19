@@ -89,28 +89,30 @@ class ConnectivitySubarray(Subarray):
         .. versionadded:: (cfdm) 1.10.0.0
 
         """
-        data = self._select_data()
+        from scipy.sparse import csc_array
 
-        if np.ma.isMA(data):
-            data_masked = True
-            u = np.ma.masked_all(self.shape, dtype=self.dtype)
+        connectivity = self._select_data(check_mask=False) # only select on dim0
+        
+        shape = connectivity.shape
+        if np.ma.is_masked(connectivity):
+            indptr = shape[1] - np.ma.getmaskarray(connectivity).sum(axis=1)
+            indptr = np.insert(indptr, 0, 0)
+            connectivity = connectivity.compressed()
         else:
-            data_masked = False
-            u = np.full(self.shape, False, dtype=self.dtype)
+            indptr = np.full((shape[0] + 1,), shape[1])
+            indptr[0] = 0
+            connectivity = connectivity.flatten()
+        
+        indptr = np.cumsum(indptr, out=indptr)
 
-        for u_row, connectivity_indices in enumerate(u, data):
-            u_row[connectivity_indices] = True
+        start_index = self.get_start_index()
+        if start_index:
+            connectivity -= start_index
+            
+        data = np.ones((connectivity.size,), bool)
 
-        if data_masked:
-            if np.ma.is_masked(u):
-                u = u.filled(False)
-            else:
-                u = np.array(u)
-
-        if indices is Ellipsis:
-            return u
-
-        return u[indices]
+        c = csc_array((data, connectivity, indptr))
+        return c[:, self.indices[1])
 
     @cached_property
     def dtype(self):
