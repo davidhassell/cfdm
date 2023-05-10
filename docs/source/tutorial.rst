@@ -255,6 +255,7 @@ arrays:
              medium detail.*
    
    >>> print(q)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -264,6 +265,7 @@ arrays:
                    : longitude(8) = [22.5, ..., 337.5] degrees_east
       
    >>> print(t)
+   ---------------------------------
    Field: air_temperature (ncvar%ta)
    ---------------------------------
    Data            : air_temperature(atmosphere_hybrid_height_coordinate(1), grid_latitude(10), grid_longitude(9)) K
@@ -914,6 +916,7 @@ the original field construct.
    :caption: *Inspect the data mask of a field construct.*
 
    >>> print(q)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -1146,6 +1149,7 @@ that apply to the `Data` class.
              of the original, and with a reversed latitude axis.*
 
    >>> print(q)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -1156,6 +1160,7 @@ that apply to the `Data` class.
 
    >>> new = q[::-1, 0]
    >>> print(new)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(1)) 1
@@ -1186,6 +1191,7 @@ metadata construct's data equals any of the given values.
              subspaces.*
 	     
    >>> print(q)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -1200,6 +1206,7 @@ metadata construct's data equals any of the given values.
    (slice(None, None, None),
     array([False,  True,  True, False, False, False, False, False]))
    >>> print(q[ind])
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(2)) 1
@@ -1208,6 +1215,7 @@ metadata construct's data equals any of the given values.
                    : longitude(2) = [67.5, 112.5] degrees_east
                    : time(1) = [2019-01-01 00:00:00]
    >>> print(q[q.indices(longitude=[112.5, 67.5], latitude=75)])
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(1), longitude(2)) 1
@@ -1411,6 +1419,7 @@ A construct's identity may be any one of the following
    :caption: *Get constructs by their identity.*
 	
    >>> print(t)
+   ---------------------------------
    Field: air_temperature (ncvar%ta)
    ---------------------------------
    Data            : air_temperature(atmosphere_hybrid_height_coordinate(1), grid_latitude(10), grid_longitude(9)) K
@@ -1977,6 +1986,7 @@ This is illustrated with the file ``geometry.nc`` (found in the
 
    >>> f = cfdm.read('geometry.nc')[0]
    >>> print(f)
+   --------------------------------------
    Field: precipitation_amount (ncvar%pr)
    --------------------------------------
    Data            : precipitation_amount(cf_role=timeseries_id(2), time(4))
@@ -2694,6 +2704,7 @@ The new field construct may now be inspected:
    :caption: *Inspect the new field construct.*
 
    >>> print(tas)
+   ----------------------
    Field: air_temperature
    ----------------------
    Data            : air_temperature(grid_latitude(10), grid_longitude(9)) K
@@ -2862,6 +2873,7 @@ define its domain.
 
    >>> orog = tas.convert('surface_altitude')
    >>> print(orog)
+   -----------------------
    Field: surface_altitude
    -----------------------
    Data            : surface_altitude(grid_latitude(10), grid_longitude(9)) m
@@ -2884,6 +2896,7 @@ constructs.
 
    >>> orog1 = tas.convert('surface_altitude', full_domain=False) 
    >>> print(orog1)
+   -----------------------
    Field: surface_altitude
    -----------------------
    Data            : surface_altitude(key%domainaxis2(10), key%domainaxis3(9)) m
@@ -2931,6 +2944,7 @@ construct that has fewer metadata constructs than one created with the
     <Field: surface_altitude(grid_latitude(10), grid_longitude(9)) m>]
    >>> orog_from_file = fields[3]
    >>> print(orog_from_file)
+   ------------------------------------------------
    Field: surface_altitude (ncvar%surface_altitude)
    ------------------------------------------------
    Data            : surface_altitude(grid_latitude(10), grid_longitude(9)) m
@@ -3417,6 +3431,7 @@ field constructs, to a netCDF file on disk:
    :caption: *Write a field construct to a netCDF dataset on disk.*
 
    >>> print(q)
+   -----------------------------------------
    Field: specific_humidity (ncvar%humidity)
    -----------------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -3697,6 +3712,7 @@ of the field construct.
              data.*
 		   
    >>> print(q)
+   -----------------------------------------
    Field: specific_humidity (ncvar%humidity)
    -----------------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -3811,6 +3827,7 @@ sub-group:
 
    >>> q, t = cfdm.read('file.nc')
    >>> print(q)
+   --------------------------------------------------
    Field: specific_humidity (ncvar%/forecast/model/q)
    --------------------------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -3882,6 +3899,7 @@ interface <NetCDF-interface>`.
 
    >>> g = cfdm.read('grouped.nc')[0]
    >>> print(g)
+   --------------------------------------------
    Field: specific_humidity (ncvar%/forecast/q)
    --------------------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -4047,6 +4065,7 @@ is still created, but one without any metadata or data:
 
    >>> u = cfdm.read('parent.nc')[0]
    >>> print(u)
+   ------------------------------------------
    Field: eastward_wind (ncvar%eastward_wind)
    ------------------------------------------
    Data            : eastward_wind(latitude(10), longitude(9)) m s-1
@@ -4083,6 +4102,7 @@ variable had been present in the parent dataset:
    
    >>> g = cfdm.read('parent.nc', external='external.nc')[0]
    >>> print(g)
+   ------------------------------------------
    Field: eastward_wind (ncvar%eastward_wind)
    ------------------------------------------
    Data            : eastward_wind(latitude(10), longitude(9)) m s-1
@@ -4142,6 +4162,7 @@ One or more external files may also be included with :ref:`cfdump
              the external variable reference.*
 	     
    $ cfdump parent.nc 
+   ------------------------------------------
    Field: eastward_wind (ncvar%eastward_wind)
    ------------------------------------------
    Data            : eastward_wind(latitude(10), longitude(9)) m s-1
@@ -4153,7 +4174,8 @@ One or more external files may also be included with :ref:`cfdump
    :caption: *Providing an external file with the "-e" option allows
              the reference to be resolved.*
 	     
-   $ cfdump -e external.nc parent.nc 
+   $ cfdump -e external.nc parent.nc
+   ------------------------------------------
    Field: eastward_wind (ncvar%eastward_wind)
    ------------------------------------------
    Data            : eastward_wind(latitude(10), longitude(9)) m s-1
@@ -4311,6 +4333,7 @@ file:
    
    >>> h = cfdm.read('contiguous.nc')[0]
    >>> print(h)
+   -----------------------------------------
    Field: specific_humidity (ncvar%humidity)
    -----------------------------------------
    Data            : specific_humidity(ncdim%station(4), ncdim%timeseries(9))
@@ -4567,6 +4590,7 @@ file:
 
    >>> p = cfdm.read('gathered.nc')[0]
    >>> print(p)
+   ------------------------------------
    Field: precipitation_flux (ncvar%pr)
    ------------------------------------
    Data            : precipitation_flux(time(2), latitude(4), longitude(5)) kg m2 s-1
@@ -4807,6 +4831,7 @@ still in subsampled representation described in the file:
 
    >>> f = cfdm.read('subsampled.nc')[0]
    >>> print(f)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(time(2), ncdim%lat(18), ncdim%lon(12)) 1
@@ -4855,6 +4880,7 @@ were not compressed:
 
    >>> g = f[0, 6, :]
    >>> print(g)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(time(1), ncdim%lat(1), ncdim%lon(12)) 1

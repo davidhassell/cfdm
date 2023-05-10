@@ -160,8 +160,8 @@ class Field(
         if ncvar is not None:
             title += f" (ncvar%{ncvar})"
 
-        string = [title]
-        string.append("".ljust(len(string[0]), "-"))
+        line = "".ljust(len(title), "-")
+        string = [line, title, line]
 
         # Units
         units = getattr(self, "units", "")
@@ -1402,6 +1402,7 @@ class Field(
 
         >>> q = {{package}}.example_field(0)
         >>> print(q)
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -1930,6 +1931,7 @@ class Field(
 
         >>> f = cfdm.example_field(0)
         >>> print(f)
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -1943,6 +1945,7 @@ class Field(
         (slice(None, None, None),
          array([False, False,  True, False, False, False, False, False]))
         >>> print(f[indices])
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), longitude(1)) 1
@@ -1956,6 +1959,7 @@ class Field(
         (array([False,  True, False, False,  True]),
          array([False, False,  True, False, False, False, False, False]))
         >>> print(f[indices])
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(2), longitude(1)) 1
@@ -1968,6 +1972,7 @@ class Field(
         >>> indices
         (slice(None, None, None), slice(None, None, None))
         >>> print(f[indices])
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -2213,6 +2218,7 @@ class Field(
 
         >>> f = {{package}}.read('file.nc')[0]
         >>> print(f)
+        ---------------------------------
         Field: air_temperature (ncvar%ta)
         ---------------------------------
         Data            : air_temperature(atmosphere_hybrid_height_coordinate(1), grid_latitude(10), grid_longitude(9)) K
@@ -2233,6 +2239,7 @@ class Field(
                         : surface_altitude(grid_latitude(10), grid_longitude(9)) = [[0.0, ..., 270.0]] m
         >>> x = f.convert('domainancillary2')
         >>> print(x)
+        ------------------------------------------------
         Field: surface_altitude (ncvar%surface_altitude)
         ------------------------------------------------
         Data            : surface_altitude(grid_latitude(10), grid_longitude(9)) m
@@ -2245,6 +2252,7 @@ class Field(
         Coord references: rotated_latitude_longitude
         >>> y = f.convert('domainancillary2', full_domain=False)
         >>> print(y)
+        ------------------------------------------------
         Field: surface_altitude (ncvar%surface_altitude)
         ------------------------------------------------
         Data            : surface_altitude(grid_latitude(10), grid_longitude(9)) m

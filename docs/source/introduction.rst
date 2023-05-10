@@ -64,6 +64,7 @@ to add more sophisticated methods.
    >>> f
    [<Field: air_temperature(time(12), latitude(64), longitude(128)) K>]
    >>> print(f[0])
+   ----------------------------------
    Field: air_temperature (ncvar%tas)
    ----------------------------------
    Data            : air_temperature(time(12), latitude(64), longitude(128)) K
@@ -115,6 +116,7 @@ outside of a Python environment:
    :caption: *Inspect a dataset from the command line.*
 
    $ cfdump file.nc
+   ----------------------------------
    Field: air_temperature (ncvar%tas)
    ----------------------------------
    Data            : air_temperature(time(12), latitude(64), longitude(128)) K

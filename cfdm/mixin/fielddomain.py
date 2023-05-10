@@ -868,6 +868,7 @@ class FieldDomain:
 
         >>> f = {{package}}.example_field(0)
         >>> print(f)
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -886,6 +887,7 @@ class FieldDomain:
         >>> f.del_construct('dimensioncoordinate1')
         <{{repr}}DimensionCoordinate: longitude(8) degrees_east>
         >>> print(f)
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), ncdim%lon(8)) 1
@@ -1927,6 +1929,7 @@ class FieldDomain:
 
         >>> f = {{package}}.example_field(0)
         >>> print(f)
+        ----------------------------------
         Field: specific_humidity (ncvar%q)
         ----------------------------------
         Data            : specific_humidity(latitude(5), longitude(8)) 1

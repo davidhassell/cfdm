@@ -64,6 +64,7 @@ compared with creating a new independent field construct:
    >>> import cfdm
    >>> f = cfdm.example_field(0)
    >>> print(f)
+   ----------------------------------
    Field: specific_humidity (ncvar%q)
    ----------------------------------
    Data            : specific_humidity(latitude(5), longitude(8)) 1

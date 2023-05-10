@@ -62,6 +62,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(0)
     >>> print(f)
+    ----------------------------------
     Field: specific_humidity (ncvar%q)
     ----------------------------------
     Data            : specific_humidity(latitude(5), longitude(8)) 1
@@ -78,6 +79,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(1)
     >>> print(f)
+    ---------------------------------
     Field: air_temperature (ncvar%ta)
     ---------------------------------
     Data            : air_temperature(atmosphere_hybrid_height_coordinate(1), grid_latitude(10), grid_longitude(9)) K
@@ -99,6 +101,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(2)
     >>> print(f)
+    ------------------------------------------------------------------
     Field: air_potential_temperature (ncvar%air_potential_temperature)
     ------------------------------------------------------------------
     Data            : air_potential_temperature(time(36), latitude(5), longitude(8)) K
@@ -110,6 +113,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(3)
     >>> print(f)
+    -----------------------------------
     Field: precipitation_flux (ncvar%p)
     -----------------------------------
     Data            : precipitation_flux(cf_role=timeseries_id(4), ncdim%timeseries(9)) kg m-2 day-1
@@ -122,6 +126,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(4)
     >>> print(f)
+    ---------------------------------
     Field: air_temperature (ncvar%ta)
     ---------------------------------
     Data            : air_temperature(cf_role=timeseries_id(3), ncdim%timeseries(26), ncdim%profile_1(4)) K
@@ -136,6 +141,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(5)
     >>> print(f)
+    ------------------------------------------------------------------
     Field: air_potential_temperature (ncvar%air_potential_temperature)
     ------------------------------------------------------------------
     Data            : air_potential_temperature(time(118), latitude(5), longitude(8)) K
@@ -147,6 +153,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(6)
     >>> print(f)
+    --------------------------------------
     Field: precipitation_amount (ncvar%pr)
     --------------------------------------
     Data            : precipitation_amount(cf_role=timeseries_id(2), time(4))
@@ -159,6 +166,7 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(7)
     >>> print(f)
+    -------------------------------
     Field: eastward_wind (ncvar%ua)
     -------------------------------
     Data            : eastward_wind(time(3), air_pressure(1), grid_latitude(4), grid_longitude(5)) m s-1
