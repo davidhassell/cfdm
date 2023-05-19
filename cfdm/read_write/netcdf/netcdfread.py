@@ -8612,11 +8612,14 @@ class NetCDFRead(IORead):
         if not g["mask"]:
             self._set_default_FillValue(bounds, node_ncvar)
 
-        array = some_function(mesh, node_ncvar, location)
+        array = some_function(
+            mesh, node_ncvar, location,
+            properties.get('start_index', 0)
+        )
 
         bounds_data = self._create_Data(
             array,
-            ncvar=node_ncvar,
+            ncvar=node_ncvar,  # TODO: or not set this?
             units=properties.get("units"),
             calendar=properties.get("calendar"),
         )
@@ -8634,6 +8637,15 @@ class NetCDFRead(IORead):
 
         return aux
 
+    def some_function(self, mesh, node_ncvar, location, start_index):
+        """TODOUGRID
+
+        .. versionadded:: (cfdm) 1.11.0.0
+
+        """
+        pass                    
+                    
+    
     def _create_domain_topology(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
@@ -8701,6 +8713,22 @@ class NetCDFRead(IORead):
             calendar=kwargs["calendar"],
             ncvar=connectivity_ncvar,
         )
+
+# Infer face to face conncectivity from face_node_connectivity        
+#        for i in range(f_n_c.shape[0]):
+#            for j in range(i+1, f_n_c.shape[0]):
+#                common = set(f_n_c[i]).intersection(set(f_n_c[j]))
+#                if len(common) == 2:
+#                    # Check that the matching nodes are adjacent ....
+#                    index0 = f_n_c[i].index(list(common)[0])
+#                    index1 = f_n_c[i].index(list(common)[1])
+#                    if abs(index0 - index1) == 1  or == f_n_c[i].size :
+#                        -> these two faces are connected
+#                elif len(common) > 2:
+#                    -> these two faces are connected
+#                   
+#         Then diagonlise (see, e.g. for some ideas: https://stackoverflow.com/questions/40454543/symmetrization-of-scipy-sparse-matrices)
+#
 
 #        data = self._create_connectivity_data(
 #            connectivity_ncvar,
