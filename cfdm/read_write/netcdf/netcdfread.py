@@ -6952,9 +6952,6 @@ class NetCDFRead(IORead):
             A subsampled array.
 
         """
-        #        uncompressed_ndim = len(uncompressed_shape)
-        #        uncompressed_size = int(reduce(operator.mul, uncompressed_shape, 1))
-
         return self.implementation.initialise_SubsampledArray(
             interpolation_name=interpolation_name,
             compressed_array=subsampled_array,
@@ -6964,6 +6961,41 @@ class NetCDFRead(IORead):
             computational_precision=computational_precision,
             parameters=parameters,
             parameter_dimensions=parameter_dimensions,
+        )
+
+    def _create_connectivity_array(
+        self,
+        connectivity_array=None,
+        uncompressed_shape=None,
+            start_index=0,connectivity_type=None,
+    ):
+        """TODOUGRID Creates Data for a compressed-by-gathering netCDF variable.
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            connectivity_array: `NetCDFArray`
+
+            uncompressed_shape: sequence of `int`, optional
+
+            start_index: `int`, optional
+
+            connectivity_type: `str`, optional
+
+        :Returns:
+
+            `ConnectivityAarray`
+
+        """
+        if compressed_dimension is None:
+            ndim = connectivity_array.ndim
+            compressed_dimensions = {ndim: (ndim,)}
+            
+        return self.implementation.initialise_ConnectivityArray(
+            compressed_array=connectivity_array,
+            shape=uncompressed_shape,
+            compressed_dimensions=compressed_dimensions,
+            start_index=start_index,
         )
 
     def _create_Data(
@@ -8509,7 +8541,7 @@ class NetCDFRead(IORead):
         # Get the location index set (which may be None)
         index_set = mesh["index_set"]
 
-        node_ncvar = mesh_attributes.get("node_coordinates")
+        nodes_ncvar = mesh_attributes.get("node_coordinates")
 
         # Get the netCDF variable names of the cell coordinates (if
         # any). E.g. ("Mesh1_face_x", "Mesh1_face_y")
@@ -8530,7 +8562,7 @@ class NetCDFRead(IORead):
                     # coordinates.
                     aux = self._create_bounds_from_mesh_nodes(
                         parent_ncvar,
-                        node_ncvar,
+                        nodes_ncvar,
                         f,
                         mesh,
                         location,
@@ -8542,23 +8574,21 @@ class NetCDFRead(IORead):
                     aux = aux[index_set]
 
                 auxs.append(aux)
-        else:
+        elif nodes_ncvar is not None:
             # There are no cell coordinates => Create auxiliary
-            # coordinate constructs that are derived from the
+            # coordinate constructs that are derived from an
             # [edge|face]_node_connectivity variable. These will only
             # contain bounds, with no coordinate values.
-            nodes_ncvar = mesh_attributes.get("node_coordinates")
-            if nodes_ncvar is not None:
-                for ncvar in nodes_ncvar.split():
-                    aux = self._create_bounds_from_mesh_nodes(
-                        parent_ncvar, ncvar, f, mesh, location
-                    )
-                    if index_set is not None:
-                        # Apply a location index set
-                        aux = aux[index_set]
-
-                    auxs.append(aux)
-
+            for ncvar in nodes_ncvar.split():
+                aux = self._create_bounds_from_mesh_nodes(
+                    parent_ncvar, ncvar, f, mesh, location
+                )
+                if index_set is not None:
+                    # Apply a location index set
+                    aux = aux[index_set]
+                    
+                auxs.append(aux)
+                
         mesh["auxiliary_coordinates"][location] = auxs
         return auxs
 
@@ -8680,11 +8710,13 @@ class NetCDFRead(IORead):
         attributes = mesh["mesh_topology_attributes"]
 
         if location == "face":
-            connectivity_attr = "face_face_connectivity"
-            if connectivity_attr not in attributes:
-                connectivity_attr = "face_node_connectivity"
+#            connectivity_attr = "face_face_connectivity"
+#            if connectivity_attr not in attributes:
+            connectivity_attr = "face_node_connectivity"
+            topology_dimension = 2
         elif location in ("node", "edge"):
             connectivity_attr = "edge_node_connectivity"
+            topology_dimension = 1
 
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._check_ugrid_connectivity_variable(
@@ -8703,37 +8735,22 @@ class NetCDFRead(IORead):
         self.implementation.set_properties(domain_topology, properties)
 
         # Set the data
-        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-        connectivity = self.implementation.initialise_ConnectivityArray(
-            indices, start_index
+        start_index = g['variable_attributes'][connectivity_ncvar].get('start_index', 0),
+
+        connectivity, kwargs = self._create_netcdfarray(connectivity_ncvar)
+        array = self._create_connectivity_array(
+            connectivity_array=connectivity,
+            uncompressed_shape=(connectivity.shape[0],) * 2, 
+            start_index=start_index,
+            topology_dimension=topology_dimension
         )        
         data = self._create_Data(
-            connectivity,
+            array,
             units=kwargs["units"],
             calendar=kwargs["calendar"],
             ncvar=connectivity_ncvar,
         )
 
-# Infer face to face conncectivity from face_node_connectivity        
-#        for i in range(f_n_c.shape[0]):
-#            for j in range(i+1, f_n_c.shape[0]):
-#                common = set(f_n_c[i]).intersection(set(f_n_c[j]))
-#                if len(common) == 2:
-#                    # Check that the matching nodes are adjacent ....
-#                    index0 = f_n_c[i].index(list(common)[0])
-#                    index1 = f_n_c[i].index(list(common)[1])
-#                    if abs(index0 - index1) == 1  or == f_n_c[i].size :
-#                        -> these two faces are connected
-#                elif len(common) > 2:
-#                    -> these two faces are connected
-#                   
-#         Then diagonlise (see, e.g. for some ideas: https://stackoverflow.com/questions/40454543/symmetrization-of-scipy-sparse-matrices)
-#
-
-#        data = self._create_connectivity_data(
-#            connectivity_ncvar,
-#            start_index=properties.get("start_index", 0),
-#        )
         self.implementation.set_data(domain_topology, data, copy=False)
 
         # Set the netCDF variable name and the original file names
