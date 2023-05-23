@@ -1074,3 +1074,78 @@ class Domain(
             c.uncompress(inplace=True)
 
         return d
+
+    def zzz(self, identity):
+        """TODOUGRID"""
+        import numpy as np
+
+        topology_dimension = 2
+
+        domain_axis, axis_key = self.domain_topology(identity, item=True)
+        domain_topology = self.domain_topology(filter_by_axis=(identity,))
+       
+        # TODO: Either all or none have bounds. If there are not
+        # bounds, then ...??
+        
+        auxs = self.auxiliary_coordinates(filter_by_axis=('axis_key',),
+                                          axis_mode='exact')
+        ref_bounds = aux.bounds.array
+        bounds = [np.ma.compressed(ref_bounds)]
+        bounds.extend([np.ma.compressed(aux.bounds.array) for aux in auxs[1:]])
+        masked = ref_bounds.size < bounds[0].size
+
+        topology_dimension = domain_topology.get_topology_dimension()
+        n_connected_cells = int(domain_topology.sum()//2)
+        if topology_dimension == 2:
+            n_nodes = 2 - (domain_topology.shape[0] + 1) + (bounds[0].size - n_connected_cells)
+        elif topology_dimension == 1:
+            n_nodes = 1 + (domain_topology.shape[0] * 2) - n_connected_cells
+                
+        if n_nodes <= np.iinfo('int32').max:
+            index_dtype = 'int32'
+        else:
+            index_dtype = int
+
+        return_index = []
+        return_inverse = []
+        for b in bounds:
+            for i in range(np.finfo(bounds_x.dtype).precision, -1, -1):
+                _, index, inverse = np.unique(
+                    b.round(i), return_index=True, return_inverse=True
+                )
+                return_index.append(index)
+                return_inverse.append(inverse)
+                if len(index) <= n_nodes:
+                    break
+         
+            if len(index) > n_nodes:
+                raise ValueError("TODOUGRID")
+     
+        pairs = np.vstack(return_inverse).T
+        u = np.unique(pairs, axis=0)
+        
+        out = np.full(bounds[0].shape, -1, dtype=index_dtype)
+        for i in range(len(u)):
+            out = np.where((pairs == u[i]).all(axis=1), index, out)
+        
+        if masked:
+            connectivity = np.empty_like(ref_bounds
+                                                   dtype=index_dtype)
+            np.place(connectivity,
+                     ~np.ma.getmaskarray(ref_bounds),
+                     out)
+        else:
+            connectivity = out.reshape(bounds_x.shape)
+
+        node_coordinates = [
+            np.array([b[index[i]] for i in u[:, 0]])
+            for b, index in zip(bounds, return_index)
+        ]
+
+        out = {'node_coordinates':  node_coordinates}
+        if topology_dimension == 2:
+            out['face_node_connectivity'] = connectivity
+        else topology_dimension == 1:
+            out['edge_node_connectivity'] = connectivity
+
+        return out
