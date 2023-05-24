@@ -1772,7 +1772,7 @@ class FieldDomain:
 
         {{unique construct}}
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `construct`, `domain_topologies`
 
@@ -1833,7 +1833,7 @@ class FieldDomain:
         ``f.constructs.filter(filter_by_type=["domain_topology"],
         filter_by_identity=identities, **filter_kwargs)``.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `constructs`
 
@@ -1851,7 +1851,7 @@ class FieldDomain:
 
                 {{displayed identity}}
 
-            {{filter_kwargs: optional}} Also to configure the returned value.
+            {{filter_kwargs: optional}}
 
         :Returns:
 
@@ -2087,3 +2087,224 @@ class FieldDomain:
                 return True
 
         return False
+
+    def ugrid_components(self, identity, cell_cell_connectivity=False):
+        """TODOUGRID.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            identity: 
+                TODOUGRID
+
+            cell_cell_connectivity: `bool`, optional
+                TODOUGRID
+
+        :Returns:
+
+            `dict`
+                TODOUGRID
+
+        **Examples**
+
+        TODOUGRID
+
+        """
+        domain_axis, axis_key = self.domain_axis(identity, item=True)
+        domain_topology = self.domain_topology(filter_by_axis=(axis_key,))
+
+        # Get the 1-d auxiliary coordinates for the domain topology
+        # axis, ignoring any which do not have bounds.
+        auxs = self.auxiliary_coordinates(
+            filter_by_axis=(axis_key,), axis_mode="exact", todict=True
+        )
+        auxs = [aux for aux in auxs.values() if aux.has_bounds()]
+        if not auxs:
+            return {}
+        
+        ref_bounds = auxs[0].bounds.array
+        ref_bounds_shape = ref_bounds.shape
+        ref_bounds_size = ref_bounds.size
+        bounds = [np.ma.compressed(ref_bounds)]
+        
+        n_bounds = bounds[0].size
+        masked = ref_bounds.size > n_bounds
+        if not masked:
+            del ref_bounds
+
+        bounds.extend([np.ma.compressed(aux.bounds.array) for aux in auxs[1:]])
+        
+        if any([b.size != n_bounds for b in bounds]):
+            x = ', '.join([repr(aux) for aux in auxs]))
+            y = ', '.join([str(b.size)for b in bounds])
+            raise ValueError(
+                "Auxiliary coordinates for mesh topology cells must each "
+                f"have the same total number of non-missing bounds: "
+                f"{x} have total bounds counts of {y} respectively."
+            )
+
+        # Find the number of nodes in the mesh topology
+        topology_dimension = domain_topology.get_topology_dimension()
+        n_cells = domain_axis.size
+        n_connected_cells = int(domain_topology.sum() // 2)
+        if topology_dimension == 2:
+            # 2-d mesh topology
+            #
+            # Use Euler's formula: V-E+F=2 where V is the number of
+            # vertices (i.e. nodes), E is the number of edges, and F
+            # is the number of faces (i.e. cells). Note that the
+            # outer, infinitely large region has to be included as a
+            # face.
+            connectivity_type = "face_node_connectivity"
+            n_nodes = 2 - (n_cells + 1) + (n_bounds - n_connected_cells)
+        elif topology_dimension == 1:
+            # 1-d network topology
+            connectivity_type = "edge_node_connectivity"
+            n_nodes = 1 + (n_cells * 2) - n_connected_cells
+
+        index_dtype = np.dtype("int32")
+        if n_nodes > np.iinfo(index_dtype).max:
+            index_dtype = np.dtype(int)
+
+        # Find the "return_index" and "return_inverse" arrays (in the
+        # np.unique sense) for each coordinate's bounds.
+        return_index = []
+        return_inverse = []
+        for b, aux in zip(bounds, auxs):
+            _, index, inverse = np.unique(
+                b, return_index=True, return_inverse=True
+            )
+            if len(index) <= n_nodes:
+                # There are more nodes than unique bounds => we've
+                # successfully mapped each bound to a node (note:
+                # multiple bounds may map to the same node).
+                return_index.append(index)
+                return_inverse.append(inverse)
+                continue
+
+            # Still here? Then there were more unique bounds than
+            # there are mesh topology nodes. This must be due to
+            # numerical rounding issues (since we have to assume that
+            # the auxiliary coordinate bounds are correct and
+            # consistent), so progressively remove decimal precision
+            # until we get at least as many mesh topology nodes as
+            # unique bounds.
+            for p in range(np.finfo(b.dtype).precision, -1, -1):
+                _, index, inverse = np.unique(
+                    b.round(p), return_index=True, return_inverse=True
+                )
+                if len(index) <= n_nodes:
+                    return_index.append(index)
+                    return_inverse.append(inverse)
+                    break
+
+            if len(index) > n_nodes:
+                raise ValueError(
+                    "There are more unique {aux!r} cell bounds "
+                    f"({len(index)}) than there are mesh topology nodes "
+                    f"({n_nodes})"
+                )
+
+        # Find the index vector array for each cell bound. This array
+        # has shape (n_bounds, len(auxs)). Each row contains a vector
+        # of indices, each of which is an index to one of the bounds'
+        # "return_index" arrays.
+        index_vectors = np.vstack(return_inverse).T
+
+        # Find the unique index vectors. This array should have shape
+        # (n_nodes, len(auxs)). The zero-based UGRID node indices
+        # correspond to the row indices of this array.
+        unique_vectors = np.unique(index_vectors, axis=0)
+        if unique_vectors.shape[0] != n_nodes:
+            raise ValueError(
+                f"Found {unique_vectors.shape[0]} index vectors for "
+                f"{n_nodes} mesh topology nodes"
+            )
+
+        # Replace the index vector for each bound with its zero-based
+        # UGRID node index
+        node_indices = np.empty((n_bounds,), dtype=index_dtype)
+        for node_index, index_vector in enumerate(unique_vectors):
+            node_indices = np.where(
+                (index_vectors == index_vector).all(axis=1),
+                node_index,
+                node_indices,
+            )
+
+        # Map the zero-based UGRID node indices to the 2-d shape of
+        # coordinate bounds array. This is the final connectivity
+        # array.
+        if masked:
+            # The bounds have missing values
+            connectivity = np.empty_like(ref_bounds, dtype=index_dtype)
+            np.place(
+                connectivity, ~np.ma.getmaskarray(ref_bounds), node_indices
+            )
+            del ref_bounds
+        else:
+            connectivity = out.reshape(ref_bounds_shape)
+
+        connectivity = self._AuxiliaryCoordinate(
+            data=connectivity,
+            properties={"long_name": "Map of cells to their vertex nodes"},
+            copy=False,
+        )
+
+        # Find the coordinates for each mesh topology node. This is
+        # done by mapping the unique index vectors back to the
+        # original cell bounds arrays, via the "return_index" arrays.
+        node_coordinates = []
+        for j, (b, index, aux) in enumerate(zip(bounds, return_index, auxs)):
+            coord = b[index[u[:, j]]]
+            coord = self._Data(coord, units=b.Units)
+
+            properties = aux.properties()
+            properties[
+                "long_name"
+            ] = f"Mesh topology {aux.identity(default='')} node locations"
+
+            coord = self._AuxiliaryCoordinate(
+                data=coord, properties=properties, copy=False
+            )
+            node_coordinates.append(coord)
+
+        out = {
+            "node_coordinates": node_coordinates,
+            connectivity_type: connectivity,
+        }
+
+        # Create the cell_cell connectivity array
+        if cell_cell_connectivity:
+            if topology_dimension == 2:
+                key = "face_face_connectivity"
+                long_name = "Neighbour faces for faces"
+            elif topology_dimension == 1:
+                key = "edge_edge_connectivity"
+                long_name = "Neighbour edges for edges"
+
+            d = domain_topology.sparse_array
+            n_connections = d.sum(axis=1)
+            cell_connectivity = np.ma.masked_all(
+                (n_cells, n_connections.max()), dtype=index_dtype
+            )
+            # Unmask elements that will later be set to zero-based
+            # UGRID cell indices
+            for cell, n in zip(cell_connectivity, n_connections):
+                cell[:n] = 0
+
+            # Set the unmasked elements to zero-based UGRID cell
+            # indices
+            np.place(cell_connectivity, ~cell_connectivity.mask, d.indices)
+
+            cell_connectivity = self._AuxiliaryCoordinate(
+                data=cell_connectivity,
+                properties={"long_name": long_name},
+                copy=False,
+            )
+
+            out[name] = cell_connectivity
+
+        # Return the node coordinates, the cell_node connectivity, and
+        # (if requested) the cell_cell connectivity
+        return out

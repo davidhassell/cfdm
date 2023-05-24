@@ -2249,7 +2249,7 @@ class CFDMImplementation(Implementation):
     def initialise_ConnectivityArray(self, compressed_array):
         """TODOUGRID.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         cls = self.get_class("ConnectivityArray")

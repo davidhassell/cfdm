@@ -148,6 +148,8 @@ class ConnectivitySubarray(Subarray):
         # copy its values to the lower diagonal.
         data = np.ones((len(row_ind),), dtype=bool)
         c = csr_array((data, (row_ind, col_ind)), shape=(shape0, shape0))
+        c = c[indices]
+
         return c + c.T
 
     #        if self.cell_cell_connectivity:

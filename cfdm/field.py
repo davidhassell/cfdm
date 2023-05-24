@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from . import Constructs, Count, Domain, Index, List, core, mixin
+from . import AuxiliaryCoordinate, Constructs, Count, Domain, Index, List, core, mixin
 from .data import (
     GatheredArray,
     RaggedContiguousArray,
@@ -93,6 +93,7 @@ class Field(
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
         instance = super().__new__(cls)
+        instance._AuxiliaryCoordinate = AuxiliaryCoordinate
         instance._Constructs = Constructs
         instance._Domain = Domain
         instance._RaggedContiguousArray = RaggedContiguousArray

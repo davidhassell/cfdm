@@ -6,6 +6,8 @@ class DomainTopology(
 ):
     """A domain topology construct of the CF data model.
 
+    TODOUGRID - new description!
+
     A domain topology construct describes explicitly the connectivity
     of domain cells indexed by a single domain axis construct. When
     two cells are connected, operations on the data stored on them may
@@ -22,7 +24,7 @@ class DomainTopology(
 
     {{netCDF variable}}
 
-    .. versionadded:: (cfdm) 1.11.0.0
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
@@ -75,7 +77,7 @@ class DomainTopology(
         Returns a description of all properties, including those of
         components, and provides selected values of all data arrays.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 

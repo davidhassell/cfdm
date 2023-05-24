@@ -2,9 +2,9 @@ from . import abstract
 
 
 class DomainTopology(abstract.PropertiesData):
-    """TODO.
+    """TODOUGRID.
 
-    .. versionadded:: (cfdm) 1.11.0.0
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
@@ -12,7 +12,7 @@ class DomainTopology(abstract.PropertiesData):
     def construct_type(self):
         """Return a description of the construct type.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Returns:
 

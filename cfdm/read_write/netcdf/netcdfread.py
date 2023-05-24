@@ -8798,7 +8798,7 @@ class NetCDFRead(IORead):
     #        See http://ugrid-conventions.github.io/ugrid-conventions for
     #        details.
     #
-    #        .. versionadded:: (cfdm) 1.11.0.0
+    #        .. versionadded:: (cfdm) TODOUGRIDVER
     #
     #        :Parameters:
     #

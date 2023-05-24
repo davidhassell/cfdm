@@ -13,7 +13,7 @@ class ConnectivityArray(CompressedArray):
 
     See CF section 5.9 "Mesh Topology Variables".
 
-    .. versionadded:: (cfdm) 1.11.0.0
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
@@ -24,7 +24,7 @@ class ConnectivityArray(CompressedArray):
         ones defined here, then they must be defined in the __new__
         method of the child class.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         instance = super().__new__(cls)
@@ -65,7 +65,7 @@ class ConnectivityArray(CompressedArray):
         Returns a subspace of the connectivity array as an independent
         scipy sparse array.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         # ------------------------------------------------------------
@@ -140,7 +140,7 @@ class ConnectivityArray(CompressedArray):
         :Returns:
 
             `Connectivity`
-                The list variable. TODOUGRID
+                TODOUGRID
 
         """
         return self._get_component("connectivity_variable", default=default)
@@ -148,7 +148,7 @@ class ConnectivityArray(CompressedArray):
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `subarray`
 
@@ -219,7 +219,7 @@ class ConnectivityArray(CompressedArray):
 
         These descriptors are used during subarray decompression.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
