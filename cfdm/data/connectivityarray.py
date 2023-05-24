@@ -31,9 +31,7 @@ class ConnectivityArray(CompressedArray):
         instance._Subarray = {"connectivity": ConnectivitySubarray}
         return instance
 
-    def __init__(
-        self, compressed_array=None, source=None, copy=True
-    ):
+    def __init__(self, compressed_array=None, source=None, copy=True):
         """**Initialisation**
 
         :Parameters:
@@ -82,7 +80,7 @@ class ConnectivityArray(CompressedArray):
 
         conformed_data = self.conformed_data()
         compressed_data = conformed_data["data"]
-        
+
         for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
             subarray = Subarray(
                 data=compressed_data,
@@ -98,7 +96,7 @@ class ConnectivityArray(CompressedArray):
         return self.get_subspace(u, indices, copy=True)
 
     def array(self):
-        """TODOUGRID
+        """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -117,7 +115,7 @@ class ConnectivityArray(CompressedArray):
         return np.dtype(bool)
 
     def sparse_array(self):
-        """TODOUGRID
+        """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

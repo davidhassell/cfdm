@@ -6967,9 +6967,12 @@ class NetCDFRead(IORead):
         self,
         connectivity_array=None,
         uncompressed_shape=None,
-            start_index=0,connectivity_type=None,
+        start_index=0,
+        connectivity_type=None,
     ):
-        """TODOUGRID Creates Data for a compressed-by-gathering netCDF variable.
+        """TODOUGRID Creates Data for a compressed-by-gathering netCDF
+        variable.
+
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
@@ -6990,7 +6993,7 @@ class NetCDFRead(IORead):
         if compressed_dimension is None:
             ndim = connectivity_array.ndim
             compressed_dimensions = {ndim: (ndim,)}
-            
+
         return self.implementation.initialise_ConnectivityArray(
             compressed_array=connectivity_array,
             shape=uncompressed_shape,
@@ -8586,16 +8589,17 @@ class NetCDFRead(IORead):
                 if index_set is not None:
                     # Apply a location index set
                     aux = aux[index_set]
-                    
+
                 auxs.append(aux)
-                
+
         mesh["auxiliary_coordinates"][location] = auxs
         return auxs
 
     def _create_bounds_from_mesh_nodes(
         self, parent_ncvar, node_ncvar, f, mesh, location, aux=None
     ):
-        """Create auxiliary coordinate bounds from UGRID node coordinates.
+        """Create auxiliary coordinate bounds from UGRID node
+        coordinates.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -8643,8 +8647,7 @@ class NetCDFRead(IORead):
             self._set_default_FillValue(bounds, node_ncvar)
 
         array = some_function(
-            mesh, node_ncvar, location,
-            properties.get('start_index', 0)
+            mesh, node_ncvar, location, properties.get("start_index", 0)
         )
 
         bounds_data = self._create_Data(
@@ -8668,14 +8671,13 @@ class NetCDFRead(IORead):
         return aux
 
     def some_function(self, mesh, node_ncvar, location, start_index):
-        """TODOUGRID
+        """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        pass                    
-                    
-    
+        pass
+
     def _create_domain_topology(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
@@ -8710,8 +8712,8 @@ class NetCDFRead(IORead):
         attributes = mesh["mesh_topology_attributes"]
 
         if location == "face":
-#            connectivity_attr = "face_face_connectivity"
-#            if connectivity_attr not in attributes:
+            #            connectivity_attr = "face_face_connectivity"
+            #            if connectivity_attr not in attributes:
             connectivity_attr = "face_node_connectivity"
             topology_dimension = 2
         elif location in ("node", "edge"):
@@ -8735,15 +8737,17 @@ class NetCDFRead(IORead):
         self.implementation.set_properties(domain_topology, properties)
 
         # Set the data
-        start_index = g['variable_attributes'][connectivity_ncvar].get('start_index', 0),
+        start_index = (
+            g["variable_attributes"][connectivity_ncvar].get("start_index", 0),
+        )
 
         connectivity, kwargs = self._create_netcdfarray(connectivity_ncvar)
         array = self._create_connectivity_array(
             connectivity_array=connectivity,
-            uncompressed_shape=(connectivity.shape[0],) * 2, 
+            uncompressed_shape=(connectivity.shape[0],) * 2,
             start_index=start_index,
-            topology_dimension=topology_dimension
-        )        
+            topology_dimension=topology_dimension,
+        )
         data = self._create_Data(
             array,
             units=kwargs["units"],
@@ -8788,111 +8792,111 @@ class NetCDFRead(IORead):
     #    #            topology_dimension
     #    pass
 
-#    def  self._create_connectivityarray(self, indces)
-#        """TODOUGRID.
-#
-#        See http://ugrid-conventions.github.io/ugrid-conventions for
-#        details.
-#
-#        .. versionadded:: (cfdm) 1.11.0.0
-#
-#        :Parameters:
-#
-#            connectivity_ncvar: `str`
-#                The netCDF variable name of the UGRID connectiviety
-#                variable.
-#
-#            start_index: `int`
-#                Specify whether the UGRID indexing is 0- or 1-based
-#                indexing.
-#
-#        :Returns:
-#
-#            `Data`
-#                TODOUGRID
-#
-#        **Examples**
-#
-#        >>> print(indices.array)
-#        [[1  2  3]
-#         [0 -- --]
-#         [0  4 --]
-#         [0 -- --]
-#         [2 -- --]]
-#        >>> indices.shape
-#        (5, 3)
-#        >>> c = r._create_connectivity_data(indices, 0)
-#        >>> print(c.array)
-#        [[False  True  True  True False]
-#         [ True False False False False]
-#         [ True False False False  True]
-#         [ True False False False False]
-#         [False False  True False False]]
-#        >>> c.shape
-#        (5, 5)
-#
-#        # In [49]: start_index = 1
-#        #
-#        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
-#        #
-#        # In [51]: iptr = np.array([0,3,6,8,10])
-#        #
-#        # In [52]: data = np.ones ((i.size,), bool)
-#        #
-#        # In [53]: a = csr_array((data, i, iptr))
-#        #
-#        # In [54]: a
-#        # Out[54]:
-#        # <4x4 sparse array of type '<class 'numpy.bool_'>'
-#        #    with 10 stored elements in Compressed Sparse Row format>
-#
-#        """
-#        connectivity = self.implementation.initialise_ConnectivityArray(
-#            compressed_array=indices
-#        )
-#        
-#
-#        
-#        """Return a bounds component.
-#
-#        from scipy.sparse import csr_array
-#
-#        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-#        array = self._create_connectivityarray(indces)
-#        
-#
-#
-#        indices = indices.array
-#
-#        shape = indices.shape
-#
-#        if np.ma.is_masked(indices):
-#            pointers = shape[1] - np.ma.getmaskarray(indices).sum(axis=1)
-#            pointers = np.insert(pointers, 0, 0)
-#            indices = indices.compressed()
-#        else:
-#            pointers = np.full((shape[0] + 1,), shape[1])
-#            pointers[0] = 0
-#            indices = indices.flatten()
-#        
-#        pointers = np.cumsum(pointers, out=pointers)
-#
-#        if start_index:
-#            indices -= start_index
-#            
-#        ones = np.ones((indices.size,), bool)
-#
-#        c = csr_array((ones, indices, pointers))
-#        
-#        data = self._create_Data(
-#            c,
-#            units=kwargs["units"],
-#            calendar=kwargs["calendar"],
-#            ncvar=connectivity_ncvar,
-#        )
-#
-#        return data
-    
+    #    def  self._create_connectivityarray(self, indces)
+    #        """TODOUGRID.
+    #
+    #        See http://ugrid-conventions.github.io/ugrid-conventions for
+    #        details.
+    #
+    #        .. versionadded:: (cfdm) 1.11.0.0
+    #
+    #        :Parameters:
+    #
+    #            connectivity_ncvar: `str`
+    #                The netCDF variable name of the UGRID connectiviety
+    #                variable.
+    #
+    #            start_index: `int`
+    #                Specify whether the UGRID indexing is 0- or 1-based
+    #                indexing.
+    #
+    #        :Returns:
+    #
+    #            `Data`
+    #                TODOUGRID
+    #
+    #        **Examples**
+    #
+    #        >>> print(indices.array)
+    #        [[1  2  3]
+    #         [0 -- --]
+    #         [0  4 --]
+    #         [0 -- --]
+    #         [2 -- --]]
+    #        >>> indices.shape
+    #        (5, 3)
+    #        >>> c = r._create_connectivity_data(indices, 0)
+    #        >>> print(c.array)
+    #        [[False  True  True  True False]
+    #         [ True False False False False]
+    #         [ True False False False  True]
+    #         [ True False False False False]
+    #         [False False  True False False]]
+    #        >>> c.shape
+    #        (5, 5)
+    #
+    #        # In [49]: start_index = 1
+    #        #
+    #        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
+    #        #
+    #        # In [51]: iptr = np.array([0,3,6,8,10])
+    #        #
+    #        # In [52]: data = np.ones ((i.size,), bool)
+    #        #
+    #        # In [53]: a = csr_array((data, i, iptr))
+    #        #
+    #        # In [54]: a
+    #        # Out[54]:
+    #        # <4x4 sparse array of type '<class 'numpy.bool_'>'
+    #        #    with 10 stored elements in Compressed Sparse Row format>
+    #
+    #        """
+    #        connectivity = self.implementation.initialise_ConnectivityArray(
+    #            compressed_array=indices
+    #        )
+    #
+    #
+    #
+    #        """Return a bounds component.
+    #
+    #        from scipy.sparse import csr_array
+    #
+    #        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+    #        array = self._create_connectivityarray(indces)
+    #
+    #
+    #
+    #        indices = indices.array
+    #
+    #        shape = indices.shape
+    #
+    #        if np.ma.is_masked(indices):
+    #            pointers = shape[1] - np.ma.getmaskarray(indices).sum(axis=1)
+    #            pointers = np.insert(pointers, 0, 0)
+    #            indices = indices.compressed()
+    #        else:
+    #            pointers = np.full((shape[0] + 1,), shape[1])
+    #            pointers[0] = 0
+    #            indices = indices.flatten()
+    #
+    #        pointers = np.cumsum(pointers, out=pointers)
+    #
+    #        if start_index:
+    #            indices -= start_index
+    #
+    #        ones = np.ones((indices.size,), bool)
+    #
+    #        c = csr_array((ones, indices, pointers))
+    #
+    #        data = self._create_Data(
+    #            c,
+    #            units=kwargs["units"],
+    #            calendar=kwargs["calendar"],
+    #            ncvar=connectivity_ncvar,
+    #        )
+    #
+    #        return data
+
     def _check_mesh_topology(
         self,
         parent_ncvar,

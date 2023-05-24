@@ -92,14 +92,14 @@ class ConnectivitySubarray(Subarray):
         topology_dimension = self.get_topology_dimension()
         row_ind = []
         col_ind = []
-        
+
         if topology_dimension == 2:
             compressed = np.ma.compressed
             for i, nodes0 in enumerate(connectivity):
                 nodes0 = compressed(nodes0).tolist()
                 n_nodes0_minus_1 = len(nodes0) - 1
                 set_nodes0 = set(nodes0)
-                for j, nodes1 in enumerate(connectivity[i+1:]):
+                for j, nodes1 in enumerate(connectivity[i + 1 :]):
                     nodes1 = compressed(nodes1).tolist()
                     common = set_nodes0.intersection(nodes1)
                     n_common = len(common)
@@ -112,11 +112,11 @@ class ConnectivitySubarray(Subarray):
                         # adjacent vertices in both faces
                         x = common.pop()
                         y = common.pop()
-                        diff =  abs(nodes0.index(x) - nodes0.index(y))
-                        if diff == 1  or diff == n_nodes0_minus_1:
+                        diff = abs(nodes0.index(x) - nodes0.index(y))
+                        if diff == 1 or diff == n_nodes0_minus_1:
                             # The common nodes are adjacent vertices
                             # in face0
-                            diff =  abs(nodes1.index(x) - nodes1.index(y))
+                            diff = abs(nodes1.index(x) - nodes1.index(y))
                             if diff == 1 or diff == len(nodes1) - 1:
                                 # The common nodes are also adjacent
                                 # vertices in face1 => face0 and face1
@@ -131,7 +131,7 @@ class ConnectivitySubarray(Subarray):
         elif topology_dimension == 1:
             for i, nodes0 in enumerate(connectivity):
                 set_nodes0 = set(nodes0.tolist())
-                for j, nodes1 in enumerate(connectivity[i+1:]):
+                for j, nodes1 in enumerate(connectivity[i + 1 :]):
                     common = set_nodes0.intersection(nodes1.tolist())
                     if not common:
                         # edge0 and edge1 are not connected
@@ -140,36 +140,35 @@ class ConnectivitySubarray(Subarray):
                     # edge0 and edge1 are connected
                     row_ind.append(i)
                     col_ind.append(i + 1 + j)
-                            
+
         elif topology_dimension > 2:
             raise ValueError("Can't do volumes!!!!")
 
         # Create a upper diagonal sparse array, and then symmetrically
         # copy its values to the lower diagonal.
         data = np.ones((len(row_ind),), dtype=bool)
-        c =  csr_array((data, (row_ind, col_ind)), shape=(shape0, shape0))
+        c = csr_array((data, (row_ind, col_ind)), shape=(shape0, shape0))
         return c + c.T
 
-
-#        if self.cell_cell_connectivity:
-#            if np.ma.is_masked(connectivity):
-#                indptr = shape[1] - np.ma.getmaskarray(connectivity).sum(axis=1)
-#                indptr = np.insert(indptr, 0, 0)
-#                connectivity = connectivity.compressed()
-#            else:
-#                indptr = np.full((shape0 + 1,), shape[1])
-#                indptr[0] = 0
-#                connectivity = connectivity.flatten()
-#            
-#            indptr = np.cumsum(indptr, out=indptr)
-#    
-#            start_index = self.get_start_index()
-#            if start_index:
-#                connectivity -= start_index
-#                
-#            data = np.ones((connectivity.size,), dtype=bool)    
-#            c = csc_array((data, connectivity, indptr), shape=(shape0, self.data.shape[0])))
-#            return c[:, self.indices[1])
+    #        if self.cell_cell_connectivity:
+    #            if np.ma.is_masked(connectivity):
+    #                indptr = shape[1] - np.ma.getmaskarray(connectivity).sum(axis=1)
+    #                indptr = np.insert(indptr, 0, 0)
+    #                connectivity = connectivity.compressed()
+    #            else:
+    #                indptr = np.full((shape0 + 1,), shape[1])
+    #                indptr[0] = 0
+    #                connectivity = connectivity.flatten()
+    #
+    #            indptr = np.cumsum(indptr, out=indptr)
+    #
+    #            start_index = self.get_start_index()
+    #            if start_index:
+    #                connectivity -= start_index
+    #
+    #            data = np.ones((connectivity.size,), dtype=bool)
+    #            c = csc_array((data, connectivity, indptr), shape=(shape0, self.data.shape[0])))
+    #            return c[:, self.indices[1])
 
     @cached_property
     def dtype(self):
