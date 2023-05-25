@@ -2276,15 +2276,10 @@ class FieldDomain:
 
         # Create the cell_cell connectivity array
         if cell_cell_connectivity:
-            if topology_dimension == 2:
-                key = "face_face_connectivity"
-                long_name = "Neighbour faces for faces"
-            elif topology_dimension == 1:
-                key = "edge_edge_connectivity"
-                long_name = "Neighbour edges for edges"
-
-            d = domain_topology.sparse_array
+            d = domain_topology.data.compute()
             n_connections = d.sum(axis=1)
+
+            # Initialise the UGRID connectivity array as missing data
             cell_connectivity = np.ma.masked_all(
                 (n_cells, n_connections.max()), dtype=index_dtype
             )
@@ -2293,9 +2288,25 @@ class FieldDomain:
             for cell, n in zip(cell_connectivity, n_connections):
                 cell[:n] = 0
 
+            # Find the zero-based UGRID cell indices for the
+            # neighbours of each cell
+            try:
+                # Try for 'd' being a sparse array
+                indices = d.indices
+            except AttributeError:
+                # Assume that 'd' is a dense array
+                _, indices = np.where(d)
+    
             # Set the unmasked elements to zero-based UGRID cell
             # indices
-            np.place(cell_connectivity, ~cell_connectivity.mask, d.indices)
+            np.place(cell_connectivity, ~cell_connectivity.mask, indices)
+
+            if topology_dimension == 2:
+                key = "face_face_connectivity"
+                long_name = "Neighbour faces for faces"
+            elif topology_dimension == 1:
+                key = "edge_edge_connectivity"
+                long_name = "Neighbour edges for edges"
 
             cell_connectivity = self._AuxiliaryCoordinate(
                 data=cell_connectivity,
