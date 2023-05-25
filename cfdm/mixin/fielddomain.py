@@ -2245,7 +2245,7 @@ class FieldDomain:
         else:
             connectivity = out.reshape(ref_bounds_shape)
 
-        connectivity = self._AuxiliaryCoordinate(
+        connectivity = self._Connectivity(
             data=connectivity,
             properties={"long_name": "Map of cells to their vertex nodes"},
             copy=False,
@@ -2264,7 +2264,7 @@ class FieldDomain:
                 "long_name"
             ] = f"Mesh topology {aux.identity(default='')} node locations"
 
-            coord = self._AuxiliaryCoordinate(
+            coord = self._Connectivity(
                 data=coord, properties=properties, copy=False
             )
             node_coordinates.append(coord)
@@ -2279,15 +2279,6 @@ class FieldDomain:
             d = domain_topology.data.compute()
             n_connections = d.sum(axis=1)
 
-            # Initialise the UGRID connectivity array as missing data
-            cell_connectivity = np.ma.masked_all(
-                (n_cells, n_connections.max()), dtype=index_dtype
-            )
-            # Unmask elements that will later be set to zero-based
-            # UGRID cell indices
-            for cell, n in zip(cell_connectivity, n_connections):
-                cell[:n] = 0
-
             # Find the zero-based UGRID cell indices for the
             # neighbours of each cell
             try:
@@ -2296,6 +2287,17 @@ class FieldDomain:
             except AttributeError:
                 # Assume that 'd' is a dense array
                 _, indices = np.where(d)
+
+            del d
+                
+            # Initialise the UGRID connectivity array as missing data
+            cell_connectivity = np.ma.masked_all(
+                (n_cells, n_connections.max()), dtype=index_dtype
+            )
+            # Unmask elements that will later be set to zero-based
+            # UGRID cell indices
+            for cell, n in zip(cell_connectivity, n_connections):
+                cell[:n] = 0
     
             # Set the unmasked elements to zero-based UGRID cell
             # indices
@@ -2308,7 +2310,7 @@ class FieldDomain:
                 key = "edge_edge_connectivity"
                 long_name = "Neighbour edges for edges"
 
-            cell_connectivity = self._AuxiliaryCoordinate(
+            cell_connectivity = self._Connectivity(
                 data=cell_connectivity,
                 properties={"long_name": long_name},
                 copy=False,
