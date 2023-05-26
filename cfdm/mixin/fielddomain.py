@@ -2139,8 +2139,8 @@ class FieldDomain:
             x = ', '.join([repr(aux) for aux in auxs]))
             y = ', '.join([str(b.size)for b in bounds])
             raise ValueError(
-                "Auxiliary coordinates for mesh topology cells must each "
-                f"have the same total number of non-missing bounds: "
+                "Auxiliary coordinates with bounds for mesh topology cells "
+                "must each have the same total number of non-missing bounds: "
                 f"{x} have total bounds counts of {y} respectively."
             )
 
@@ -2206,9 +2206,9 @@ class FieldDomain:
                     f"({n_nodes})"
                 )
 
-        # Find the index vector array for each cell bound. This array
-        # has shape (n_bounds, len(auxs)). Each row contains a vector
-        # of indices, each of which is an index to one of the bounds'
+        # Find the index vector for each cell bound. This array has
+        # shape (n_bounds, len(auxs)). Each row contains a vector of
+        # indices, each of which is an index to one of the bounds'
         # "return_index" arrays.
         index_vectors = np.vstack(return_inverse).T
 
@@ -2218,8 +2218,8 @@ class FieldDomain:
         unique_vectors = np.unique(index_vectors, axis=0)
         if unique_vectors.shape[0] != n_nodes:
             raise ValueError(
-                f"Found {unique_vectors.shape[0]} index vectors for "
-                f"{n_nodes} mesh topology nodes"
+                f"Found {unique_vectors.shape[0]} unique index vectors "
+                f"for {n_nodes} mesh topology nodes"
             )
 
         # Replace the index vector for each bound with its zero-based
@@ -2232,9 +2232,9 @@ class FieldDomain:
                 node_indices,
             )
 
-        # Map the zero-based UGRID node indices to the 2-d shape of
-        # coordinate bounds array. This is the final connectivity
-        # array.
+        # Map the zero-based UGRID node indices to the 2-d shape of a
+        # coordinate bounds array. This is the final UGRID cell_node
+        # connectivity array.
         if masked:
             # The bounds have missing values
             connectivity = np.empty_like(ref_bounds, dtype=index_dtype)
@@ -2245,9 +2245,14 @@ class FieldDomain:
         else:
             connectivity = out.reshape(ref_bounds_shape)
 
+        if connectivity_type == "face_node_connectivity":
+            long_name = "Map of faces to their vertex nodes"
+        elif connectivity_type == "edge_node_connectivity":
+            long_name = "Map of edges to their vertex nodes"
+
         connectivity = self._Connectivity(
             data=connectivity,
-            properties={"long_name": "Map of cells to their vertex nodes"},
+            properties={"long_name": long_name},
             copy=False,
         )
 
@@ -2264,7 +2269,7 @@ class FieldDomain:
                 "long_name"
             ] = f"Mesh topology {aux.identity(default='')} node locations"
 
-            coord = self._Connectivity(
+            coord = self._NodeCoordinate(
                 data=coord, properties=properties, copy=False
             )
             node_coordinates.append(coord)
@@ -2294,7 +2299,8 @@ class FieldDomain:
             cell_connectivity = np.ma.masked_all(
                 (n_cells, n_connections.max()), dtype=index_dtype
             )
-            # Unmask elements that will later be set to zero-based
+            
+            # Unmask the elements that are to be set to zero-based
             # UGRID cell indices
             for cell, n in zip(cell_connectivity, n_connections):
                 cell[:n] = 0
@@ -2303,10 +2309,10 @@ class FieldDomain:
             # indices
             np.place(cell_connectivity, ~cell_connectivity.mask, indices)
 
-            if topology_dimension == 2:
+            if connectivity_type == "face_node_connectivity":
                 key = "face_face_connectivity"
                 long_name = "Neighbour faces for faces"
-            elif topology_dimension == 1:
+            elif connectivity_type == "edge_node_connectivity":
                 key = "edge_edge_connectivity"
                 long_name = "Neighbour edges for edges"
 
@@ -2316,7 +2322,7 @@ class FieldDomain:
                 copy=False,
             )
 
-            out[name] = cell_connectivity
+            out[key] = cell_connectivity
 
         # Return the node coordinates, the cell_node connectivity, and
         # (if requested) the cell_cell connectivity
