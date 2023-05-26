@@ -2088,7 +2088,7 @@ class FieldDomain:
 
         return False
 
-    def ugrid_components(self, identity, cell_cell_connectivity=False):
+    def ugrid_components(self, identity, start_index=0, cell_cell_connectivity=False):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -2111,6 +2111,23 @@ class FieldDomain:
         TODOUGRID
 
         """
+
+
+        # TODOUGIRD: Hmmm
+        # https://github.com/ugrid-conventions/ugrid-conventions/issues/65#issuecomment-1522763032 says:
+        #
+        # No. That's one of the reasons to use nodes, rather than
+        # simply coordinates. If two faces share a node that means
+        # they ARE connected by that node, as opposed to two nodes
+        # that may happen to have the same coordinates.
+        #
+        # In fact, there's little reason to do this with an
+        # unstructured mesh, but if you want two faces to be exactly
+        # next to each other, but not share a logical boundary, then
+        # you could have multiple nodes that have the same
+        # coordinates.
+
+
         domain_axis, axis_key = self.domain_axis(identity, item=True)
         domain_topology = self.domain_topology(filter_by_axis=(axis_key,))
 
@@ -2206,20 +2223,20 @@ class FieldDomain:
                     f"({n_nodes})"
                 )
 
-        # Find the index vector for each cell bound. This array has
-        # shape (n_bounds, len(auxs)). Each row contains a vector of
-        # indices, each of which is an index to one of the bounds'
+        # Find the node index vector for each cell bound. This array
+        # has shape (n_bounds, len(auxs)). Each row contains a vector
+        # of indices, each of which is an index to one of the bounds'
         # "return_index" arrays.
         index_vectors = np.vstack(return_inverse).T
 
-        # Find the unique index vectors. This array should have shape
-        # (n_nodes, len(auxs)). The zero-based UGRID node indices
-        # correspond to the row indices of this array.
+        # Find the unique node index vectors. This array should have
+        # shape (n_nodes, len(auxs)). The zero-based UGRID node
+        # indices correspond to the row indices of this array.
         unique_vectors = np.unique(index_vectors, axis=0)
         if unique_vectors.shape[0] != n_nodes:
             raise ValueError(
-                f"Found {unique_vectors.shape[0]} unique index vectors "
-                f"for {n_nodes} mesh topology nodes"
+                f"Found {unique_vectors.shape[0]} unique node index "
+                f"vectors for {n_nodes} mesh topology nodes"
             )
 
         # Replace the index vector for each bound with its zero-based
@@ -2250,9 +2267,15 @@ class FieldDomain:
         elif connectivity_type == "edge_node_connectivity":
             long_name = "Map of edges to their vertex nodes"
 
+        properties  ={'long_name': long_name}
+        
+        if start_index:
+            connectivity += start_index
+            properties['start_index'] = start_index
+            
         connectivity = self._Connectivity(
             data=connectivity,
-            properties={"long_name": long_name},
+            properties=properties,
             copy=False,
         )
 
@@ -2279,7 +2302,9 @@ class FieldDomain:
             connectivity_type: connectivity,
         }
 
+        # ------------------------------------------------------------
         # Create the cell_cell connectivity array
+        # ------------------------------------------------------------
         if cell_cell_connectivity:
             d = domain_topology.data.compute()
             n_connections = d.sum(axis=1)
@@ -2316,9 +2341,15 @@ class FieldDomain:
                 key = "edge_edge_connectivity"
                 long_name = "Neighbour edges for edges"
 
+            properties = {'long_name': long_name}        
+
+            if start_index:
+                cell_connectivity += start_index
+                properties['start_index'] =  start_index
+
             cell_connectivity = self._Connectivity(
                 data=cell_connectivity,
-                properties={"long_name": long_name},
+                properties=properties,
                 copy=False,
             )
 

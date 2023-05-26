@@ -107,7 +107,7 @@ class ConnectivitySubarray(Subarray):
                 # with face i
                 node_test = connectivity == nodes[0]
                 for node in nodes[1:]:
-                    node_test |=  connectivity == node            
+                    node_test |= connectivity == node            
                     
                 possibly_connected_faces = set(np.where(node_test)[0].tolist())
                 possibly_connected_faces.remove(i)

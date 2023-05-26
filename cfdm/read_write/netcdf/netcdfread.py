@@ -8543,7 +8543,9 @@ class NetCDFRead(IORead):
 
         # Get the location index set (which may be None)
         index_set = mesh["index_set"]
-
+        
+        # Get the netCDF variable names of the node
+        # coordinates. E.g. ("Mesh2_node_x", "Mesh2_node_y")
         nodes_ncvar = mesh_attributes.get("node_coordinates")
 
         # Get the netCDF variable names of the cell coordinates (if
@@ -8561,9 +8563,9 @@ class NetCDFRead(IORead):
                     aux
                 ):
                     # This [edge|face]_coordinate variable does not
-                    # have bounds, so derive them from the mesh node
-                    # coordinates.
-                    aux = self._create_bounds_from_mesh_nodes(
+                    # have bounds, so derive them from the
+                    # [edge|face]_node_connectivity variable.
+                    aux = self._ugrid_create_bounds_from_mesh_nodes(
                         parent_ncvar,
                         nodes_ncvar,
                         f,
@@ -8583,7 +8585,7 @@ class NetCDFRead(IORead):
             # [edge|face]_node_connectivity variable. These will only
             # contain bounds, with no coordinate values.
             for ncvar in nodes_ncvar.split():
-                aux = self._create_bounds_from_mesh_nodes(
+                aux = self._ugrid_create_bounds_from_mesh_nodes(
                     parent_ncvar, ncvar, f, mesh, location
                 )
                 if index_set is not None:
@@ -8595,11 +8597,10 @@ class NetCDFRead(IORead):
         mesh["auxiliary_coordinates"][location] = auxs
         return auxs
 
-    def _create_bounds_from_mesh_nodes(
+    def _ugrid_create_bounds_from_mesh_nodes(
         self, parent_ncvar, node_ncvar, f, mesh, location, aux=None
     ):
-        """Create auxiliary coordinate bounds from UGRID node
-        coordinates.
+        """Create coordinate bounds from UGRID node coordinates.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -8627,6 +8628,7 @@ class NetCDFRead(IORead):
         :Returns:
 
             `AuxiliaryCoordinate`
+                TODOUGRID
 
         """
         g = self.read_vars
@@ -8646,7 +8648,7 @@ class NetCDFRead(IORead):
         if not g["mask"]:
             self._set_default_FillValue(bounds, node_ncvar)
 
-        array = some_function(
+        array = self._ugrid_some_function(
             mesh, node_ncvar, location, properties.get("start_index", 0)
         )
 
@@ -8670,7 +8672,7 @@ class NetCDFRead(IORead):
 
         return aux
 
-    def some_function(self, mesh, node_ncvar, location, start_index):
+    def _ugrid_some_function(self, mesh, node_ncvar, location, start_index):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
