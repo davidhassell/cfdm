@@ -6963,43 +6963,43 @@ class NetCDFRead(IORead):
             parameter_dimensions=parameter_dimensions,
         )
 
-    def _create_connectivity_array(
-        self,
-        connectivity_array=None,
-        uncompressed_shape=None,
-        start_index=0,
-        connectivity_type=None,
-    ):
-        """TODOUGRID Creates Data for a compressed-by-gathering netCDF
-        variable.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            connectivity_array: `NetCDFArray`
-
-            uncompressed_shape: sequence of `int`, optional
-
-            start_index: `int`, optional
-
-            connectivity_type: `str`, optional
-
-        :Returns:
-
-            `ConnectivityAarray`
-
-        """
-        if compressed_dimension is None:
-            ndim = connectivity_array.ndim
-            compressed_dimensions = {ndim: (ndim,)}
-
-        return self.implementation.initialise_ConnectivityArray(
-            compressed_array=connectivity_array,
-            shape=uncompressed_shape,
-            compressed_dimensions=compressed_dimensions,
-            start_index=start_index,
-        )
+#    def _create_connectivity_array(
+#        self,
+#        connectivity_array=None,
+#        uncompressed_shape=None,
+#        start_index=0,
+#        connectivity_type=None,
+#    ):
+#        """TODOUGRID Creates Data for a compressed-by-gathering netCDF
+#        variable.
+#
+#        .. versionadded:: (cfdm) TODOUGRIDVER
+#
+#        :Parameters:
+#
+#            connectivity_array: `NetCDFArray`
+#
+#            uncompressed_shape: sequence of `int`, optional
+#
+#            start_index: `int`, optional
+#
+#            connectivity_type: `str`, optional
+#
+#        :Returns:
+#
+#            `ConnectivityAarray`
+#
+#        """
+#        if compressed_dimension is None:
+#            ndim = connectivity_array.ndim
+#            compressed_dimensions = {ndim: (ndim,)}
+#
+#        return self.implementation.initialise_ConnectivityArray(
+#            compressed_array=connectivity_array,
+#            shape=uncompressed_shape,
+#            compressed_dimensions=compressed_dimensions,
+#            start_index=start_index,
+#        )
 
     def _create_Data(
         self,
@@ -8562,9 +8562,9 @@ class NetCDFRead(IORead):
                 if location != "node" and not self.implementation.has_bounds(
                     aux
                 ):
-                    # This [edge|face]_coordinate variable does not
-                    # have bounds, so derive them from the
-                    # [edge|face]_node_connectivity variable.
+                    # This [edge|face|volume]_coordinate variable does
+                    # not have bounds, so derive them from the
+                    # [edge|face|volume]_node_connectivity variable.
                     aux = self._ugrid_create_bounds_from_mesh_nodes(
                         parent_ncvar,
                         nodes_ncvar,
@@ -8580,10 +8580,10 @@ class NetCDFRead(IORead):
 
                 auxs.append(aux)
         elif nodes_ncvar is not None:
-            # There are no cell coordinates => Create auxiliary
+            # There are no cell coordinates => create auxiliary
             # coordinate constructs that are derived from an
-            # [edge|face]_node_connectivity variable. These will only
-            # contain bounds, with no coordinate values.
+            # [edge|face|volume]_node_connectivity variable. These
+            # will only contain bounds, with no coordinate values.
             for ncvar in nodes_ncvar.split():
                 aux = self._ugrid_create_bounds_from_mesh_nodes(
                     parent_ncvar, ncvar, f, mesh, location
@@ -8698,12 +8698,14 @@ class NetCDFRead(IORead):
 
             location: `str`
                 The location of the cells in the mesh topology. One of
-                ``'face'``, ``'edge'`` or ``'node'``.
+                ``'face'``, ``'edge'``, ``'node'``, or ``'volume'``.
 
         :Returns:
 
             `DomainTopology` or `None`
-                TODOUGRID
+
+                TODOUGRID, or `None` if the domain topology construct
+                could not be created.
 
         """
         domain_topology = mesh["domain_topology"].get(location)
@@ -8712,15 +8714,22 @@ class NetCDFRead(IORead):
             return domain_topology.copy()
 
         attributes = mesh["mesh_topology_attributes"]
-
+        
         if location == "face":
             #            connectivity_attr = "face_face_connectivity"
             #            if connectivity_attr not in attributes:
             connectivity_attr = "face_node_connectivity"
             topology_dimension = 2
-        elif location in ("node", "edge"):
+        elif location == "edge":
             connectivity_attr = "edge_node_connectivity"
             topology_dimension = 1
+        elif location == "volume":
+            connectivity_attr = "volume_node_connectivity"
+            topology_dimension = 3
+        elif location == "node":
+            connectivity_attr = "???"
+            topology_dimension = 1 # ???
+            # TODOUGRID; what? https://github.com/ugrid-conventions/ugrid-conventions/issues/66
 
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._check_ugrid_connectivity_variable(
@@ -8739,23 +8748,27 @@ class NetCDFRead(IORead):
         self.implementation.set_properties(domain_topology, properties)
 
         # Set the data
-        start_index = (
-            g["variable_attributes"][connectivity_ncvar].get("start_index", 0),
-        )
+#        start_index = (
+#            g["variable_attributes"][connectivity_ncvar].get("start_index", 0)#,
+#        )
 
-        connectivity, kwargs = self._create_netcdfarray(connectivity_ncvar)
-        array = self._create_connectivity_array(
-            connectivity_array=connectivity,
-            uncompressed_shape=(connectivity.shape[0],) * 2,
-            start_index=start_index,
-            topology_dimension=topology_dimension,
-        )
-        data = self._create_Data(
-            array,
-            units=kwargs["units"],
-            calendar=kwargs["calendar"],
-            ncvar=connectivity_ncvar,
-        )
+#        connectivity, kwargs = self._create_netcdfarray(connectivity_ncvar)
+#        array = self._create_connectivity_array(
+#            connectivity_array=connectivity,
+#            uncompressed_shape=(connectivity.shape[0],) * 2,
+#            start_index=start_index,
+#            topology_dimension=topology_dimension,
+#        )
+
+        data = self._create_data(connectivity_ncvar, uncompress_override=True)
+
+#        array, kwargs = self._create_netcdfarray(connectivity_ncvar)
+#        data = self._create_Data(
+#            array,
+#            units=kwargs["units"],
+#            calendar=kwargs["calendar"],
+#            ncvar=connectivity_ncvar,
+#        )
 
         self.implementation.set_data(domain_topology, data, copy=False)
 
