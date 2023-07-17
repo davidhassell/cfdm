@@ -3559,7 +3559,7 @@ class NetCDFRead(IORead):
 
         # Add any dependent tie points required for multivariate
         # interpolations. This allows each coordinate to be operated
-        # on (e.g. subspaced, collapsed, etc.) independently
+        # on (e.g. subspaced, collapsed, etc.) independently.
         #
         # For example, when decompression is by the
         # quadratic_latitude_longitude method, the interpolation of
@@ -3753,7 +3753,7 @@ class NetCDFRead(IORead):
                     location = mesh["location"]
 
             if mesh is not None:
-                # Delete standardised attributes from the properties
+                # Remove standardised attributes from the properties
                 if mesh_ncvar is not None:
                     self.implementation.del_property(f, "mesh", None)
                     self.implementation.del_property(f, "location", None)
@@ -3767,9 +3767,10 @@ class NetCDFRead(IORead):
                     field_ncvar, f, mesh, location
                 )
                 if ncdim is not None:
-                    # Add auxiliary coordinate constructs derived from
-                    # the mesh topology
-                    auxs = self._create_ugrid_auxiliary_coordinates(
+                    # There is a UGRID discrete axis, so create
+                    # auxiliary coordinate constructs that are derived
+                    # from the mesh topology.
+                    auxs = self._ugrid_create_auxiliary_coordinates(
                         field_ncvar, f, mesh, location
                     )
                     for aux in auxs:
@@ -3791,7 +3792,7 @@ class NetCDFRead(IORead):
 
                     # Add the domain topology construct derived from
                     # the mesh topology
-                    domain_topology = self._create_domain_topology(
+                    domain_topology = self._ugrid_create_domain_topology(
                         field_ncvar, f, mesh, location
                     )
                     if domain_topology is not None:
@@ -3805,7 +3806,7 @@ class NetCDFRead(IORead):
                         ncvar_to_key[ncvar] = key
 
         # ------------------------------------------------------------
-        # Add extra auxiliary coordinate constructs defined by
+        # Add custom auxiliary coordinate constructs defined by
         # subclasses
         # ------------------------------------------------------------
         extra_aux = self._customise_auxiliary_coordinates(field_ncvar, f)
@@ -8580,7 +8581,7 @@ class NetCDFRead(IORead):
 
         return ncdimensions[0]
 
-    def _create_ugrid_auxiliary_coordinates(
+    def _ugrid_create_auxiliary_coordinates(
         self, parent_ncvar, f, mesh, location
     ):
         """TODOUGRID.
@@ -8608,9 +8609,10 @@ class NetCDFRead(IORead):
                 TODOUGRID
 
         """
-        # Look for existing auxiliary coordinate constructs
         auxs = mesh["auxiliary_coordinates"].get(location)
         if auxs is not None:
+            # Return copies of existing auxiliary coordinate
+            # constructs
             return [aux.copy() for aux in auxs]
 
         # Still here? Then create new auxiliary coordinate constructs
@@ -8623,16 +8625,20 @@ class NetCDFRead(IORead):
         # coordinates. E.g. ("Mesh2_node_x", "Mesh2_node_y")
         nodes_ncvar = mesh_attributes.get("node_coordinates")
 
-        # Get the netCDF variable names of the cell coordinates (if
-        # any). E.g. ("Mesh1_face_x", "Mesh1_face_y")
+        # Get the netCDF variable names of the cell
+        # coordinates. E.g. ("Mesh1_face_x", "Mesh1_face_y"), or None
+        # if there aren't any.
         coords_ncvar = mesh_attributes.get(f"{location}_coordinates")
 
         auxs = []
-
         if coords_ncvar is not None:
             # There are cell coordinates, so turn them into
             # auxiliary coordinate constructs
-            for ncvar in coords_ncvar.split():
+            for ncvar, node_ncvar in zip(coords_ncvar.split(), nodes_ncvar.split()):
+                # Note: We are assuming that the node coordinats are
+                # ordered identically to the [edge|face|volume]
+                # corodinates
+                # (https://github.com/ugrid-conventions/ugrid-conventions/issues/67)
                 aux = self._create_auxiliary_coordinate(parent_ncvar, ncvar, f)
                 if location != "node" and not self.implementation.has_bounds(
                     aux
@@ -8642,7 +8648,7 @@ class NetCDFRead(IORead):
                     # [edge|face|volume]_node_connectivity variable.
                     aux = self._ugrid_create_bounds_from_mesh_nodes(
                         parent_ncvar,
-                        nodes_ncvar,
+                        node_ncvar,
                         f,
                         mesh,
                         location,
@@ -8708,28 +8714,49 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
+        if location == "face":
+            attr = "face_node_connectivity"
+        elif location == "edge":
+            attr = "edge_node_connectivity"
+        elif location == "volume":
+            attr = "volume_node_connectivity"
+            
+        connectivity_ncvar = mesh["mesh_topology_attributes"][attr]
+        connectivity_indices = self._create_data(
+            connectivity_ncvar,
+            uncompress_override=True,
+            compression_index=True
+        )
+        node_coordinates = self._create_data(
+            node_ncvar,
+            uncompress_override=True,
+            compression_index=True
+        )
+        start_index = g["variable_attributes"][connectivity_ncvar].get("start_index", 0)
+        
         bounds = self.implementation.initialise_Bounds()
+        properties = g["variable_attributes"][node_ncvar].copy()
+        properties.pop("formula_terms", None)
 
         if aux is None:
             aux = self.implementation.initialise_AuxiliaryCoordinate()
-            properties = g["variable_attributes"][node_ncvar].copy()
-            properties.pop("formula_terms", None)
             self.implementation.set_properties(aux, properties)
         else:
-            properties = g["variable_attributes"][node_ncvar].copy()
-            properties.pop("formula_terms", None)
             self.implementation.set_properties(bounds, properties)
 
         if not g["mask"]:
             self._set_default_FillValue(bounds, node_ncvar)
 
-        array = self._ugrid_some_function(
-            mesh, node_ncvar, location, properties.get("start_index", 0)
+        # Create and set the data
+        array = self.implementation.initialise_NodesBoundsArray(
+            compressed_array=connectivity_indices,
+            node_coordinates=node_coordinates,
+            start_index=start_index,
         )
-
+            
         bounds_data = self._create_Data(
             array,
-            ncvar=node_ncvar,  # TODO: or not set this?
+            ncvar=node_ncvar,
             units=properties.get("units"),
             calendar=properties.get("calendar"),
         )
@@ -8747,15 +8774,7 @@ class NetCDFRead(IORead):
 
         return aux
 
-    def _ugrid_some_function(self, mesh, node_ncvar, location, start_index):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        """
-        pass
-
-    def _create_domain_topology(self, parent_ncvar, f, mesh, location):
+    def _ugrid_create_domain_topology(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -8778,14 +8797,13 @@ class NetCDFRead(IORead):
         :Returns:
 
             `DomainTopology` or `None`
-
                 TODOUGRID, or `None` if the domain topology construct
                 could not be created.
 
         """
         domain_topology = mesh["domain_topology"].get(location)
         if domain_topology is not None:
-            # Found an existing domain topology construct
+            # Return a copy of an existing domain topology construct
             return domain_topology.copy()
 
         attributes = mesh["mesh_topology_attributes"]
@@ -8822,29 +8840,8 @@ class NetCDFRead(IORead):
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
         self.implementation.set_properties(domain_topology, properties)
 
-        # Set the data
-#        start_index = (
-#            g["variable_attributes"][connectivity_ncvar].get("start_index", 0)#,
-#        )
-
-#        connectivity, kwargs = self._create_netcdfarray(connectivity_ncvar)
-#        array = self._create_connectivity_array(
-#            connectivity_array=connectivity,
-#            uncompressed_shape=(connectivity.shape[0],) * 2,
-#            start_index=start_index,
-#            topology_dimension=topology_dimension,
-#        )
-
+        # Create and set the data
         data = self._create_data(connectivity_ncvar, uncompress_override=True)
-
-#        array, kwargs = self._create_netcdfarray(connectivity_ncvar)
-#        data = self._create_Data(
-#            array,
-#            units=kwargs["units"],
-#            calendar=kwargs["calendar"],
-#            ncvar=connectivity_ncvar,
-#        )
-
         self.implementation.set_data(domain_topology, data, copy=False)
 
         # Set the netCDF variable name and the original file names
