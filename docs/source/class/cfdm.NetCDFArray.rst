@@ -20,8 +20,6 @@ Inspection
    :toctree: ../method/
    :template: method.rst
    
-   ~cfdm.NetCDFArray.get_ncvar
-   ~cfdm.NetCDFArray.get_varid
    ~cfdm.NetCDFArray.get_compression_type
    ~cfdm.NetCDFArray.get_subspace
    ~cfdm.NetCDFArray.get_missing_values
@@ -62,13 +60,16 @@ File
    :toctree: ../method/
    :template: method.rst
    
+   ~cfdm.NetCDFArray.get_address
+   ~cfdm.NetCDFArray.get_addresses
    ~cfdm.NetCDFArray.close
    ~cfdm.NetCDFArray.open
    ~cfdm.NetCDFArray.get_filename
    ~cfdm.NetCDFArray.get_filenames
-   ~cfdm.NetCDFArray.get_group
+   ~cfdm.NetCDFArray.get_format
+   ~cfdm.NetCDFArray.get_formats
+   ~cfdm.NetCDFArray.get_groups
    ~cfdm.NetCDFArray.get_mask
-   ~cfdm.NetCDFArray.file_address
    ~cfdm.NetCDFArray.get_address
    
 Miscellaneous

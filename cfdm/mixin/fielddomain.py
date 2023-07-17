@@ -526,7 +526,7 @@ class FieldDomain:
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `constructs`
+        .. seealso:: `constructs`, `auxiliary_coordinate`
 
         :Parameters:
 
@@ -776,7 +776,7 @@ class FieldDomain:
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `constructs`
+        .. seealso:: `constructs`, `coordinate_reference`
 
         :Parameters:
 
@@ -983,7 +983,7 @@ class FieldDomain:
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `constructs`
+        .. seealso:: `constructs`, `dimension_coordinate`
 
         :Parameters:
 
@@ -1114,7 +1114,7 @@ class FieldDomain:
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `constructs`
+        .. seealso:: `constructs`, `domain_axis`
 
         :Parameters:
 
@@ -1237,7 +1237,7 @@ class FieldDomain:
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `constructs`
+        .. seealso:: `constructs`, `domain_ancillary`
 
         :Parameters:
 
@@ -1358,7 +1358,7 @@ class FieldDomain:
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `constructs`
+        .. seealso:: `constructs`, `cell_measure`
 
         :Parameters:
 
