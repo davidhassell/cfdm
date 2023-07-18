@@ -84,12 +84,10 @@ class NodesBoundsArray(CompressedArray):
                 node_coordinates = None
 
             try:
-                start_index = source._get_component(
-                    "start_index", 0
-                )
+                start_index = source._get_component("start_index", 0)
             except AttributeError:
-                 start_index = 0
-                 
+                start_index = 0
+
         self._set_component("start_index", start_index, copy=False)
         if node_coordinates is not None:
             self._set_component(
@@ -126,7 +124,7 @@ class NodesBoundsArray(CompressedArray):
                 indices=c_indices,
                 shape=u_shape,
                 node_coordinates=node_coordinates,
-                start_index = start_index,
+                start_index=start_index,
             )
             u[u_indices] = subarray[...]
 
@@ -167,10 +165,8 @@ class NodesBoundsArray(CompressedArray):
         start_index = self.get_start_index()
         if start_index:
             connectivity_indices -= connectivity_indices
-            
-        return  np.unravel_index(
-            connectivity_indices, self.shape
-        )
+
+        return np.unravel_index(connectivity_indices, self.shape)
 
     @property
     def dtype(self):
@@ -193,28 +189,27 @@ class NodesBoundsArray(CompressedArray):
                 and the `tuple` of uncompressed indices with the key
                 ``'uncompressed_indices'``.
 
-
         """
         out = super().conformed_data()
         out["node_coordinates"] = self.get_node_coordinates()
         return out
 
     def get_node_coordinates(self, default=ValueError()):
-        """TODOUGRID Return the connectivity indices for a compressed array.
+        """The coordinates representing the node locations.
 
         .. versionadded:: (cfdm) 1.11.0.0
 
         :Parameters:
 
             default: optional
-                Return the value of the *default* parameter if the
-                connectivity indices have not been set.
+                Return the value of the *default* parameter if node
+                coordinates indices have not been set.
 
                 {{default Exception}}
 
         :Returns:
 
-                The TODOUGRID onnectivity indices.
+                The node coordinates.
 
         """
         return self._get_component("node_coordinates", default=default)
@@ -271,8 +266,6 @@ class NodesBoundsArray(CompressedArray):
         [(2,), (3,), (2, 2)]
 
         """
-        u_dims = self.get_compressed_axes()
-
         if shapes == -1:
             return list(self.shape)
 
@@ -412,17 +405,17 @@ class NodesBoundsArray(CompressedArray):
         u_shapes = []
         u_indices = []
 
-        for size, c in  zip(self.shape, shapes):
+        for size, c in zip(self.shape, shapes):
             locations.append([i for i in range(len(c))])
             u_shapes.append(c)
-            
+
             c = tuple(accumulate((0,) + c))
             u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
 
         # The indices of the compressed array that correspond to each
         # subarray
         c_indices = u_indices[:]
-            
+
         return (
             product(*u_indices),
             product(*u_shapes),
@@ -450,7 +443,8 @@ class NodesBoundsArray(CompressedArray):
             try:
                 a._set_component(
                     "node_coordinates",
-                    node_coordinates.to_memory(), copy=False
+                    node_coordinates.to_memory(),
+                    copy=False,
                 )
             except AttributeError:
                 pass

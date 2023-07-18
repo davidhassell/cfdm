@@ -2,7 +2,16 @@ import logging
 
 import numpy as np
 
-from . import AuxiliaryCoordinate, Constructs, Count, Domain, Index, List, core, mixin
+from . import (
+    AuxiliaryCoordinate,
+    Constructs,
+    Count,
+    Domain,
+    Index,
+    List,
+    core,
+    mixin,
+)
 from .data import (
     GatheredArray,
     RaggedContiguousArray,

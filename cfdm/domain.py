@@ -1075,4 +1075,3 @@ class Domain(
             c.uncompress(inplace=True)
 
         return d
-

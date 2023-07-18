@@ -86,7 +86,7 @@ class ConnectivitySubarray(Subarray):
         from scipy.sparse import csr_array
 
         connectivity = self._select_data(check_mask=False)
-        
+
         n_cells = connectivity.shape[0]
         n_nodes = np.ma.count(connectivity)
 
@@ -101,14 +101,14 @@ class ConnectivitySubarray(Subarray):
             compressed = np.ma.compressed
             for i, nodes in enumerate(connectivity):
                 nodes = compressed(nodes).tolist()
-                set_nodes = set(nodes)                
-                
+                set_nodes = set(nodes)
+
                 # Find all of the edges j that possibly share an edge
                 # with face i
                 node_test = connectivity == nodes[0]
                 for node in nodes[1:]:
-                    node_test |= connectivity == node            
-                    
+                    node_test |= connectivity == node
+
                 possibly_connected_faces = set(np.where(node_test)[0].tolist())
                 possibly_connected_faces.remove(i)
 
@@ -143,19 +143,19 @@ class ConnectivitySubarray(Subarray):
                     else:
                         # TODOUGRID: 3 or more shared nodes
                         pass
-                    
-        elif topology_dimension == 1:            
-            for i, nodes in enumerate(connectivity):                
+
+        elif topology_dimension == 1:
+            for i, nodes in enumerate(connectivity):
                 # Find all of the edges j that share one or two nodes
                 # with face i
                 node_test = connectivity == nodes[0]
                 node_test |= connectivity == nodes[1]
                 connected_edges = set(np.where(node_test)[0].tolist())
-                connected_edges.remove(i)        
+                connected_edges.remove(i)
                 for j in connected_edges:
                     row_ind.append(i)
                     col_ind.append(j)
-                
+
         elif topology_dimension > 2:
             raise ValueError("Can't do volumes!!!!")
 

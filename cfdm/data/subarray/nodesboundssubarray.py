@@ -73,15 +73,11 @@ class NodesBoundsSubarray(Subarray):
                 node_coordinates = None
 
             try:
-                start_index = source._get_component(
-                    "start_index", 0
-                )
+                start_index = source._get_component("start_index", 0)
             except AttributeError:
-                 start_index = 0
+                start_index = 0
 
-        self._set_component(
-            "start_index", start_index, copy=False
-        )
+        self._set_component("start_index", start_index, copy=False)
         if node_coordinates is not None:
             self._set_component(
                 "node_coordinates", node_coordinates, copy=False
@@ -98,7 +94,6 @@ class NodesBoundsSubarray(Subarray):
         .. versionadded:: (cfdm) 1.11.0.0
 
         """
-
         connectivity_indices = self._select_data()
         if np.ma.is_MA(connectivity_indices):
             node_indices = connectivity_indices.compressed()
@@ -108,7 +103,7 @@ class NodesBoundsSubarray(Subarray):
             node_indices = connectivity_indices.flatten()
             u = self._select_nodes(node_indices)
             u = u.reshape(self.shape)
-                    
+
         if indices is Ellipsis:
             return u
 
@@ -116,28 +111,28 @@ class NodesBoundsSubarray(Subarray):
 
     def _select_nodes(self, indices):
         """TODOUGRID Select interpolation parameter values.
-        
+
         TODOUGRID Selects interpolation parameter values for this interpolation
         subarea.
-        
+
         .. versionadded:: (cfdm) 1.11.0.0
-        
+
         .. seealso:: `_select_data`
-        
+
         :Returns:
-        
+
            `numpy.ndarray`
                TODOUGRID The values of the interpolation parameter array that
                correspond to this interpolation subarea.
-        
+
         """
         start_index = self.start_index
         if start_index:
-            indices = indices - stdart_index
-        
-        return self._asanyarray(self.node_coordinates,
-                                indices,
-                                check_mask=False)
+            indices = indices - start_index
+
+        return self._asanyarray(
+            self.node_coordinates, indices, check_mask=False
+        )
 
     @property
     def dtype(self):
@@ -150,7 +145,9 @@ class NodesBoundsSubarray(Subarray):
 
     @property
     def start_index(self):
-        """TODOUGRID Indices of the uncompressed subarray for the compressed data.
+        """The base of the node indices.
+
+        Either ``0`` or ``1``.
 
         .. versionadded:: (cfdm) 1.11.0.0
 
@@ -159,7 +156,7 @@ class NodesBoundsSubarray(Subarray):
 
     @property
     def node_coordinates(self):
-        """TODOUGRIDIndices of the uncompressed subarray for the compressed data.
+        """The coordinates representing the node locations.
 
         .. versionadded:: (cfdm) 1.11.0.0
 

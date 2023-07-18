@@ -4,7 +4,7 @@ from .abstract import Subarray
 
 
 class ConnectedSubarray(Subarray):
-    """ TODOUGRID A subarray of an array compressed by gathering.
+    """TODOUGRID A subarray of an array compressed by gathering.
 
     A subarray describes a unique part of the uncompressed array.
 
@@ -20,8 +20,8 @@ class ConnectedSubarray(Subarray):
         indices=None,
         shape=None,
         compressed_dimensions=None,
-            node_coordinates=None,
-            start_index=None,
+        node_coordinates=None,
+        start_index=None,
         source=None,
         copy=True,
         context_manager=None,
@@ -105,7 +105,7 @@ class ConnectedSubarray(Subarray):
             start_index = 0
 
         self._set_component("start_index", start_index, copy=False)
-        
+
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
 
@@ -123,7 +123,7 @@ class ConnectedSubarray(Subarray):
         start_index = self.start_index
         if start_index:
             connectivity -= start_index
-        
+
         if np.ma.isMA(connectivity):
             # connectivity = connectivity.flatten()
             # mask = np.ma.getmaskarray(connectivity)
@@ -136,11 +136,11 @@ class ConnectedSubarray(Subarray):
             u = coords.reshape(self.shape)
             u = np.ma.array(u, mask=mask)
         else:
-            coords = coords[connectivity.flatten()]            
+            coords = coords[connectivity.flatten()]
             u = coords.reshape(self.shape)
-            
-#        j, i = np.where(~np.ma.getmaskarray(coords))
-#        u[j, i] = coords[np.unique(connectivity[j, i], return_inverse=True)[1]]
+
+        #        j, i = np.where(~np.ma.getmaskarray(coords))
+        #        u[j, i] = coords[np.unique(connectivity[j, i], return_inverse=True)[1]]
 
         if indices is Ellipsis:
             return u
@@ -158,7 +158,7 @@ class ConnectedSubarray(Subarray):
 
     @property
     def node_coordinates(self):
-        """TODOUGRID
+        """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -167,7 +167,7 @@ class ConnectedSubarray(Subarray):
 
     @property
     def start_index(self):
-        """TODOUGRID
+        """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

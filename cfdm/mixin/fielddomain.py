@@ -1,6 +1,8 @@
 import logging
 import re
 
+import numpy as np
+
 from ..decorators import _manage_log_level_via_verbosity
 
 logger = logging.getLogger(__name__)
@@ -2088,14 +2090,35 @@ class FieldDomain:
 
         return False
 
-    def ugrid_components(self, identity, start_index=0, cell_cell_connectivity=False):
+    def has_mesh_topology(self):
+        """Return whether or not the domain contains a mesh topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Returns:
+
+            `bool`
+                True if the domain contains a mesh topology.
+
+        **Examples**
+
+        >>> f = {{package}}.{{class}}()
+        >>> f.has_mesh_topology()
+        False
+
+        """
+        return bool(self.domain_topologies(todict=True))
+
+    def ugrid_components(
+        self, identity, start_index=0, cell_cell_connectivity=False
+    ):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
-            identity: 
+            identity:
                 TODOUGRID
 
             cell_cell_connectivity: `bool`, optional
@@ -2112,7 +2135,6 @@ class FieldDomain:
 
         """
 
-
         # TODOUGIRD: Hmmm
         # https://github.com/ugrid-conventions/ugrid-conventions/issues/65#issuecomment-1522763032 says:
         #
@@ -2127,7 +2149,6 @@ class FieldDomain:
         # you could have multiple nodes that have the same
         # coordinates.
 
-
         domain_axis, axis_key = self.domain_axis(identity, item=True)
         domain_topology = self.domain_topology(filter_by_axis=(axis_key,))
 
@@ -2139,22 +2160,22 @@ class FieldDomain:
         auxs = [aux for aux in auxs.values() if aux.has_bounds()]
         if not auxs:
             return {}
-        
+
         ref_bounds = auxs[0].bounds.array
         ref_bounds_shape = ref_bounds.shape
         ref_bounds_size = ref_bounds.size
         bounds = [np.ma.compressed(ref_bounds)]
-        
+
         n_bounds = bounds[0].size
         masked = ref_bounds.size > n_bounds
         if not masked:
             del ref_bounds
 
         bounds.extend([np.ma.compressed(aux.bounds.array) for aux in auxs[1:]])
-        
+
         if any([b.size != n_bounds for b in bounds]):
-            x = ', '.join([repr(aux) for aux in auxs]))
-            y = ', '.join([str(b.size)for b in bounds])
+            x = ", ".join([repr(aux) for aux in auxs])
+            y = ", ".join([str(b.size) for b in bounds])
             raise ValueError(
                 "Auxiliary coordinates with bounds for mesh topology cells "
                 "must each have the same total number of non-missing bounds: "
@@ -2250,8 +2271,8 @@ class FieldDomain:
             )
 
         # Map the zero-based UGRID node indices to the 2-d shape of a
-        # coordinate bounds array. This is the final UGRID cell_node
-        # connectivity array.
+        # coordinate bounds array. This is the final UGRID
+        # cell_node_connectivity array.
         if masked:
             # The bounds have missing values
             connectivity = np.empty_like(ref_bounds, dtype=index_dtype)
@@ -2267,12 +2288,12 @@ class FieldDomain:
         elif connectivity_type == "edge_node_connectivity":
             long_name = "Map of edges to their vertex nodes"
 
-        properties  ={'long_name': long_name}
-        
+        properties = {"long_name": long_name}
+
         if start_index:
             connectivity += start_index
-            properties['start_index'] = start_index
-            
+            properties["start_index"] = start_index
+
         connectivity = self._Connectivity(
             data=connectivity,
             properties=properties,
@@ -2319,17 +2340,17 @@ class FieldDomain:
                 _, indices = np.where(d)
 
             del d
-                
+
             # Initialise the UGRID connectivity array as missing data
             cell_connectivity = np.ma.masked_all(
                 (n_cells, n_connections.max()), dtype=index_dtype
             )
-            
+
             # Unmask the elements that are to be set to zero-based
             # UGRID cell indices
             for cell, n in zip(cell_connectivity, n_connections):
                 cell[:n] = 0
-    
+
             # Set the unmasked elements to zero-based UGRID cell
             # indices
             np.place(cell_connectivity, ~cell_connectivity.mask, indices)
@@ -2341,11 +2362,11 @@ class FieldDomain:
                 key = "edge_edge_connectivity"
                 long_name = "Neighbour edges for edges"
 
-            properties = {'long_name': long_name}        
+            properties = {"long_name": long_name}
 
             if start_index:
                 cell_connectivity += start_index
-                properties['start_index'] =  start_index
+                properties["start_index"] = start_index
 
             cell_connectivity = self._Connectivity(
                 data=cell_connectivity,

@@ -17,7 +17,13 @@ class ConnectivityArray(CompressedArray):
 
     """
 
-    def __init__(self, compressed_array=None, connectivty_indices=None, source=None, copy=True):
+    def __init__(
+        self,
+        compressed_array=None,
+        connectivty_indices=None,
+        source=None,
+        copy=True,
+    ):
         """**Initialisation**
 
         :Parameters:
@@ -36,7 +42,12 @@ class ConnectivityArray(CompressedArray):
         super().__init__(
             compressed_array=compressed_array,
             shape=compressed_array.shape,
-            compressed_dimensions={0: (0, 1,)},
+            compressed_dimensions={
+                0: (
+                    0,
+                    1,
+                )
+            },
             compression_type="connected",
             start_index=0,
             connectivty_indices=connectivty_indices,
@@ -284,21 +295,21 @@ class ConnectivityArray(CompressedArray):
         # each subarray, the shape of each uncompressed subarray, and
         # the location of each subarray.
         c = shapes[0]
-        n_cells,  n_bounds = self.shape
+        n_cells, n_bounds = self.shape
         locations = [[i for i in range(len(c))], (0,)]
-#        locations = [(0,), (0,)]
+        #        locations = [(0,), (0,)]
         u_shapes = [c, (n_bounds,)]
-#        u_shapes = [(n_cells,), (n_bounds,)]
+        #        u_shapes = [(n_cells,), (n_bounds,)]
 
         c = tuple(accumulate((0,) + c))
         u_indices = [
             [slice(i, j) for i, j in zip(c[:-1], c[1:])],
             (slice(0, n_bounds),),
         ]
-#        u_indices = [(slice(0, n_cells),), (slice(0, n_bounds),),]
-        
+        #        u_indices = [(slice(0, n_cells),), (slice(0, n_bounds),),]
+
         # The indices of the compressed array that correspond to each
-        # subarray    
+        # subarray
         c_indices = [(slice(0, self.data.size),)]
 
         return (

@@ -1487,7 +1487,7 @@ class NetCDFRead(IORead):
             for ncvar, attributes in variable_attributes.items():
                 if "mesh" in attributes or "location_index_set" in attributes:
                     # This data variable has a mesh topology
-                    self._parse_mesh_topology(ncvar, attributes)
+                    self._ugrid_parse_mesh_topology(ncvar, attributes)
 
         if _scan_only:
             return self.read_vars
@@ -7039,43 +7039,43 @@ class NetCDFRead(IORead):
             parameter_dimensions=parameter_dimensions,
         )
 
-#    def _create_connectivity_array(
-#        self,
-#        connectivity_array=None,
-#        uncompressed_shape=None,
-#        start_index=0,
-#        connectivity_type=None,
-#    ):
-#        """TODOUGRID Creates Data for a compressed-by-gathering netCDF
-#        variable.
-#
-#        .. versionadded:: (cfdm) TODOUGRIDVER
-#
-#        :Parameters:
-#
-#            connectivity_array: `NetCDFArray`
-#
-#            uncompressed_shape: sequence of `int`, optional
-#
-#            start_index: `int`, optional
-#
-#            connectivity_type: `str`, optional
-#
-#        :Returns:
-#
-#            `ConnectivityAarray`
-#
-#        """
-#        if compressed_dimension is None:
-#            ndim = connectivity_array.ndim
-#            compressed_dimensions = {ndim: (ndim,)}
-#
-#        return self.implementation.initialise_ConnectivityArray(
-#            compressed_array=connectivity_array,
-#            shape=uncompressed_shape,
-#            compressed_dimensions=compressed_dimensions,
-#            start_index=start_index,
-#        )
+    #    def _create_connectivity_array(
+    #        self,
+    #        connectivity_array=None,
+    #        uncompressed_shape=None,
+    #        start_index=0,
+    #        connectivity_type=None,
+    #    ):
+    #        """TODOUGRID Creates Data for a compressed-by-gathering netCDF
+    #        variable.
+    #
+    #        .. versionadded:: (cfdm) TODOUGRIDVER
+    #
+    #        :Parameters:
+    #
+    #            connectivity_array: `NetCDFArray`
+    #
+    #            uncompressed_shape: sequence of `int`, optional
+    #
+    #            start_index: `int`, optional
+    #
+    #            connectivity_type: `str`, optional
+    #
+    #        :Returns:
+    #
+    #            `ConnectivityAarray`
+    #
+    #        """
+    #        if compressed_dimension is None:
+    #            ndim = connectivity_array.ndim
+    #            compressed_dimensions = {ndim: (ndim,)}
+    #
+    #        return self.implementation.initialise_ConnectivityArray(
+    #            compressed_array=connectivity_array,
+    #            shape=uncompressed_shape,
+    #            compressed_dimensions=compressed_dimensions,
+    #            start_index=start_index,
+    #        )
 
     def _create_Data(
         self,
@@ -8390,7 +8390,7 @@ class NetCDFRead(IORead):
 
         return group, path[-1]
 
-    def _parse_ugrid_mesh_topology(self, parent_ncvar, attributes):
+    def _ugrid_parse_mesh_topology(self, parent_ncvar, attributes):
         """Parse a UGRID mesh topology or location index set variable.
 
         It is assumed that the parent netCDF variable has a ``mesh``
@@ -8620,7 +8620,7 @@ class NetCDFRead(IORead):
 
         # Get the location index set (which may be None)
         index_set = mesh["index_set"]
-        
+
         # Get the netCDF variable names of the node
         # coordinates. E.g. ("Mesh2_node_x", "Mesh2_node_y")
         nodes_ncvar = mesh_attributes.get("node_coordinates")
@@ -8634,7 +8634,9 @@ class NetCDFRead(IORead):
         if coords_ncvar is not None:
             # There are cell coordinates, so turn them into
             # auxiliary coordinate constructs
-            for ncvar, node_ncvar in zip(coords_ncvar.split(), nodes_ncvar.split()):
+            for ncvar, node_ncvar in zip(
+                coords_ncvar.split(), nodes_ncvar.split()
+            ):
                 # Note: We are assuming that the node coordinats are
                 # ordered identically to the [edge|face|volume]
                 # corodinates
@@ -8720,20 +8722,20 @@ class NetCDFRead(IORead):
             attr = "edge_node_connectivity"
         elif location == "volume":
             attr = "volume_node_connectivity"
-            
+
         connectivity_ncvar = mesh["mesh_topology_attributes"][attr]
         connectivity_indices = self._create_data(
             connectivity_ncvar,
             uncompress_override=True,
-            compression_index=True
+            compression_index=True,
         )
         node_coordinates = self._create_data(
-            node_ncvar,
-            uncompress_override=True,
-            compression_index=True
+            node_ncvar, uncompress_override=True, compression_index=True
         )
-        start_index = g["variable_attributes"][connectivity_ncvar].get("start_index", 0)
-        
+        start_index = g["variable_attributes"][connectivity_ncvar].get(
+            "start_index", 0
+        )
+
         bounds = self.implementation.initialise_Bounds()
         properties = g["variable_attributes"][node_ncvar].copy()
         properties.pop("formula_terms", None)
@@ -8753,7 +8755,7 @@ class NetCDFRead(IORead):
             node_coordinates=node_coordinates,
             start_index=start_index,
         )
-            
+
         bounds_data = self._create_Data(
             array,
             ncvar=node_ncvar,
@@ -8807,21 +8809,15 @@ class NetCDFRead(IORead):
             return domain_topology.copy()
 
         attributes = mesh["mesh_topology_attributes"]
-        
+
         if location == "face":
-            #            connectivity_attr = "face_face_connectivity"
-            #            if connectivity_attr not in attributes:
             connectivity_attr = "face_node_connectivity"
-            topology_dimension = 2
         elif location == "edge":
             connectivity_attr = "edge_node_connectivity"
-            topology_dimension = 1
         elif location == "volume":
             connectivity_attr = "volume_node_connectivity"
-            topology_dimension = 3
         elif location == "node":
             connectivity_attr = "???"
-            topology_dimension = 1 # ???
             # TODOUGRID; what? https://github.com/ugrid-conventions/ugrid-conventions/issues/66
 
         connectivity_ncvar = attributes.get(connectivity_attr)
@@ -8849,7 +8845,7 @@ class NetCDFRead(IORead):
             domain_topology, connectivity_ncvar
         )
         self.implementation.set_original_filenames(
-            domain_topology, kwargs["filename"]
+            domain_topology, self.read_vars["filename"]
         )
 
         index_set = mesh["index_set"]

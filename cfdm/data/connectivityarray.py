@@ -1,14 +1,14 @@
-#from itertools import accumulate, product
-#from numbers import Number
+# from itertools import accumulate, product
+# from numbers import Number
 #
-#import numpy as np
+# import numpy as np
 #
-#from ..core.utils import cached_property
-#from .abstract import CompressedArray
-#from .subarray import ConnectivitySubarray
+# from ..core.utils import cached_property
+# from .abstract import CompressedArray
+# from .subarray import ConnectivitySubarray
 #
 #
-#class ConnectivityArray(CompressedArray):
+# class ConnectivityArray(CompressedArray):
 #    """An underlying UGRID connectivity array.
 #
 #    See CF section 5.9 "Mesh Topology Variables".
