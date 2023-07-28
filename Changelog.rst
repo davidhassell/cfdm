@@ -1,9 +1,30 @@
+Version 1.10.1.1
+----------------
+
+**2023-07-21**
+
+* Fix bug that caused very slow reads of datasets with compression by
+  gathering or DSG ragged arrays
+  (https://github.com/NCAS-CMS/cfdm/issues/260)
+* Fix bug that prevented `cfdm.read` from accessing remote files in URL
+  locations (https://github.com/NCAS-CMS/cfdm/issues/262)
+
+----
+
 Version 1.10.1.0
 ----------------
 
-**2023-??-??**
+**2023-04-26**
 
 * New method: `cfdm.Data.get_data`
+* Changes to facilitate CFA-netCDF in cf-python
+  (https://github.com/NCAS-CMS/cfdm/pull/255)
+* `cfdm.read` now always returns unicode strings from netCDF files
+  (https://github.com/NCAS-CMS/cfdm/issues/251)
+* Fix bug in `cf.Data.second_element` for some data shapes
+  (https://github.com/NCAS-CMS/cfdm/issues/249)
+* Fix bug when writing to disk coordinates with a
+  ``computed_standard_name`` (https://github.com/NCAS-CMS/cfdm/pull/254)
 
 ----
 

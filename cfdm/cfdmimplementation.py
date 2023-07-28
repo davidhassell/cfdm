@@ -3155,6 +3155,7 @@ class CFDMImplementation(Implementation):
             filenames = ()
         else:
             filenames = (filename,)
+
         try:
             data = parent.get_data(None)
         except AttributeError:

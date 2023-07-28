@@ -323,7 +323,7 @@ class NetCDFWrite(IOWrite):
         array.resize(original_shape + (array.size // original_size,))
 
         if masked:
-            array = numpy.ma.masked_where(array == "", array)
+            array = numpy.ma.masked_where(array == b"", array)
             array.set_fill_value(fill_value)
 
         if array.dtype.kind != "S":
@@ -2611,7 +2611,7 @@ class NetCDFWrite(IOWrite):
             domain_axes: `None`, or `tuple` of `str`
                 The domain axis construct identifiers for *cfvar*.
 
-                .. versionadded:: TODOCFAVER
+                .. versionadded:: 1.10.1.0
 
             omit: sequence of `str`, optional
 
@@ -2626,7 +2626,7 @@ class NetCDFWrite(IOWrite):
                 The construct type, or its parent if it is not a
                 construct.
 
-                .. versionadded:: (cfdm) TODOCFAVER
+                .. versionadded:: (cfdm) 1.10.1.0
 
         :Returns:
 
@@ -2855,12 +2855,12 @@ class NetCDFWrite(IOWrite):
                 The construct type of the *cfvar*, or its parent if
                 *cfvar* is not a construct.
 
-                .. versionadded:: TODOCFAVER
+                .. versionadded:: 1.10.1.0
 
             domain_axes: `None`, or `tuple` of `str`
                 The domain axis construct identifiers for *cfvar*.
 
-                .. versionadded:: TODOCFAVER
+                .. versionadded:: 1.10.1.0
 
             kwargs: `dict`
 
@@ -2944,7 +2944,7 @@ class NetCDFWrite(IOWrite):
             domain_axes: `None`, or `tuple` of `str`
                 The domain axis construct identidifiers for *cfvar*.
 
-                .. versionadded:: TODOCFAVER
+                .. versionadded:: 1.10.1.0
 
             unset_values: sequence of numbers
 
@@ -2956,7 +2956,7 @@ class NetCDFWrite(IOWrite):
                 The construct type of the *cfvar*, or its parent if
                 *cfvar* is not a construct.
 
-                .. versionadded:: (cfdm) TODOCFAVER
+                .. versionadded:: (cfdm) 1.10.1.0
 
         :Returns:
 
@@ -5277,7 +5277,7 @@ class NetCDFWrite(IOWrite):
         This method is primarily aimed at providing a customisation
         entry point for subclasses.
 
-        .. versionadded:: (cfdm) TODOCFAVER
+        .. versionadded:: (cfdm) 1.10.1.0
 
         """
         pass
