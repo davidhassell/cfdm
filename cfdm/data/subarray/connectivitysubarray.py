@@ -93,8 +93,8 @@ class ConnectivitySubarray(Subarray):
         row_ind = []
         col_ind = []
 
-        topology_dimension = self.get_topology_dimension()
-        if topology_dimension == 2:
+        cell_dimension = self.get_cell_dimension()
+        if cell_dimension == 2:
             # Number of nodes per face, minus 1
             n_face_nodes_minus_1 = np.ma.count(connectivity, axis=1) - 1
 
@@ -144,7 +144,7 @@ class ConnectivitySubarray(Subarray):
                         # TODOUGRID: 3 or more shared nodes
                         pass
                     
-        elif topology_dimension == 1:            
+        elif cell_dimension == 1:            
             for i, nodes in enumerate(connectivity):                
                 # Find all of the edges j that share one or two nodes
                 # with face i
@@ -156,7 +156,7 @@ class ConnectivitySubarray(Subarray):
                     row_ind.append(i)
                     col_ind.append(j)
                 
-        elif topology_dimension > 2:
+        elif cell_dimension > 2:
             raise ValueError("Can't do volumes!!!!")
 
         # Create a upper diagonal sparse array, and then symmetrically

@@ -8580,7 +8580,7 @@ class NetCDFRead(IORead):
 
         return ncdimensions[0]
 
-    def _create_ugrid_auxiliary_coordinates(
+    def _ugrid_create_auxiliary_coordinates(
         self, parent_ncvar, f, mesh, location
     ):
         """TODOUGRID.
@@ -8635,10 +8635,10 @@ class NetCDFRead(IORead):
                 if location != "node" and not self.implementation.has_bounds(
                     aux
                 ):
-                    # This [edge|face]_coordinate variable does not
-                    # have bounds, so derive them from the mesh node
-                    # coordinates.
-                    aux = self._create_bounds_from_mesh_nodes(
+                    # This [edge|face|volume]_coordinate variable does
+                    # not have bounds, so derive them from the mesh
+                    # node coordinates.
+                    aux = self._ugrid_create_bounds_from_mesh_nodes(
                         parent_ncvar,
                         nodes_ncvar,
                         f,
@@ -8658,7 +8658,7 @@ class NetCDFRead(IORead):
             # [edge|face]_node_connectivity variable. These will only
             # contain bounds, with no coordinate values.
             for ncvar in nodes_ncvar.split():
-                aux = self._create_bounds_from_mesh_nodes(
+                aux = self._ugrid_create_bounds_from_mesh_nodes(
                     parent_ncvar, ncvar, f, mesh, location
                 )
                 if index_set is not None:
@@ -8670,11 +8670,10 @@ class NetCDFRead(IORead):
         mesh["auxiliary_coordinates"][location] = auxs
         return auxs
 
-    def _create_bounds_from_mesh_nodes(
+    def _ugrid_create_bounds_from_mesh_nodes(
         self, parent_ncvar, node_ncvar, f, mesh, location, aux=None
     ):
-        """Create auxiliary coordinate bounds from UGRID node
-        coordinates.
+        """Create coordinate bounds from UGRID nodes.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -8694,7 +8693,7 @@ class NetCDFRead(IORead):
 
             location: `str`
                 The location of the cells in the mesh topology. One of
-                ``'face'``, ``'edge'`` or ``'node'``.
+                ``'volume'``, ``'face'``, ``'edge'`` or ``'node'``.
 
             aux: `AuxiliaryCoordinate`, optional
                 TODOUGRID
@@ -8702,6 +8701,7 @@ class NetCDFRead(IORead):
         :Returns:
 
             `AuxiliaryCoordinate`
+                TODOUGRID
 
         """
         g = self.read_vars
