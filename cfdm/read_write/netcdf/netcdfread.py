@@ -1485,9 +1485,19 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         if g["CF>=1.11"]:
             for ncvar, attributes in variable_attributes.items():
-                if "mesh" in attributes or "location_index_set" in attributes:
-                    # This data variable has a mesh topology
+                if "topology_dimension" in attributes:
+                    # This variable is a mesh topology
                     self._ugrid_parse_mesh_topology(ncvar, attributes)
+
+                    HMMM - should we only parse mesh's from data daomain variable's, for now?
+                    
+            for ncvar, attributes in variable_attributes.items():
+                if "mesh" in attributes or "location_index_set" in attributes:
+                    # This data variable has a domain defined by a
+                    # mesh topology or location_index_set
+                    self._ugrid_parse_parse_data_variable_mesh(
+                        ncvar, attributes
+                    )
 
         if _scan_only:
             return self.read_vars
@@ -1522,21 +1532,16 @@ class NetCDFRead(IORead):
             )  # pragma: no cover
 
         all_fields_or_domains = {}
+        domain = g["domain"]
         for ncvar in g["variables"]:
             if ncvar in g["do_not_create_field"]:
                 continue
 
             field_or_domain = self._create_field_or_domain(
-                ncvar, domain=g["domain"]
+                ncvar, domain=domain
             )
             if field_or_domain is not None:
                 all_fields_or_domains[ncvar] = field_or_domain
-
-        #        if g["create_domains_from_mesh"]:
-        #            for ncvar in g["create_domains_from_mesh"]:
-        #                domains = self._create_domains_from_mesh(ncvar)
-        #                for key, d in domains.items():
-        #                    all_fields_or_domains[key] = d
 
         # ------------------------------------------------------------
         # Check for unreferenced external variables (CF>=1.7)
@@ -5965,6 +5970,21 @@ class NetCDFRead(IORead):
 
                 elif (
                     parent_ncvar is not None
+                    and f"node_connectivity {parent_ncvar} {ncvar}" in c
+                ):
+                    # ------------------------------------------------
+                    # TODOUGRID .... array
+                    # ------------------------------------------------
+                    c = c[f"node_connectivity {parent_ncvar} {ncvar}"]
+                    array = self._create_cell_connectivity_array(
+                        ragged_indexed_array=self._create_Data(
+                            array, ncvar=ncvar
+                        ),
+                        uncompressed_shape=uncompressed_shape,
+                    )
+
+                elif (
+                    parent_ncvar is not None
                     and f"subsampled {parent_ncvar} {ncvar}" in c
                 ):
                     # ------------------------------------------------
@@ -6826,6 +6846,14 @@ class NetCDFRead(IORead):
                     ncdimensions[i : i + 1] = c["ragged_indexed"][
                         "implied_ncdimensions"
                     ]
+                    break
+                elif (
+                    parent_ncvar is not None
+                    and f"node_connectivity {parent_ncvar} {ncvar}" in c
+                ):
+                    c = c[f"node_connectivity {parent_ncvar} {ncvar}"]
+                    ncdim = ncdimensions[i]
+                    ncdimensions[i : i + 1] = (ncdim, ncdim)
                     break
                 elif (
                     parent_ncvar is not None
@@ -8390,7 +8418,7 @@ class NetCDFRead(IORead):
 
         return group, path[-1]
 
-    def _ugrid_parse_mesh_topology(self, parent_ncvar, attributes):
+    def _ugrid_parse_mesh_topology(self, mesh_ncvar, attributes):
         """Parse a UGRID mesh topology or location index set variable.
 
         It is assumed that the parent netCDF variable has a ``mesh``
@@ -8401,6 +8429,106 @@ class NetCDFRead(IORead):
         needed to create a domain from the mesh topology variable.
 
         Add mesh topology related variables to
+        ``self.read_vars["do_not_create_field"]``.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            mesh_ncvar: `str`, optional
+                TODOUGRID The netCDF name of a field or domain variable that
+                might have a UGRID domain.
+
+            attributes: `dict`
+                The netCDF attributes of *ncvar*.
+
+        :Returns:
+
+            `None`
+
+
+        0
+
+        """
+        g = self.read_vars
+
+        cf_compliant = cf_compliant & self._check_mesh_topology(
+            parent_ncvar, mesh_ncvar
+        )
+        if not cf_compliant:
+            return
+        
+        # Do not attempt to create a field or domain construct from a
+        # mesh topology variable, nor mesh topology connectivity
+        # variables.
+        #
+        # TODOUGRID: Should "<*>_coordinates" attributes be included
+        #            here?
+        do_not_create_field = g["do_not_create_field"]
+        do_not_create_field.add(mesh_ncvar)
+        for attr, value in attributes.items():
+            if attr in (
+                    "face_node_connectivity",
+                    "face_face_connectivity",
+                    "face_edge_connectivity",
+                    "edge_node_connectivity",
+                    "edge_face_connectivity",
+                    "volume_node_connectivity",
+                    "volume_edge_connectivity",
+                    "volume_face_connectivity",
+                    "volume_volume_connectivity",
+            ):
+                do_not_create_field.add(value)
+
+        node_coordinates_ncvar = mesh["attributes"]["node_coordinates"]
+        node_coordinates_ncvar = node_coordinates_ncvar.split()[0]
+        ncdimensions = self.read_vars["variable_dimensions"].get(ncvar)        
+        if ncdimensions is None:
+            # TODOUGRID: Add compliance message
+            return
+
+        ncdim = ncdimensions[0]
+        
+        g["mesh_topology"][ncvar] = {
+            # The netCDF name of the mesh topology variable
+            "mesh_ncvar": ncvar,
+            # The netCDF name of the location index set variable
+            # (which will be None if there isn't one)
+            "location_index_set_ncvar": None,
+            # The attributes of the netCDF mesh topology variable
+            "mesh_topology_attributes": attributes,
+            # The attributes of the location index set variable
+            # (which will be None if there is no location index set)
+            "location_index_set_attributes": None,
+            # The location of the location index set (which will be
+            # None if there is no location index set)
+            "location": None,
+            # The indices of the location index set (which will be
+            # None if there is no location index set)
+            "index_set": None,
+            # Domain topology constructs for each location
+            "domain_topology": {},
+            # Auxiliary coordinate constructs for each location
+            "auxiliary_coordinates": {},
+            # TODOUGRID
+            "ncdim": ncdim,
+        }
+        
+        g["compression"].setdefault(ncdim, {})[
+            f"node_connectivity {ncvar}"
+        ] = 
+
+    def _ugrid_parse_data_variable_mesh(self, parent_ncvar, attributes):
+        """TODOUGRID Parse a UGRID mesh topology or location index set variable.
+
+        It is assumed that the parent netCDF variable has either a
+        ``mesh`` or ``location_index_set`` attribute that defines the
+        mesh topology.
+
+        If a location_index_set is present then a new entry in
+        ``self.read_vars['mesh_topology']`` is created.
+
+        Adds a location_index_set variable to
         ``self.read_vars["do_not_create_field"]``.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -8418,10 +8546,10 @@ class NetCDFRead(IORead):
 
             `None`
 
+        1111111
+
         """
         g = self.read_vars
-
-        cf_compliant = True
 
         mesh_ncvar = attributes.get("mesh")
         location_index_set_ncvar = attributes.get("location_index_set")
@@ -8433,9 +8561,17 @@ class NetCDFRead(IORead):
             )
             return
 
-        if mesh_ncvar in g["mesh_topology"]:
-            # This location index set has already been parsed
-            self._include_component_report(parent_ncvar, mesh_ncvar)
+        if mesh_ncvar is not None:
+            if mesh_ncvar in g["mesh_topology"]:
+                self._include_component_report(parent_ncvar, mesh_ncvar)
+                return
+
+            self._add_message(
+                parent_ncvar,
+                parent_ncvar,
+                ("Mesh topology variable", "does not exist"),
+                attribute='mesh',
+            )
             return
 
         if location_index_set_ncvar in g["mesh_topology"]:
@@ -8445,91 +8581,52 @@ class NetCDFRead(IORead):
             )
             return
 
-        ncvar = None
-        mesh_topology_attributes = None
-        if mesh_ncvar is not None:
-            ncvar = mesh_ncvar
-            cf_compliant = cf_compliant & self._check_mesh_topology(
-                parent_ncvar, mesh_ncvar
+        # Parse the location index set has already been parsed
+        cf_compliant = self._check_location_index_set(
+            parent_ncvar,
+            location_index_set_ncvar,
+        )
+        if not cf_compliant:
+            self._include_component_report(
+                parent_ncvar, location_index_set_ncvar
             )
-            if cf_compliant:
-                mesh_topology_attributes = g["variable_attributes"][mesh_ncvar]
-                location_index_set_attributes = None
-                location = None
-                index_set = None
-        elif location_index_set_ncvar is not None:
-            ncvar = location_index_set_ncvar
-            cf_compliant = cf_compliant & self._check_location_index_set(
-                parent_ncvar,
-                ncvar,
-            )
-            if cf_compliant:
-                location = attributes["location"]
-                location_index_set_attributes = g["variable_attributes"][
-                    location_index_set_ncvar
-                ]
-                mesh_ncvar = location_index_set_attributes["mesh"]
-                mesh_topology_attributes = g["variable_attributes"][mesh_ncvar]
-                index_set = self._create_data(location_index_set_ncvar)
-                start_index = attributes.get("start_index", 0)
-                if start_index:
-                    index_set -= start_index
-
+            return
+        
+        location = attributes["location"]
+        location_index_set_attributes = g["variable_attributes"][
+            location_index_set_ncvar
+        ]
+        mesh_ncvar = location_index_set_attributes["mesh"]
+        mesh_topology_attributes = g["variable_attributes"][mesh_ncvar]
+        index_set = self._create_data(location_index_set_ncvar)
+        start_index = attributes.get("start_index", 0)
+        if start_index:
+            index_set -= start_index
+            
         # Do not attempt to create a field or domain construct from a
         # mesh topology variable or location index set variable
-        do_not_create_field = g["do_not_create_field"]
-        if ncvar is not None:
-            do_not_create_field.add(ncvar)
-
-        if location_index_set_ncvar is not None and mesh_ncvar is not None:
-            do_not_create_field.add(mesh_ncvar)
-
-        # Do not attempt to create a field or domain construct from
-        # mesh topology connectivity variables.
-        if mesh_topology_attributes:
-            for attr in (
-                "edge_node_connectivity",
-                "edge_face_connectivity",
-                "face_node_connectivity",
-                "face_edge_connectivity",
-                "face_face_connectivity",
-                "volume_node_connectivity",
-                "volume_edge_connectivity",
-                "volume_face_connectivity",
-                "volume_volume_connectivity",
-                "boundary_node_connectivity",
-            ):
-                connectivity_ncvar = mesh_topology_attributes.get(attr)
-                if connectivity_ncvar is not None:
-                    do_not_create_field.add(connectivity_ncvar)
-
-        if not cf_compliant:
-            return
-
-        g["mesh_topology"][ncvar] = {
+        g["do_not_create_field"].add(location_index_set_ncvar)
+                
+        g["mesh_topology"][location_index_set_ncvar] = {
             # The netCDF name of the mesh topology variable
             "mesh_ncvar": mesh_ncvar,
             # The netCDF name of the location index set variable
-            # (which will be None if there isn't one)
             "location_index_set_ncvar": location_index_set_ncvar,
             # The attributes of the netCDF mesh topology variable
             "mesh_topology_attributes": mesh_topology_attributes,
             # The attributes of the location index set variable
-            # (which will be None if there is no location index set)
             "location_index_set_attributes": location_index_set_attributes,
-            # The location of the location index set (which will be
-            # None if there is no location index set)
+            # The location of the location index set
             "location": location,
-            # The indices of the location index set (which will be
-            # None if there is no location index set)
+            # The indices of the location index set
             "index_set": index_set,
             # Domain topology constructs for each location
             "domain_topology": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
         }
-
-    def _get_ugrid_dimension(self, parent_ncvar, f, mesh, location):
+        
+    def _get_ugrid_dimension(self, parent_ncvar, f, mesh): #, location):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -8545,9 +8642,9 @@ class NetCDFRead(IORead):
             mesh: `dict`
                TODOUGRID
 
-            location: `str`
-                The location of the cells in the mesh topology. One of
-                ``'face'``, ``'edge'`` or ``'node'``.
+            #location: `str`
+            #    The location of the cells in the mesh topology. One of
+            #    ``'face'``, ``'edge'`` or ``'node'``.
 
         :Returns:
 
@@ -8558,21 +8655,25 @@ class NetCDFRead(IORead):
         ncvar = mesh.get("location_index_set_ncvar")
         if ncvar is None:
             # The mesh is not a location index set
-            if location == "node":
-                ncvar = mesh["attributes"].get("node_coordinates")
-                if ncvar is None:
-                    # TODOUGRID: Add compliance message
-                    return
-
-                ncvar = ncvar.split()[0]
-            elif location is not None:
-                ncvar = mesh["attributes"].get(f"{location}_node_connectivity")
-                if ncvar is None:
-                    # TODOUGRID: Add compliance message
-                    return
-            else:
-                # TODOUGRID: Add compliance message
-                return
+            ncvar = mesh["attributes"]["node_coordinates"]
+            ncvar = ncvar.split()[0]
+            
+            ## The mesh is not a location index set
+            #if location == "node":
+            #    ncvar = mesh["attributes"].get("node_coordinates")
+            #    if ncvar is None:
+            #        # TODOUGRID: Add compliance message
+            #        return
+            #
+            #    ncvar = ncvar.split()[0]
+            #elif location is not None:
+            #    ncvar = mesh["attributes"].get(f"{location}_node_connectivity")
+            #    if ncvar is None:
+            #        # TODOUGRID: Add compliance message
+            #        return
+            #else:
+            #    # TODOUGRID: Add compliance message
+            #    return
 
         ncdimensions = self.read_vars["variable_dimensions"].get(ncvar)
         if ncdimensions is None:
@@ -8810,16 +8911,20 @@ class NetCDFRead(IORead):
 
         attributes = mesh["mesh_topology_attributes"]
 
-        if location == "face":
-            connectivity_attr = "face_node_connectivity"
-        elif location == "edge":
-            connectivity_attr = "edge_node_connectivity"
-        elif location == "volume":
-            connectivity_attr = "volume_node_connectivity"
-        elif location == "node":
-            connectivity_attr = "???"
-            # TODOUGRID; what? https://github.com/ugrid-conventions/ugrid-conventions/issues/66
-
+        if location == "node":
+            bounds_connectivity_attr = None
+            cell_connectivity_attr = "edge_node_connectivity"
+            connectivity_attr = cell_connectivity_attr
+        else:
+            if location == "face":
+                bounds_connectivity_attr = "face_node_connectivity"
+            elif location == "edge":
+                bounds_connectivity_attr = "edge_node_connectivity"
+            elif location == "volume":
+                bounds_connectivity_attr = "volume_node_connectivity"
+                
+            connectivity_attr = bounds_connectivity_attr
+        
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._check_ugrid_connectivity_variable(
             parent_ncvar,
@@ -8829,17 +8934,39 @@ class NetCDFRead(IORead):
         ):
             return
 
-        # Initialise the domain topology variable
-        domain_topology = self.implementation.initialise_DomainTopology()
-
-        # Set the CF properties
+        # CF properties
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
-        self.implementation.set_properties(domain_topology, properties)
+       
+        # Connectivity data
+        if bounds_connnecivity_attr:
+            bounds_connnecivity = self._create_data(
+                connectivity_ncvar, uncompress_override=True,
+                compression_index=True
+            )
+            cell_connectvity = None
+        else:
+            bounds_connnecivity = None
+            indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+            cell_connectivity = self.implementation.initialise_EdgeNodeConnectivityArray(
+                compressed_array=indices
+            )
+            cell_connnecivity = self._create_data(
+                connectivity_ncvar, uncompress_override=True,
+                compression_index=True
+            )
+            cell_connectvity = self._ugrid_create_cell_connectivity_data(
+                connectivity_ncvar, uncompress_override=True,
+                compression_index=True
+            )
 
-        # Create and set the data
-        data = self._create_data(connectivity_ncvar, uncompress_override=True)
-        self.implementation.set_data(domain_topology, data, copy=False)
-
+        # Initialise the domain topology variable
+        domain_topology = self.implementation.initialise_DomainTopology(
+            properties=properties,
+            bounds_connectivity = bounds_connectivity,
+            cell_connectivity = cell_connectivity,
+            copy=False,
+        )
+        
         # Set the netCDF variable name and the original file names
         self.implementation.nc_set_variable(
             domain_topology, connectivity_ncvar
@@ -8856,129 +8983,103 @@ class NetCDFRead(IORead):
         mesh["domain_topology"][location] = domain_topology
         return domain_topology
 
-    # if topology_dimension == 1:
-    #    connectivity = mesh_attrs.get("edge_node_connectivity")
-    #    if location == "node":
-    #        pass
-    #    elif location == "edge":
-    #        pass
-    # elif topology_dimension == 2:
-    #    if location == "node":
-    #        connectivity = mesh_attrs.get("edge_node_connectivity")
-    #        pass
-    #    elif location == "edge":
-    #        connectivity = mesh_attrs.get("edge_node_connectivity")
-    #    elif location == "face":
-    #        connectivity = mesh_attrs.get("face_face_connectivity")
-    # else:
-    #    # TODOUGRID: Message about unsupported
-    #    #            topology_dimension
-    #    pass
-
-    #    def  self._create_connectivityarray(self, indces)
-    #        """TODOUGRID.
-    #
-    #        See http://ugrid-conventions.github.io/ugrid-conventions for
-    #        details.
-    #
-    #        .. versionadded:: (cfdm) TODOUGRIDVER
-    #
-    #        :Parameters:
-    #
-    #            connectivity_ncvar: `str`
-    #                The netCDF variable name of the UGRID connectiviety
-    #                variable.
-    #
-    #            start_index: `int`
-    #                Specify whether the UGRID indexing is 0- or 1-based
-    #                indexing.
-    #
-    #        :Returns:
-    #
-    #            `Data`
-    #                TODOUGRID
-    #
-    #        **Examples**
-    #
-    #        >>> print(indices.array)
-    #        [[1  2  3]
-    #         [0 -- --]
-    #         [0  4 --]
-    #         [0 -- --]
-    #         [2 -- --]]
-    #        >>> indices.shape
-    #        (5, 3)
-    #        >>> c = r._create_connectivity_data(indices, 0)
-    #        >>> print(c.array)
-    #        [[False  True  True  True False]
-    #         [ True False False False False]
-    #         [ True False False False  True]
-    #         [ True False False False False]
-    #         [False False  True False False]]
-    #        >>> c.shape
-    #        (5, 5)
-    #
-    #        # In [49]: start_index = 1
-    #        #
-    #        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
-    #        #
-    #        # In [51]: iptr = np.array([0,3,6,8,10])
-    #        #
-    #        # In [52]: data = np.ones ((i.size,), bool)
-    #        #
-    #        # In [53]: a = csr_array((data, i, iptr))
-    #        #
-    #        # In [54]: a
-    #        # Out[54]:
-    #        # <4x4 sparse array of type '<class 'numpy.bool_'>'
-    #        #    with 10 stored elements in Compressed Sparse Row format>
-    #
-    #        """
-    #        connectivity = self.implementation.initialise_ConnectivityArray(
-    #            compressed_array=indices
-    #        )
-    #
-    #
-    #
-    #        """Return a bounds component.
-    #
-    #        from scipy.sparse import csr_array
-    #
-    #        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-    #        array = self._create_connectivityarray(indces)
-    #
-    #
-    #
-    #        indices = indices.array
-    #
-    #        shape = indices.shape
-    #
-    #        if np.ma.is_masked(indices):
-    #            pointers = shape[1] - np.ma.getmaskarray(indices).sum(axis=1)
-    #            pointers = np.insert(pointers, 0, 0)
-    #            indices = indices.compressed()
-    #        else:
-    #            pointers = np.full((shape[0] + 1,), shape[1])
-    #            pointers[0] = 0
-    #            indices = indices.flatten()
-    #
-    #        pointers = np.cumsum(pointers, out=pointers)
-    #
-    #        if start_index:
-    #            indices -= start_index
-    #
-    #        ones = np.ones((indices.size,), bool)
-    #
-    #        c = csr_array((ones, indices, pointers))
-    #
-    #        data = self._create_Data(
-    #            c,
-    #            units=kwargs["units"],
-    #            calendar=kwargs["calendar"],
-    #            ncvar=connectivity_ncvar,
-    #        )
-    #
-    #        return data
+    def  self._ugrid_create_connectivityarray(self, indces)
+        """TODOUGRID.
+    
+        See http://ugrid-conventions.github.io/ugrid-conventions for
+        details.
+    
+        .. versionadded:: (cfdm) TODOUGRIDVER
+    
+        :Parameters:
+    
+            connectivity_ncvar: `str`
+                The netCDF variable name of the UGRID connectiviety
+                variable.
+    
+            start_index: `int`
+                Specify whether the UGRID indexing is 0- or 1-based
+                indexing.
+    
+        :Returns:
+    
+            `Data`
+                TODOUGRID
+    
+        **Examples**
+    
+        >>> print(indices.array)
+        [[1  2  3]
+         [0 -- --]
+         [0  4 --]
+         [0 -- --]
+         [2 -- --]]
+        >>> indices.shape
+        (5, 3)
+        >>> c = r._create_connectivity_data(indices, 0)
+        >>> print(c.array)
+        [[False  True  True  True False]
+         [ True False False False False]
+         [ True False False False  True]
+         [ True False False False False]
+         [False False  True False False]]
+        >>> c.shape
+        (5, 5)
+    
+        # In [49]: start_index = 1
+        #
+        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
+        #
+        # In [51]: iptr = np.array([0,3,6,8,10])
+        #
+        # In [52]: data = np.ones ((i.size,), bool)
+        #
+        # In [53]: a = csr_array((data, i, iptr))
+        #
+        # In [54]: a
+        # Out[54]:
+        # <4x4 sparse array of type '<class 'numpy.bool_'>'
+        #    with 10 stored elements in Compressed Sparse Row format>
+    
+        """    
+        from scipy.sparse import csr_array
+    
+        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+#        array = self._create_connectivityarray(indces)
+    
+        cell_connectivity = self.implementation.initialise_EdgeNodeConnectivityArray(
+            compressed_array=indices
+        )
+         
+#        indices = indices.array
+#        shape = indices.shape
+#    
+#        if np.ma.is_masked(indices):
+#            pointers = shape[1] - np.ma.getmaskarray(indices).sum(axis=1)
+#            pointers = np.insert(pointers, 0, 0)
+#            indices = indices.compressed()
+#        else:
+#            pointers = np.full((shape[0] + 1,), shape[1])
+#            pointers[0] = 0
+#            indices = indices.flatten()
+#    
+#        pointers = np.cumsum(pointers, out=pointers)
+#    
+#        if start_index:
+#            indices -= start_index
+#    
+#        ones = np.ones((indices.size,), bool)
+#    
+#        c = csr_array((ones, indices, pointers))
+#    
+#        data = self._create_Data(
+#            c,
+#            units=kwargs["units"],
+#            calendar=kwargs["calendar"],
+#            ncvar=connectivity_ncvar,
+#        )
+#    
+#        return data
 
     def _check_mesh_topology(
         self,

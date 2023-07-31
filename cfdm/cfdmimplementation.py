@@ -12,6 +12,7 @@ from . import (
     Domain,
     DomainAncillary,
     DomainAxis,
+    DomainTopology,
     Field,
     FieldAncillary,
     Index,
@@ -1990,6 +1991,27 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("DomainAxis")
         return cls(size=size)
 
+    def initialise_DomainTopology(self, **kwargs):
+        """Return a domain topology construct.
+
+        .. versionadded:: TODOUGRIDVER
+        
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the domain topology
+                construct, which are passed to
+                `DomainTopology.__init__`.
+
+        :Returns:
+
+            `DomainTopology`
+                The Domain topology construct.
+
+        """
+        cls = self.get_class("DomainTopology")
+        return cls(**kwargs)
+
     def initialise_Field(self):
         """Return a field qconstruct.
 
@@ -3470,6 +3492,7 @@ _implementation = CFDMImplementation(
     Domain=Domain,
     DomainAncillary=DomainAncillary,
     DomainAxis=DomainAxis,
+    DomainAxis=DomainToplogy,
     Field=Field,
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,
@@ -3518,6 +3541,7 @@ def implementation():
      'DimensionCoordinate': <class 'cfdm.dimensioncoordinate.DimensionCoordinate'>,
      'DomainAncillary': <class 'cfdm.domainancillary.DomainAncillary'>,
      'DomainAxis': <class 'cfdm.domainaxis.DomainAxis'>,
+     'DomainTopology': <class 'cfdm.domaintoplogy.DomainToplogy'>,
      'Field': <class 'cfdm.field.Field'>,
      'FieldAncillary': <class 'cfdm.fieldancillary.FieldAncillary'>,
      'Bounds': <class 'cfdm.bounds.Bounds'>,

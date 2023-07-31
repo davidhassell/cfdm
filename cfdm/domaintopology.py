@@ -127,7 +127,7 @@ class DomainTopology(
         )
 
     @_inplace_enabled(default=False)
-    def normalise(self, inplace=False):
+    def normalise_bounds_connectivity(self, start_index=0, inplace=False):
         """TODOUGRID
         
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -137,11 +137,18 @@ class DomainTopology(
             TODOUGRID
 
         """
+        if self.get_connectivity_type(None) != 'bounds':
+            raise ValueError("TODOUGRID")
+        
         d = _inplace_enabled_define_and_cleanup(self)
 
         data = d.array
         n, b = np.where(~np.ma.getmaskarray(data))
         data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
+
+        if start_index:
+            data += start_index
+            
         d.set_data(data)
 
         return d
