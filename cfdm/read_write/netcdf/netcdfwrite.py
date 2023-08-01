@@ -5281,3 +5281,50 @@ class NetCDFWrite(IOWrite):
 
         """
         pass
+
+    def _ugrid_write_node_coordinates_from_bounds(
+            self, bounds, ncdim, n_nodes, indices,
+            node_coordinates
+    ):
+        """TODOUGRID
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            n_nodes: `int`
+                 n_nodes     = int(indices.max()) + 1
+
+            indices:
+                np.ma.compressed(domain_topology.array)
+
+            bounds:
+
+        :Returns:
+        
+            `list`                
+
+        """
+        nodes = np.empty((n_nodes,), dtype=bounds.dtype)
+        nodes[indices] = np.ma.compressed(bounds.array)[indices]
+        nodes = Data(nodes)
+
+        if self._already_in_file(nodes, ncdim):
+            ncvar = g["seen"][id(nodes)]["ncvar"]
+        else:
+            ncvar = self._netcdf_name(
+                bounds.nc_get_node_coordinates_variable(
+                    default=f"node_{bounds.identity('')}"
+                )
+            )
+            
+            self._write_netcdf_variable(
+                ncvar,
+                ncdim,
+                nodes,
+                domain_axes,
+                extra=bounds.properties()
+            )
+
+        node_coordinates.append(ncvar)
+        return ncvar

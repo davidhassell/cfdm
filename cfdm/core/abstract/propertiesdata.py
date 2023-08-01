@@ -281,7 +281,6 @@ class PropertiesData(Properties):
 
         """
         data = self._get_component("data", None)
-
         if data is None:
             if default is None:
                 return

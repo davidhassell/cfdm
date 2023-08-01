@@ -45,6 +45,7 @@ class Field(mixin.FieldDomain, abstract.PropertiesData):
         "dimension_coordinate": "dimensioncoordinate",
         "domain_ancillary": "domainancillary",
         "domain_axis": "domainaxis",
+        "domain_topology": "domaintopology",
         "field_ancillary": "fieldancillary",
     }
 

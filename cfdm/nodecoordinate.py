@@ -1,7 +1,7 @@
 from . import core, mixin
 
 
-class Connectivity(
+class NodeCoordinate(
     mixin.NetCDFVariable,
     mixin.PropertiesData,
     mixin.Files,
@@ -40,7 +40,7 @@ class Connectivity(
             {{init properties: `dict`, optional}}
 
                 *Parameter example:*
-                  ``properties={'long_name': 'Neighbour faces for faces'}``
+                  ``properties={'long_name': 'Latitude of 2-d mesh nodes'}``
 
             {{init data: data_like, optional}}
 
@@ -91,7 +91,7 @@ class Connectivity(
 
         """
         if _create_title and _title is None:
-            _title = "Connectivity: " + self.identity(default="")
+            _title = "NodeCoordinate: " + self.identity(default="")
 
         return super().dump(
             display=display,

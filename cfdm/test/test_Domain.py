@@ -199,6 +199,13 @@ class DomainTest(unittest.TestCase):
             ),
         )
 
+    def test_Domain_has_mesh_topology(self):
+        """Test Domain.has_mesh_topology."""
+        d = cfdm.Domain()
+        self.assertFalse(d.has_mesh_topology())
+
+        # TODOUGRID: test case d.has_mesh_topology() == True
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
