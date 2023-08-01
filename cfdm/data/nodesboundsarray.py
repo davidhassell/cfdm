@@ -7,7 +7,7 @@ from .abstract import CompressedArray
 from .subarray import NodesBoundsSubarray
 
 
-class NodesBoundsArray(CompressedArray):
+class NodeBoundsArray(CompressedArray):
     """TODOUGRID An underlying gathered array.
 
     Compression by gathering combines axes of a multidimensional array
@@ -19,14 +19,14 @@ class NodesBoundsArray(CompressedArray):
 
     See CF section 8.2 "Lossless Compression by Gathering".
 
-    .. versionadded:: (cfdm) 1.11.0.0
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
     def __new__(cls, *args, **kwargs):
         """Store subarray classes.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         instance = super().__new__(cls)
@@ -102,7 +102,7 @@ class NodesBoundsArray(CompressedArray):
         Returns a subspace of the uncompressed array as an independent
         numpy array.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         # ------------------------------------------------------------
