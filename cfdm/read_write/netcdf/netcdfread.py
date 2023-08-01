@@ -8921,19 +8921,16 @@ class NetCDFRead(IORead):
 
         if location == "node":
             bounds_connectivity_attr = None
-            # TODOUGRID - highest dim of [edge|face|volume]_connectivity
-            cell_connectivity_attr = "edge_node_connectivity"
-            connectivity_attr = cell_connectivity_attr
+            for connectivity_attr in (
+                    "volume_node_connectivity",
+                    "face_node_connectivity",
+                    "edge_node_connectivity"
+            ):
+                if connectivity_attr in attributes:
+                    break
         else:
-            if location == "face":
-                bounds_connectivity_attr = "face_node_connectivity"
-            elif location == "edge":
-                bounds_connectivity_attr = "edge_node_connectivity"
-            elif location == "volume":
-                bounds_connectivity_attr = "volume_node_connectivity"
-                
-            connectivity_attr = bounds_connectivity_attr
-        
+            connectivity_attr = f"{location}_node_connectivity"
+            
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._check_ugrid_connectivity_variable(
             parent_ncvar,
@@ -8947,28 +8944,30 @@ class NetCDFRead(IORead):
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
        
         # Connectivity data
-        if bounds_connnecivity_attr:
-            bounds_connnecivity = self._create_data(
-                connectivity_ncvar, uncompress_override=True,
-                compression_index=True
+        if location == "node":
+            bounds_connectivity = None
+            indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+            array = self.implementation.initialise_NodeConnectivityArray(
+                node_connectivity=indices,
+                start_index=properties.get("start_index", 0)
+            )
+            cell_connectvity =  self._create_Data(
+                array,
+                units=kwargs["units"],
+                calendar=kwargs["calendar"],
+                ncvar=connectivity_ncvar,
+            )
+        else:
+            bounds_connectivity = self._create_data(
+                connectivity_ncvar, compression_index=True
             )
             cell_connectvity = None
-        else:
-            bounds_connnecivity = None
-            indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-            cell_connectivity = self.implementation.initialise_NodeConnectivityArray(
-                compressed_array=indices
-            )
-            cell_connectvity = self._ugrid_create_cell_connectivity_data(
-                connectivity_ncvar, uncompress_override=True,
-                compression_index=True
-            )
 
         # Initialise the domain topology variable
         domain_topology = self.implementation.initialise_DomainTopology(
             properties=properties,
-            bounds_connectivity = bounds_connectivity,
-            cell_connectivity = cell_connectivity,
+            bounds_connectivity=bounds_connectivity,
+            cell_connectivity=cell_connectivity,
             copy=False,
         )
         
@@ -8988,7 +8987,7 @@ class NetCDFRead(IORead):
         mesh["domain_topology"][location] = domain_topology
         return domain_topology
 
-    def  self._ugrid_create_cell_connectivity(self, indices)
+    def  self._ugrid_create_node_connectivity(self, indices)
         """TODOUGRID.
     
         See http://ugrid-conventions.github.io/ugrid-conventions for
@@ -8998,7 +8997,7 @@ class NetCDFRead(IORead):
     
         :Parameters:
     
-            connectivity_ncvar: `str`
+            node_connectivity_ncvar: `str`
                 The netCDF variable name of the UGRID connectiviety
                 variable.
     
@@ -9049,11 +9048,12 @@ class NetCDFRead(IORead):
         """    
         from scipy.sparse import csr_array
     
-        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+        indices, kwargs = self._create_netcdfarray(node_connectivity_ncvar)
 #        array = self._create_connectivityarray(indces)
     
         cell_connectivity = self.implementation.initialise_NodeConnectivityArray(
-            compressed_array=indices
+            node_connectivity=indices,
+            start_index=start_index
         )
          
 #        indices = indices.array
