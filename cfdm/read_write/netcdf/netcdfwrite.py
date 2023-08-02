@@ -5283,10 +5283,9 @@ class NetCDFWrite(IOWrite):
         pass
 
     def _ugrid_write_node_coordinates_from_bounds(
-            self, bounds, ncdim, n_nodes, indices,
-            node_coordinates
+        self, bounds, ncdim, n_nodes, indices, node_coordinates
     ):
-        """TODOUGRID
+        """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -5301,8 +5300,8 @@ class NetCDFWrite(IOWrite):
             bounds:
 
         :Returns:
-        
-            `list`                
+
+            `list`
 
         """
         nodes = np.empty((n_nodes,), dtype=bounds.dtype)
@@ -5317,13 +5316,9 @@ class NetCDFWrite(IOWrite):
                     default=f"node_{bounds.identity('')}"
                 )
             )
-            
+
             self._write_netcdf_variable(
-                ncvar,
-                ncdim,
-                nodes,
-                domain_axes,
-                extra=bounds.properties()
+                ncvar, ncdim, nodes, domain_axes, extra=bounds.properties()
             )
 
         node_coordinates.append(ncvar)

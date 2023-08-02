@@ -2,8 +2,10 @@ from . import (
     CF,
     AuxiliaryCoordinate,
     Bounds,
+    BoundsTopology,
     CellMeasure,
     CellMethod,
+    CellTopology,
     CoordinateConversion,
     CoordinateReference,
     Count,
@@ -12,7 +14,7 @@ from . import (
     Domain,
     DomainAncillary,
     DomainAxis,
-    DomainTopology,
+#    DomainTopology,
     Field,
     FieldAncillary,
     Index,
@@ -28,6 +30,7 @@ from .data import (
     Data,
     GatheredArray,
     NetCDFArray,
+    NodeBoundsArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
@@ -1995,7 +1998,7 @@ class CFDMImplementation(Implementation):
         """Return a domain topology construct.
 
         .. versionadded:: TODOUGRIDVER
-        
+
         :Parameters:
 
             kwargs: optional
@@ -2006,10 +2009,52 @@ class CFDMImplementation(Implementation):
         :Returns:
 
             `DomainTopology`
-                The Domain topology construct.
+                The domain topology construct.
 
         """
         cls = self.get_class("DomainTopology")
+        return cls(**kwargs)
+
+    def initialise_BoundsTopology(self, **kwargs):
+        """Return a bounds topology construct.
+
+        .. versionadded:: TODOUGRIDVER
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the domain topology
+                construct, which are passed to
+                `BoundsTopology.__init__`.
+
+        :Returns:
+
+            `BoundsTopology`
+                The bounds topology construct.
+
+        """
+        cls = self.get_class("BoundsTopology")
+        return cls(**kwargs)
+
+    def initialise_CellTopology(self, **kwargs):
+        """Return a cell topology construct.
+
+        .. versionadded:: TODOUGRIDVER
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the domain topology
+                construct, which are passed to
+                `CellTopology.__init__`.
+
+        :Returns:
+
+            `CellTopology`
+                The cell topology construct.
+
+        """
+        cls = self.get_class("CellTopology")
         return cls(**kwargs)
 
     def initialise_Field(self):
@@ -2277,6 +2322,25 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("ConnectivityArray")
         return cls(compressed_array=compressed_array)
 
+    def initialise_NodeBoundsArray(self, **kwargs):
+        """Return a node bounds array.
+
+        .. versionadded:: TODOUGRIDVER
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the node bounds array.
+                which are passed to `NodeBoundsArray.__init__`.
+
+        :Returns:
+
+            `NodeBoundsArray`
+
+        """
+        cls = self.get_class("NodeBoundsArray")
+        return cls(**kwargs)
+
     def initialise_NodeCountProperties(self):
         """Return a node count properties variable.
 
@@ -2287,6 +2351,26 @@ class CFDMImplementation(Implementation):
         """
         cls = self.get_class("NodeCountProperties")
         return cls()
+
+    def initialise_NodeConnectivityArray(self, **kwargs):
+        """Return a node connectivity array.
+
+        .. versionadded:: TODOUGRIDVER
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the node connectivity
+                array, which are passed to
+                `NodeConnectivityArray.__init__`.
+
+        :Returns:
+
+            `NodeConnectivityArray`
+
+        """
+        cls = self.get_class("NodeConnectivityArray")
+        return cls(**kwargs)
 
     def initialise_PartNodeCount(self):
         """Return a part node count properties variable.
@@ -2635,6 +2719,38 @@ class CFDMImplementation(Implementation):
 
         return ""
 
+    def set_bounds_topology(
+        self, parent, construct, axes, copy=True, **kwargs
+    ):
+        """Insert a bounds topology object into a field.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            parent: `Field` or `Domain`
+               On what to set the construct
+
+            construct: `BoundsTopology`
+
+            axes: `tuple`
+
+            copy: `bool`, optional
+
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+
+        :Returns:
+
+            `str`
+
+        """
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
+
     def set_cell_measure(self, parent, construct, axes, copy=True, **kwargs):
         """Insert a cell_measure object into a field.
 
@@ -2726,6 +2842,38 @@ class CFDMImplementation(Implementation):
 
         """
         cell_method.set_method(method)
+
+    def set_cell_topology(
+        self, parent, construct, axes, copy=True, **kwargs
+    ):
+        """Insert a cell topology object into a field.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            parent: `Field` or `Domain`
+               On what to set the construct
+
+            construct: `CellTopology`
+
+            axes: `tuple`
+
+            copy: `bool`, optional
+
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+
+        :Returns:
+
+            `str`
+
+        """
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
 
     def set_climatology(self, construct):
         """Set the construct as a climatology.
@@ -2984,6 +3132,38 @@ class CFDMImplementation(Implementation):
 
         """
         return self.set_construct(parent, construct, copy=copy, **kwargs)
+
+    def set_domain_topology(
+        self, parent, construct, axes, copy=True, **kwargs
+    ):
+        """Insert a domain topology object into a field.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            parent: `Field` or `Domain`
+               On what to set the construct
+
+            construct: `DomainTopology`
+
+            axes: `tuple`
+
+            copy: `bool`, optional
+
+            kwargs: optional
+                Additional parameters to the `set_construct` of
+                *parent* that may be used by subclasses.
+
+
+        :Returns:
+
+            `str`
+
+        """
+        return self.set_construct(
+            parent, construct, axes=axes, copy=copy, **kwargs
+        )
 
     def set_dependent_tie_points(self, construct, tie_points, dimensions):
         """Set dependent tie points and their dimensions.
@@ -3485,14 +3665,16 @@ class CFDMImplementation(Implementation):
 _implementation = CFDMImplementation(
     cf_version=CF(),
     AuxiliaryCoordinate=AuxiliaryCoordinate,
+    BoundsTopology=BoundsTopology,
     CellMeasure=CellMeasure,
     CellMethod=CellMethod,
+    CellTopology=CellTopology,
     CoordinateReference=CoordinateReference,
     DimensionCoordinate=DimensionCoordinate,
     Domain=Domain,
     DomainAncillary=DomainAncillary,
     DomainAxis=DomainAxis,
-    DomainAxis=DomainToplogy,
+#    DomainTopology=DomainTopology,
     Field=Field,
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,
@@ -3503,6 +3685,7 @@ _implementation = CFDMImplementation(
     List=List,
     Index=Index,
     Count=Count,
+    NodeBoundsArray=NodeBoundsArray,
     NodeCountProperties=NodeCountProperties,
     PartNodeCountProperties=PartNodeCountProperties,
     Data=Data,
@@ -3541,7 +3724,6 @@ def implementation():
      'DimensionCoordinate': <class 'cfdm.dimensioncoordinate.DimensionCoordinate'>,
      'DomainAncillary': <class 'cfdm.domainancillary.DomainAncillary'>,
      'DomainAxis': <class 'cfdm.domainaxis.DomainAxis'>,
-     'DomainTopology': <class 'cfdm.domaintoplogy.DomainToplogy'>,
      'Field': <class 'cfdm.field.Field'>,
      'FieldAncillary': <class 'cfdm.fieldancillary.FieldAncillary'>,
      'Bounds': <class 'cfdm.bounds.Bounds'>,

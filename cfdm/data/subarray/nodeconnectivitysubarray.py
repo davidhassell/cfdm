@@ -11,7 +11,7 @@ class ConnectivitySubarray(Subarray):
 
     See CF section 5.9 "Mesh Topology Variables".
 
-    .. versionadded:: (cfdm) 1.10.0.0
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
@@ -85,31 +85,45 @@ class ConnectivitySubarray(Subarray):
         """
         from scipy.sparse import csr_array
 
-        cell_node_connectivity = self._select_data(check_mask=False)
-
+        node_connectivity = self._select_data(check_mask=False)
+        
         row = []
         col = []
-        row_extend = row.extend
+        indptr = [0]
+#        row_extend = row.extend
         col_extend = col.extend
+        indptr_append = indptr.append
 
-        compressed = np.ma.compressed
-        isin = np.isin
+        np_compressed = np.ma.compressed
+        np_isin = np.isin
+        np_where = np.where
 
         # WARNING: Potential performance bottleneck due to iteration
         #          through a numpy array
-        for i, nodes in enumerate(cell_node_connectivity):
-            # Find all of the cells j that at least one node with cell
-            # i
-            nodes = compressed(nodes).tolist()
-            shared_nodes = isin(cell_node_connectivity, nodes)
-            connected_cells = set(np.where(shared_nodes)[0].tolist())
+        n = 0
+        for i, nodes in enumerate(node_connectivity):                
+            # Find all of the cells that at least one node with cell i
+            nodes = np_compressed(nodes).tolist()
+            shared_nodes = np_isin(node_connectivity, nodes)
+            connected_cells = set(np_where(shared_nodes)[0].tolist())
             connected_cells.remove(i)
-            row_extend((i,) * len(connected_cells))
+
+            #            row_extend((i,) * len(connected_cells))
+            n += len(connected_cells)
+            indptr_append(n)
+            
             col_extend(connected_cells)
 
         data = np.ones((len(row),), dtype=bool)
-        n_cells = cell_node_connectivity.shape[0]
-        c = csr_array((data, (row, col)), shape=(n_cells, n_cells))
+        n_cells = node_connectivity.shape[0]
+#        c = csr_array((data, (row, col)), shape=(n_cells, n_cells))
+        c = csr_array((data, col, indptr), shape=(n_cells, n_cells))
+
+
+
+        if indices is Ellipsis:
+            return c
+        
         return c[indices]
 
     @cached_property

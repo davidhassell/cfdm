@@ -13,6 +13,7 @@ class TopologyArray(RaggedArray):
     See CF section 9 "Discrete Sampling Geometries".
 
     .. versionadded:: (cfdm) TODOUGRIDVER
+
     """
 
     def __init__(

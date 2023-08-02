@@ -4,7 +4,7 @@ from numbers import Number
 import numpy as np
 
 from .abstract import CompressedArray
-from .subarray import NodesBoundsSubarray
+from .subarray import NodeBoundsSubarray
 
 
 class NodeBoundsArray(CompressedArray):
@@ -30,12 +30,12 @@ class NodeBoundsArray(CompressedArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"nodes bounds": NodesBoundsSubarray}
+        instance._Subarray = {"node bounds": NodeBoundsSubarray}
         return instance
 
     def __init__(
         self,
-        compressed_array=None,
+        node_connectivity=None,
         shape=None,
         node_coordinates=None,
         start_index=0,
@@ -46,13 +46,13 @@ class NodeBoundsArray(CompressedArray):
 
         :Parameters:
 
-            compressed_array: array_like
-                The compressed array. This contains the bounds
+            node_connectivity: array_like
+                TODOUGRID The compressed array. This contains the bounds
                 locations as found in a UGRID "node_coordinates"
                 variable.
 
             shape: `tuple`
-                The shape of the uncompressed array.
+                The shape of the TODOUGRID.
 
             node_coordinates: array_like
                 TODOUGRID The "list variable" required to uncompress the data,
@@ -67,10 +67,10 @@ class NodeBoundsArray(CompressedArray):
 
         """
         super().__init__(
-            compressed_array=compressed_array,
+            compressed_array=node_connectivity,
             shape=shape,
-            compressed_dimensions={0: (0,), 1: (1,)},
-            compression_type="nodes bounds",
+            compressed_dimensions={1: (1,)},
+            compression_type="node bounds",
             source=source,
             copy=copy,
         )
@@ -114,19 +114,19 @@ class NodeBoundsArray(CompressedArray):
         Subarray = self.get_Subarray()
 
         conformed_data = self.conformed_data()
-        compressed_data = conformed_data["data"]
+        node_connectivity = conformed_data["data"]
         node_coordinates = conformed_data["node_coordinates"]
         start_index = self.get_start_index()
 
         for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
             subarray = Subarray(
-                data=compressed_data,
+                data=node_connectivity,
                 indices=c_indices,
                 shape=u_shape,
                 node_coordinates=node_coordinates,
                 start_index=start_index,
             )
-            u[u_indices] = subarray[...]
+            u[u_indices] = subarray
 
         if indices is Ellipsis:
             return u
@@ -266,11 +266,16 @@ class NodeBoundsArray(CompressedArray):
         [(2,), (3,), (2, 2)]
 
         """
+        u_dims = self.get_compressed_axes()
+
         if shapes == -1:
-            return list(self.shape)
+            return [(size,) for size in self.shape]
 
         if isinstance(shapes, (str, Number)):
-            return [shapes, self.shape[1]]
+            return [
+                (size,) if i in u_dims else shapes
+                for i, size in enumerate(self.shape)
+            ]
 
         if isinstance(shapes, dict):
             shapes = [
@@ -283,7 +288,10 @@ class NodeBoundsArray(CompressedArray):
             )
 
         # chunks is a sequence
-        return [shapes[0], self.shape[1]]
+        return [
+            (size,) if i in u_dims else c
+            for i, (size, c) in enumerate(zip(self.shape, shapes))
+        ]
 
     def subarrays(self, shapes=-1):
         """Return descriptors for every subarray.
@@ -405,12 +413,24 @@ class NodeBoundsArray(CompressedArray):
         u_shapes = []
         u_indices = []
 
-        for size, c in zip(self.shape, shapes):
-            locations.append([i for i in range(len(c))])
-            u_shapes.append(c)
+        for d, (size, c) in enumerate(zip(self.shape, shapes)):
+            if d in u_dims:
+                locations.append((0,))
+                u_shapes.append((size,))
+                u_indices.append((slice(0, size),))
+            else:
+                locations.append([i for i in range(len(c))])
+                u_shapes.append(c)
 
-            c = tuple(accumulate((0,) + c))
-            u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
+                c = tuple(accumulate((0,) + c))
+                u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
+
+        #        for size, c in zip(self.shape, shapes):
+        #            locations.append([i for i in range(len(c))])
+        #            u_shapes.append(c)
+        #
+        #            c = tuple(accumulate((0,) + c))
+        #            u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
 
         # The indices of the compressed array that correspond to each
         # subarray

@@ -2,11 +2,11 @@ from . import core, mixin
 from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 
-class DomainTopology(
+class BoundsTopology(
     mixin.NetCDFVariable,
     mixin.PropertiesData,
     mixin.Files,
-    core.DomainTopology,
+    core.BoundsTopology,
 ):
     """A domain topology construct of the CF data model.
 
@@ -57,8 +57,7 @@ class DomainTopology(
     def __init__(
         self,
         properties=None,
-        bounds_connectivity=None,
-        cell_connectivity=None,
+        data=None,
         source=None,
         copy=True,
         _use_data=True,
@@ -81,8 +80,7 @@ class DomainTopology(
         """
         super().__init__(
             properties=properties,
-            bounds_connectivity=bounds_connectivity,
-            cell_connectivity=cell_connectivity,
+            data=data,
             source=source,
             copy=copy,
             _use_data=_use_data,
@@ -91,32 +89,11 @@ class DomainTopology(
         self._initialise_netcdf(source)
         self._initialise_original_filenames(source)
 
-    def __getitem__(self, indices):
-        """TODUUGRID."""
-        new = self.copy()
-
-        data = self.get_bounds_connectivity(None, _fill_value=False)
-        if data is not None:
-            new.set_bounds_connectivity(data[indices], copy=False)
-        else:
-            data = self.get_cell_connectivity(None, _fill_value=False)
-            if data is not None:
-                new.set_cell_connectivity(data[indices], copy=False)
-
-        if 0 in new.shape:
-            raise IndexError(
-                f"Indices {indices!r} result in a subspaced shape of "
-                f"{new.shape}, but can't create a subspace of "
-                f"{self.__class__.__name__} that has a size 0 axis"
-            )
-
-        return new
-
     @property
     def ndim(self):
         """The number of dimensions in the data array.
 
-        .. seealso:: `data`, `has_data`, `isscalar`, `shape`, `size`
+        .. seealso:: `data`, `has_data`, `shape`, `size`
 
         **Examples**
 
@@ -193,7 +170,7 @@ class DomainTopology(
         _axes=None,
         _axis_names=None,
     ):
-        """A full description of the domain topology construct.
+        """A full description of the bounds topology construct.
 
         Returns a description of all properties, including those of
         components, and provides selected values of all data arrays.
@@ -212,7 +189,7 @@ class DomainTopology(
 
         """
         if _title is None:
-            _title = "Domain Topology: " + self.identity(default="")
+            _title = "Bounds Topology: " + self.identity(default="")
 
         return super().dump(
             display=display,
@@ -225,7 +202,7 @@ class DomainTopology(
         )
 
     @_inplace_enabled(default=False)
-    def normalise_bounds_connectivity(self, start_index=0, inplace=False):
+    def normalise(self, start_index=0, inplace=False):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -237,9 +214,6 @@ class DomainTopology(
         """
         import numpy as np
 
-        if self.get_connectivity_type(None) != "bounds":
-            raise ValueError("TODOUGRID")
-
         d = _inplace_enabled_define_and_cleanup(self)
 
         data = d.array
@@ -249,6 +223,6 @@ class DomainTopology(
         if start_index:
             data += start_index
 
-        d.set_bounds_connectivity(data, copy=False)
+        d.set_data(data, copy=False)
 
         return d

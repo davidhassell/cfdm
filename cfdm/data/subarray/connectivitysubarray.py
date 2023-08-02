@@ -143,9 +143,9 @@ class ConnectivitySubarray(Subarray):
                     else:
                         # TODOUGRID: 3 or more shared nodes
                         pass
-                    
-        elif cell_dimension == 1:            
-            for i, nodes in enumerate(connectivity):                
+
+        elif cell_dimension == 1:
+            for i, nodes in enumerate(connectivity):
                 # Find all of the edges j that share one or two nodes
                 # with face i
                 node_test = connectivity == nodes[0]
@@ -155,7 +155,7 @@ class ConnectivitySubarray(Subarray):
                 for j in connected_edges:
                     row_ind.append(i)
                     col_ind.append(j)
-                
+
         elif cell_dimension > 2:
             raise ValueError("Can't do volumes!!!!")
 

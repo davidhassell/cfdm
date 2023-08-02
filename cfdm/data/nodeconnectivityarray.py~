@@ -158,31 +158,30 @@ class ConnectivityArray(CompressedArray):
         **Examples**
 
         >>> a.shape
-        (4, 4)
+        (4, 4)        
         >>> a.subarray_shapes(-1)
         [(4,), (4)]
 
         """
         return [(size,) for size in self.shape]
-
-    #        if shapes == -1:
-    #            return [(size,) for size in self.shape]
-    #
-    #        if isinstance(shapes, (str, Number)):
-    #            return [shapes, (self.shape[1],)]
-    #
-    #        if isinstance(shapes, dict):
-    #            shapes = [
-    #                shapes[i] if i in shapes else None for i in range(self.ndim)
-    #            ]
-    #        elif len(shapes) != self.ndim:
-    #            raise ValueError(
-    #                f"Wrong number of 'shapes' elements in {shapes}: "
-    #                f"Got {len(shapes)}, expected {self.ndim}"
-    #            )
-    #
-    #        # chunks is a sequence
-    #        return [shapes[0], (self.shape[1],)]
+#        if shapes == -1:
+#            return [(size,) for size in self.shape]
+#
+#        if isinstance(shapes, (str, Number)):
+#            return [shapes, (self.shape[1],)]
+#
+#        if isinstance(shapes, dict):
+#            shapes = [
+#                shapes[i] if i in shapes else None for i in range(self.ndim)
+#            ]
+#        elif len(shapes) != self.ndim:
+#            raise ValueError(
+#                f"Wrong number of 'shapes' elements in {shapes}: "
+#                f"Got {len(shapes)}, expected {self.ndim}"
+#            )
+#
+#        # chunks is a sequence
+#        return [shapes[0], (self.shape[1],)]
 
     def subarrays(self, shapes=-1):
         """Return descriptors for every subarray.

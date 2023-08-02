@@ -5,10 +5,10 @@ import numpy as np
 
 from ..core.utils import cached_property
 from .abstract import CompressedArray
-from .subarray import ConnectivitySubarray
+from .subarray import NodeConnectivitySubarray
 
 
-class ConnectivityArray(CompressedArray):
+class NodeConnectivityArray(CompressedArray):
     """An underlying UGRID connectivity array.
 
     See CF section 5.9 "Mesh Topology Variables".
@@ -28,19 +28,19 @@ class ConnectivityArray(CompressedArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"connectivity": ConnectivitySubarray}
+        instance._Subarray = {"node connectivity": NodeConnectivitySubarray}
         return instance
 
-    def __init__(self, compressed_array=None, source=None, copy=True):
+    def __init__(self, node_connectivity=None, start_index=0,
+                 source=None, copy=True):
         """**Initialisation**
 
         :Parameters:
 
-            compressed_array: array_like
-                The 2-d compressed array.
+            node_connectivity: array_like
+                TODOUGRID
 
-            shape: `tuple`
-                The shape of the uncompressed array.
+            start_index: `int`, optional
 
             {{init source: optional}}
 
@@ -48,11 +48,11 @@ class ConnectivityArray(CompressedArray):
 
         """
         super().__init__(
-            compressed_array=compressed_array,
-            shape=(compressed_array.shape[0],) * 2,
-            compressed_dimensions={2: (2,)},
+            compressed_array=node_connectivity,
+            shape=(node_connectivity.shape[0],) * 2,
+            compressed_dimensions={1: (1,)},
             compression_type="connectivity",
-            start_index=0,
+            start_index=start_index,
             source=source,
             copy=copy,
         )
@@ -158,31 +158,30 @@ class ConnectivityArray(CompressedArray):
         **Examples**
 
         >>> a.shape
-        (4, 4)
+        (4, 4)        
         >>> a.subarray_shapes(-1)
         [(4,), (4)]
 
         """
         return [(size,) for size in self.shape]
-
-    #        if shapes == -1:
-    #            return [(size,) for size in self.shape]
-    #
-    #        if isinstance(shapes, (str, Number)):
-    #            return [shapes, (self.shape[1],)]
-    #
-    #        if isinstance(shapes, dict):
-    #            shapes = [
-    #                shapes[i] if i in shapes else None for i in range(self.ndim)
-    #            ]
-    #        elif len(shapes) != self.ndim:
-    #            raise ValueError(
-    #                f"Wrong number of 'shapes' elements in {shapes}: "
-    #                f"Got {len(shapes)}, expected {self.ndim}"
-    #            )
-    #
-    #        # chunks is a sequence
-    #        return [shapes[0], (self.shape[1],)]
+#        if shapes == -1:
+#            return [(size,) for size in self.shape]
+#
+#        if isinstance(shapes, (str, Number)):
+#            return [shapes, (self.shape[1],)]
+#
+#        if isinstance(shapes, dict):
+#            shapes = [
+#                shapes[i] if i in shapes else None for i in range(self.ndim)
+#            ]
+#        elif len(shapes) != self.ndim:
+#            raise ValueError(
+#                f"Wrong number of 'shapes' elements in {shapes}: "
+#                f"Got {len(shapes)}, expected {self.ndim}"
+#            )
+#
+#        # chunks is a sequence
+#        return [shapes[0], (self.shape[1],)]
 
     def subarrays(self, shapes=-1):
         """Return descriptors for every subarray.

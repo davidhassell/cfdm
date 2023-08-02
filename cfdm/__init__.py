@@ -124,7 +124,7 @@ from .data import (
     GatheredArray,
     NetCDFArray,
     NumpyArray,
-    NodesBoundsArray,
+    NodeBoundsArray,
     RaggedArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
@@ -138,7 +138,7 @@ from .data import (
     GatheredSubarray,
     InterpolationSubarray,
     LinearSubarray,
-    NodesBoundsSubarray,
+    NodeBoundsSubarray,
     QuadraticLatitudeLongitudeSubarray,
     QuadraticSubarray,
     RaggedSubarray,
@@ -157,7 +157,6 @@ from .tiepointindex import TiePointIndex
 from .bounds import Bounds
 from .coordinateconversion import CoordinateConversion
 from .datum import Datum
-from .domain import Domain
 from .interiorring import InteriorRing
 
 from .auxiliarycoordinate import AuxiliaryCoordinate
@@ -165,9 +164,12 @@ from .cellmeasure import CellMeasure
 from .cellmethod import CellMethod
 from .coordinatereference import CoordinateReference
 from .dimensioncoordinate import DimensionCoordinate
+from .domain import Domain
 from .domainancillary import DomainAncillary
 from .domainaxis import DomainAxis
-from .domaintopology import DomainTopology
+#from .domaintopology import DomainTopology
+from .boundstopology import BoundsTopology
+from .celltopology import CellTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
 

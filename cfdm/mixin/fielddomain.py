@@ -1825,6 +1825,69 @@ class FieldDomain:
             **filter_kwargs,
         )
 
+    def bounds_topology(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select an domain topology construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `construct`, `domain_topologies`
+
+        :Parameters:
+
+            identity: optional
+                Select domain topology constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                If no values are provided then all domein toplogy
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        **Examples**
+
+        TODOUGRID
+
+        """
+        return self._construct(
+            "bounds_topology",
+            "bounds_topologies",
+            identity,
+            key=key,
+            item=item,
+            default=default,
+            **filter_kwargs,
+        )
+
     def domain_topologies(self, *identities, **filter_kwargs):
         """Return domain topology constructs.
 
@@ -1872,6 +1935,57 @@ class FieldDomain:
         return self._filter_interface(
             ("domain_topology",),
             "domain_topologies",
+            identities,
+            **filter_kwargs,
+        )
+
+    def bounds_topologies(self, *identities, **filter_kwargs):
+        """Return domain topology constructs.
+
+        Note that ``f.domain_topologies(*identities,
+
+        **filter_kwargs)`` is equivalent to
+
+        ``f.constructs.filter(filter_by_type=["domain_topology"],
+        filter_by_identity=identities, **filter_kwargs)``.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `constructs`
+
+        :Parameters:
+
+            identities: optional
+                Select domain topology constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                If no identities are provided then all domain topology
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns constructs}}
+
+        **Examples:**
+
+        >>> f.domain_topologies()
+        Constructs:
+        {}
+        >>> f.domain_topologies()
+        Constructs:
+        {'domaintopology0': TODOUGRID}
+
+        """
+        return self._filter_interface(
+            ("bounds_topology",),
+             "bounds_topologies",
             identities,
             **filter_kwargs,
         )
@@ -2134,7 +2248,6 @@ class FieldDomain:
         TODOUGRID
 
         """
-
         # TODOUGIRD: Hmmm
         # https://github.com/ugrid-conventions/ugrid-conventions/issues/65#issuecomment-1522763032 says:
         #
@@ -2163,7 +2276,6 @@ class FieldDomain:
 
         ref_bounds = auxs[0].bounds.array
         ref_bounds_shape = ref_bounds.shape
-        ref_bounds_size = ref_bounds.size
         bounds = [np.ma.compressed(ref_bounds)]
 
         n_bounds = bounds[0].size

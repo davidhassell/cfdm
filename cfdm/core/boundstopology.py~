@@ -43,16 +43,16 @@ class DomainTopology(abstract.PropertiesData):
         """
         if source is not None:
             try:
-                properties = source.properties()
+                properties = source.properties()                
             except AttributeError:
                 properties = None
-
+                    
             if _use_data:
                 try:
                     bounds_connectivity = source.get_bounds_connectivity(None)
                 except AttributeError:
                     bounds_connectivity = None
-
+                    
                 try:
                     cell_connectivity = source.get_cell_connectivity(None)
                 except AttributeError:

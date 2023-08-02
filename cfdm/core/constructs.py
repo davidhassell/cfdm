@@ -12,7 +12,7 @@ class Constructs(abstract.Container):
     * dimension coordinate constructs
     * domain ancillary constructs
     * domain axis constructs
-    * domain topology constructs
+    * domain topology constructs TODOUGRID
     * cell method constructs
     * field ancillary constructs
 
@@ -36,7 +36,9 @@ class Constructs(abstract.Container):
         cell_measure=None,
         coordinate_reference=None,
         domain_axis=None,
-        domain_topology=None,
+#        domain_topology=None,
+            bounds_topology=None,
+            cell_topology=None,
         cell_method=None,
         source=None,
         copy=True,
@@ -80,7 +82,7 @@ class Constructs(abstract.Container):
                 *Parameter example:*
                   ``cell_measure='cellmeasure'``
 
-            domain_topology: `str`, optional
+            domain_topology: `str`, optional TODOUGRID
                 The base name for keys of domain topology constructs.
 
                 *Parameter example:*
@@ -230,9 +232,17 @@ class Constructs(abstract.Container):
             self._key_base["cell_measure"] = cell_measure
             self._array_constructs.add("cell_measure")
 
-        if domain_topology:
-            self._key_base["domain_topology"] = domain_topology
-            self._array_constructs.add("domain_topology")
+#        if domain_topology: 
+#            self._key_base["domain_topology"] = domain_topology
+#            self._array_constructs.add("domain_topology")
+
+        if bounds_topology:
+            self._key_base["bounds_topology"] = bounds_topology
+            self._array_constructs.add("bounds_topology")
+
+        if cell_topology:
+            self._key_base["cell_topology"] = cell_topology
+            self._array_constructs.add("cell_topology")
 
         if domain_axis:
             self._key_base["domain_axis"] = domain_axis
@@ -719,36 +729,43 @@ class Constructs(abstract.Container):
             axes_shape.append(domain_axes[axis].get_size())
 
         axes_shape = tuple(axes_shape)
-
-        extra_axes = 0
-        data = construct.get_data(None)
-        if (
-            data is not None
-            and data.shape[: data.ndim - extra_axes] != axes_shape
-        ):
-            raise ValueError(
-                f"Can't set {construct!r}: Data shape of {data.shape!r} "
-                "does not match the shape required by domain axes "
-                f"{tuple(axes)}: {axes_shape}"
-            )
-
         try:
-            bounds = construct.get_bounds(None)
+            if construct.shape != axes_shape:
+                raise ValueError(
+                    f"Can't set {construct!r}: Shape of {construct.shape!r} "
+                    "does not match the shape required by domain axes "
+                    f"{tuple(axes)}: {axes_shape}"
+                )
         except AttributeError:
             pass
-        else:
-            if bounds is not None:
-                data = bounds.get_data(None)
-                if (
-                    data is not None
-                    and data.shape[: len(axes_shape)] != axes_shape
-                ):
-                    raise ValueError(
-                        f"Can't set {construct!r}: Bounds data shape of "
-                        f"{data.shape!r} does "
-                        "not match the shape required by domain axes "
-                        f"{tuple(axes)}: {axes_shape}"
-                    )
+
+        #        extra_axes = 0
+        #        data = construct.get_data(None)
+        #        if data is not None and construct.shape != axes_shape:
+        #   #            and data.shape[: data.ndim - extra_axes] != axes_shape
+        #            raise ValueError(
+        #                f"Can't set {construct!r}: Shape of {construct.shape!r} "
+        #                "does not match the shape required by domain axes "
+        #                f"{tuple(axes)}: {axes_shape}"
+        #            )
+        #
+        #        try:
+        #            bounds = construct.get_bounds(None)
+        #        except AttributeError:
+        #            pass
+        #        else:
+        #            if bounds is not None:
+        #                data = bounds.get_data(None)
+        #                if (
+        #                    data is not None
+        #                    and data.shape[: len(axes_shape)] != axes_shape
+        #                ):
+        #                    raise ValueError(
+        #                        f"Can't set {construct!r}: Bounds data shape of "
+        #                        f"{data.shape!r} does "
+        #                        "not match the shape required by domain axes "
+        #                        f"{tuple(axes)}: {axes_shape}"
+        #                    )
 
         self._construct_axes[key] = tuple(axes)
 
@@ -1085,7 +1102,9 @@ class Constructs(abstract.Container):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate
                 ``'cell_measure'``          Cell measure
                 ``'coordinate_reference'``  Coordinate reference
-                ``'domain_topology'``       Domain topology
+                ``'domain_topology'``       Domain topology TODOUGRID
+                ``'bounds_topology'``       Domain topology TODOUGRID
+                ``'cell_topology'``       Domain topology TODOUGRID
                 ``'cell_method'``           Cell method
                 ``'field_ancillary'``       Field ancillary
                 ==========================  ==========================

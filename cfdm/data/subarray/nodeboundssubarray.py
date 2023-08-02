@@ -3,7 +3,7 @@ import numpy as np
 from .abstract import Subarray
 
 
-class NodesBoundsSubarray(Subarray):
+class NodeBoundsSubarray(Subarray):
     """TODOUGRID A subarray of an array compressed by gathering.
 
     A subarray describes a unique part of the uncompressed array.
@@ -58,7 +58,7 @@ class NodesBoundsSubarray(Subarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions={0: (0,), 1: (1,)},
+            compressed_dimensions={1: (1,)},
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -91,17 +91,19 @@ class NodesBoundsSubarray(Subarray):
         Returns a subspace of the uncompressed data as an independent
         numpy array.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        connectivity_indices = self._select_data()
-        if np.ma.is_MA(connectivity_indices):
-            node_indices = connectivity_indices.compressed()
+        node_connectivity = self._select_data()
+        if np.ma.is_MA(node_connectivity):
+            node_indices = node_connectivity.compressed()
             u = np.ma.masked_all(self.shape, dtype=self.dtype)
-            u[~connectivity_indices.mask] = self._select_nodes(node_indices)
+            u[~node_connectivity.mask] = self._select_node_coordinates(
+                node_indices
+            )
         else:
-            node_indices = connectivity_indices.flatten()
-            u = self._select_nodes(node_indices)
+            node_indices = node_connectivity.flatten()
+            u = self._select_node_coordinates(node_indices)
             u = u.reshape(self.shape)
 
         if indices is Ellipsis:
@@ -109,36 +111,41 @@ class NodesBoundsSubarray(Subarray):
 
         return u[indices]
 
-    def _select_nodes(self, indices):
+    def _select_node_coordinates(self, node_indices):
         """TODOUGRID Select interpolation parameter values.
 
-        TODOUGRID Selects interpolation parameter values for this interpolation
-        subarea.
-
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `_select_data`
+
+        :Parameters:
+
+            node_indices: array_like
+                Indices to the node coordinates array. Must be a 1-d
+                integer array that supports fancy indexing. If
+                *indices* are not zero-based then `start_index` will
+                be substracted prior to their application.
 
         :Returns:
 
            `numpy.ndarray`
-               TODOUGRID The values of the interpolation parameter array that
-               correspond to this interpolation subarea.
+               The node coordiantes that correspond to the
+               *node_indices*.
 
         """
         start_index = self.start_index
         if start_index:
-            indices = indices - start_index
+            node_indices = node_indices - start_index
 
         return self._asanyarray(
-            self.node_coordinates, indices, check_mask=False
+            self.node_coordinates, node_indices, check_mask=False
         )
 
     @property
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         return self.nodes_coordinates.dtype
@@ -149,7 +156,7 @@ class NodesBoundsSubarray(Subarray):
 
         Either ``0`` or ``1``.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         return self._get_component("start_index")
@@ -158,7 +165,7 @@ class NodesBoundsSubarray(Subarray):
     def node_coordinates(self):
         """The coordinates representing the node locations.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         return self._get_component("node_coordinates")

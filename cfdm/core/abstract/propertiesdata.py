@@ -106,9 +106,6 @@ class PropertiesData(Properties):
 
         raise ValueError(f"{self.__class__.__name__} has no data")
 
-    # ----------------------------------------------------------------
-    # Attributes
-    # ----------------------------------------------------------------
     @property
     def data(self):
         """Return the data.
@@ -146,9 +143,6 @@ class PropertiesData(Properties):
         """
         return self.get_data()
 
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
     def copy(self, data=True):
         """Return a deep copy.
 
@@ -225,9 +219,6 @@ class PropertiesData(Properties):
         None
 
         """
-        # data = self.get_data(None)
-        # self._del_component("data", default=default)
-        # return data
         return self._del_component("data", default=default)
 
     def get_data(self, default=ValueError(), _units=True, _fill_value=True):

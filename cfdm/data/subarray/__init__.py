@@ -5,7 +5,7 @@ from .biquadraticlatitudelongitudesubarray import (
 )
 from .interpolationsubarray import InterpolationSubarray
 from .linearsubarray import LinearSubarray
-from .nodesboundssubarray import NodesBoundsSubarray
+from .nodeboundssubarray import NodeBoundsSubarray
 from .quadraticlatitudelongitudesubarray import (
     QuadraticLatitudeLongitudeSubarray,
 )
