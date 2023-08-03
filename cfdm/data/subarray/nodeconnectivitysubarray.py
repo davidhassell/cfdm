@@ -4,7 +4,7 @@ from ...core.utils import cached_property
 from .abstract import Subarray
 
 
-class ConnectivitySubarray(Subarray):
+class NodeConnectivitySubarray(Subarray):
     """A subarray of a compressed UGRID connectivity array.
 
     A subarray describes a unique part of the uncompressed array.

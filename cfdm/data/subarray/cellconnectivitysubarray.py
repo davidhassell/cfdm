@@ -4,7 +4,7 @@ from ...core.utils import cached_property
 from .abstract import Subarray
 
 
-class ConnectivitySubarray(Subarray):
+class CellConnectivitySubarray(Subarray):
     """A subarray of a compressed UGRID connectivity array.
 
     A subarray describes a unique part of the uncompressed array.
@@ -85,32 +85,34 @@ class ConnectivitySubarray(Subarray):
         """
         from scipy.sparse import csr_array
 
-        cell_node_connectivity = self._select_data(check_mask=False)
-
-        row = []
-        col = []
-        row_extend = row.extend
-        col_extend = col.extend
-
-        compressed = np.ma.compressed
-        isin = np.isin
-
-        # WARNING: Potential performance bottleneck due to iteration
-        #          through a numpy array
-        for i, nodes in enumerate(cell_node_connectivity):
-            # Find all of the cells j that at least one node with cell
-            # i
-            nodes = compressed(nodes).tolist()
-            shared_nodes = isin(cell_node_connectivity, nodes)
-            connected_cells = set(np.where(shared_nodes)[0].tolist())
-            connected_cells.remove(i)
-            row_extend((i,) * len(connected_cells))
-            col_extend(connected_cells)
-
-        data = np.ones((len(row),), dtype=bool)
-        n_cells = cell_node_connectivity.shape[0]
-        c = csr_array((data, (row, col)), shape=(n_cells, n_cells))
-
+        cell_connectivity = self._select_data(check_mask=False)
+        shape = cell_connectivity.shape
+        n_cells = shape[0]
+        
+        start_index = self.start_index
+        if start_index:
+            cell_connectivity = cell_connectivity - start_index
+            
+        if np.ma.is_masked(indices):
+#            pointers = shape[1] - np.ma.getmaskarray(cell_connectivity).sum(axis=1)
+            pointers = np.ma.count(cell_connectivity, axis=1)
+            pointers = np.insert(pointers, 0, 0)
+            cell_connectivity = cell_connectivity.compressed()
+        else:
+            pointers = np.full((n_cells + 1,), shape[1])
+            pointers[0] = 0
+            cell_connectivity = cell_connectivity.flatten()
+            
+        pointers = np.cumsum(pointers, out=pointers)
+        
+        start_index = self.start_index
+        if start_index:
+            cell_connectivity = cell_connectivity - start_index
+            
+        data = np.ones((cell_connectivity.size,), bool)
+        c = csr_array((data, cell_connectivity, pointers),
+                      shape=(n_cells, n_cells))
+    
         if indices is Ellipsis:
             return c
 

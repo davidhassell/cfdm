@@ -1,46 +1,26 @@
-from itertools import accumulate, product
-from numbers import Number
+from ...core.utils import cached_property
 
 import numpy as np
 
-from ..core.utils import cached_property
-from .abstract import CompressedArray
-from .subarray import ConnectivitySubarray
-
+from .compressedarray import CompressedArray
 
 class ConnectivityArray(CompressedArray):
-    """An underlying UGRID connectivity array.
+    """TODOUGRID
 
-    See CF section 5.9 "Mesh Topology Variables".
-
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) TODOUGRIDBER
 
     """
 
-    def __new__(cls, *args, **kwargs):
-        """Store subarray classes.
-
-        If a child class requires different subarray classes than the
-        ones defined here, then they must be defined in the __new__
-        method of the child class.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        """
-        instance = super().__new__(cls)
-        instance._Subarray = {"connectivity": ConnectivitySubarray}
-        return instance
-
-    def __init__(self, compressed_array=None, source=None, copy=True):
+    def __init__(self, connectivity=None, start_index=0,
+                 source=None, copy=True):
         """**Initialisation**
 
         :Parameters:
 
-            compressed_array: array_like
-                The 2-d compressed array.
+            connectivity: array_like
+                TODOUGRID
 
-            shape: `tuple`
-                The shape of the uncompressed array.
+            start_index: `int`, optional
 
             {{init source: optional}}
 
@@ -48,14 +28,21 @@ class ConnectivityArray(CompressedArray):
 
         """
         super().__init__(
-            compressed_array=compressed_array,
-            shape=(compressed_array.shape[0],) * 2,
-            compressed_dimensions={2: (2,)},
-            compression_type="connectivity",
-            start_index=0,
+            compressed_array=connectivity,
+            shape=(connectivity.shape[0],) * 2,
+            compressed_dimensions={1: (1,)},
+            compression_type="cell connectivity",
             source=source,
             copy=copy,
         )
+
+        if source is not None:
+            try:
+                start_index = source.get_start_index(0)
+            except AttributeError:
+                start_index = 0
+
+        self._set_component("start_index", start_index, copy=False)
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -89,6 +76,7 @@ class ConnectivityArray(CompressedArray):
 
         return self.get_subspace(u, indices, copy=True)
 
+    @property
     def array(self):
         """TODOUGRID.
 
@@ -108,6 +96,7 @@ class ConnectivityArray(CompressedArray):
         """
         return np.dtype(bool)
 
+    @property
     def sparse_array(self):
         """TODOUGRID.
 
@@ -117,27 +106,6 @@ class ConnectivityArray(CompressedArray):
 
         """
         return self[...]
-
-    def get_connectivity(self, default=ValueError()):
-        """TODOUGIRD Return the list variable for a compressed array.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            default: optional
-                Return the value of the *default* parameter if the list
-                variable has not been set.
-
-                {{default Exception}}
-
-        :Returns:
-
-            `Connectivity`
-                TODOUGRID
-
-        """
-        return self._get_component("connectivity_variable", default=default)
 
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
@@ -164,24 +132,6 @@ class ConnectivityArray(CompressedArray):
 
         """
         return [(size,) for size in self.shape]
-#        if shapes == -1:
-#            return [(size,) for size in self.shape]
-#
-#        if isinstance(shapes, (str, Number)):
-#            return [shapes, (self.shape[1],)]
-#
-#        if isinstance(shapes, dict):
-#            shapes = [
-#                shapes[i] if i in shapes else None for i in range(self.ndim)
-#            ]
-#        elif len(shapes) != self.ndim:
-#            raise ValueError(
-#                f"Wrong number of 'shapes' elements in {shapes}: "
-#                f"Got {len(shapes)}, expected {self.ndim}"
-#            )
-#
-#        # chunks is a sequence
-#        return [shapes[0], (self.shape[1],)]
 
     def subarrays(self, shapes=-1):
         """Return descriptors for every subarray.
