@@ -1,3 +1,5 @@
+from math import prod
+
 import numpy
 
 from .propertiesdata import PropertiesData
@@ -92,9 +94,189 @@ class PropertiesDataBounds(PropertiesData):
 
             self.set_interior_ring(interior_ring, copy=False)
 
-    # ----------------------------------------------------------------
-    # Attributes
-    # ----------------------------------------------------------------
+    @property
+    def dtype(self):
+        """Data-type of the data elements.
+
+        **Examples**
+
+        >>> d.dtype
+        dtype('float64')
+        >>> type(d.dtype)
+        <type 'numpy.dtype'>
+
+        """
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            return data.dtype
+
+        bounds = self.get_bounds_data(None, _units=False, _fill_value=False)
+        if bounds is not None:
+            return bounds.dtype
+
+        raise AttributeError(
+            f"{self.__class__.__name__} object has no attribute 'dtype'"
+        )
+
+    @property
+    def ndim(self):
+        """The number of data dimensions.
+
+        Only dimensions that correspond to domain axis constructs are
+        included.
+        
+        .. seealso:: `data`, `has_data`, `isscalar`, `shape`, `size`
+
+        **Examples**
+
+        >>> f.shape
+        (73, 96)
+        >>> f.ndim
+        2
+        >>> f.size
+        7008
+
+        >>> f.shape
+        (73, 1, 96)
+        >>> f.ndim
+        3
+        >>> f.size
+        7008
+
+        >>> f.shape
+        (73,)
+        >>> f.ndim
+        1
+        >>> f.size
+        73
+
+        >>> f.shape
+        ()
+        >>> f.ndim
+        0
+        >>> f.size
+        1
+
+        """
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            return data.ndim
+
+        bounds = self.get_bounds_data(None, _units=False, _fill_value=False)
+        if bounds is not None:
+            ndim = bounds.ndim
+            if self.has_geometry():
+                ndim -= 2
+            else:
+                ndim -= 1
+
+            return ndim
+
+        raise AttributeError(
+            f"{self.__class__.__name__} object has no attribute 'ndim'"
+        )
+
+    @property
+    def shape(self):
+        """A tuple of the data array's dimension sizes.
+
+        Only dimensions that correspond to domain axis constructs are
+        included.
+        
+        .. seealso:: `data`, `has_data`, `ndim`, `size`
+
+        **Examples**
+
+        >>> f.shape
+        (73, 96)
+        >>> f.ndim
+        2
+        >>> f.size
+        7008
+
+        >>> f.shape
+        (73, 1, 96)
+        >>> f.ndim
+        3
+        >>> f.size
+        7008
+
+        >>> f.shape
+        (73,)
+        >>> f.ndim
+        1
+        >>> f.size
+        73
+
+        >>> f.shape
+        ()
+        >>> f.ndim
+        0
+        >>> f.size
+        1
+
+        """
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            return data.shape
+
+        bounds = self.get_bounds_data(None, _units=False, _fill_value=False)
+        if bounds is not None:
+            shape = bounds.shape
+            if self.has_geometry():
+                shape = shape[:-2]
+            else:
+                shape = shape[:-1]
+
+            return shape
+
+        raise AttributeError(
+            f"{self.__class__.__name__} object has no attribute 'shape'"
+        )
+
+    @property
+    def size(self):
+        """The number elements in the data
+
+        `size` is equal to the product of `shape`, that only includes
+        the sizes of dimensions that correspond to domain axis
+        constructs.
+
+        .. seealso:: `data`, `has_data`, `ndim`, `shape`
+
+        **Examples**
+
+        >>> f.shape
+        (73, 96)
+        >>> f.ndim
+        2
+        >>> f.size
+        7008
+
+        >>> f.shape
+        (73, 1, 96)
+        >>> f.ndim
+        3
+        >>> f.size
+        7008
+
+        >>> f.shape
+        (73,)
+        >>> f.ndim
+        1
+        >>> f.size
+        73
+
+        >>> f.shape
+        ()
+        >>> f.ndim
+        0
+        >>> f.size
+        1
+
+        """
+        return prod(self.shape)
+    
     @property
     def bounds(self):
         """Return the bounds.
@@ -258,14 +440,6 @@ class PropertiesDataBounds(PropertiesData):
         """
         return self._del_component("geometry", default=default)
 
-    #        try:
-    #            return self._del_component("geometry")
-    #        except ValueError:
-    #            return self._default(
-    #                default,
-    #                "{!r} has no geometry type".format(self.__class__.__name__),
-    #            )
-
     def del_interior_ring(self, default=ValueError()):
         """Remove the geometry type.
 
@@ -312,16 +486,6 @@ class PropertiesDataBounds(PropertiesData):
         """
         return self._del_component("interior_ring", default=default)
 
-    #        try:
-    #            return self._del_component("interior_ring")
-    #        except ValueError:
-    #            return self._default(
-    #                default,
-    #                "{!r} has no interior ring variable".format(
-    #                    self.__class__.__name__
-    #                ),
-    #            )
-
     def get_bounds(self, default=ValueError()):
         """Return the bounds.
 
@@ -366,13 +530,6 @@ class PropertiesDataBounds(PropertiesData):
         """
         return self._get_component("bounds", default=default)
 
-    #        try:
-    #            return self._get_component("bounds")
-    #        except ValueError:
-    #            return self._default(
-    #                default, "{!r} has no bounds".format(self.__class__.__name__)
-    #            )
-
     def get_geometry(self, default=ValueError()):
         """Return the geometry type.
 
@@ -413,14 +570,6 @@ class PropertiesDataBounds(PropertiesData):
 
         """
         return self._get_component("geometry", default=default)
-
-    #        try:
-    #            return self._get_component("geometry")
-    #        except ValueError:
-    #            return self._default(
-    #                default,
-    #                "{!r} has no geometry type".format(self.__class__.__name__),
-    #            )
 
     def get_interior_ring(self, default=ValueError()):
         """Return the interior ring variable for polygon geometries.
@@ -469,16 +618,6 @@ class PropertiesDataBounds(PropertiesData):
 
         """
         return self._get_component("interior_ring", default=default)
-
-    #        try:
-    #           return self._get_component("interior_ring")
-    #        except ValueError:
-    #           return self._default(
-    #                default,
-    #                "{!r} has no interior ring variable".format(
-    #                    self.__class__.__name__
-    #                ),
-    #            )
 
     def has_bounds(self):
         """Whether or not there are bounds.

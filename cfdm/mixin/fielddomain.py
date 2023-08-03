@@ -572,18 +572,18 @@ class FieldDomain:
             **filter_kwargs,
         )
 
-        def bounds_topology(
-        self,
-        *identity,
+    def bounds_topology(
+            self,
+            *identity,
         default=ValueError(),
         key=False,
         item=False,
         **filter_kwargs,
     ):
-        """Select an domain topology construct.
-
+        """Select a bounds topology construct.
+        
         {{unique construct}}
-
+        
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `construct`, `bounds_topologies`
@@ -632,6 +632,57 @@ class FieldDomain:
             key=key,
             item=item,
             default=default,
+            **filter_kwargs,
+        )
+
+    def bounds_topologies(self, *identities, **filter_kwargs):
+        """Return bounds topology constructs.
+
+        Note that ``f.domain_topologies(*identities,
+
+        **filter_kwargs)`` is equivalent to
+
+        ``f.constructs.filter(filter_by_type=["bounds_topology"],
+        filter_by_identity=identities, **filter_kwargs)``.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `constructs`
+
+        :Parameters:
+
+            identities: optional
+                Select bounds topology constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                If no identities are provided then all bounds topology
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns constructs}}
+
+        **Examples:**
+
+        >>> f.bounds_topologies()
+        Constructs:
+        {}
+        >>> f.bounds_topologies()
+        Constructs:
+        {'boundstopology0': TODOUGRID}
+
+        """
+        return self._filter_interface(
+            ("bounds_topology",),
+            "bounds_topologies",
+            identities,
             **filter_kwargs,
         )
 
@@ -1369,8 +1420,8 @@ class FieldDomain:
                 Additionally, the values are matched against construct
                 identifiers, with or without the ``'key%'`` prefix.
 
-                If no values are provided then all dimension
-                coordinate constructs are selected.
+                If no values are provided then all cell measure
+                constructs are selected.
 
                 {{value match}}
 
@@ -1488,7 +1539,7 @@ class FieldDomain:
                 Additionally, the values are matched against construct
                 identifiers, with or without the ``'key%'`` prefix.
 
-                If no values are provided then all cell toplogy
+                If no values are provided then all cell topology
                 constructs are selected.
 
                 {{value match}}
@@ -1513,6 +1564,78 @@ class FieldDomain:
         **Examples**
 
         TODOUGRID
+
+        """
+        return self._construct(
+            "cell_topology",
+            "cell_topologies",
+            identity,
+            key=key,
+            item=item,
+            default=default,
+            **filter_kwargs,
+        )
+
+    def cell_topologies(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select a cell topology construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        .. seealso:: `construct`, `cell_topologies`
+
+        :Parameters:
+
+            identity: optional
+                Select cell topology constructs that have an identity,
+                defined by their `!identities` methods, that matches
+                any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                If no values are provided then all cell topology
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        **Examples**
+
+        TODOUGRID 
+
+        >>> f = {{package}}.example_{{class_lower}}(1)
+        >>> f.cell_measure()
+        <CellMeasure: measure:area(9, 10) km2>
+        >>> f.cell_measure('measure:area', key=True)
+        'cellmeasure0'
+        >>> f.cell_measure('measure:area', item=True)
+        ('cellmeasure0', <CellMeasure: measure:area(9, 10) km2>)
 
         """
         return self._construct(
@@ -1914,7 +2037,7 @@ class FieldDomain:
                 Additionally, the values are matched against construct
                 identifiers, with or without the ``'key%'`` prefix.
 
-                If no values are provided then all domein toplogy
+                If no values are provided then all domein topology
                 constructs are selected.
 
                 {{value match}}
@@ -2002,56 +2125,6 @@ class FieldDomain:
             **filter_kwargs,
         )
 
-    def bounds_topologies(self, *identities, **filter_kwargs):
-        """Return domain topology constructs.
-
-        Note that ``f.domain_topologies(*identities,
-
-        **filter_kwargs)`` is equivalent to
-
-        ``f.constructs.filter(filter_by_type=["domain_topology"],
-        filter_by_identity=identities, **filter_kwargs)``.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `constructs`
-
-        :Parameters:
-
-            identities: optional
-                Select domain topology constructs that have an
-                identity, defined by their `!identities` methods, that
-                matches any of the given values.
-
-                If no identities are provided then all domain topology
-                constructs are selected.
-
-                {{value match}}
-
-                {{displayed identity}}
-
-            {{filter_kwargs: optional}}
-
-        :Returns:
-
-                {{Returns constructs}}
-
-        **Examples:**
-
-        >>> f.domain_topologies()
-        Constructs:
-        {}
-        >>> f.domain_topologies()
-        Constructs:
-        {'domaintopology0': TODOUGRID}
-
-        """
-        return self._filter_interface(
-            ("bounds_topology",),
-            "bounds_topologies",
-            identities,
-            **filter_kwargs,
-        )
 
     @_manage_log_level_via_verbosity
     def equals(

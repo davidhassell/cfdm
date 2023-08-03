@@ -63,7 +63,10 @@ class Topology(PropertiesData):
 
     @property
     def ndim(self):
-        """The number of dimensions in the data array.
+        """The number of data dimensions.
+
+        Only dimensions that correspond to domain axis constructs are
+        included.
 
         .. seealso:: `data`, `has_data`, `shape`, `size`
 
@@ -89,6 +92,9 @@ class Topology(PropertiesData):
     def shape(self):
         """A tuple of the data array's dimension sizes.
 
+        Only dimensions that correspond to domain axis constructs are
+        included.
+
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
         **Examples**
@@ -111,7 +117,11 @@ class Topology(PropertiesData):
 
     @property
     def size(self):
-        """The number of elements in the data array.
+        """The number elements in the data.
+
+        `size` is equal to the product of `shape`, that only includes
+        the sizes of dimensions that correspond to domain axis
+        constructs.
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 
