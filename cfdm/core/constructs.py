@@ -36,9 +36,9 @@ class Constructs(abstract.Container):
         cell_measure=None,
         coordinate_reference=None,
         domain_axis=None,
-#        domain_topology=None,
-            bounds_topology=None,
-            cell_topology=None,
+        #        domain_topology=None,
+        bounds_topology=None,
+        cell_topology=None,
         cell_method=None,
         source=None,
         copy=True,
@@ -232,9 +232,9 @@ class Constructs(abstract.Container):
             self._key_base["cell_measure"] = cell_measure
             self._array_constructs.add("cell_measure")
 
-#        if domain_topology: 
-#            self._key_base["domain_topology"] = domain_topology
-#            self._array_constructs.add("domain_topology")
+        #        if domain_topology:
+        #            self._key_base["domain_topology"] = domain_topology
+        #            self._array_constructs.add("domain_topology")
 
         if bounds_topology:
             self._key_base["bounds_topology"] = bounds_topology

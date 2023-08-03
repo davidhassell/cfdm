@@ -4,7 +4,7 @@ from numbers import Number
 import numpy as np
 
 from ..core.utils import cached_property
-from .abstract import ConnectivityArray #CompressedArray
+from .abstract import ConnectivityArray  # CompressedArray
 from .subarray import CellConnectivitySubarray
 
 
@@ -28,5 +28,5 @@ class CellConnectivityArray(ConnectivityArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"cell connectivity": CellConnectivitySubarray}
+        instance._Subarray = {"connectivity": CellConnectivitySubarray}
         return instance

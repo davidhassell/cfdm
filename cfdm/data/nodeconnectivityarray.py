@@ -4,11 +4,11 @@ from numbers import Number
 import numpy as np
 
 from ..core.utils import cached_property
-from .abstract import ConnectivityArray #CompressedArray
+from .abstract import ConnectivityArray  # CompressedArray
 from .subarray import NodeConnectivitySubarray
 
 
-#class NodeConnectivityArray(CompressedArray):
+# class NodeConnectivityArray(CompressedArray):
 class NodeConnectivityArray(ConnectivityArray):
     """An underlying UGRID connectivity array.
 
@@ -29,8 +29,9 @@ class NodeConnectivityArray(ConnectivityArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"cell connectivity": NodeConnectivitySubarray}
+        instance._Subarray = {"connectivity": NodeConnectivitySubarray}
         return instance
+
 
 #    def __init__(self, node_connectivity=None, start_index=0,
 #                 source=None, copy=True):
@@ -161,7 +162,7 @@ class NodeConnectivityArray(ConnectivityArray):
 #        **Examples**
 #
 #        >>> a.shape
-#        (4, 4)        
+#        (4, 4)
 #        >>> a.subarray_shapes(-1)
 #        [(4,), (4)]
 #

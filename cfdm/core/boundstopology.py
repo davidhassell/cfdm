@@ -1,8 +1,8 @@
 from . import abstract
 
 
-class BoundsTopology(abstract.PropertiesData):
-    """A domain topology construct of the CF data model.
+class BoundsTopology(abstract.Topology):
+    """A bounds topology construct of the CF data model.
 
     TODOUGRIDVER
 

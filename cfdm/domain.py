@@ -254,14 +254,14 @@ class Domain(
             x = "\n                : ".join(x)
             string.append(f"Domain ancils   : {x}")
 
-       ## Domain topologies
-       #x = [
-       #    _print_item(self, cid, v, construct_data_axes[cid])
-       #    for cid, v in sorted(self.domain_topologies(todict=True).items())
-       #]
-       #if x:
-       #    x = "\n                : ".join(x)
-       #    string.append(f"Topologies      : {x}")
+        # Domain topologies
+        # x = [
+        #    _print_item(self, cid, v, construct_data_axes[cid])
+        #    for cid, v in sorted(self.domain_topologies(todict=True).items())
+        # ]
+        # if x:
+        #    x = "\n                : ".join(x)
+        #    string.append(f"Topologies      : {x}")
 
         # Bounds topology
         x = [
@@ -272,14 +272,14 @@ class Domain(
             x = "\n                : ".join(x)
             string.append(f"Bounds Topology : {x}")
 
-#        # Cell topologies
-#        x = [
-#            _print_item(self, cid, v, construct_data_axes[cid])
-#            for cid, v in sorted(self.cell_topologies(todict=True).items())
-#        ]
-#        if x:
-#            x = "\n                : ".join(x)
-#            string.append(f"Cell topologies : {x}")
+        # Cell topologies
+        # x = [
+        #     _print_item(self, cid, v, construct_data_axes[cid])
+        #     for cid, v in sorted(self.cell_topologies(todict=True).items())
+        # ]
+        # if x:
+        #     x = "\n                : ".join(x)
+        #     string.append(f"Cell topologies : {x}")
 
         return "\n".join(string)
 
@@ -831,8 +831,8 @@ class Domain(
                 )
             )
 
-        ## Domain topologies
-        #for cid, value in sorted(self.domain_topologies(todict=True).items()):
+        # Domain topologies
+        # for cid, value in sorted(self.domain_topologies(todict=True).items()):
         #    string.append("")
         #    string.append(
         #        value.dump(
@@ -858,8 +858,8 @@ class Domain(
                 )
             )
 
-        ## Cell topologies
-        #for cid, value in sorted(self.cell_topologies(todict=True).items()):
+        # Cell topologies
+        # for cid, value in sorted(self.cell_topologies(todict=True).items()):
         #    string.append("")
         #    string.append(
         #        value.dump(
@@ -871,7 +871,6 @@ class Domain(
         #            _axis_names=axis_to_name,
         #        )
         #    )
-
 
         string.append("")
 

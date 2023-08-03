@@ -167,7 +167,8 @@ from .dimensioncoordinate import DimensionCoordinate
 from .domain import Domain
 from .domainancillary import DomainAncillary
 from .domainaxis import DomainAxis
-#from .domaintopology import DomainTopology
+
+# from .domaintopology import DomainTopology
 from .boundstopology import BoundsTopology
 from .celltopology import CellTopology
 from .field import Field

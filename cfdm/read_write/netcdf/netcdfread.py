@@ -3853,7 +3853,7 @@ class NetCDFRead(IORead):
                     f"{cell_topology.__class__.__name__} "
                     f"with size {cell_topology.size}"
                 )  # pragma: no cover
-                
+
                 key = self.implementation.set_cell_topology(
                     f,
                     cell_topology,
@@ -8519,8 +8519,8 @@ class NetCDFRead(IORead):
             # The zero-based indices of the location index set (which
             # will be None if there is no location index set)
             "index_set": None,
-#            # Domain topology constructs for each location
-#            "domain_topology": {},
+            #            # Domain topology constructs for each location
+            #            "domain_topology": {},
             # Bounds topology constructs for each location
             "bounds_topology": {},
             # cell topology constructs for each location
@@ -8594,13 +8594,13 @@ class NetCDFRead(IORead):
             "location": location,
             # The zero-based indices of the location index set
             "index_set": index_set,
-#            # Domain topology constructs for each location
-#            "domain_topology": {},
+            #            # Domain topology constructs for each location
+            #            "domain_topology": {},
             # Bounds topology constructs for each location
             "bounds_topology": {},
             # cell topology constructs for each location
             "cell_topology": {},
-             # Auxiliary coordinate constructs for each location
+            # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
             # The netCDF dimension spanned by the mesh cells for
             # the location
@@ -8697,8 +8697,6 @@ class NetCDFRead(IORead):
                 TODOUGRID
 
         """
-        g = self.read_vars
-
         auxs = mesh["auxiliary_coordinates"].get(location)
         if auxs is not None:
             # Return copies of existing auxiliary coordinate
@@ -8763,9 +8761,7 @@ class NetCDFRead(IORead):
                     mesh,
                     location,
                 )
-                new_auxs.append(aux)
-
-            auxs = new_auxs[:]
+                auxs.append(aux)
 
         # Apply a location index set
         index_set = mesh["index_set"]
@@ -9013,7 +9009,7 @@ class NetCDFRead(IORead):
         """
         if location == "node":
             return
-        
+
         connectivity_attr = f"{location}_node_connectivity"
         topology = mesh["bounds_topology"].get(connectivity_attr)
         if topology is not None:
@@ -9021,7 +9017,7 @@ class NetCDFRead(IORead):
             return topology.copy()
 
         attributes = mesh["mesh_attributes"]
-        connectivity_ncvar = attributes.get(connectivity_attr)        
+        connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._ugrid_check_connectivity_variable(
             parent_ncvar,
             mesh["mesh_ncvar"],
@@ -9040,15 +9036,14 @@ class NetCDFRead(IORead):
 
         # Initialise the domain topology variable
         topology = self.implementation.initialise_BoundsTopology(
+            cell_type=location,
             properties=properties,
             data=bounds_connectivity,
             copy=False,
         )
 
         # Set the netCDF variable name and the original file names
-        self.implementation.nc_set_variable(
-            topology, connectivity_ncvar
-        )
+        self.implementation.nc_set_variable(topology, connectivity_ncvar)
         self.implementation.set_original_filenames(
             topology, self.read_vars["filename"]
         )
@@ -9087,16 +9082,16 @@ class NetCDFRead(IORead):
                 TODOUGRID, or `None` if the domain topology construct
                 could not be created.
 
-        """        
+        """
         attributes = mesh["mesh_attributes"]
 
         connectivity = f"{location}_{location}_connectivity"
         connectivity_attr = connectivity
         if location == "node":
             for connectivity_attr in (
-                    "volume_node_connectivity",
-                    "face_node_connectivity",
-                    "edge_node_connectivity",
+                "volume_node_connectivity",
+                "face_node_connectivity",
+                "edge_node_connectivity",
             ):
                 if connectivity_attr in attributes:
                     break
@@ -9104,12 +9099,12 @@ class NetCDFRead(IORead):
         if connectivity_attr not in attributes:
             # No cell topology in the mesh
             return
-            
+
         topology = mesh["cell_topology"].get(connectivity)
         if topology is not None:
             # Return a copy of an existing cell topology construct
             return topology.copy()
-               
+
         # Select the connectivity attribute that has the hightest
         # topology dimension
         connectivity_ncvar = attributes.get(connectivity_attr)
@@ -9123,25 +9118,25 @@ class NetCDFRead(IORead):
 
         # CF properties
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
-        start_index=properties.get("start_index", 0)
-                
+        start_index = properties.get("start_index", 0)
+
         # Connectivity data
         indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-        if location =="node":
+        if location == "node":
             array = self.implementation.initialise_NodeConnectivityArray(
                 connectivity=indices,
                 start_index=start_index,
                 copy=False,
             )
         else:
-            print (connectivity_attr)
-            return # TODOUGRID for now ...
+            print(connectivity_attr)
+            return  # TODOUGRID for now ...
             array = self.implementation.initialise_CellConnectivityArray(
                 connectivity=indices,
                 start_index=start_index,
                 copy=False,
             )
-            
+
         cell_connectivity = self._create_Data(
             array,
             units=kwargs["units"],
@@ -9151,15 +9146,14 @@ class NetCDFRead(IORead):
 
         # Initialise the domain topology variable
         topology = self.implementation.initialise_CellTopology(
+            cell_type=location,
             properties=properties,
             data=cell_connectivity,
             copy=False,
         )
 
         # Set the netCDF variable name and the original file names
-        self.implementation.nc_set_variable(
-            topology, connectivity_ncvar
-        )
+        self.implementation.nc_set_variable(topology, connectivity_ncvar)
         self.implementation.set_original_filenames(
             topology, self.read_vars["filename"]
         )

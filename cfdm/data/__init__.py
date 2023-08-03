@@ -1,4 +1,4 @@
-from .abstract import Array, CompressedArray,  ConnectivityArray, RaggedArray
+from .abstract import Array, CompressedArray, ConnectivityArray, RaggedArray
 
 from .subarray import (
     BiLinearSubarray,

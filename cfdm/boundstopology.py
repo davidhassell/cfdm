@@ -4,11 +4,11 @@ from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 class BoundsTopology(
     mixin.NetCDFVariable,
-    mixin.PropertiesData,
+    mixin.Topology,
     mixin.Files,
     core.BoundsTopology,
 ):
-    """A domain topology construct of the CF data model.
+    """TODOUGRID A domain topology construct of the CF data model.
 
     A domain topology construct describes explicitly the connectivity
     of domain cells indexed by a single domain axis construct. When
@@ -56,6 +56,7 @@ class BoundsTopology(
 
     def __init__(
         self,
+        cell_type=None,
         properties=None,
         data=None,
         source=None,
@@ -79,6 +80,7 @@ class BoundsTopology(
 
         """
         super().__init__(
+            cell_type=cell_type,
             properties=properties,
             data=data,
             source=source,
@@ -88,77 +90,6 @@ class BoundsTopology(
 
         self._initialise_netcdf(source)
         self._initialise_original_filenames(source)
-
-    @property
-    def ndim(self):
-        """The number of dimensions in the data array.
-
-        .. seealso:: `data`, `has_data`, `shape`, `size`
-
-        **Examples**
-
-        >>> d.shape
-        (1324,)
-        >>> d.ndim
-        1
-        >>> f.size
-        1324
-
-        """
-        data = self.get_data(None, _units=False, _fill_value=False)
-        if data is not None:
-            return 1
-
-        raise AttributeError(
-            f"{self.__class__.__name__} object has no attribute 'ndim'"
-        )
-
-    @property
-    def shape(self):
-        """A tuple of the data array's dimension sizes.
-
-        .. seealso:: `data`, `has_data`, `ndim`, `size`
-
-        **Examples**
-
-        >>> d.shape
-        (1324,)
-        >>> d.ndim
-        1
-        >>> d.size
-        1324
-
-        """
-        data = self.get_data(None, _units=False, _fill_value=False)
-        if data is not None:
-            return data.shape[:1]
-
-        raise AttributeError(
-            f"{self.__class__.__name__} object has no attribute 'shape'"
-        )
-
-    @property
-    def size(self):
-        """The number of elements in the data array.
-
-        .. seealso:: `data`, `has_data`, `ndim`, `shape`
-
-        **Examples**
-
-        >>> d.shape
-        (1324,)
-        >>> d.ndim
-        1
-        >>> d.size
-        1324
-
-        """
-        try:
-            return self.shape[0]
-        except AttributeError:
-            raise AttributeError(
-                f"{self.__class__.__name__} object has no attribute 'size'"
-            )
 
     def dump(
         self,

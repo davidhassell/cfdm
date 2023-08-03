@@ -1,4 +1,4 @@
-from . import (
+from . import (  # DomainTopology,
     CF,
     AuxiliaryCoordinate,
     Bounds,
@@ -14,7 +14,6 @@ from . import (
     Domain,
     DomainAncillary,
     DomainAxis,
-#    DomainTopology,
     Field,
     FieldAncillary,
     Index,
@@ -2843,9 +2842,7 @@ class CFDMImplementation(Implementation):
         """
         cell_method.set_method(method)
 
-    def set_cell_topology(
-        self, parent, construct, axes, copy=True, **kwargs
-    ):
+    def set_cell_topology(self, parent, construct, axes, copy=True, **kwargs):
         """Insert a cell topology object into a field.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -3674,7 +3671,7 @@ _implementation = CFDMImplementation(
     Domain=Domain,
     DomainAncillary=DomainAncillary,
     DomainAxis=DomainAxis,
-#    DomainTopology=DomainTopology,
+    #    DomainTopology=DomainTopology,
     Field=Field,
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,

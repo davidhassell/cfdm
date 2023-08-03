@@ -1,18 +1,19 @@
-from ...core.utils import cached_property
-
 import numpy as np
 
+from ...core.utils import cached_property
 from .compressedarray import CompressedArray
 
+
 class ConnectivityArray(CompressedArray):
-    """TODOUGRID
+    """TODOUGRID.
 
     .. versionadded:: (cfdm) TODOUGRIDBER
 
     """
 
-    def __init__(self, connectivity=None, start_index=0,
-                 source=None, copy=True):
+    def __init__(
+        self, connectivity=None, start_index=0, source=None, copy=True
+    ):
         """**Initialisation**
 
         :Parameters:
@@ -30,8 +31,8 @@ class ConnectivityArray(CompressedArray):
         super().__init__(
             compressed_array=connectivity,
             shape=(connectivity.shape[0],) * 2,
-            compressed_dimensions={1: (1,)},
-            compression_type="cell connectivity",
+            compressed_dimensions={0: (0,), 1: (1,)},
+            compression_type="connectivity",
             source=source,
             copy=copy,
         )
@@ -110,6 +111,10 @@ class ConnectivityArray(CompressedArray):
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 
+        Note that the ouput is indpendent of the *shapes* parameter,
+        because each dimension of the compressed data corresponds to a
+        unique dimension of the uncompressed data.
+
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `subarray`
@@ -126,8 +131,14 @@ class ConnectivityArray(CompressedArray):
         **Examples**
 
         >>> a.shape
-        (4, 4)        
+        (4, 4)
+        >>> a.compressed_dimensions()
+        {0: (0,), 1: (1,)}
         >>> a.subarray_shapes(-1)
+        [(4,), (4)]
+        >>> a.subarray_shapes("auto")
+        [(4,), (4)]
+        >>> a.subarray_shapes("60B")
         [(4,), (4)]
 
         """
