@@ -560,6 +560,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                     first, last = ("??", "??")
 
             if size > 3:
+                print (9999999999999, repr(first))
                 out = f"{open_brackets}{first}, ..., {last}{close_brackets}"
             elif shape[-1:] == (3,):
                 middle = self.second_element()
@@ -1270,9 +1271,14 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         """
         return type(self)(numpy.ma.getmaskarray(self.array))
 
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
+    @property
+    def sparse_array(self):
+        try:
+            <somethng>
+        except AttributeError:
+            raise AttributeError(TIDOUGRID)
+    
+    
     def any(self):
         """Test whether any data array elements evaluate to True.
 
@@ -3025,7 +3031,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         bar <class 'str'>
 
         """
-        return self._item((slice(-1, None, 1),) * self.ndim)
+        return  self._item((slice(-1, None, 1),) * self.ndim)
 
     def second_element(self):
         """Return the second element of the data as a scalar.

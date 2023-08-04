@@ -87,7 +87,42 @@ class ConnectivityArray(CompressedArray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        # ------------------------------------------------------------
+        return self._sparse_getitem(indices).toarray()
+#        #-------------------------------------------------------------
+#        # Method: Uncompress the entire array and then subspace it
+#        # ------------------------------------------------------------
+#        compressed_dimensions = self.compressed_dimensions()
+#
+#        conformed_data = self.conformed_data()
+#        compressed_data = conformed_data["data"]
+#
+#        for _, u_shape, c_indices, _ in zip(*self.subarrays()):
+#            u = self.get_Subarray()(
+#                data=compressed_data,
+#                indices=c_indices,
+#                shape=u_shape,
+#                compressed_dimensions=compressed_dimensions,
+#            )
+#            u = u[...]
+#            break
+#
+#        if indices is Ellipsis:
+#            return u
+#
+#        return self.get_subspace(u, indices, copy=True).toarray()
+
+    def _sparse_getitem(self, indices):
+        """Return a subspace of the uncompressed data.
+
+        x.__getitem__(indices) <==> x[indices]
+
+        Returns a subspace of the connectivity array as an independent
+        scipy sparse array.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        #-------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
         compressed_dimensions = self.compressed_dimensions()
@@ -95,13 +130,15 @@ class ConnectivityArray(CompressedArray):
         conformed_data = self.conformed_data()
         compressed_data = conformed_data["data"]
 
-        (_, u_shape, c_indices, _) = zip(*self.subarrays())
-        u = self.get_Subarray()(
-            data=compressed_data,
-            indices=c_indices,
-            shape=u_shape,
-            compressed_dimensions=compressed_dimensions,
-        )
+        for _, u_shape, c_indices, _ in zip(*self.subarrays()):
+            u = self.get_Subarray()(
+                data=compressed_data,
+                indices=c_indices,
+                shape=u_shape,
+                compressed_dimensions=compressed_dimensions,
+            )
+            u = u[...]
+            break
 
         if indices is Ellipsis:
             return u
