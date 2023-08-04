@@ -1579,52 +1579,40 @@ class FieldDomain:
 
     def cell_topologies(
         self,
-        *identity,
-        default=ValueError(),
-        key=False,
-        item=False,
-        **filter_kwargs,
-    ):
+        *identities, **filter_kwargs):
         """Select a cell topology construct.
 
         {{unique construct}}
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `construct`, `cell_topologies`
 
+        Note that ``f.cell_topologies(*identities, **filter_kwargs)``
+        is equivalent to
+        ``f.constructs.filter(filter_by_type=["cell_topology"],
+        filter_by_identity=identities, **filter_kwargs)``.
+
+
         :Parameters:
 
-            identity: optional
+            identities: optional
                 Select cell topology constructs that have an identity,
                 defined by their `!identities` methods, that matches
                 any of the given values.
 
-                Additionally, the values are matched against construct
-                identifiers, with or without the ``'key%'`` prefix.
-
-                If no values are provided then all cell topology
+                If no identities are provided then all cell topology
                 constructs are selected.
 
                 {{value match}}
 
                 {{displayed identity}}
 
-            {{key: `bool`, optional}}
-
-            {{item: `bool`, optional}}
-
-            default: optional
-                Return the value of the *default* parameter if there
-                is no unique construct.
-
-                {{default Exception}}
-
-            {{filter_kwargs: optional}}
+            {{filter_kwargs: optional}} Also to configure the returned value.
 
         :Returns:
 
-                {{Returns construct}}
+                {{Returns constructs}}
 
         **Examples**
 
@@ -1639,13 +1627,10 @@ class FieldDomain:
         ('cellmeasure0', <CellMeasure: measure:area(9, 10) km2>)
 
         """
-        return self._construct(
-            "cell_topology",
+        return self._filter_interface(
+            ("cell_topology",),
             "cell_topologies",
-            identity,
-            key=key,
-            item=item,
-            default=default,
+            identities,
             **filter_kwargs,
         )
 

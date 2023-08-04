@@ -31,7 +31,7 @@ class NodeConnectivityArray(ConnectivityArray):
 
         """
         super().__init__(
-            compressed_array=connectivity,
+            connectivity=connectivity,
             start_index=start_index,
             compression_type="node connectivity",
             source=source,

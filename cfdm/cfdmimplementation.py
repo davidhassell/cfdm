@@ -27,9 +27,11 @@ from . import (  # DomainTopology,
 from .abstract import Implementation
 from .data import (
     Data,
+    CellConnectivityArray,
     GatheredArray,
     NetCDFArray,
     NodeBoundsArray,
+    NodeConnectivityArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
@@ -1773,6 +1775,27 @@ class CFDMImplementation(Implementation):
         """
         cls = self.get_class("Bounds")
         return cls()
+
+    def initialise_CellConnectivityArray(self, **kwargs):
+        """Return a cell connectivity array.
+
+        .. versionadded:: TODOUGRIDVER
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the node connectivity
+                array, which are passed to
+                `CellConnectivityArray.__init__`.
+
+        :Returns:
+
+            `CellConnectivityArray`
+
+        """
+        cls = self.get_class("CellConnectivityArray")
+        return cls(**kwargs)
+
 
     def initialise_CellMeasure(self, measure=None):
         """Return a cell measure construct.
@@ -3663,6 +3686,7 @@ _implementation = CFDMImplementation(
     cf_version=CF(),
     AuxiliaryCoordinate=AuxiliaryCoordinate,
     BoundsTopology=BoundsTopology,
+    CellConnectivityArray=CellConnectivityArray,
     CellMeasure=CellMeasure,
     CellMethod=CellMethod,
     CellTopology=CellTopology,
@@ -3683,6 +3707,7 @@ _implementation = CFDMImplementation(
     Index=Index,
     Count=Count,
     NodeBoundsArray=NodeBoundsArray,
+    NodeConnectivityArray=NodeConnectivityArray,
     NodeCountProperties=NodeCountProperties,
     PartNodeCountProperties=PartNodeCountProperties,
     Data=Data,

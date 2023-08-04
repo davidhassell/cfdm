@@ -72,9 +72,9 @@ class Topology(PropertiesData):
             header=header,
         )
 
-        cell_type = self.get_cell_type(None)
-        if cell_type is not None:
-            out.append(f"{name}.set_cell_type({cell_type!r})")
+        topology = self.get_topology(None)
+        if topology is not None:
+            out.append(f"{name}.set_topology({topology!r})")
 
         if string:
             indent = " " * indent
@@ -88,7 +88,7 @@ class Topology(PropertiesData):
 
         By default the identity is the first found of the following:
 
-        * The cell type, preceded by ``'cell_type:'``.
+        * The topology type, preceded by ``'topology:'``.
         * The ``standard_name`` property.
         * The ``cf_role`` property, preceded by 'cf_role='.
         * The ``long_name`` property, preceded by 'long_name='.
@@ -137,9 +137,9 @@ class Topology(PropertiesData):
         'no identity'
 
         """
-        n = self.get_cell_type(None)
+        n = self.get_topology(None)
         if n is not None:
-            return f"cell_type:{n}"
+            return f"topology:{n}"
 
         n = self.get_property("standard_name", None)
         if n is not None:
@@ -161,7 +161,7 @@ class Topology(PropertiesData):
 
         The identities comprise:
 
-        * The cell type, preceded by ``'cell_type:'``.
+        * The topology type, preceded by ``'topology:'``.
         * The ``standard_name`` property.
         * All properties, preceded by the property name and a colon,
           e.g. ``'long_name:Air temperature'``.
@@ -209,9 +209,9 @@ class Topology(PropertiesData):
         ncvar%cell_measure
 
         """
-        cell_type = self.get_cell_type(None)
-        if cell_type is not None:
-            pre = ((f"cell_type:{cell_type}",),)
+        topology = self.get_topology(None)
+        if topology is not None:
+            pre = ((f"topology:{topology}",),)
             pre0 = kwargs.pop("pre", None)
             if pre0:
                 pre = tuple(pre0) + pre

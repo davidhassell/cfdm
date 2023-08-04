@@ -10,7 +10,7 @@ class Topology(PropertiesData):
 
     def __init__(
         self,
-        cell_type=None,
+        topology=None,
         properties=None,
         data=None,
         source=None,
@@ -21,15 +21,15 @@ class Topology(PropertiesData):
 
         :Parameters:
 
-            cell_type: `str`, optional
+            topology: `str`, optional
                 TODOUGRID Set the measure that indicates the metric given by
                 the data array.
 
-                The cell type may also be set after initialisation
-                with the `set_cell_type` method.
+                The topology may also be set after initialisation with
+                the `set_topology` method.
 
                 *Parameter example:*
-                  ``cell_type='face'``
+                  ``topology='face'``
 
             {{init properties: `dict`, optional}}
 
@@ -53,12 +53,12 @@ class Topology(PropertiesData):
 
         if source is not None:
             try:
-                cell_type = source.get_cell_type(None)
+                topology = source.get_topology(None)
             except AttributeError:
-                cell_type = None
+                topology = None
 
-        if cell_type is not None:
-            self.set_cell_type(cell_type)
+        if topology is not None:
+            self.set_topology(topology)
 
     @property
     def ndim(self):
@@ -147,148 +147,89 @@ class Topology(PropertiesData):
                 f"{self.__class__.__name__} object has no attribute 'size'"
             )
 
-    def del_cell_type(self, default=ValueError()):
-        """Remove the cell type.
+    def del_topology(self, default=ValueError()):
+        """Remove the topology.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `get_cell_type`, `has_cell_type`, `set_cell_type`
+        .. seealso:: `get_topology`, `has_topology`, `set_topology`
 
         :Parameters:
 
             default: optional
                 Return the value of the *default* parameter if the
-                cell type has not been set.
+                topology has not been set.
 
                 {{default Exception}}
 
         :Returns:
 
-                The removed cell_type.
-
-        **Examples**
-
-        >>> c = {{package}}.{{class}}()
-        >>> c.set_cell_type('face')
-        >>> c.has_cell_type()
-        True
-        >>> c.get_cell_type()
-        'face'
-        >>> c.del_cell_type()
-        'face'
-        >>> c.has_cell_type()
-        False
-        >>> print(c.del_cell_type(None))
-        None
-        >>> print(c.get_cell_type(None))
-        None
+                The removed topology.
 
         """
-        return self._del_component("cell_type", default=default)
+        return self._del_component("topology", default=default)
 
-    def has_cell_type(self):
-        """Whether the cell type has been set.
+    def has_topology(self):
+        """Whether the topology type has been set.
+
+        The topology type specifies which aspect of the mesh topology
+        is represented by the bounds topology construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `del_cell_type`, `get_cell_type`, `set_cell_type`
+        .. seealso:: `del_topology`, `get_topology`, `set_topology`
 
         :Returns:
 
              `bool`
-                True if the cell type has been set, otherwise False.
-
-        **Examples**
-
-        >>> c = {{package}}.{{class}}()
-        >>> c.set_cell_type('face')
-        >>> c.has_cell_type()
-        True
-        >>> c.get_cell_type()
-        'face'
-        >>> c.del_cell_type()
-        'face'
-        >>> c.has_cell_type()
-        False
-        >>> print(c.del_cell_type(None))
-        None
-        >>> print(c.get_cell_type(None))
-        None
+                True if the topology has been set, otherwise False.
 
         """
-        return self._has_component("cell_type")
+        return self._has_component("topology")
 
-    def get_cell_type(self, default=ValueError()):
-        """Return the cell type.
+    def get_topology(self, default=ValueError()):
+        """Return the topology type.
+
+        The topology type specifies which aspect of the mesh topology
+        is represented by the bounds topology construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `del_cell_type`, `has_cell_type`, `set_cell_type`
+        .. seealso:: `del_topology`, `has_topology`, `set_topology`
 
         :Parameters:
 
             default: optional
                 Return the value of the *default* parameter if the
-                cell type has not been set.
+                topology has not been set.
 
                 {{default Exception}}
 
         :Returns:
 
-                The value of the cell type.
-
-        **Examples**
-
-        >>> c = {{package}}.{{class}}()
-        >>> c.set_cell_type('face')
-        >>> c.has_cell_type()
-        True
-        >>> c.get_cell_type()
-        'face'
-        >>> c.del_cell_type()
-        'face'
-        >>> c.has_cell_type()
-        False
-        >>> print(c.del_cell_type(None))
-        None
-        >>> print(c.get_cell_type(None))
-        None
+                The value of the topology.
 
         """
-        return self._get_component("cell_type", default=default)
+        return self._get_component("topology", default=default)
 
-    def set_cell_type(self, cell_type):
-        """Set the cell type.
+    def set_topology(self, topology):
+        """Set the topology type.
+
+        The topology type specifies which aspect of the mesh topology
+        is represented by the bounds topology construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `del_cell_type`, `get_cell_type`, `has_cell_type`
+        .. seealso:: `del_topology`, `get_topology`, `has_topology`
 
         :Parameters:
 
-            cell_type: `str`
-                The value for the cell type.
+            topology: `str`
+                The value for the topology.
 
         :Returns:
 
              `None`
 
-        **Examples**
-
-        >>> c = {{package}}.{{class}}()
-        >>> c.set_cell_type('face')
-        >>> c.has_cell_type()
-        True
-        >>> c.get_cell_type()
-        'face'
-        >>> c.del_cell_type()
-        'face'
-        >>> c.has_cell_type()
-        False
-        >>> print(c.del_cell_type(None))
-        None
-        >>> print(c.get_cell_type(None))
-        None
-
         """
-        return self._set_component("cell_type", cell_type, copy=False)
+        return self._set_component("topology", topology, copy=False)

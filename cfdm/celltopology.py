@@ -23,7 +23,7 @@ class CellTopology(
 
     def __init__(
         self,
-        cell_type=None,
+        topology=None,
         properties=None,
         data=None,
         source=None,
@@ -34,7 +34,7 @@ class CellTopology(
 
         :Parameters:
 
-            {{cell_type: `str`, optional}}
+            {{topology: `str`, optional}}
 
             {{init properties: `dict`, optional}}
 
@@ -49,7 +49,7 @@ class CellTopology(
 
         """
         super().__init__(
-            cell_type=cell_type,
+            topology=topology,
             properties=properties,
             data=data,
             source=source,

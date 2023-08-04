@@ -30,7 +30,7 @@ class CellConnectivityArray(ConnectivityArray):
 
         """
         super().__init__(
-            compressed_array=connectivity,
+            connectivity=connectivity,
             start_index=start_index,
             compression_type="cell connectivity",
             source=source,

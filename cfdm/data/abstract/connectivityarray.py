@@ -59,13 +59,15 @@ class ConnectivityArray(CompressedArray):
         """
         super().__init__(
             compressed_array=connectivity,
-            shape=(connectivity.shape[0],) * 2,
             compressed_dimensions={0: (0,), 1: (1,)},
             compression_type=compression_type,
             source=source,
             copy=copy,
         )
 
+        shape = (self._get_compressed_Array().shape[0],) * 2
+        self._set_component("shape", shape, copy=False)
+        
         if source is not None:
             try:
                 start_index = source.get_start_index(0)

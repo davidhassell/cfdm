@@ -9035,7 +9035,7 @@ class NetCDFRead(IORead):
 
         # Initialise the domain topology variable
         topology = self.implementation.initialise_BoundsTopology(
-            cell_type=location,
+            topology=connectivity_attr,
             properties=properties,
             data=bounds_connectivity,
             copy=False,
@@ -9085,6 +9085,11 @@ class NetCDFRead(IORead):
         attributes = mesh["mesh_attributes"]
 
         connectivity = f"{location}_{location}_connectivity"
+        topology = mesh["cell_topology"].get(connectivity)
+        if topology is not None:
+            # Return a copy of an existing cell topology construct
+            return topology.copy()
+        
         connectivity_attr = connectivity
         if location == "node":
             for connectivity_attr in (
@@ -9098,11 +9103,6 @@ class NetCDFRead(IORead):
         if connectivity_attr not in attributes:
             # No cell topology in the mesh
             return
-
-        topology = mesh["cell_topology"].get(connectivity)
-        if topology is not None:
-            # Return a copy of an existing cell topology construct
-            return topology.copy()
 
         # Select the connectivity attribute that has the hightest
         # topology dimension
@@ -9128,8 +9128,6 @@ class NetCDFRead(IORead):
                 copy=False,
             )
         else:
-            print(connectivity_attr)
-            return  # TODOUGRID for now ...
             array = self.implementation.initialise_CellConnectivityArray(
                 connectivity=indices,
                 start_index=start_index,
@@ -9145,7 +9143,7 @@ class NetCDFRead(IORead):
 
         # Initialise the domain topology variable
         topology = self.implementation.initialise_CellTopology(
-            cell_type=location,
+            topology=connectivity_attr,
             properties=properties,
             data=cell_connectivity,
             copy=False,
