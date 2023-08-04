@@ -160,12 +160,12 @@ class Subarray(Array):
             # Convert the data to a numpy array within the given
             # runtime context
             with context_manager():
-                if indices:
+                if indices is not None:
                     data = data[indices]
 
                 data = np.asanyarray(data)
         else:
-            if indices:
+            if indices is not None:
                 data = data[indices]
 
             data = np.asanyarray(data)

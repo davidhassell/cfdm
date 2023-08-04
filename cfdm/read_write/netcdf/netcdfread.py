@@ -8533,8 +8533,7 @@ class NetCDFRead(IORead):
         }
 
     def _ugrid_parse_location_index_set(self, parent_attributes):
-        """TODOUGRID Parse a UGRID mesh topology or location index set
-        variable.
+        """Parse a UGRID location index set variable.
 
         Adds a new entry to ``self.read_vars['mesh']``. Adds a
         location_index_set variable to
@@ -8840,7 +8839,7 @@ class NetCDFRead(IORead):
             compression_index=True,
         )
         node_coordinates = self._create_data(
-            node_ncvar, uncompress_override=True, compression_index=True
+            node_ncvar, compression_index=True
         )
         start_index = g["variable_attributes"][connectivity_ncvar].get(
             "start_index", 0

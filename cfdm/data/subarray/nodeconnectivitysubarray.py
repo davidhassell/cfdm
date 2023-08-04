@@ -1,6 +1,5 @@
 import numpy as np
 
-from ...core.utils import cached_property
 from .abstract import ConnectivitySubarray
 
 
@@ -32,12 +31,12 @@ class NodeConnectivitySubarray(ConnectivitySubarray):
         shape = node_connectivity.shape
         n_cells = shape[0]
 
-        row = []
+        #        row = []
         col = []
-        indptr = [0]
+        pointers = [0]
         #        row_extend = row.extend
         col_extend = col.extend
-        indptr_append = indptr.append
+        pointers_append = pointers.append
 
         np_compressed = np.ma.compressed
         np_isin = np.isin
@@ -55,13 +54,13 @@ class NodeConnectivitySubarray(ConnectivitySubarray):
 
             #            row_extend((i,) * len(connected_cells))
             n += len(connected_cells)
-            indptr_append(n)
+            pointers_append(n)
 
             col_extend(connected_cells)
 
         data = np.ones((n,), dtype=bool)
         #        c = csr_array((data, (row, col)), shape=(n_cells, n_cells))
-        c = csr_array((data, col, indptr), shape=(n_cells, n_cells))
+        c = csr_array((data, col, pointers), shape=(n_cells, n_cells))
 
         if indices is Ellipsis:
             return c

@@ -1,9 +1,3 @@
-from itertools import accumulate, product
-from numbers import Number
-
-import numpy as np
-
-from ..core.utils import cached_property
 from .abstract import ConnectivityArray  # CompressedArray
 from .subarray import NodeConnectivitySubarray
 
@@ -18,19 +12,31 @@ class NodeConnectivityArray(ConnectivityArray):
 
     """
 
-    def __new__(cls, *args, **kwargs):
-        """Store subarray classes.
+    def __init__(
+        self, connectivity=None, start_index=0, source=None, copy=True
+    ):
+        """**Initialisation**
 
-        If a child class requires different subarray classes than the
-        ones defined here, then they must be defined in the __new__
-        method of the child class.
+        :Parameters:
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+            connectivity: array_like
+                TODOUGRID
+
+            start_index: `int`, optional
+                TODOUGRID
+
+            {{init source: optional}}
+
+            {{init copy: `bool`, optional}}
 
         """
-        instance = super().__new__(cls)
-        instance._Subarray = {"connectivity": NodeConnectivitySubarray}
-        return instance
+        super().__init__(
+            compressed_array=connectivity,
+            start_index=start_index,
+            compression_type="node connectivity",
+            source=source,
+            copy=copy,
+        )
 
 
 #    def __init__(self, node_connectivity=None, start_index=0,

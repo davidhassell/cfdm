@@ -2,8 +2,7 @@ from .propertiesdata import PropertiesData
 
 
 class Topology(PropertiesData):
-    """TODOUGRID Mixin for CF data model dimension and auxiliary
-    coordinates.
+    """Abstract base class for bounds and cell topology constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -26,8 +25,8 @@ class Topology(PropertiesData):
                 TODOUGRID Set the measure that indicates the metric given by
                 the data array.
 
-                The measure may also be set after initialisation with
-                the `set_measure` method.
+                The cell type may also be set after initialisation
+                with the `set_cell_type` method.
 
                 *Parameter example:*
                   ``cell_type='face'``
@@ -68,6 +67,8 @@ class Topology(PropertiesData):
         Only dimensions that correspond to domain axis constructs are
         included.
 
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
         .. seealso:: `data`, `has_data`, `shape`, `size`
 
         **Examples**
@@ -94,6 +95,8 @@ class Topology(PropertiesData):
 
         Only dimensions that correspond to domain axis constructs are
         included.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
@@ -122,6 +125,8 @@ class Topology(PropertiesData):
         `size` is equal to the product of `shape`, that only includes
         the sizes of dimensions that correspond to domain axis
         constructs.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 

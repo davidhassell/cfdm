@@ -2,7 +2,7 @@ from . import abstract
 
 
 class CellTopology(abstract.Topology):
-    """A domain topology construct of the CF data model.
+    """A cell topology construct of the CF data model.
 
     TODOUGRIDVER
 

@@ -126,7 +126,7 @@ class NodeBoundsArray(CompressedArray):
                 node_coordinates=node_coordinates,
                 start_index=start_index,
             )
-            u[u_indices] = subarray
+            u[u_indices] = subarray[...]
 
         if indices is Ellipsis:
             return u
@@ -136,7 +136,7 @@ class NodeBoundsArray(CompressedArray):
     def _uncompressed_indices(self):
         """Indices of the uncompressed subarray for the compressed data.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Returns:
 
@@ -172,7 +172,7 @@ class NodeBoundsArray(CompressedArray):
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         return self.get_node_coordinates().dtype
@@ -180,7 +180,7 @@ class NodeBoundsArray(CompressedArray):
     def conformed_data(self):
         """The compressed data and TODOUGRID connectivity indices.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Returns:
 
@@ -197,7 +197,7 @@ class NodeBoundsArray(CompressedArray):
     def get_node_coordinates(self, default=ValueError()):
         """The coordinates representing the node locations.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -214,10 +214,23 @@ class NodeBoundsArray(CompressedArray):
         """
         return self._get_component("node_coordinates", default=default)
 
+    def get_start_index(self):
+        """TODOUGRID.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Returns:
+
+            `int`
+                TODOUGRID
+
+        """
+        return self._get_component("start_index", 0)
+
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `subarray`
 
@@ -298,7 +311,7 @@ class NodeBoundsArray(CompressedArray):
 
         These descriptors are used during subarray decompression.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -448,7 +461,7 @@ class NodeBoundsArray(CompressedArray):
 
         There is no change to data that is already in memory.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Returns:
 

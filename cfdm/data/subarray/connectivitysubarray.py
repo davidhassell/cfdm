@@ -88,7 +88,7 @@ class ConnectivitySubarray(Subarray):
         connectivity = self._select_data(check_mask=False)
 
         n_cells = connectivity.shape[0]
-        n_nodes = np.ma.count(connectivity)
+        #        n_nodes = np.ma.count(connectivity)
 
         row_ind = []
         col_ind = []

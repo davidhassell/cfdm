@@ -2,8 +2,7 @@ from . import PropertiesData
 
 
 class Topology(PropertiesData):
-    """Mixin class for TODOUGRID dimension or auxiliary coordinate
-    constructs.
+    """Mixin class for bounds and cell topology constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 

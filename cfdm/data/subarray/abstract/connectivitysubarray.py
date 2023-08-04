@@ -1,3 +1,5 @@
+import numpy as np
+
 from ....core.utils import cached_property
 from .subarray import Subarray
 

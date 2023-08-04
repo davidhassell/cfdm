@@ -124,7 +124,7 @@ class PropertiesDataBounds(PropertiesData):
 
         Only dimensions that correspond to domain axis constructs are
         included.
-        
+
         .. seealso:: `data`, `has_data`, `isscalar`, `shape`, `size`
 
         **Examples**
@@ -182,7 +182,7 @@ class PropertiesDataBounds(PropertiesData):
 
         Only dimensions that correspond to domain axis constructs are
         included.
-        
+
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
         **Examples**
@@ -236,7 +236,7 @@ class PropertiesDataBounds(PropertiesData):
 
     @property
     def size(self):
-        """The number elements in the data
+        """The number elements in the data.
 
         `size` is equal to the product of `shape`, that only includes
         the sizes of dimensions that correspond to domain axis
@@ -276,7 +276,7 @@ class PropertiesDataBounds(PropertiesData):
 
         """
         return prod(self.shape)
-    
+
     @property
     def bounds(self):
         """Return the bounds.

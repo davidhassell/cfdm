@@ -1,18 +1,43 @@
+from itertools import accumulate, product
+
 import numpy as np
 
 from ...core.utils import cached_property
+from ..subarray import CellConnectivitySubarray, NodeConnectivitySubarray
 from .compressedarray import CompressedArray
 
 
 class ConnectivityArray(CompressedArray):
-    """TODOUGRID.
+    """Abstract base class for an underlying UGRID connectivity array.
 
-    .. versionadded:: (cfdm) TODOUGRIDBER
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
+    def __new__(cls, *args, **kwargs):
+        """Store subarray classes.
+
+        If a child class requires different subarray classes than the
+        ones defined here, then they must be defined in the __new__
+        method of the child class.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        instance = super().__new__(cls)
+        instance._Subarray = {
+            "cell connectivity": CellConnectivitySubarray,
+            "node connectivity": NodeConnectivitySubarray,
+        }
+        return instance
+
     def __init__(
-        self, connectivity=None, start_index=0, source=None, copy=True
+        self,
+        connectivity=None,
+        start_index=0,
+        compression_type=None,
+        source=None,
+        copy=True,
     ):
         """**Initialisation**
 
@@ -22,6 +47,10 @@ class ConnectivityArray(CompressedArray):
                 TODOUGRID
 
             start_index: `int`, optional
+                TODOUGRID
+
+            compression_type: `str`, optional
+                TODOUGRID
 
             {{init source: optional}}
 
@@ -32,7 +61,7 @@ class ConnectivityArray(CompressedArray):
             compressed_array=connectivity,
             shape=(connectivity.shape[0],) * 2,
             compressed_dimensions={0: (0,), 1: (1,)},
-            compression_type="connectivity",
+            compression_type=compression_type,
             source=source,
             copy=copy,
         )

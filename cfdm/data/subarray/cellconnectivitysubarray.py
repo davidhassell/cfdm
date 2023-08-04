@@ -1,6 +1,5 @@
 import numpy as np
 
-from ...core.utils import cached_property
 from .abstract import ConnectivitySubarray
 
 
@@ -38,15 +37,15 @@ class CellConnectivitySubarray(ConnectivitySubarray):
 
         if np.ma.is_masked(indices):
             #            pointers = shape[1] - np.ma.getmaskarray(cell_connectivity).sum(axis=1)
-            indptr = np.ma.count(cell_connectivity, axis=1)
-            indptr = np.insert(pointers, 0, 0)
+            pointers = np.ma.count(cell_connectivity, axis=1)
+            pointers = np.insert(pointers, 0, 0)
             cell_connectivity = cell_connectivity.compressed()
         else:
-            indptr = np.full((n_cells + 1,), shape[1])
-            indptr[0] = 0
+            pointers = np.full((n_cells + 1,), shape[1])
+            pointers[0] = 0
             cell_connectivity = cell_connectivity.flatten()
 
-        indptr = np.cumsum(indptr, out=indptr)
+        pointers = np.cumsum(pointers, out=pointers)
 
         start_index = self.start_index
         if start_index:
@@ -54,7 +53,7 @@ class CellConnectivitySubarray(ConnectivitySubarray):
 
         data = np.ones((cell_connectivity.size,), bool)
         c = csr_array(
-            (data, cell_connectivity, indptr), shape=(n_cells, n_cells)
+            (data, cell_connectivity, pointers), shape=(n_cells, n_cells)
         )
 
         if indices is Ellipsis:

@@ -95,7 +95,7 @@ class NodeBoundsSubarray(Subarray):
 
         """
         node_connectivity = self._select_data()
-        if np.ma.is_MA(node_connectivity):
+        if np.ma.isMA(node_connectivity):
             node_indices = node_connectivity.compressed()
             u = np.ma.masked_all(self.shape, dtype=self.dtype)
             u[~node_connectivity.mask] = self._select_node_coordinates(
