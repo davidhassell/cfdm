@@ -25,6 +25,7 @@ from .numpyarray import NumpyArray
 from .raggedcontiguousarray import RaggedContiguousArray
 from .raggedindexedarray import RaggedIndexedArray
 from .raggedindexedcontiguousarray import RaggedIndexedContiguousArray
+from .sparsearray import SparseArray
 from .subsampledarray import SubsampledArray
 
 from .data import Data

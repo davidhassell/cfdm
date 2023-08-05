@@ -104,12 +104,11 @@ class ConnectivityArray(CompressedArray):
                 compressed_dimensions=compressed_dimensions,
             )
             u = u[...]
-            break
 
         if indices is Ellipsis:
             return u
 
-        return self.get_subspace(u, indices, copy=True).toarray()
+        return self.get_subspace(u, indices, copy=True)
 
 #    def _sparse_getitem(self, indices):
 #        """Return a subspace of the uncompressed data.
