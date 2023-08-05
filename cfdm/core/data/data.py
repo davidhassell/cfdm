@@ -1,8 +1,11 @@
+#from scipy.sparse import issparse
+
 import numpy
 
 from .. import abstract
 from .abstract import Array
 from .numpyarray import NumpyArray
+#from .sparsearray import SparseArray
 
 
 class Data(abstract.Container):
@@ -792,6 +795,16 @@ class Data(abstract.Container):
                 array = numpy.asanyarray(array)
 
             array = NumpyArray(array)
+
+#        if not isinstance(array, Array):
+#            if not isinstance(array, numpy.ndarray):
+#                if issparse(array):
+#                    array = SparseArray(array)
+#                else:
+#                    array = numpy.asanyarray(array)
+#                    array = NumpyArray(array)
+#            else:
+#                array = NumpyArray(array)
 
         if copy:
             array = array.copy()

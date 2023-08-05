@@ -36,7 +36,7 @@ class CellConnectivitySubarray(ConnectivitySubarray):
             cell_connectivity = cell_connectivity - start_index
 
         if np.ma.is_masked(indices):
-            #            pointers = shape[1] - np.ma.getmaskarray(cell_connectivity).sum(axis=1)
+            # pointers = shape[1] - np.ma.getmaskarray(cell_connectivity).sum(axis=1)
             pointers = np.ma.count(cell_connectivity, axis=1)
             pointers = np.insert(pointers, 0, 0)
             cell_connectivity = cell_connectivity.compressed()

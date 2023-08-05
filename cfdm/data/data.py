@@ -1,8 +1,9 @@
+from scipy.sparse import issparse
+
 import itertools
 import logging
 
 import netCDF4
-import numpy
 import numpy as np
 
 from .. import core
@@ -15,7 +16,7 @@ from ..decorators import (
 from ..mixin.container import Container
 from ..mixin.files import Files
 from ..mixin.netcdf import NetCDFHDF5
-from . import NumpyArray, abstract
+from . import NumpyArray, SparseArray, abstract
 
 logger = logging.getLogger(__name__)
 
@@ -127,22 +128,38 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 Not used. Present to facilitate subclassing.
 
         """
+#        if dtype is not None:
+#            if isinstance(array, abstract.Array):
+#                array = array.array
+#            elif not isinstance(array, np.ndarray):
+#                array = np.asanyarray(array)
+#
+#            array = array.astype(dtype)
+#            array = NumpyArray(array)
+
         if dtype is not None:
             if isinstance(array, abstract.Array):
-                array = array.array
-            elif not isinstance(array, numpy.ndarray):
-                array = numpy.asanyarray(array)
-
-            array = array.astype(dtype)
-            array = NumpyArray(array)
-
+                try:
+                    array = SparseArray(array.sparse_array.astype(dtype))
+                except AttributeError:
+                     array = NumpyArray(array.array.astype(dtype))
+            elif isinstance(array, np.ndarray):
+                array = NumpyArray(array.astype(dtype))
+            elif issparse(array):
+                array = SparseArray(array.astype(dtype))            
+            else:
+                array = NumpyArray(np.asanyarray(array).astype(dtype))
+                
         if mask is not None:
             if isinstance(array, abstract.Array):
                 array = array.array
-            elif not isinstance(array, numpy.ndarray):
-                array = numpy.asanyarray(array)
+            elif not isinstance(array, np.ndarray):
+                if issparse(array):
+                    array = array.toarray()
+                else:
+                    array = np.asanyarray(array)
 
-            array = numpy.ma.array(array, mask=mask)
+            array = np.ma.array(array, mask=mask)
             array = NumpyArray(array)
 
         super().__init__(
@@ -480,13 +497,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         array = self.array
 
-        if value is cfdm_masked or numpy.ma.isMA(value):
+        if value is cfdm_masked or np.ma.isMA(value):
             # The data is not masked but the assignment is masking
             # elements, so turn the non-masked array into a masked
             # one.
-            array = array.view(numpy.ma.MaskedArray)
+            array = array.view(np.ma.MaskedArray)
 
-        self._set_subspace(array, indices, numpy.asanyarray(value))
+        self._set_subspace(array, indices, np.asanyarray(value))
 
         self._set_Array(array, copy=False)
 
@@ -534,7 +551,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 # Convert reference time to date-time
                 try:
                     first = type(self)(
-                        numpy.ma.array(first, mask=mask[0]), units, calendar
+                        np.ma.array(first, mask=mask[0]), units, calendar
                     ).datetime_array
                 except (ValueError, OverflowError):
                     first = "??"
@@ -543,14 +560,14 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         else:
             last = self.last_element()
             if isreftime:
-                if last is numpy.ma.masked:
+                if last is np.ma.masked:
                     last = 0
                     mask[-1] = True
 
                 # Convert reference times to date-times
                 try:
                     first, last = type(self)(
-                        numpy.ma.array(
+                        np.ma.array(
                             [first, last], mask=(mask[0], mask[-1])
                         ),
                         units,
@@ -566,13 +583,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 middle = self.second_element()
                 if isreftime:
                     # Convert reference time to date-time
-                    if middle is numpy.ma.masked:
+                    if middle is np.ma.masked:
                         middle = 0
                         mask[1] = True
 
                     try:
                         middle = type(self)(
-                            numpy.ma.array(middle, mask=mask[1]),
+                            np.ma.array(middle, mask=mask[1]),
                             units,
                             calendar,
                         ).datetime_array
@@ -678,14 +695,14 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         """
         array = self[index].array
 
-        if not numpy.ma.isMA(array):
+        if not np.ma.isMA(array):
             return array.item()
 
         mask = array.mask
-        if mask is numpy.ma.nomask or not mask.item():
+        if mask is np.ma.nomask or not mask.item():
             return array.item()
 
-        return numpy.ma.masked
+        return np.ma.masked
 
     def _original_filenames(self, define=None, update=None, clear=False):
         """Return the names of files that contain the original data.
@@ -849,11 +866,19 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         >>> d._set_Array(a)
 
         """
+#        if not isinstance(array, abstract.Array):
+#            if not isinstance(array, np.ndarray):
+#                array = np.asanyarray(array)
+#
+#            array = NumpyArray(array)
         if not isinstance(array, abstract.Array):
-            if not isinstance(array, numpy.ndarray):
-                array = numpy.asanyarray(array)
-
-            array = NumpyArray(array)
+            if not isinstance(array, np.ndarray):
+                if issparse(array):
+                    array = SparseArray(array)
+                else:
+                    array = NumpyArray(np.asanyarray(array))
+            else:
+                array = NumpyArray(array)
 
         super()._set_Array(array, copy=copy)
 
@@ -1170,12 +1195,12 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         array = self.array
 
         mask = None
-        if numpy.ma.isMA(array):
+        if np.ma.isMA(array):
             # num2date has issues if the mask is nomask
             mask = array.mask
-            if mask is numpy.ma.nomask or not numpy.ma.is_masked(array):
+            if mask is np.ma.nomask or not np.ma.is_masked(array):
                 mask = None
-                array = array.view(numpy.ndarray)
+                array = array.view(np.ndarray)
 
         if mask is not None and not array.ndim:
             # Fix until num2date copes with scalar aarrays containing
@@ -1191,12 +1216,12 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         if mask is None:
             # There is no missing data
-            array = numpy.array(array, dtype=object)
+            array = np.array(array, dtype=object)
         else:
             # There is missing data
-            array = numpy.ma.masked_where(mask, array)
-            if not numpy.ndim(array):
-                array = numpy.ma.masked_all((), dtype=object)
+            array = np.ma.masked_where(mask, array)
+            if not np.ndim(array):
+                array = np.ma.masked_all((), dtype=object)
 
         return array
 
@@ -1269,14 +1294,21 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
          [False False False False]]
 
         """
-        return type(self)(numpy.ma.getmaskarray(self.array))
+        return type(self)(np.ma.getmaskarray(self.array))
 
     @property
     def sparse_array(self):
+        """TODOUGRID
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `sparse_array`
+
+        """
         try:
-            <somethng>
+            return self._get_Array().sparse_array
         except AttributeError:
-            raise AttributeError(TIDOUGRID)
+            raise AttributeError("TODOUGRID")
     
     
     def any(self):
@@ -1314,7 +1346,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         """
         masked = self.array.any()
-        if masked is numpy.ma.masked:
+        if masked is np.ma.masked:
             masked = False
 
         return masked
@@ -1519,7 +1551,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 mask |= array > valid_max
 
         if mask is not None:
-            array = numpy.ma.where(mask, cfdm_masked, array)
+            array = np.ma.where(mask, cfdm_masked, array)
             d._set_Array(array, copy=False)
 
         return d
@@ -1704,7 +1736,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         array = self.array
 
-        if numpy.ma.isMA(array):
+        if np.ma.isMA(array):
             array = array.filled(fill_value)
 
         d._set_Array(array, copy=False)
@@ -1769,7 +1801,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 f"Can't insert dimension: Invalid position: {position!r}"
             )
 
-        array = numpy.expand_dims(self.array, position)
+        array = np.expand_dims(self.array, position)
 
         d._set_Array(array, copy=False)
 
@@ -2128,9 +2160,9 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                             f"with shape {shape}: {parsed_indices}"
                         )
 
-                    index = numpy.where(index)[0]
+                    index = np.where(index)[0]
 
-                if not numpy.ndim(index):
+                if not np.ndim(index):
                     if index < 0:
                         index += size
 
@@ -2213,7 +2245,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             raise ValueError(f"Can't find maximum of data: {error}")
 
         array = self.array
-        array = numpy.amax(array, axis=axes, keepdims=True)
+        array = np.amax(array, axis=axes, keepdims=True)
 
         out = self.copy(array=False)
         out._set_Array(array, copy=False)
@@ -2285,7 +2317,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             raise ValueError(f"Can't find minimum of data: {error}")
 
         array = self.array
-        array = numpy.amin(array, axis=axes, keepdims=True)
+        array = np.amin(array, axis=axes, keepdims=True)
 
         out = self.copy(array=False)
         out._set_Array(array, copy=False)
@@ -2363,7 +2395,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             return d
 
         array = self.array
-        array = numpy.squeeze(array, axes)
+        array = np.squeeze(array, axes)
 
         d._set_Array(array, copy=False)
 
@@ -2430,7 +2462,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         except ValueError as error:
             raise ValueError(f"Can't sum data: {error}")
         array = self.array
-        array = numpy.sum(array, axis=axes, keepdims=True)
+        array = np.sum(array, axis=axes, keepdims=True)
 
         d = self.copy(array=False)
         d._set_Array(array, copy=False)
@@ -2503,7 +2535,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             return d
 
         array = self.array
-        array = numpy.transpose(array, axes=axes)
+        array = np.transpose(array, axes=axes)
 
         d._set_Array(array, copy=False)
 
@@ -2611,7 +2643,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         """
         return cls(
-            numpy.empty(shape=shape, dtype=dtype),
+            np.empty(shape=shape, dtype=dtype),
             units=units,
             calendar=calendar,
         )
@@ -2982,7 +3014,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         d.transpose(order, inplace=True)
 
         new_shape = [n for i, n in enumerate(shape) if i not in axes]
-        new_shape.insert(axes[0], numpy.prod([shape[i] for i in axes]))
+        # TODOUGRID replace with math.prod:
+        new_shape.insert(axes[0], np.prod([shape[i] for i in axes]))
 
         array = d.array.reshape(new_shape)
 
@@ -3155,9 +3188,9 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         """
         array = self.array
-        array = numpy.unique(array)
+        array = np.unique(array)
 
-        if numpy.ma.is_masked(array):
+        if np.ma.is_masked(array):
             array = array.compressed()
 
         d = self.copy(array=False)
