@@ -46,7 +46,8 @@ class NodeConnectivitySubarray(ConnectivitySubarray):
         #          through a numpy array
         n = 0
         for i, nodes in enumerate(node_connectivity):
-            # Find all of the cells that at least one node with cell i
+            # Find all of the cells that share at least one node with
+            # cell i
             nodes = np_compressed(nodes).tolist()
             shared_nodes = np_isin(node_connectivity, nodes)
             connected_cells = set(np_where(shared_nodes)[0].tolist())

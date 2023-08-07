@@ -81,13 +81,12 @@ class Topology(PropertiesData):
         1324
 
         """
-        data = self.get_data(None, _units=False, _fill_value=False)
-        if data is not None:
-            return 1
-
-        raise AttributeError(
-            f"{self.__class__.__name__} object has no attribute 'ndim'"
-        )
+        try:
+            return len(self.shape)
+        except AttributeError:            
+            raise AttributeError(
+                f"{self.__class__.__name__} object has no attribute 'ndim'"
+            )
 
     @property
     def shape(self):
@@ -193,6 +192,8 @@ class Topology(PropertiesData):
         The topology type specifies which aspect of the mesh topology
         is represented by the bounds topology construct.
 
+        See `set_topology` for the topology type definitions.
+
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `del_topology`, `has_topology`, `set_topology`
@@ -232,4 +233,4 @@ class Topology(PropertiesData):
              `None`
 
         """
-        return self._set_component("topology", topology, copy=False)
+        self._set_component("topology", topology, copy=False)

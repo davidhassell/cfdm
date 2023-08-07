@@ -1,5 +1,6 @@
 import numpy as np
 
+from ...functions import integer_dtype
 from .abstract import ConnectivitySubarray
 
 
@@ -30,23 +31,20 @@ class CellConnectivitySubarray(ConnectivitySubarray):
         cell_connectivity = self._select_data(check_mask=False)
         shape = cell_connectivity.shape
         n_cells = shape[0]
+        dtype = integer_dtype(n_cells)
 
-        start_index = self.start_index
-        if start_index:
-            cell_connectivity = cell_connectivity - start_index
-
-        if np.ma.is_masked(indices):
-            # pointers = shape[1] - np.ma.getmaskarray(cell_connectivity).sum(axis=1)
-            pointers = np.ma.count(cell_connectivity, axis=1)
-            pointers = np.insert(pointers, 0, 0)
+        if np.ma.is_masked(cell_connectivity):
+            pointers = np.empty((1 + n_cells,), dtype=dtype)
+            pointers[1:] = np.ma.count(cell_connectivity, axis=1)
+            pointers[0] = 0
             cell_connectivity = cell_connectivity.compressed()
         else:
-            pointers = np.full((n_cells + 1,), shape[1])
+            pointers = np.full((1 + n_cells,), shape[1], dtype=dtype)
             pointers[0] = 0
             cell_connectivity = cell_connectivity.flatten()
 
         pointers = np.cumsum(pointers, out=pointers)
-
+        
         start_index = self.start_index
         if start_index:
             cell_connectivity = cell_connectivity - start_index

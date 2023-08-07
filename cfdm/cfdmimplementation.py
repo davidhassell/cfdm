@@ -30,7 +30,7 @@ from .data import (
     CellConnectivityArray,
     GatheredArray,
     NetCDFArray,
-    NodeBoundsArray,
+    BoundsNodesArray,
     NodeConnectivityArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
@@ -2344,7 +2344,7 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("ConnectivityArray")
         return cls(compressed_array=compressed_array)
 
-    def initialise_NodeBoundsArray(self, **kwargs):
+    def initialise_BoundsNodesArray(self, **kwargs):
         """Return a node bounds array.
 
         .. versionadded:: TODOUGRIDVER
@@ -2353,14 +2353,14 @@ class CFDMImplementation(Implementation):
 
             kwargs: optional
                 Parameters for intialising the node bounds array.
-                which are passed to `NodeBoundsArray.__init__`.
+                which are passed to `BoundsNodesArray.__init__`.
 
         :Returns:
 
-            `NodeBoundsArray`
+            `BoundsNodesArray`
 
         """
-        cls = self.get_class("NodeBoundsArray")
+        cls = self.get_class("BoundsNodesArray")
         return cls(**kwargs)
 
     def initialise_NodeCountProperties(self):
@@ -3229,6 +3229,26 @@ class CFDMImplementation(Implementation):
         )
         construct.set_data(data)
 
+    def set_mesh_id(    self, parent, mesh_id    ):
+        """Set a mesh identifier.
+
+        .. versionadded:: (cfdm)  TODOUGRIDVER
+
+        :Parameters:
+
+            parent: `Field`
+                The field construct on which to set the mesh id
+
+            mesh_id:
+                The mesh identifier.
+
+        :Returns:
+
+            `None`
+
+        """
+        parent.set_mesh_id(mesh_id)
+        
     def nc_set_external(self, construct):
         """Set the external status of a construct.
 
@@ -3695,7 +3715,6 @@ _implementation = CFDMImplementation(
     Domain=Domain,
     DomainAncillary=DomainAncillary,
     DomainAxis=DomainAxis,
-    #    DomainTopology=DomainTopology,
     Field=Field,
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,
@@ -3706,11 +3725,11 @@ _implementation = CFDMImplementation(
     List=List,
     Index=Index,
     Count=Count,
-    NodeBoundsArray=NodeBoundsArray,
     NodeConnectivityArray=NodeConnectivityArray,
     NodeCountProperties=NodeCountProperties,
     PartNodeCountProperties=PartNodeCountProperties,
     Data=Data,
+    BoundsNodesArray=BoundsNodesArray,
     GatheredArray=GatheredArray,
     NetCDFArray=NetCDFArray,
     RaggedContiguousArray=RaggedContiguousArray,

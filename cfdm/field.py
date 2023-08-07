@@ -140,6 +140,14 @@ class Field(
             _use_data=_use_data,
         )
 
+        if source is not None:
+            try:
+                mesh_id = source.get_mesh_id(None)
+            except AttirbuteError:
+                pass
+            else:
+                self.set_mesh_id(mesh_id)
+            
         self._initialise_netcdf(source)
         self._initialise_original_filenames(source)
 
@@ -290,12 +298,18 @@ class Field(
         (1, 10, 1)
 
         """
+        new = self.copy()
+        if indices is Ellipsis:            
+            return new
+
+        # Remove a mesh id, on the assumption that the subspaced
+        # domain will be different to the original.
+        new.del_mesh_id(None)
+
         data = self.get_data(_fill_value=False)
 
         indices = data._parse_indices(indices)
         indices = tuple(indices)
-
-        new = self.copy()  # data=False)
 
         data_axes = self.get_data_axes()
 
@@ -1635,6 +1649,55 @@ class Field(
             out = ("\n" + indent).join(out)
 
         return out
+    
+    def del_mesh_id(self, default=ValueError()):
+        """Remove the mesh topology identifier.
+        
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                mesh topology identifier has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+                The removed mesh topology identifier.
+
+        :Returns:
+
+            `bool`
+                True if the esh topology identifier has been set,
+                otherwise False.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._del_component('mesh_id', default=default)
 
     @_display_or_return
     def dump(self, display=True, _level=0, _title=None):
@@ -1874,6 +1937,86 @@ class Field(
             out.update(c.get_filenames())
 
         return out
+
+    def get_mesh_id(self, default=ValueError()):
+        """Return the mesh topology identifier.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                mesh topology identifier has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+                The value of the mesh topology identifier.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._get_component("mesh_id", default=default)
+
+    def has_mesh_id(self):
+        """Whether the mesh topology identifier has been set.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
+
+        :Returns:
+
+            `bool`
+                True if the mesh topology identifier has been set,
+                otherwise False.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._has_component('mesh_id')
 
     #    def has_geometry(self):
     #        """Whether any coordinate constructs have cell geometries.
@@ -2357,6 +2500,46 @@ class Field(
                             )
 
         return f
+
+    def set_mesh_id(self, mesh_id):
+        """Set a mesh topology identifier.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `del_mesh_id`, `get_mesh_id`, `has_mesh_id`
+
+        :Parameters:
+
+            mesh_id: `str`
+                The value for the mesh topology identifier.
+
+        :Returns:
+
+             `None`
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """  
+        return self._set_component("mesh_id", mesh_id, copy=False)
 
     @_inplace_enabled(default=False)
     def squeeze(self, axes=None, inplace=False):

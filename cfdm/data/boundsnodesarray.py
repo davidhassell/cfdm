@@ -4,10 +4,10 @@ from numbers import Number
 import numpy as np
 
 from .abstract import CompressedArray
-from .subarray import NodeBoundsSubarray
+from .subarray import BoundsNodesSubarray
 
 
-class NodeBoundsArray(CompressedArray):
+class BoundsNodesArray(CompressedArray):
     """TODOUGRID An underlying gathered array.
 
     Compression by gathering combines axes of a multidimensional array
@@ -30,7 +30,7 @@ class NodeBoundsArray(CompressedArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"node bounds": NodeBoundsSubarray}
+        instance._Subarray = {"bounds nodes": BoundsNodesSubarray}
         return instance
 
     def __init__(
@@ -70,7 +70,7 @@ class NodeBoundsArray(CompressedArray):
             compressed_array=node_connectivity,
             shape=shape,
             compressed_dimensions={1: (1,)},
-            compression_type="node bounds",
+            compression_type="bounds nodes",
             source=source,
             copy=copy,
         )

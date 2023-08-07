@@ -3,14 +3,14 @@ import numpy as np
 from .abstract import Subarray
 
 
-class NodeBoundsSubarray(Subarray):
+class BoundsNodesSubarray(Subarray):
     """TODOUGRID A subarray of an array compressed by gathering.
 
     A subarray describes a unique part of the uncompressed array.
 
     See CF section 8.2. "Lossless Compression by Gathering".
 
-    .. versionadded:: (cfdm) 1.11.0.0
+    .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
@@ -40,7 +40,7 @@ class NodeBoundsSubarray(Subarray):
             shape: `tuple` of `int`
                 The shape of the uncompressed subarray.
 
-            node_coordinatesd: array_like
+            node_coordinates: array_like
                 TODOUGRID Indices of the uncompressed subarray for the
                 compressed data.
 
@@ -112,7 +112,7 @@ class NodeBoundsSubarray(Subarray):
         return u[indices]
 
     def _select_node_coordinates(self, node_indices):
-        """TODOUGRID Select interpolation parameter values.
+        """Select node coordinates.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -120,16 +120,16 @@ class NodeBoundsSubarray(Subarray):
 
         :Parameters:
 
-            node_indices: array_like
+            node_indices: `numpy.array`
                 Indices to the node coordinates array. Must be a 1-d
-                integer array that supports fancy indexing. If
-                *indices* are not zero-based then `start_index` will
-                be substracted prior to their application.
+                integer array. `start_index` will be automatically
+                subtracted from the indices prior to the selection of
+                node coordinates.
 
         :Returns:
 
            `numpy.ndarray`
-               The node coordiantes that correspond to the
+               The node coordinates that correspond to the
                *node_indices*.
 
         """

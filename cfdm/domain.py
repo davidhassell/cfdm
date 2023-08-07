@@ -107,7 +107,7 @@ class Domain(
         self._initialise_original_filenames(source)
 
         self._set_dataset_compliance(self.dataset_compliance(), copy=True)
-
+        
     def __repr__(self):
         """Called by the `repr` built-in function.
 

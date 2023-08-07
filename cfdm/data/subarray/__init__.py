@@ -1,4 +1,5 @@
 from .bilinearsubarray import BiLinearSubarray
+from .boundsnodessubarray import BoundsNodesSubarray
 from .cellconnectivitysubarray import CellConnectivitySubarray
 from .gatheredsubarray import GatheredSubarray
 from .biquadraticlatitudelongitudesubarray import (
@@ -7,7 +8,6 @@ from .biquadraticlatitudelongitudesubarray import (
 from .interpolationsubarray import InterpolationSubarray
 from .linearsubarray import LinearSubarray
 from .nodeconnectivitysubarray import NodeConnectivitySubarray
-from .nodeboundssubarray import NodeBoundsSubarray
 from .quadraticlatitudelongitudesubarray import (
     QuadraticLatitudeLongitudeSubarray,
 )

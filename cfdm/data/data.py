@@ -577,7 +577,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                     first, last = ("??", "??")
 
             if size > 3:
-                print (9999999999999, repr(first))
                 out = f"{open_brackets}{first}, ..., {last}{close_brackets}"
             elif shape[-1:] == (3,):
                 middle = self.second_element()

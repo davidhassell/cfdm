@@ -7,7 +7,7 @@ from .subarray import (
     GatheredSubarray,
     InterpolationSubarray,
     LinearSubarray,
-    NodeBoundsSubarray,
+    BoundsNodesSubarray,
     NodeConnectivitySubarray,
     QuadraticLatitudeLongitudeSubarray,
     QuadraticSubarray,
@@ -16,10 +16,10 @@ from .subarray import (
 
 from .subarray.abstract import Subarray, SubsampledSubarray
 
+from .boundsnodesarray import BoundsNodesArray
 from .cellconnectivityarray import CellConnectivityArray
 from .gatheredarray import GatheredArray
 from .netcdfarray import NetCDFArray
-from .nodeboundsarray import NodeBoundsArray
 from .nodeconnectivityarray import NodeConnectivityArray
 from .numpyarray import NumpyArray
 from .raggedcontiguousarray import RaggedContiguousArray

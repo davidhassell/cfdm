@@ -2104,6 +2104,8 @@ class NetCDFWrite(IOWrite):
             f: Field construct
 
             key: `str`
+                The identifier of the coordinate construct,
+                e.g. ``'auxiliarycoordinate1'``.
 
             coord: Coordinate construct
 
@@ -3258,6 +3260,12 @@ class NetCDFWrite(IOWrite):
                 ref
             ).get("grid_mapping_name", False)
         ]
+
+        # Check if the field or domain has a UGRID mesh topology
+        # (CF>=1.11)
+        ugrid = self.implementation.has_mesh_topology(f)
+        if ugrid:
+            raise ValueError("TODOUGRID")
 
         field_coordinates = self.implementation.get_coordinates(f)
 
@@ -5136,17 +5144,18 @@ class NetCDFWrite(IOWrite):
         g["netcdf"] = self.file_open(filename, mode, fmt, fields)
 
         if not g["dry_run"]:
-            # ------------------------------------------------------------
-            # Write global properties to the file first. This is important
-            # as doing it later could slow things down enormously. This
-            # function also creates the g['global_attributes'] set, which
-            # is used in the _write_field function.
-            # ------------------------------------------------------------
+            # --------------------------------------------------------
+            # Write global properties to the file first. This is
+            # important as doing it later could slow things down
+            # enormously. This function also creates the
+            # g['global_attributes'] set, which is used in the
+            # `_write_field_or_domain` method.
+            # --------------------------------------------------------
             self._write_global_attributes(fields)
 
-            # ------------------------------------------------------------
+            # --------------------------------------------------------
             # Write group-level properties to the file next
-            # ------------------------------------------------------------
+            # --------------------------------------------------------
             if (
                 g["group"] and not g["post_dry_run"]
             ):  # i.e. not for append mode
@@ -5281,45 +5290,3 @@ class NetCDFWrite(IOWrite):
 
         """
         pass
-
-    def _ugrid_write_node_coordinates_from_bounds(
-        self, bounds, ncdim, n_nodes, indices, node_coordinates
-    ):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            n_nodes: `int`
-                 n_nodes     = int(indices.max()) + 1
-
-            indices:
-                np.ma.compressed(domain_topology.array)
-
-            bounds:
-
-        :Returns:
-
-            `list`
-
-        """
-        nodes = np.empty((n_nodes,), dtype=bounds.dtype)
-        nodes[indices] = np.ma.compressed(bounds.array)[indices]
-        nodes = Data(nodes)
-
-        if self._already_in_file(nodes, ncdim):
-            ncvar = g["seen"][id(nodes)]["ncvar"]
-        else:
-            ncvar = self._netcdf_name(
-                bounds.nc_get_node_coordinates_variable(
-                    default=f"node_{bounds.identity('')}"
-                )
-            )
-
-            self._write_netcdf_variable(
-                ncvar, ncdim, nodes, domain_axes, extra=bounds.properties()
-            )
-
-        node_coordinates.append(ncvar)
-        return ncvar

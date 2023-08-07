@@ -9,6 +9,7 @@ from ast import literal_eval
 from copy import deepcopy
 from functools import reduce
 from urllib.parse import urlparse
+from uuid import uuid4
 
 import netCDF4
 import netcdf_flattener
@@ -3369,11 +3370,10 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(f, g["filename"])
 
         # ------------------------------------------------------------
-        # Add auxiliary coordinate constructs and domain topology
-        # constructs derived from a UGRID mesh topology variable
-        # (CF>=1.11).
+        # Add auxiliary coordinate constructs from a UGRID mesh
+        # topology (CF>=1.11).
         #
-        # Do this before creating auxiliary coordinates from the
+        # Do this *before* creating auxiliary coordinates from the
         # "coordinates" attribute.
         # ------------------------------------------------------------
         mesh_ncvar = self.implementation.get_property(f, "mesh")
@@ -3386,6 +3386,7 @@ class NetCDFRead(IORead):
 
         ugrid_aux_ncvars = []
         if ugrid:
+            # Find the mesh defintion and location on the mesh
             ok = False
             if mesh_ncvar is not None:
                 ok = self._ugrid_check_field_mesh(
@@ -3404,9 +3405,12 @@ class NetCDFRead(IORead):
                     location = mesh["location"]
 
             if not ok:
-                # There's something wrong with the UGRID encoding
+                # There's something wrong with the UGRID encoding. Set
+                # 'ugrid' to False so that no further UGRID related
+                # stuff occurs.
                 ugrid = False
-            else:
+
+            if ugrid:
                 # The UGRID specification is OK, so get the
                 # coordinates.
                 #
@@ -3470,7 +3474,8 @@ class NetCDFRead(IORead):
                 if ncvar in field_ncdimensions:
                     continue
 
-                # Skip UGRID mesh coordinates
+                # Skip auxiliary coordinates that have already been
+                # created from a UGRID mesh
                 if ugrid and ncvar in ugrid_aux_ncvars:
                     continue
 
@@ -3820,8 +3825,8 @@ class NetCDFRead(IORead):
                     )
 
         # ------------------------------------------------------------
-        # Add a bounds and cell topology constructs derived from a
-        # UGRID mesh topology variables (CF>=1.11)
+        # Add a bounds topology and cell topology constructs derived
+        # from a UGRID mesh topology (CF>=1.11)
         # ------------------------------------------------------------
         if ugrid:
             bounds_topology = self._ugrid_create_bounds_topology(
@@ -3863,6 +3868,9 @@ class NetCDFRead(IORead):
                 self._reference(ncvar, field_ncvar)
                 ncvar = self.implementation.nc_get_variable(cell_topology)
                 ncvar_to_key[ncvar] = key
+
+            # Set the mesh identifier
+            self.implementation.set_mesh_id(f, mesh['mesh_id'])
 
         # ------------------------------------------------------------
         # Add coordinate reference constructs from formula_terms
@@ -8511,7 +8519,8 @@ class NetCDFRead(IORead):
             # The attributes of the location index set variable
             # (which will be None if there is no location index set)
             "location_index_set_ncvar": None,
-            # The attributes of the netCDF mesh topology variable
+            # The attributes of the location index set variable (which
+            # will be None if there is no location index set)
             "location_index_set_attributes": None,
             # The location of the location index set (which will be
             # None if there is no location index set)
@@ -8519,8 +8528,6 @@ class NetCDFRead(IORead):
             # The zero-based indices of the location index set (which
             # will be None if there is no location index set)
             "index_set": None,
-            #            # Domain topology constructs for each location
-            #            "domain_topology": {},
             # Bounds topology constructs for each location
             "bounds_topology": {},
             # cell topology constructs for each location
@@ -8530,6 +8537,11 @@ class NetCDFRead(IORead):
             # The netCDF dimension spanned by the mesh cells for each
             # location
             "ncdim": {},
+            # A unique identifier for the mesh. This is should be
+            # copied to every domain construct based on this mesh, so
+            # that it can be ascertained which domains belong to the
+            # same mesh.
+            'mesh_id': uuid4().hex,
         }
 
     def _ugrid_parse_location_index_set(self, parent_attributes):
@@ -8593,8 +8605,6 @@ class NetCDFRead(IORead):
             "location": location,
             # The zero-based indices of the location index set
             "index_set": index_set,
-            #            # Domain topology constructs for each location
-            #            "domain_topology": {},
             # Bounds topology constructs for each location
             "bounds_topology": {},
             # cell topology constructs for each location
@@ -8604,6 +8614,11 @@ class NetCDFRead(IORead):
             # The netCDF dimension spanned by the mesh cells for
             # the location
             "ncdim": {},
+            # A unique identifier for the mesh. This is should be
+            # copied to every domain construct based on this mesh, so
+            # that it can be ascertained which domains belong to the
+            # same mesh.
+            'mesh_id': uuid4().hex,
         }
 
     def _ugrid_get_dimension(self, parent_ncvar, f, mesh, location):
@@ -8846,7 +8861,7 @@ class NetCDFRead(IORead):
         )
 
         # Create and set the bounds data
-        array = self.implementation.initialise_NodeBoundsArray(
+        array = self.implementation.initialise_BoundsNodesArray(
             node_connectivity=node_connectivity,
             shape=node_connectivity.shape,
             node_coordinates=node_coordinates,
@@ -9162,105 +9177,6 @@ class NetCDFRead(IORead):
 
         mesh["cell_topology"][connectivity] = topology
         return topology
-
-    #    def _ugrid_create_node_connectivity(self, indices):
-    #        """TODOUGRID.
-    #
-    #        See http://ugrid-conventions.github.io/ugrid-conventions for
-    #        details.
-    #
-    #        .. versionadded:: (cfdm) TODOUGRIDVER
-    #
-    #        :Parameters:
-    #
-    #            node_connectivity_ncvar: `str`
-    #                The netCDF variable name of the UGRID connectiviety
-    #                variable.
-    #
-    #            start_index: `int`
-    #                Specify whether the UGRID indexing is 0- or 1-based
-    #                indexing.
-    #
-    #        :Returns:
-    #
-    #            `Data`
-    #                TODOUGRID
-    #
-    #        **Examples**
-    #
-    #        >>> print(indices.array)
-    #        [[1  2  3]
-    #         [0 -- --]
-    #         [0  4 --]
-    #         [0 -- --]
-    #         [2 -- --]]
-    #        >>> indices.shape
-    #        (5, 3)
-    #        >>> c = r._create_connectivity_data(indices, 0)
-    #        >>> print(c.array)
-    #        [[False  True  True  True False]
-    #         [ True False False False False]
-    #         [ True False False False  True]
-    #         [ True False False False False]
-    #         [False False  True False False]]
-    #        >>> c.shape
-    #        (5, 5)
-    #
-    #        # In [49]: start_index = 1
-    #        #
-    #        # In [50]: i = np.array([2, 3,4, 1, 3, 4, 1, 2, 1, 2]) - start_index
-    #        #
-    #        # In [51]: iptr = np.array([0,3,6,8,10])
-    #        #
-    #        # In [52]: data = np.ones ((i.size,), bool)
-    #        #
-    #        # In [53]: a = csr_array((data, i, iptr))
-    #        #
-    #        # In [54]: a
-    #        # Out[54]:
-    #        # <4x4 sparse array of type '<class 'numpy.bool_'>'
-    #        #    with 10 stored elements in Compressed Sparse Row format>
-    #
-    #        """
-    #        from scipy.sparse import csr_array
-    #
-    #        indices, kwargs = self._create_netcdfarray(node_connectivity_ncvar)
-    #        array = self._create_connectivityarray(indces)
-    #
-    #        cell_connectivity = self.implementation.initialise_NodeConnectivityArray(
-    #            node_connectivity=indices,
-    #            start_index=start_index
-    #        )
-    #
-    #        indices = indices.array
-    #        shape = indices.shape
-    #
-    #        if np.ma.is_masked(indices):
-    #            pointers = shape[1] - np.ma.getmaskarray(indices).sum(axis=1)
-    #            pointers = np.insert(pointers, 0, 0)
-    #            indices = indices.compressed()
-    #        else:
-    #            pointers = np.full((shape[0] + 1,), shape[1])
-    #            pointers[0] = 0
-    #            indices = indices.flatten()
-    #
-    #        pointers = np.cumsum(pointers, out=pointers)
-    #
-    #        if start_index:
-    #            indices -= start_index
-    #
-    #        ones = np.ones((indices.size,), bool)
-    #
-    #        c = csr_array((ones, indices, pointers))
-    #
-    #        data = self._create_Data(
-    #            c,
-    #            units=kwargs["units"],
-    #            calendar=kwargs["calendar"],
-    #            ncvar=connectivity_ncvar,
-    #        )
-    #
-    #        return data
 
     def _ugrid_check_mesh_topology(self, mesh_ncvar):
         """Check a UGRID mesh topology variable.

@@ -639,7 +639,7 @@ class FieldDomain:
     def bounds_topologies(self, *identities, **filter_kwargs):
         """Return bounds topology constructs.
 
-        Note that ``f.domain_topologies(*identities,
+        Note that ``f.bounds_topologies(*identities,
 
         **filter_kwargs)`` is equivalent to
 
@@ -2342,7 +2342,7 @@ class FieldDomain:
         False
 
         """
-        return bool(self.domain_topologies(todict=True))
+        return bool(self.bounds_topologies(todict=True)) or bool(self.cell_topologies(todict=True)) 
 
 
 #    def ugrid_components(
