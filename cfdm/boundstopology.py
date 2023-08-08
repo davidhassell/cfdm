@@ -104,7 +104,16 @@ class BoundsTopology(
 
     @_inplace_enabled(default=False)
     def normalise(self, start_index=0, inplace=False):
-        """TODOUGRID.
+        """Normalise the data values.
+
+        Normalisation does not change the logical content of the
+        data. It means converting the data values so that their set of
+        unique values comprises an unbroken sequence from ``0`` to
+        ``N-1`` (if the *start_index* parameter is ``0``), or ``1`` to
+        ``N`` (if *start_index* is ``1``).
+
+        Normalised data is in a form that may be suitable for creating
+        a netCDF UGRID connectivity variable.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -114,14 +123,6 @@ class BoundsTopology(
                 The start index for bounds identification in the
                 normalised data. Must be ``0`` (the default) or
                 ``1``.
-
-                If *start_index* is ``0`` then the range of values in
-                the normalised data will ``[0, N-1]``, where ``N`` is
-                the number of unique values in the data (i.e. the
-                number of distinct bounds).
-
-                If *start_index* is ``1`` then the range of values in
-                the normalised data will ``[1, N]``.
 
             {{inplace: `bool`, optional}}
 
@@ -169,7 +170,7 @@ class BoundsTopology(
 
         if start_index:
             if start_index != 1:
-                raise ValueError("TODOUGRID")
+                raise ValueError("The 'start_index' parameter must be 0 or 1")
 
             data += start_index
 

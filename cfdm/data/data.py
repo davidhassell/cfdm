@@ -1,10 +1,9 @@
-from scipy.sparse import issparse
-
 import itertools
 import logging
 
 import netCDF4
 import numpy as np
+from scipy.sparse import issparse
 
 from .. import core
 from ..constants import masked as cfdm_masked
@@ -128,28 +127,28 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 Not used. Present to facilitate subclassing.
 
         """
-#        if dtype is not None:
-#            if isinstance(array, abstract.Array):
-#                array = array.array
-#            elif not isinstance(array, np.ndarray):
-#                array = np.asanyarray(array)
-#
-#            array = array.astype(dtype)
-#            array = NumpyArray(array)
+        #        if dtype is not None:
+        #            if isinstance(array, abstract.Array):
+        #                array = array.array
+        #            elif not isinstance(array, np.ndarray):
+        #                array = np.asanyarray(array)
+        #
+        #            array = array.astype(dtype)
+        #            array = NumpyArray(array)
 
         if dtype is not None:
             if isinstance(array, abstract.Array):
                 try:
                     array = SparseArray(array.sparse_array.astype(dtype))
                 except AttributeError:
-                     array = NumpyArray(array.array.astype(dtype))
+                    array = NumpyArray(array.array.astype(dtype))
             elif isinstance(array, np.ndarray):
                 array = NumpyArray(array.astype(dtype))
             elif issparse(array):
-                array = SparseArray(array.astype(dtype))            
+                array = SparseArray(array.astype(dtype))
             else:
                 array = NumpyArray(np.asanyarray(array).astype(dtype))
-                
+
         if mask is not None:
             if isinstance(array, abstract.Array):
                 array = array.array
@@ -217,7 +216,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         x.__len__() <==> len(x)
 
-        .. versionadded:: 1.10.0.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         **Examples**
 
@@ -567,9 +566,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 # Convert reference times to date-times
                 try:
                     first, last = type(self)(
-                        np.ma.array(
-                            [first, last], mask=(mask[0], mask[-1])
-                        ),
+                        np.ma.array([first, last], mask=(mask[0], mask[-1])),
                         units,
                         calendar,
                     ).datetime_array
@@ -865,11 +862,11 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         >>> d._set_Array(a)
 
         """
-#        if not isinstance(array, abstract.Array):
-#            if not isinstance(array, np.ndarray):
-#                array = np.asanyarray(array)
-#
-#            array = NumpyArray(array)
+        #        if not isinstance(array, abstract.Array):
+        #            if not isinstance(array, np.ndarray):
+        #                array = np.asanyarray(array)
+        #
+        #            array = NumpyArray(array)
         if not isinstance(array, abstract.Array):
             if not isinstance(array, np.ndarray):
                 if issparse(array):
@@ -1297,19 +1294,33 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
     @property
     def sparse_array(self):
-        """TODOUGRID
+        """Return an independent `scipy` sparse array of the data.
+
+        An `AttributeError` is raised if a sparse array representation
+        is not available.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `sparse_array`
+        .. seealso:: `array`
+
+        :Returns:
+
+                An independent `scipy` sparse array of the data.
+
+        **Examples**
+
+        >>> from scipy.sparse import issparse
+        >>> issparse(d.sparse_array)
+        True
 
         """
         try:
             return self._get_Array().sparse_array
         except AttributeError:
-            raise AttributeError("TODOUGRID")
-    
-    
+            raise AttributeError(
+                "A sparse array representation of the data is not available"
+            )
+
     def any(self):
         """Test whether any data array elements evaluate to True.
 
@@ -2981,6 +2992,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
           [15 19 23]]]
 
         """
+        from math import prod
+
         d = _inplace_enabled_define_and_cleanup(self)
 
         try:
@@ -3013,8 +3026,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         d.transpose(order, inplace=True)
 
         new_shape = [n for i, n in enumerate(shape) if i not in axes]
-        # TODOUGRID replace with math.prod:
-        new_shape.insert(axes[0], np.prod([shape[i] for i in axes]))
+        new_shape.insert(axes[0], prod([shape[i] for i in axes]))
 
         array = d.array.reshape(new_shape)
 
@@ -3063,7 +3075,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         bar <class 'str'>
 
         """
-        return  self._item((slice(-1, None, 1),) * self.ndim)
+        return self._item((slice(-1, None, 1),) * self.ndim)
 
     def second_element(self):
         """Return the second element of the data as a scalar.

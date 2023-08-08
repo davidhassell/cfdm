@@ -1,5 +1,4 @@
-from .abstract import ConnectivityArray  # CompressedArray
-from .subarray import CellConnectivitySubarray
+from .abstract import ConnectivityArray
 
 
 class CellConnectivityArray(ConnectivityArray):

@@ -26,11 +26,11 @@ from . import (  # DomainTopology,
 )
 from .abstract import Implementation
 from .data import (
-    Data,
+    BoundsNodesArray,
     CellConnectivityArray,
+    Data,
     GatheredArray,
     NetCDFArray,
-    BoundsNodesArray,
     NodeConnectivityArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
@@ -1779,7 +1779,7 @@ class CFDMImplementation(Implementation):
     def initialise_CellConnectivityArray(self, **kwargs):
         """Return a cell connectivity array.
 
-        .. versionadded:: TODOUGRIDVER
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -1795,7 +1795,6 @@ class CFDMImplementation(Implementation):
         """
         cls = self.get_class("CellConnectivityArray")
         return cls(**kwargs)
-
 
     def initialise_CellMeasure(self, measure=None):
         """Return a cell measure construct.
@@ -2019,7 +2018,7 @@ class CFDMImplementation(Implementation):
     def initialise_DomainTopology(self, **kwargs):
         """Return a domain topology construct.
 
-        .. versionadded:: TODOUGRIDVER
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -2040,7 +2039,7 @@ class CFDMImplementation(Implementation):
     def initialise_BoundsTopology(self, **kwargs):
         """Return a bounds topology construct.
 
-        .. versionadded:: TODOUGRIDVER
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -2061,7 +2060,7 @@ class CFDMImplementation(Implementation):
     def initialise_CellTopology(self, **kwargs):
         """Return a cell topology construct.
 
-        .. versionadded:: TODOUGRIDVER
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -2347,7 +2346,7 @@ class CFDMImplementation(Implementation):
     def initialise_BoundsNodesArray(self, **kwargs):
         """Return a node bounds array.
 
-        .. versionadded:: TODOUGRIDVER
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -2377,7 +2376,7 @@ class CFDMImplementation(Implementation):
     def initialise_NodeConnectivityArray(self, **kwargs):
         """Return a node connectivity array.
 
-        .. versionadded:: TODOUGRIDVER
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
@@ -3229,7 +3228,7 @@ class CFDMImplementation(Implementation):
         )
         construct.set_data(data)
 
-    def set_mesh_id(    self, parent, mesh_id    ):
+    def set_mesh_id(self, parent, mesh_id):
         """Set a mesh identifier.
 
         .. versionadded:: (cfdm)  TODOUGRIDVER
@@ -3248,7 +3247,7 @@ class CFDMImplementation(Implementation):
 
         """
         parent.set_mesh_id(mesh_id)
-        
+
     def nc_set_external(self, construct):
         """Set the external status of a construct.
 
@@ -3624,27 +3623,26 @@ class CFDMImplementation(Implementation):
         """
         return bool(coordinate_reference.datum)
 
-    #    def has_identity(self, construct, identity):
-    #        """Return True if a construct has the given identity.
-    #
-    #        .. versionadded:: (cfdm) 1.10.0.0
-    #
-    #        :Parameters:
-    #
-    #            construct:
-    #
-    #            identity: `str`
-    #                The identity
-    #
-    #                *Parameter example:*
-    #                   ``'latitude'``
-    #
-    #        :Returns:
-    #
-    #            `bool`
-    #
-    #        """
-    #        return bool(getattr(construct, identity, False))
+    def has_mesh_topology(self, parent):
+        """Whether or not a fieldx or domain has a mesh topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            parent: `Field` or `Domain`
+                TODOUGRID
+
+        :Returns:
+
+            `bool`
+                Whether or not *parent* has a mesh topology.
+
+        """
+        try:
+            return parent.has_mesh_topology()
+        except AttributeError:
+            return False
 
     def has_property(self, parent, prop):
         """Return True if a property exists.

@@ -65,61 +65,57 @@ class CellTopology(
 
         f.__getitem__(indices) <==> f[indices]
 
-        Indexing follows rules that are very similar to the numpy
-        indexing rules, the only differences being:
+        Indexing follows rules that are very similar to the `numpy`
+        indexing rules, the only difference being:
 
         * An integer index i takes the i-th element but does not
           reduce the rank by one.
-
-        * When two or more dimensions' indices are sequences of
-          integers then these indices work independently along each
-          dimension (similar to the way vector subscripts work in
-          Fortran). This is the same behaviour as indexing on a
-          Variable object of the netCDF4 package.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Returns:
 
-                The subspace.
-
-        **Examples**
-
-
-        TODOUGRID
-
-        >>> f.shape
-        (1, 10, 9)
-        >>> f[:, :, 1].shape
-        (1, 10, 1)
-        >>> f[:, 0].shape
-        (1, 1, 9)
-        >>> f[..., 6:3:-1, 3:6].shape
-        (1, 3, 3)
-        >>> f[0, [2, 9], [4, 8]].shape
-        (1, 2, 2)
-        >>> f[0, :, -2].shape
-        (1, 10, 1)
+            `{{class}}`
+                The subspaced construct.
 
         """
         if isinstance(indices, tuple):
             indices = indices * 2
         else:
             indices = (indices, indices)
-            
+
         return super().__getitem__(indices)
 
     @property
     def sparse_array(self):
+        """Return an independent `scipy` sparse array of the data.
+
+        An `AttributeError` is raised if a sparse array representation
+        is not available.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `array`
+
+        :Returns:
+
+                An independent `scipy` sparse array of the data.
+
+        **Examples**
+
+        >>> from scipy.sparse import issparse
+        >>> issparse(c.sparse_array)
+        True
+
+        """
         data = self.get_data(None, _units=None, _fill_value=None)
         if data is None:
-            raise ValueError("TODOUGRID")
+            raise AttributeError(
+                "Can't get sparse array representation when there is no data"
+            )
 
-        try:
-            return data.sparse_array
-        except AttributeError:
-            raise ValueError("TODOUGRID")
-                    
+        return data.sparse_array
+
     def dump(
         self,
         display=True,
@@ -160,4 +156,3 @@ class CellTopology(
             _axes=_axes,
             _axis_names=_axis_names,
         )
-

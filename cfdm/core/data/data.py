@@ -1,11 +1,12 @@
-#from scipy.sparse import issparse
+# from scipy.sparse import issparse
 
 import numpy
 
 from .. import abstract
 from .abstract import Array
 from .numpyarray import NumpyArray
-#from .sparsearray import SparseArray
+
+# from .sparsearray import SparseArray
 
 
 class Data(abstract.Container):
@@ -143,16 +144,16 @@ class Data(abstract.Container):
     # ----------------------------------------------------------------
     @property
     def array(self):
-        """Return an independent numpy array containing the data.
+        """Return an independent `numpy` array containing the data.
 
-        If a fill value has been set (see `set_fill_value`) then it will
-        be used, otherwise the default numpy fill value appropriate to the
-        data type will be used.
+        If a fill value has been set (see `set_fill_value`) then it
+        will be used, otherwise the default numpy fill value
+        appropriate to the data type will be used.
 
         :Returns:
 
             `numpy.ndarray`
-                An independent numpy array of the data.
+                An independent `numpy` array of the data.
 
         **Examples**
 
@@ -796,15 +797,15 @@ class Data(abstract.Container):
 
             array = NumpyArray(array)
 
-#        if not isinstance(array, Array):
-#            if not isinstance(array, numpy.ndarray):
-#                if issparse(array):
-#                    array = SparseArray(array)
-#                else:
-#                    array = numpy.asanyarray(array)
-#                    array = NumpyArray(array)
-#            else:
-#                array = NumpyArray(array)
+        #        if not isinstance(array, Array):
+        #            if not isinstance(array, numpy.ndarray):
+        #                if issparse(array):
+        #                    array = SparseArray(array)
+        #                else:
+        #                    array = numpy.asanyarray(array)
+        #                    array = NumpyArray(array)
+        #            else:
+        #                array = NumpyArray(array)
 
         if copy:
             array = array.copy()

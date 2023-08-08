@@ -83,7 +83,7 @@ class Topology(PropertiesData):
         """
         try:
             return len(self.shape)
-        except AttributeError:            
+        except AttributeError:
             raise AttributeError(
                 f"{self.__class__.__name__} object has no attribute 'ndim'"
             )

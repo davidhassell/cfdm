@@ -1591,6 +1591,7 @@ def is_log_level_info(logger):
     """
     return logger.parent.level <= logging.INFO
 
+
 def integer_dtype(n):
     """Return the smallest data type that can store the given integer.
 
@@ -1599,7 +1600,7 @@ def integer_dtype(n):
     :Parameters:
 
         n: integer
-           The integer for which a data tpe is required. 
+           The integer for which a data tpe is required.
 
     :Returns:
 
@@ -1630,7 +1631,7 @@ def integer_dtype(n):
     """
     dtype = np.dtype("int32")
     iinfo = np.iinfo(dtype)
-    if n > iinfo.max or n < iinfo.min: 
+    if n > iinfo.max or n < iinfo.min:
         dtype = np.dtype(int)
 
     return dtype

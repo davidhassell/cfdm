@@ -2,7 +2,7 @@ from . import PropertiesData
 
 
 class Topology(PropertiesData):
-    """Mixin class for bounds and cell topology constructs.
+    """Mixin class for bounds topology and cell topology constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -44,22 +44,6 @@ class Topology(PropertiesData):
         :Returns:
 
             {{returns creation_commands}}
-
-        **Examples**
-
-        TODOUGRID
-
-        >>> x = {{package}}.CellMeasure(
-        ...     measure='area',
-        ...     properties={'units': 'm2'}
-        ... )
-        >>> x.set_data([100345.5, 123432.3, 101556.8])
-        >>> print(x.creation_commands(header=False))
-        c = {{package}}.CellMeasure()
-        c.set_properties({'units': 'm2'})
-        data = {{package}}.Data([100345.5, 123432.3, 101556.8], units='m2', dtype='f8')
-        c.set_data(data)
-        c.set_measure('area')
 
         """
         out = super().creation_commands(
@@ -108,33 +92,6 @@ class Topology(PropertiesData):
         :Returns:
 
                 The identity.
-
-        **Examples**
-
-        TODOUGRID
-
-        >>> f = {{package}}.example_field(1)
-        >>> c = f.get_construct('cellmeasure0')
-        >>> c.get_measure()
-        'area'
-
-        >>> c.properties()
-        {'units': 'km2'}
-        >>> c.nc_get_variable()
-        'cell_measure'
-        >>> c.identity(default='no identity')
-        'measure:area'
-
-        >>> c.del_measure()
-        'area'
-        >>> c.identity()
-        'ncvar%cell_measure'
-        >>> c.nc_del_variable()
-        'cell_measure'
-        >>> c.identity()
-        ''
-        >>> c.identity(default='no identity')
-        'no identity'
 
         """
         n = self.get_topology(None)
@@ -185,28 +142,6 @@ class Topology(PropertiesData):
 
             `list` or generator
                 The identities.
-
-        **Examples**
-
-        TODOUGRID
-
-        >>> f = {{package}}.example_field(1)
-        >>> c = f.get_construct('cellmeasure0')
-        >>> c.get_measure()
-        'area'
-
-        >>> c.properties()
-        {'units': 'km2'}
-        >>> c.nc_get_variable()
-        'cell_measure'
-        >>> c.identities()
-        ['measure:area', 'units=km2', 'ncvar%cell_measure']
-        >>> for i in c.identities(generator=True):
-        ...     print(i)
-        ...
-        measure:area
-        units=km2
-        ncvar%cell_measure
 
         """
         topology = self.get_topology(None)

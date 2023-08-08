@@ -1577,9 +1577,7 @@ class FieldDomain:
             **filter_kwargs,
         )
 
-    def cell_topologies(
-        self,
-        *identities, **filter_kwargs):
+    def cell_topologies(self, *identities, **filter_kwargs):
         """Select a cell topology construct.
 
         {{unique construct}}
@@ -2342,7 +2340,9 @@ class FieldDomain:
         False
 
         """
-        return bool(self.bounds_topologies(todict=True)) or bool(self.cell_topologies(todict=True)) 
+        return bool(self.bounds_topologies(todict=True)) or bool(
+            self.cell_topologies(todict=True)
+        )
 
 
 #    def ugrid_components(
@@ -2370,7 +2370,7 @@ class FieldDomain:
 #        TODOUGRID
 #
 #        """
-#        # TODOUGIRD: Hmmm
+#        # TODOUGRID: Hmmm
 #        # https://github.com/ugrid-conventions/ugrid-conventions/issues/65#issuecomment-1522763032 says:
 #        #
 #        # No. That's one of the reasons to use nodes, rather than

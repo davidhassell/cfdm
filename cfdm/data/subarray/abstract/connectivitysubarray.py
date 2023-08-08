@@ -5,7 +5,7 @@ from .subarray import Subarray
 
 
 class ConnectivitySubarray(Subarray):
-    """A subarray TODOUGRIDVER of an array compressed by subsampling.
+    """A subarray TODOUGRID of an array compressed by subsampling.
 
     See CF section 8.3 "Lossy Compression by Coordinate Subsampling"
     and appendix J "Coordinate Interpolation Methods".
@@ -13,6 +13,7 @@ class ConnectivitySubarray(Subarray):
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
+
     def __init__(
         self,
         data=None,
@@ -87,7 +88,7 @@ class ConnectivitySubarray(Subarray):
 
         """
         return np.dtype(bool)
-    
+
     @property
     def start_index(self):
         """TODOUGRID The data-type of the uncompressed data.

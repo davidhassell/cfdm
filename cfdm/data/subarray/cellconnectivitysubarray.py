@@ -44,7 +44,7 @@ class CellConnectivitySubarray(ConnectivitySubarray):
             cell_connectivity = cell_connectivity.flatten()
 
         pointers = np.cumsum(pointers, out=pointers)
-        
+
         start_index = self.start_index
         if start_index:
             cell_connectivity = cell_connectivity - start_index

@@ -16,7 +16,7 @@ class BoundsTopology(abstract.Topology):
     * ``'volume_node_connectivity'``: Identifying the vertex nodes for
       every volume cell.
 
-    TODOUGRIDVER
+    TODOUGRID
 
     See CF Appendix I "The CF Data Model".
 

@@ -143,11 +143,11 @@ class Field(
         if source is not None:
             try:
                 mesh_id = source.get_mesh_id(None)
-            except AttirbuteError:
+            except AttributeError:
                 pass
             else:
                 self.set_mesh_id(mesh_id)
-            
+
         self._initialise_netcdf(source)
         self._initialise_original_filenames(source)
 
@@ -299,7 +299,7 @@ class Field(
 
         """
         new = self.copy()
-        if indices is Ellipsis:            
+        if indices is Ellipsis:
             return new
 
         # Remove a mesh id, on the assumption that the subspaced
@@ -707,9 +707,6 @@ class Field(
             ("cell_method",), "cell_method", identities, **filter_kwargs
         )
 
-    # ----------------------------------------------------------------
-    # Methods
-    # ----------------------------------------------------------------
     @_inplace_enabled(default=False)
     def apply_masking(self, inplace=False):
         """Apply masking as defined by the CF conventions.
@@ -1581,6 +1578,10 @@ class Field(
             header=header,
         )
 
+        mesh_id = self.get_mesh_id(None)
+        if mesh_id is not None:
+            out.append(f"{name}.set_mesh_id({mesh_id!r})")
+
         nc_global_attributes = self.nc_global_attributes()
         if nc_global_attributes:
             out.append("#")
@@ -1649,10 +1650,10 @@ class Field(
             out = ("\n" + indent).join(out)
 
         return out
-    
+
     def del_mesh_id(self, default=ValueError()):
         """Remove the mesh topology identifier.
-        
+
         Different field constructs with the same mesh topology
         identifier may be assumed to have domains with a shared UGRID
         mesh topology.
@@ -1673,12 +1674,6 @@ class Field(
 
                 The removed mesh topology identifier.
 
-        :Returns:
-
-            `bool`
-                True if the esh topology identifier has been set,
-                otherwise False.
-
         **Examples**
 
         >>> c = {{package}}.{{class}}()
@@ -1697,7 +1692,7 @@ class Field(
         None
 
         """
-        return self._del_component('mesh_id', default=default)
+        return self._del_component("mesh_id", default=default)
 
     @_display_or_return
     def dump(self, display=True, _level=0, _title=None):
@@ -2016,31 +2011,7 @@ class Field(
         None
 
         """
-        return self._has_component('mesh_id')
-
-    #    def has_geometry(self):
-    #        """Whether any coordinate constructs have cell geometries.
-    #
-    #        .. versionadded:: (cfdm) 1.8.7.0
-    #
-    #        :Returns:
-    #
-    #            `bool`
-    #                Whether or not there is a geometry type on any coordinate
-    #                construct.
-    #
-    #        **Examples**
-    #
-    #        >>> f = {{package}}.Field()
-    #        >>> f.has_geometry()
-    #        False
-    #
-    #        """
-    #        for c in self.coordinates(todict=True).values():
-    #            if c.has_geometry():
-    #                return True
-    #
-    #        return False
+        return self._has_component("mesh_id")
 
     def indices(self, **kwargs):
         """Create indices that define a subspace of the field construct.
@@ -2062,7 +2033,7 @@ class Field(
         * Subspace criteria may be provided for size 1 domain axes that
           are not spanned by the field construct's data.
 
-        .. versionadded:: 1.10.0.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         .. seealso:: `__getitem__`, `__setitem__`
 
@@ -2538,7 +2509,7 @@ class Field(
         >>> print(c.get_mesh_id(None))
         None
 
-        """  
+        """
         return self._set_component("mesh_id", mesh_id, copy=False)
 
     @_inplace_enabled(default=False)

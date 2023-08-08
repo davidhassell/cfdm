@@ -545,7 +545,7 @@ class NetCDFRead(IORead):
         assumed to be a CDL file if it is a text file that starts with
         "netcdf ".
 
-        .. versionaddedd:: 1.7.8
+        .. versionaddedd:: (cfdm) 1.7.8
 
         :Parameters:
 
@@ -1797,7 +1797,7 @@ class NetCDFRead(IORead):
         constructs are set on the parent field or domain construct
         inside this method.
 
-        .. versionadded:: 1.10.1.0
+        .. versionadded:: (cfdm) 1.10.1.0
 
         :Parameters:
 
@@ -1832,7 +1832,7 @@ class NetCDFRead(IORead):
         constructs are set on the parent field construct inside this
         method.
 
-        .. versionadded:: 1.10.1.0
+        .. versionadded:: (cfdm) 1.10.1.0
 
         :Parameters:
 
@@ -2261,7 +2261,7 @@ class NetCDFRead(IORead):
 
         logger.info(
             f"    Geometry container = {geometry_ncvar!r}\n"
-            "        netCDF attributes: {attributes[geometry_ncvar]}"
+            f"        netCDF attributes: {attributes[geometry_ncvar]}"
         )  # pragma: no cover
 
         geometry_type = attributes[geometry_ncvar].get("geometry_type")
@@ -3424,11 +3424,13 @@ class NetCDFRead(IORead):
                     )
 
                 # Find the discrete axis for the mesh topology
-                ncdim = self._ugrid_get_dimension(
+                ugrid_ncdim = self._ugrid_get_dimension(
                     field_ncvar, f, mesh, location
                 )
-                axis = ncdim_to_axis[ncdim]
-                if ncdim is not None:
+                if ugrid_ncdim is None:
+                    ugrid = False
+                else:
+                    ugrid_axis = ncdim_to_axis[ugrid_ncdim]
                     # There is a UGRID discrete axis, so create
                     # auxiliary coordinate constructs that are derived
                     # from the mesh topology.
@@ -3439,7 +3441,7 @@ class NetCDFRead(IORead):
                         key = self.implementation.set_auxiliary_coordinate(
                             f,
                             aux,
-                            axes=axis,
+                            axes=ugrid_axis,
                             copy=False,
                         )
                         ncvar = self.implementation.nc_get_variable(aux)
@@ -3842,7 +3844,7 @@ class NetCDFRead(IORead):
                 key = self.implementation.set_bounds_topology(
                     f,
                     bounds_topology,
-                    axes=axis,
+                    axes=ugrid_axis,
                     copy=False,
                 )
                 self._reference(ncvar, field_ncvar)
@@ -3862,7 +3864,7 @@ class NetCDFRead(IORead):
                 key = self.implementation.set_cell_topology(
                     f,
                     cell_topology,
-                    axes=axis,
+                    axes=ugrid_axis,
                     copy=False,
                 )
                 self._reference(ncvar, field_ncvar)
@@ -3870,7 +3872,7 @@ class NetCDFRead(IORead):
                 ncvar_to_key[ncvar] = key
 
             # Set the mesh identifier
-            self.implementation.set_mesh_id(f, mesh['mesh_id'])
+            self.implementation.set_mesh_id(f, mesh["mesh_id"])
 
         # ------------------------------------------------------------
         # Add coordinate reference constructs from formula_terms
@@ -4077,7 +4079,9 @@ class NetCDFRead(IORead):
                                 # Add the datum to an already existing
                                 # vertical coordinate reference
                                 logger.detail(
-                                    f"        [k] Inserting {datum.__class__.__name__} into {vcr.__class__.__name__}"
+                                    "        [k] Inserting "
+                                    f"{datum.__class__.__name__} into "
+                                    f"{vcr.__class__.__name__}"
                                 )  # pragma: no cover
 
                                 self.implementation.set_datum(
@@ -4113,7 +4117,8 @@ class NetCDFRead(IORead):
                         )
 
                         logger.detail(
-                            f"        [l] Inserting {coordref.__class__.__name__}"
+                            "        [l] Inserting "
+                            f"{coordref.__class__.__name__}"
                         )  # pragma: no cover
 
                         self._reference(grid_mapping_ncvar, field_ncvar)
@@ -4197,7 +4202,8 @@ class NetCDFRead(IORead):
                 )
 
                 logger.detail(
-                    f"        [i] Inserting {method!r} {cell_method.__class__.__name__}"
+                    f"        [i] Inserting {method!r} "
+                    f"{cell_method.__class__.__name__}"
                 )  # pragma: no cover
 
                 self.implementation.set_cell_method(
@@ -4452,7 +4458,7 @@ class NetCDFRead(IORead):
     def _has_identity(self, construct, identity):
         """TODO.
 
-        .. versionadded:: 1.10.0.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         """
         if identity == "latitude":
@@ -4466,7 +4472,7 @@ class NetCDFRead(IORead):
     def _is_latitude(self, construct):
         """True if and only if the data are (grid) latitudes.
 
-        .. versionadded:: 1.10.0.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         .. seealso:: `_is_longitude`
 
@@ -4505,7 +4511,7 @@ class NetCDFRead(IORead):
     def _is_longitude(self, construct):
         """True if and only if the data are (grid) longitudes.
 
-        .. versionadded:: 1.10.0.0
+        .. versionadded:: (cfdm) 1.10.0.0
 
         .. seealso:: `_is_longitude`
 
@@ -4642,7 +4648,13 @@ class NetCDFRead(IORead):
         if variable is None:
             variable = ncvar
 
-        print(999, parent_ncvar)
+        g["dataset_compliance"].setdefault(
+            parent_ncvar,
+            {
+                "CF version": self.implementation.get_cf_version(),
+                "non-compliance": {},
+            },
+        )
         g["dataset_compliance"][parent_ncvar]["non-compliance"].setdefault(
             ncvar, []
         ).append(d)
@@ -7457,7 +7469,7 @@ class NetCDFRead(IORead):
 
             # Check that the variable exists in the file, or if not
             # that it is listed in the 'external_variables' global
-            # file attribute
+            # file attribute.
             if not unknown_external and ncvar not in g["variables"]:
                 self._add_message(
                     field_ncvar,
@@ -7488,14 +7500,15 @@ class NetCDFRead(IORead):
 
         return ok
 
-    def _check_geometry_attribute(self, field_ncvar, string, parsed_string):
+    def _check_geometry_attribute(self, parent_ncvar, string, parsed_string):
         """Checks requirements.
 
         .. versionadded:: (cfdm) 1.8.0
 
         :Parameters:
 
-            field_ncvar: `str`
+            parent_ncvar: `str`
+                The netCDF variable name of the parent data variable.
 
             string: `str`
                 The value of the netCDF geometry attribute.
@@ -7507,7 +7520,7 @@ class NetCDFRead(IORead):
             `bool`
 
         """
-        attribute = {field_ncvar + ":geometry": string}
+        attribute = {parent_ncvar + ":geometry": string}
 
         incorrectly_formatted = (
             "geometry attribute",
@@ -7518,8 +7531,8 @@ class NetCDFRead(IORead):
 
         if len(parsed_string) != 1:
             self._add_message(
-                field_ncvar,
-                field_ncvar,
+                parent_ncvar,
+                parent_ncvar,
                 message=incorrectly_formatted,
                 attribute=attribute,
                 conformance="?",
@@ -7527,15 +7540,13 @@ class NetCDFRead(IORead):
             return False
 
         for ncvar in parsed_string:
-            # Check that the variable exists in the file, or if not
-            # that it is listed in the 'external_variables' global
-            # file attribute
+            # Check that the geometry variable exists in the file
             if ncvar not in g["variables"]:
                 ncvar, message = self._missing_variable(
                     ncvar, "Geometry variable"
                 )
                 self._add_message(
-                    field_ncvar,
+                    parent_ncvar,
                     ncvar,
                     message=message,
                     attribute=attribute,
@@ -7587,7 +7598,8 @@ class NetCDFRead(IORead):
             # read not terminated
             if is_log_level_debug(logger):
                 logger.debug(
-                    f"    Error processing netCDF variable {field_ncvar}: {d['reason']}"
+                    f"    Error processing netCDF variable {field_ncvar}: "
+                    f"{d['reason']}"
                 )  # pragma: no cover
 
             return False
@@ -8422,7 +8434,7 @@ class NetCDFRead(IORead):
         Given a dataset and a variable or dimension name, return the
         group object for the name, and the name within the group.
 
-        .. versionadded:: 1.8.8.1
+        .. versionadded:: (cfdm) 1.8.8.1
 
         :Parameters:
 
@@ -8476,11 +8488,11 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        g["dataset_compliance"].setdefault(mesh_ncvar, {})
-        g["dataset_compliance"][mesh_ncvar][
-            "CF version"
-        ] = self.implementation.get_cf_version()
-        g["dataset_compliance"][mesh_ncvar].setdefault("non-compliance", {})
+        #        g["dataset_compliance"].setdefault(mesh_ncvar, {})
+        #        g["dataset_compliance"][mesh_ncvar][
+        #            "CF version"
+        #        ] = self.implementation.get_cf_version()
+        #        g["dataset_compliance"][mesh_ncvar].setdefault("non-compliance", {})
 
         if not self._ugrid_check_mesh_topology(mesh_ncvar):
             return
@@ -8541,7 +8553,7 @@ class NetCDFRead(IORead):
             # copied to every domain construct based on this mesh, so
             # that it can be ascertained which domains belong to the
             # same mesh.
-            'mesh_id': uuid4().hex,
+            "mesh_id": uuid4().hex,
         }
 
     def _ugrid_parse_location_index_set(self, parent_attributes):
@@ -8618,7 +8630,7 @@ class NetCDFRead(IORead):
             # copied to every domain construct based on this mesh, so
             # that it can be ascertained which domains belong to the
             # same mesh.
-            'mesh_id': uuid4().hex,
+            "mesh_id": uuid4().hex,
         }
 
     def _ugrid_get_dimension(self, parent_ncvar, f, mesh, location):
@@ -9104,7 +9116,7 @@ class NetCDFRead(IORead):
         if topology is not None:
             # Return a copy of an existing cell topology construct
             return topology.copy()
-        
+
         connectivity_attr = connectivity
         if location == "node":
             for connectivity_attr in (

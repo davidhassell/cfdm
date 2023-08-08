@@ -5126,6 +5126,7 @@ def example_field(n, _implementation=_implementation):
             dtype="f8",
         )
         f.set_data(data)
+        f.set_mesh_id("f51e5aa5e2b0449f9fae4f04e51556f7")
 
         # domain_axis: ncdim%time
         c = DomainAxis()

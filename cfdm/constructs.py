@@ -24,8 +24,8 @@ class Constructs(mixin.Container, core.Constructs):
     **Filtering**
 
     A subset of the metadata constructs can be defined and returned in
-    a new `Constructs` instance by using the various filter
-    methods. See `filter` for more details.
+    a new `Constructs` instance by using the various filter methods.
+    See `filter` for more details.
 
     **Calling**
 
@@ -42,13 +42,14 @@ class Constructs(mixin.Container, core.Constructs):
 
     The following metadata constructs can be included:
 
+    * domain axis constructs
+    * dimension coordinate constructs
     * auxiliary coordinate constructs
     * coordinate reference constructs
-    * cell measure constructs
-    * dimension coordinate constructs
     * domain ancillary constructs
-    * domain axis constructs
-    * domain topology constructs
+    * cell measure constructs
+    * bounds topology constructs
+    * cell topology constructs
     * cell method constructs
     * field ancillary constructs
 
@@ -180,37 +181,43 @@ class Constructs(mixin.Container, core.Constructs):
                             'dimension_coordinate': {'dimensioncoordinate0': <DimensionCoordinate: atmosphere_hybrid_height_coordinate(1) >},
                             'domain_ancillary'    : {'domainancillary0': <DomainAncillary: ncvar%a(1) m>,
                                                      'domainancillary1': <DomainAncillary: ncvar%b(1) >},
-                            'domain_topology': {},
+                            'bounds_topology': {},
+                            'cell_topology': {},
                             'field_ancillary'     : {}},
          ('domainaxis1',): {'auxiliary_coordinate': {'auxiliarycoordinate2': <AuxiliaryCoordinate: long_name=Grid latitude name(10) >},
                             'cell_measure'        : {},
                             'dimension_coordinate': {'dimensioncoordinate1': <DimensionCoordinate: grid_latitude(10) degrees>},
                             'domain_ancillary'    : {},
-                            'domain_topology'     : {},
+                            'bounds_topology'     : {},
+                            'cell_topology'       : {},
                             'field_ancillary'     : {}},
          ('domainaxis1', 'domainaxis2'): {'auxiliary_coordinate': {'auxiliarycoordinate0': <AuxiliaryCoordinate: latitude(10, 9) degrees_N>},
                                           'cell_measure'        : {},
                                           'dimension_coordinate': {},
                                           'domain_ancillary'    : {'domainancillary2': <DomainAncillary: surface_altitude(10, 9) m>},
-                                          'domain_topology'     : {},
+                                          'bounds_topology'     : {},
+                                          'cell_topology'       : {},
                                           'field_ancillary'     : {'fieldancillary0': <FieldAncillary: air_temperature standard_error(10, 9) K>}},
          ('domainaxis2',): {'auxiliary_coordinate': {},
                             'cell_measure'        : {},
                             'dimension_coordinate': {'dimensioncoordinate2': <DimensionCoordinate: grid_longitude(9) degrees>},
                             'domain_ancillary'    : {},
-                            'domain_topology'     : {},
+                            'bounds_topology'     : {},
+                            'cell_topology'       : {},
                             'field_ancillary'     : {}},
          ('domainaxis2', 'domainaxis1'): {'auxiliary_coordinate': {'auxiliarycoordinate1': <AuxiliaryCoordinate: longitude(9, 10) degrees_E>},
                                           'cell_measure'        : {'cellmeasure0': <CellMeasure: measure:area(9, 10) km2>},
                                           'dimension_coordinate': {},
                                           'domain_ancillary'    : {},
-                                          'domain_topology'     : {},
+                                          'bounds_topology'     : {},
+                                          'cell_topology'       : {},
                                           'field_ancillary'     : {}},
          ('domainaxis3',): {'auxiliary_coordinate': {},
                             'cell_measure'        : {},
                             'dimension_coordinate': {'dimensioncoordinate3': <DimensionCoordinate: time(1) days since 2018-12-01 >},
                             'domain_ancillary'    : {},
-                            'domain_topology'     : {},
+                            'bounds_topology'     : {},
+                            'cell_topology'       : {},
                             'field_ancillary'     : {}}}
 
         """
@@ -1504,8 +1511,9 @@ class Constructs(mixin.Container, core.Constructs):
                      `filter_by_measure`, `filter_by_method`,
                      `filter_by_identity`, `filter_by_naxes`,
                      `filter_by_ncdim`, `filter_by_ncvar`,
-                     `filter_by_property`, `filter_by_type`,
-                     `filters_applied`, `inverse_filter`, `unfilter`,
+                     `filter_by_property`, `filter_by_topology`,
+                     `filter_by_type`, `filters_applied`,
+                     `inverse_filter`, `unfilter`,
                      `clear_filters_applied`
 
         :Parameters:
@@ -1562,6 +1570,10 @@ class Constructs(mixin.Container, core.Constructs):
                 ``filter_by_size``      A sequence as expected by the
                                         *sizes* parameter of
                                         `filter_by_size`
+
+                ``filter_by_topology``  A sequence as expected by the
+                                        *topologies* parameter of
+                                        `filter_by_topology`
 
                 ``filter_by_type``      A sequence as expected by the
                                         *types* parameter of
@@ -1629,6 +1641,87 @@ class Constructs(mixin.Container, core.Constructs):
             )
 
             out = filter_method(out, *args)
+
+        return out
+
+    def _component_filter(
+        self,
+        arg,
+        components,
+        construct_types,
+        filter_by,
+        get_method,
+        todict=False,
+    ):
+        """Worker function for some "_filter_by_* methods.
+
+        Used by `_filter_by_measure`, `_filter_by_method`, and
+        `_filter_by_topology` to filter by measure, method and
+        topology components, respectively.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            arg: `Constructs` or `dict`
+                Either a `Constructs` object or its dictionary
+                representation.
+
+            components:
+                Select *construct_type* constructs that have an
+                component defined by their *get_method* methods, that
+                matches any of the given values.
+
+                If no components are provided then all
+                *construct_type* constructs of are selected.
+
+                {{value match}}
+
+            construct_types: sequence of `str`
+                The construct types, e.g. ``['cell_measure']`` or
+                ``['bounds_topology', 'cell_topology']``.
+
+            filter_by: `str`
+                The name of the public "filter_by" method,
+                e.g. ``'filter_by_measure'``.
+
+            get_method: `str`
+                The name of the construct method that gets the
+                component, e.g. ``'get_measure'``.
+
+            {{todict: `bool`, optional}}
+
+        """
+        out, pop = self._filter_preprocess(
+            arg, filter_applied={filter_by: components}, todict=todict
+        )
+
+        all_construct_types = self._construct_type
+        if not components:
+            for cid in tuple(out):
+                if all_construct_types[cid] not in construct_types:
+                    pop(cid)
+
+            return out
+
+        for cid, construct in tuple(out.items()):
+            if all_construct_types[cid] not in construct_types:
+                pop(cid)
+                continue
+
+            value1 = getattr(construct, get_method)(None)
+
+            ok = False
+            if value1 is not None:
+                for value0 in components:
+                    ok = self._matching_values(
+                        value0, None, value1, basic=True
+                    )
+                    if ok:
+                        break
+
+            if not ok:
+                pop(cid)
 
         return out
 
@@ -2167,43 +2260,49 @@ class Constructs(mixin.Container, core.Constructs):
     def _filter_by_measure(self, arg, measures, todict):
         """Worker function for `filter_by_measure` and `filter`.
 
-        See `filter_by_measure` for details.
-
         .. versionadded:: (cfdm) 1.8.9.0
 
         """
-        out, pop = self._filter_preprocess(
-            arg, filter_applied={"filter_by_measure": measures}, todict=todict
+        #        out, pop = self._filter_preprocess(
+        #            arg, filter_applied={"filter_by_measure": measures}, todict=todict
+        #        )
+        #
+        #        construct_type = self._construct_type
+        #        if not measures:
+        #            for cid in tuple(out):
+        #                if construct_type[cid] != "cell_measure":
+        #                    pop(cid)
+        #
+        #            return out
+        #
+        #        for cid, construct in tuple(out.items()):
+        #            if construct_type[cid] != "cell_measure":
+        #                pop(cid)
+        #                continue
+        #
+        #            value1 = construct.get_measure(None)
+        #
+        #            ok = False
+        #            if value1 is not None:
+        #                for value0 in measures:
+        #                    ok = self._matching_values(
+        #                        value0, None, value1, basic=True
+        #                    )
+        #                    if ok:
+        #                        break
+        #
+        #            if not ok:
+        #                pop(cid)
+        #
+        #        return out
+        return self._component_filter(
+            arg,
+            measures,
+            ("cell_measure",),
+            "filter_by_measure",
+            "get_measure",
+            todict,
         )
-
-        construct_type = self._construct_type
-        if not measures:
-            for cid in tuple(out):
-                if construct_type[cid] != "cell_measure":
-                    pop(cid)
-
-            return out
-
-        for cid, construct in tuple(out.items()):
-            if construct_type[cid] != "cell_measure":
-                pop(cid)
-                continue
-
-            value1 = construct.get_measure(None)
-
-            ok = False
-            if value1 is not None:
-                for value0 in measures:
-                    ok = self._matching_values(
-                        value0, None, value1, basic=True
-                    )
-                    if ok:
-                        break
-
-            if not ok:
-                pop(cid)
-
-        return out
 
     def filter_by_measure(self, *measures, todict=False, cached=None):
         """Select cell measure constructs by measure.
@@ -2286,45 +2385,51 @@ class Constructs(mixin.Container, core.Constructs):
         return self._filter_by_measure(self, measures, todict)
 
     def _filter_by_method(self, arg, methods, todict):
-        """Worker function for `filter_by_measure` and `filter`.
-
-        See `filter_by_method` for details.
+        """Worker function for `filter_by_method` and `filter`.
 
         .. versionadded:: (cfdm) 1.8.9.0
 
         """
-        out, pop = self._filter_preprocess(
-            arg, filter_applied={"filter_by_measure": methods}, todict=todict
+        #        out, pop = self._filter_preprocess(
+        #            arg, filter_applied={"filter_by_method": methods}, todict=todict
+        #        )
+        #
+        #        construct_type = self._construct_type
+        #        if not methods:
+        #            for cid in tuple(out.keys()):
+        #                if construct_type[cid] != "cell_method":
+        #                    pop(cid)
+        #
+        #            return out
+        #
+        #        for cid, construct in tuple(out.items()):
+        #            if construct_type[cid] != "cell_method":
+        #                pop(cid)
+        #                continue
+        #
+        #            value1 = construct.get_method(None)
+        #
+        #            ok = False
+        #            if value1 is not None:
+        #                for value0 in methods:
+        #                    ok = self._matching_values(
+        #                        value0, None, value1, basic=True
+        #                    )
+        #                    if ok:
+        #                        break
+        #
+        #            if not ok:
+        #                pop(cid)
+        #
+        #        return out
+        return self._component_filter(
+            arg,
+            methods,
+            ("cell_method",),
+            "filter_by_method",
+            "get_method",
+            todict,
         )
-
-        construct_type = self._construct_type
-        if not methods:
-            for cid in tuple(out.keys()):
-                if construct_type[cid] != "cell_method":
-                    pop(cid)
-
-            return out
-
-        for cid, construct in tuple(out.items()):
-            if construct_type[cid] != "cell_method":
-                pop(cid)
-                continue
-
-            value1 = construct.get_method(None)
-
-            ok = False
-            if value1 is not None:
-                for value0 in methods:
-                    ok = self._matching_values(
-                        value0, None, value1, basic=True
-                    )
-                    if ok:
-                        break
-
-            if not ok:
-                pop(cid)
-
-        return out
 
     def filter_by_method(self, *methods, todict=False, cached=None):
         """Select cell method constructs by method.
@@ -2965,6 +3070,99 @@ class Constructs(mixin.Container, core.Constructs):
 
         return out
 
+    def _filter_by_topology(self, arg, topologies, todict):
+        """Worker function for `filter_by_topology` and `filter`.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        return self._component_filter(
+            arg,
+            topologies,
+            ("bounds_topology", "cell_topology"),
+            "filter_by_topology",
+            "get_topology",
+            todict,
+        )
+
+    def filter_by_topology(self, *topologies, todict=False, cached=None):
+        """Select cell and bounds topology constructs by topology.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
+                     `clear_filters_applied`, `unfilter`
+
+        :Parameters:
+
+            topologies: optional
+                Select cell topology and bounds topology and
+                constructs that have a topology, defined by their
+                `!get_topology` methods, that matches any of the given
+                values.
+
+                If no topologies are provided then all cell topology
+                and bounds topology constructs are selected.
+
+                {{value match}}
+
+            {{todict: `bool`, optional}}
+
+            {{cached: optional}}
+
+        :Returns:
+
+            `Constructs` or `dict` or *cached*
+                The selected constructs, or a cached valued.
+
+            `Constructs`
+                The selected constructs and their construct keys.
+
+        **Examples**
+
+        >>> print(t.constructs.filter_by_type('bounds_topology', 'cell_topology'))
+        Constructs:
+        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+
+        Select cell or bounds topology constructs that have a topology
+        of 'face_node_connectivity':
+
+        >>> print(c.filter_by_topology('face_node_connectivity'))
+        Constructs:
+        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >}
+
+        Select cell or bounds topology constructs that have a topology
+        of 'face_node_connectivity' or 'face_face_connectivity':
+
+        >>> print(c.filter_by_topology('face_node_connectivity', 'face_face_connectivity'))
+        Constructs:
+        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+
+        Select cell or bounds topology constructs that have a topology
+        that starts with "face":
+
+        >>> print(c.filter_by_topology(re.compile('^face')))
+        Constructs:
+        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+
+
+        Select cell or bounds topology costructs that have a topology
+        of any value:
+
+        >>> print(c.filter_by_topology())
+        Constructs:
+        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+
+        """
+        if cached is not None:
+            return cached
+
+        return self._filter_by_topology(self, topologies, todict)
+
     def filter_by_type(self, *types, todict=False, cached=None):
         """Select metadata constructs by type.
 
@@ -2990,6 +3188,8 @@ class Constructs(mixin.Container, core.Constructs):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate constructs
                 ``'cell_measure'``          Cell measure constructs
                 ``'coordinate_reference'``  Coordinate reference constructs
+                ``'bounds_topology'``       Bounds topology constructs
+                ``'cell_topology'``         Cell topology constructs
                 ``'cell_method'``           Cell method constructs
                 ``'field_ancillary'``       Field ancillary constructs
                 ==========================  ================================

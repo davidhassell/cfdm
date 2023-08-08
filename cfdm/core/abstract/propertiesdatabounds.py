@@ -1,8 +1,9 @@
 from math import prod
 
-import numpy
-
 from .propertiesdata import PropertiesData
+
+# import numpy as np
+
 
 # --------------------------------------------------------------------
 # See cfdm.core.mixin.container.__docstring_substitution__ for {{...}}
@@ -750,7 +751,6 @@ class PropertiesDataBounds(PropertiesData):
 
         **Examples**
 
-
         >>> c = {{package}}.{{class}}()
         >>> b = {{package}}.Bounds(data={{package}}.Data(numpy.arange(10).reshape(5, 2)))
         >>> c.set_bounds(b)
@@ -772,13 +772,19 @@ class PropertiesDataBounds(PropertiesData):
         data = self.get_data(None)
         if data is not None:
             bounds_data = bounds.get_data(None)
-            if bounds_data is not None and numpy.ndim(
-                bounds_data
-            ) <= numpy.ndim(data):
-                raise ValueError(
-                    f"{bounds!r} must have more dimensions than "
-                    f"its parent {self!r}"
-                )
+            if bounds_data is not None:
+                ndim = data.ndim
+                if bounds_data.ndim <= ndim:
+                    raise ValueError(
+                        "Bounds must have more dimensions than their "
+                        f"parent {self!r}: Got {bounds!r}"
+                    )
+
+                if bounds_data.shape[:ndim] != data.shape:
+                    raise ValueError(
+                        "Leading dimensions of bounds must have the same "
+                        f"shape as their parent {self!r}: Got {bounds!r}"
+                    )
 
         if copy:
             bounds = bounds.copy()

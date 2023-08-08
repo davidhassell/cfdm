@@ -4,7 +4,7 @@ from . import abstract
 class DomainTopology(abstract.PropertiesData):
     """A domain topology construct of the CF data model.
 
-    TODOUGRIDVER
+    TODOUGRID
 
     See CF Appendix I "The CF Data Model".
 
@@ -370,5 +370,5 @@ class DomainTopology(abstract.PropertiesData):
 
         """
         raise ValueError(
-            "TODOUGIRD use set_bounds_connectivty or set_cell_connectiiy"
+            "TODOUGRID use set_bounds_connectivty or set_cell_connectiiy"
         )

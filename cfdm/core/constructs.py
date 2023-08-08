@@ -6,13 +6,14 @@ class Constructs(abstract.Container):
 
     The following metadata constructs can be included:
 
+    * domain axis constructs
+    * dimension coordinate constructs
     * auxiliary coordinate constructs
     * coordinate reference constructs
-    * cell measure constructs
-    * dimension coordinate constructs
     * domain ancillary constructs
-    * domain axis constructs
-    * domain topology constructs TODOUGRID
+    * cell measure constructs
+    * bounds topology constructs
+    * cell topology constructs
     * cell method constructs
     * field ancillary constructs
 
@@ -36,7 +37,6 @@ class Constructs(abstract.Container):
         cell_measure=None,
         coordinate_reference=None,
         domain_axis=None,
-        #        domain_topology=None,
         bounds_topology=None,
         cell_topology=None,
         cell_method=None,
@@ -82,14 +82,6 @@ class Constructs(abstract.Container):
                 *Parameter example:*
                   ``cell_measure='cellmeasure'``
 
-            domain_topology: `str`, optional TODOUGRID
-                The base name for keys of domain topology constructs.
-
-                *Parameter example:*
-                  ``'domaintopology'``
-
-                .. versionadded:: (cfdm) TODOUGRIDVER
-
             coordinate_reference: `str`, optional
                 The base name for keys of coordinate reference
                 constructs.
@@ -102,6 +94,22 @@ class Constructs(abstract.Container):
 
                 *Parameter example:*
                   ``domain_axis='domainaxis'``
+
+            bounds_topology: `str`, optional
+                The base name for keys of bounds topology constructs.
+
+                *Parameter example:*
+                  ``'boundstopology'``
+
+                .. versionadded:: (cfdm) TODOUGRIDVER
+
+            cell_topology: `str`, optional
+                The base name for keys of cell topology constructs.
+
+                *Parameter example:*
+                  ``'celltopology'``
+
+                .. versionadded:: (cfdm) TODOUGRIDVER
 
             cell_method: `str`, optional
                 The base name for keys of cell method constructs.
@@ -231,10 +239,6 @@ class Constructs(abstract.Container):
         if cell_measure:
             self._key_base["cell_measure"] = cell_measure
             self._array_constructs.add("cell_measure")
-
-        #        if domain_topology:
-        #            self._key_base["domain_topology"] = domain_topology
-        #            self._array_constructs.add("domain_topology")
 
         if bounds_topology:
             self._key_base["bounds_topology"] = bounds_topology
@@ -730,6 +734,12 @@ class Constructs(abstract.Container):
 
         axes_shape = tuple(axes_shape)
         try:
+            # Note: The construct might be different from the
+            #       construct's data shape. For instance, this will be
+            #       the case for an auxiliary coordinate construct
+            #       that has bounds but no cell coordinates; or for
+            #       any bounds topology construct or cell topology
+            #       construct.
             if construct.shape != axes_shape:
                 raise ValueError(
                     f"Can't set {construct!r}: Shape of {construct.shape!r} "
@@ -738,34 +748,6 @@ class Constructs(abstract.Container):
                 )
         except AttributeError:
             pass
-
-        #        extra_axes = 0
-        #        data = construct.get_data(None)
-        #        if data is not None and construct.shape != axes_shape:
-        #   #            and data.shape[: data.ndim - extra_axes] != axes_shape
-        #            raise ValueError(
-        #                f"Can't set {construct!r}: Shape of {construct.shape!r} "
-        #                "does not match the shape required by domain axes "
-        #                f"{tuple(axes)}: {axes_shape}"
-        #            )
-        #
-        #        try:
-        #            bounds = construct.get_bounds(None)
-        #        except AttributeError:
-        #            pass
-        #        else:
-        #            if bounds is not None:
-        #                data = bounds.get_data(None)
-        #                if (
-        #                    data is not None
-        #                    and data.shape[: len(axes_shape)] != axes_shape
-        #                ):
-        #                    raise ValueError(
-        #                        f"Can't set {construct!r}: Bounds data shape of "
-        #                        f"{data.shape!r} does "
-        #                        "not match the shape required by domain axes "
-        #                        f"{tuple(axes)}: {axes_shape}"
-        #                    )
 
         self._construct_axes[key] = tuple(axes)
 
@@ -1102,9 +1084,8 @@ class Constructs(abstract.Container):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate
                 ``'cell_measure'``          Cell measure
                 ``'coordinate_reference'``  Coordinate reference
-                ``'domain_topology'``       Domain topology TODOUGRID
-                ``'bounds_topology'``       Domain topology TODOUGRID
-                ``'cell_topology'``       Domain topology TODOUGRID
+                ``'bounds_topology'``       Bounds topology
+                ``'cell_topology'``         Cell topology
                 ``'cell_method'``           Cell method
                 ``'field_ancillary'``       Field ancillary
                 ==========================  ==========================

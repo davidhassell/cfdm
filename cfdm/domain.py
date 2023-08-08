@@ -107,7 +107,7 @@ class Domain(
         self._initialise_original_filenames(source)
 
         self._set_dataset_compliance(self.dataset_compliance(), copy=True)
-        
+
     def __repr__(self):
         """Called by the `repr` built-in function.
 
@@ -646,7 +646,8 @@ class Domain(
             "auxiliary_coordinate",
             "cell_measure",
             "domain_ancillary",
-            "domain_topology",
+            "bounds_topology",
+            "cell_topology",
         ).items():
             out.extend(
                 c.creation_commands(
@@ -860,17 +861,17 @@ class Domain(
 
         # Cell topologies
         for cid, value in sorted(self.cell_topologies(todict=True).items()):
-           string.append("")
-           string.append(
-               value.dump(
-                   display=False,
-                   _key=cid,
-                   _level=_level,
-                   _title=f"Cell topology: {construct_name[cid]}",
-                   _axes=construct_data_axes[cid],
-                   _axis_names=axis_to_name,
-               )
-           )
+            string.append("")
+            string.append(
+                value.dump(
+                    display=False,
+                    _key=cid,
+                    _level=_level,
+                    _title=f"Cell topology: {construct_name[cid]}",
+                    _axes=construct_data_axes[cid],
+                    _axis_names=axis_to_name,
+                )
+            )
 
         string.append("")
 

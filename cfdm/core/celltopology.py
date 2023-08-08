@@ -20,7 +20,7 @@ class CellTopology(abstract.Topology):
     * ``'volume_volume_connectivity'``: Identifying which volume cells
       are connected to which others via shared faces.
 
-    TODOUGRIDVER
+    TODOUGRID
 
     See CF Appendix I "The CF Data Model".
 
@@ -47,4 +47,3 @@ class CellTopology(abstract.Topology):
 
         """
         return "cell_topology"
-    

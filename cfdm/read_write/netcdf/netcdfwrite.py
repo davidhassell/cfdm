@@ -1762,7 +1762,7 @@ class NetCDFWrite(IOWrite):
     def _groups(self, name):
         """Strip off any group structure from the name.
 
-        .. versionaddedd:: 1.8.7.0
+        .. versionaddedd:: (cfdm) 1.8.7.0
 
         :Parameters:
 
@@ -2613,7 +2613,7 @@ class NetCDFWrite(IOWrite):
             domain_axes: `None`, or `tuple` of `str`
                 The domain axis construct identifiers for *cfvar*.
 
-                .. versionadded:: 1.10.1.0
+                .. versionadded:: (cfdm) 1.10.1.0
 
             omit: sequence of `str`, optional
 
@@ -2857,12 +2857,12 @@ class NetCDFWrite(IOWrite):
                 The construct type of the *cfvar*, or its parent if
                 *cfvar* is not a construct.
 
-                .. versionadded:: 1.10.1.0
+                .. versionadded:: (cfdm) 1.10.1.0
 
             domain_axes: `None`, or `tuple` of `str`
                 The domain axis construct identifiers for *cfvar*.
 
-                .. versionadded:: 1.10.1.0
+                .. versionadded:: (cfdm) 1.10.1.0
 
             kwargs: `dict`
 
@@ -2946,7 +2946,7 @@ class NetCDFWrite(IOWrite):
             domain_axes: `None`, or `tuple` of `str`
                 The domain axis construct identidifiers for *cfvar*.
 
-                .. versionadded:: 1.10.1.0
+                .. versionadded:: (cfdm) 1.10.1.0
 
             unset_values: sequence of numbers
 
@@ -4056,7 +4056,7 @@ class NetCDFWrite(IOWrite):
     def _create_vertical_datum(self, ref, coord_key):
         """Deal with a vertical datum.
 
-        .. versionaddedd:: 1.7.0
+        .. versionaddedd:: (cfdm) 1.7.0
 
         """
         g = self.write_vars
