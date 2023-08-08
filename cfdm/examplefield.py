@@ -44,6 +44,8 @@ def example_field(n, _implementation=_implementation):
             ``7``  A field construct that has rotated pole dimension
                    coordinate constructs and 2-d latitude and
                    longitude auxiliary coordinate constructs.
+
+            ``8``  A field construct that has a UGRID mesh topology
             =====  ===================================================
 
             See the examples for details.
@@ -171,13 +173,19 @@ def example_field(n, _implementation=_implementation):
                     : longitude(grid_latitude(4), grid_longitude(5)) = [[8.0648, ..., 10.9238]] degrees_east
     Coord references: grid_mapping_name:rotated_latitude_longitude
 
-    """
-    if not 0 <= n <= 7:
-        raise ValueError(
-            "Must select an example construct with an integer "
-            f"argument between 0 and 7 inclusive. Got {n!r}"
-        )
+    >>> f = cfdm.example_field(8)
+    >>> print(f)
+    Field: northward_wind (ncvar%v)
+    -------------------------------
+    Data            : northward_wind(time(3), ncdim%nMesh2d_face(3)) ms-1
+    Cell methods    : time(3): point (interval: 3600 s)
+    Dimension coords: time(3) = [2016-01-02 01:00:00, 2016-01-02 11:00:00, 2016-01-02 21:00:00] gregorian
+    Auxiliary coords: longitude(ncdim%nMesh2d_face(3)) = [-44.067, -44.067, -42.19] degrees_east
+                    : latitude(ncdim%nMesh2d_face(3)) = [34.82, 33.078, 35.65] degrees_north
+    Bounds Topology : topology:face_node_connectivity(ncdim%nMesh2d_face(3), 4) = [[2, ..., 1]]
+    Cell topologies : topology:face_face_connectivity(ncdim%nMesh2d_face(3), 3) = [[False, ..., False]]
 
+    """
     # For safety given the private second argument which we might not
     # document, otherwise a user gets an obscure error if they tried, say:
     # >>> cfdm.example_field(2, 3)
@@ -195,6 +203,8 @@ def example_field(n, _implementation=_implementation):
     DimensionCoordinate = _implementation.get_class("DimensionCoordinate")
     DomainAncillary = _implementation.get_class("DomainAncillary")
     DomainAxis = _implementation.get_class("DomainAxis")
+    BoundsTopology = _implementation.get_class("BoundsTopology")
+    CellTopology = _implementation.get_class("CellTopology")
     FieldAncillary = _implementation.get_class("FieldAncillary")
     Field = _implementation.get_class("Field")
 
@@ -5098,6 +5108,165 @@ def example_field(n, _implementation=_implementation):
             "grid_north_pole_longitude", 190.0
         )
         f.set_construct(c)
+
+    elif n == 8:
+        # field: northward_wind
+        f = Field()
+        f.set_properties(
+            {
+                "Conventions": "CF-1.11",
+                "standard_name": "northward_wind",
+                "units": "ms-1",
+            }
+        )
+        f.nc_set_variable("v")
+        data = Data(
+            [[9.96, 9.69, 10.21], [8.53, 7.99, 8.23], [9.35, 7.12, 11.56]],
+            units="ms-1",
+            dtype="f8",
+        )
+        f.set_data(data)
+
+        # domain_axis: ncdim%time
+        c = DomainAxis()
+        c.set_size(3)
+        c.nc_set_dimension("time")
+        c.nc_set_unlimited(True)
+        f.set_construct(c, key="domainaxis0", copy=False)
+
+        # domain_axis: ncdim%nMesh2d_face
+        c = DomainAxis()
+        c.set_size(3)
+        c.nc_set_dimension("nMesh2d_face")
+        f.set_construct(c, key="domainaxis2", copy=False)
+
+        # cell_topology: topology:face_face_connectivity
+        c = CellTopology()
+        c.set_properties(
+            {"long_name": "Indicates which other faces neighbor each face"}
+        )
+        c.nc_set_variable("Mesh2d_face_links")
+        data = Data(
+            [[False, True, True], [True, False, False], [True, False, False]],
+            dtype="b1",
+        )
+        c.set_data(data)
+        c.set_topology("face_face_connectivity")
+        f.set_construct(
+            c, axes=("domainaxis2",), key="celltopology0", copy=False
+        )
+
+        # auxiliary_coordinate: longitude
+        c = AuxiliaryCoordinate()
+        c.set_properties(
+            {"standard_name": "longitude", "units": "degrees_east"}
+        )
+        c.nc_set_variable("Mesh2d_face_x")
+        data = Data(
+            [-44.067, -44.067, -42.19], units="degrees_east", dtype="f8"
+        )
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("Mesh2d_node_x")
+        data = Data(
+            [
+                [-45.0, -43.125, -43.125, -45.0],
+                [-45.0, -43.125, -43.125, -45.0],
+                [-43.125, -41.25, -41.25, -43.125],
+            ],
+            units="degrees_east",
+            dtype="f8",
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis2",), key="auxiliarycoordinate0", copy=False
+        )
+
+        # auxiliary_coordinate: latitude
+        c = AuxiliaryCoordinate()
+        c.set_properties(
+            {"standard_name": "latitude", "units": "degrees_north"}
+        )
+        c.nc_set_variable("Mesh2d_face_y")
+        data = Data([34.82, 33.078, 35.65], units="degrees_north", dtype="f8")
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("Mesh2d_node_y")
+        data = Data(
+            [
+                [33.52, 34.36, 36.12, 35.26],
+                [31.80, 32.62, 34.36, 33.52],
+                [34.36, 35.15, 36.94, 36.12],
+            ],
+            units="degrees_north",
+            dtype="f8",
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis2",), key="auxiliarycoordinate1", copy=False
+        )
+
+        # bounds_topology: topology:face_node_connectivity
+        c = BoundsTopology()
+        c.set_properties({"long_name": "Maps every face to its corner nodes"})
+        c.nc_set_variable("Mesh2d_face_nodes")
+        data = Data([[2, 3, 1, 0], [6, 7, 3, 2], [3, 5, 4, 1]], dtype="i4")
+
+        c.set_data(data)
+        c.set_topology("face_node_connectivity")
+        f.set_construct(
+            c, axes=("domainaxis2",), key="boundstopology0", copy=False
+        )
+
+        # dimension_coordinate: time
+        c = DimensionCoordinate()
+        c.set_properties(
+            {
+                "axis": "T",
+                "standard_name": "time",
+                "calendar": "gregorian",
+                "units": "seconds since 2016-01-01 15:00:00",
+            }
+        )
+        c.nc_set_variable("time")
+        data = Data(
+            [36000.0, 72000.0, 108000.0],
+            units="seconds since 2016-01-01 15:00:00",
+            calendar="gregorian",
+            dtype="f8",
+        )
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("time_bounds")
+        data = Data(
+            [[36000.0, 36000.0], [72000.0, 72000.0], [108000.0, 108000.0]],
+            units="seconds since 2016-01-01 15:00:00",
+            calendar="gregorian",
+            dtype="f8",
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis0",), key="dimensioncoordinate0", copy=False
+        )
+        #
+        # cell_method: point
+        c = CellMethod()
+        c.set_method("point")
+        c.set_axes(("domainaxis0",))
+        c.set_qualifier("interval", [Data(3600, units="s", dtype="i8")])
+        f.set_construct(c)
+
+        # field data axes
+        f.set_data_axes(("domainaxis0", "domainaxis2"))
+
+    else:
+        raise ValueError(
+            "Must select an example construct with an integer "
+            f"argument between 0 and 8 inclusive. Got {n!r}"
+        )
 
     return f
 
