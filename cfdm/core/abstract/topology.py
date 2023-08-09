@@ -22,14 +22,11 @@ class Topology(PropertiesData):
         :Parameters:
 
             topology: `str`, optional
-                TODOUGRID Set the measure that indicates the metric given by
-                the data array.
+                Set the topology type that indicates which aspect of
+                the mesh topology is represented by the construct.
 
-                The topology may also be set after initialisation with
-                the `set_topology` method.
-
-                *Parameter example:*
-                  ``topology='face'``
+                The topology type may also be set after initialisation
+                with the `set_topology` method.
 
             {{init properties: `dict`, optional}}
 
@@ -149,6 +146,9 @@ class Topology(PropertiesData):
     def del_topology(self, default=ValueError()):
         """Remove the topology.
 
+        The topology type indicates which aspect of the mesh topology
+        is represented by the construct.
+
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         .. seealso:: `get_topology`, `has_topology`, `set_topology`
@@ -171,8 +171,8 @@ class Topology(PropertiesData):
     def has_topology(self):
         """Whether the topology type has been set.
 
-        The topology type specifies which aspect of the mesh topology
-        is represented by the bounds topology construct.
+        The topology type indicates which aspect of the mesh topology
+        is represented by the construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -189,8 +189,8 @@ class Topology(PropertiesData):
     def get_topology(self, default=ValueError()):
         """Return the topology type.
 
-        The topology type specifies which aspect of the mesh topology
-        is represented by the bounds topology construct.
+        The topology type indicates which aspect of the mesh topology
+        is represented by the construct.
 
         See `set_topology` for the topology type definitions.
 
@@ -216,8 +216,8 @@ class Topology(PropertiesData):
     def set_topology(self, topology):
         """Set the topology type.
 
-        The topology type specifies which aspect of the mesh topology
-        is represented by the bounds topology construct.
+        The topology type indicates which aspect of the mesh topology
+        is represented by the construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

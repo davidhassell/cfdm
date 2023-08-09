@@ -214,18 +214,26 @@ class BoundsNodesArray(CompressedArray):
         """
         return self._get_component("node_coordinates", default=default)
 
-    def get_start_index(self):
+    def get_start_index(self, default=ValueError()):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no start index.
+
+                {{default Exception}}
+
         :Returns:
 
             `int`
-                TODOUGRID
+                The start index.
 
         """
-        return self._get_component("start_index", 0)
+        return self._get_component("start_index", default)
 
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.

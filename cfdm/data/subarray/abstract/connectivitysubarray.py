@@ -1,5 +1,3 @@
-import numpy as np
-
 from ....core.utils import cached_property
 from .subarray import Subarray
 
@@ -20,7 +18,7 @@ class ConnectivitySubarray(Subarray):
         indices=None,
         shape=None,
         compressed_dimensions={},
-        start_index=0,
+        start_index=None,
         source=None,
         copy=True,
         context_manager=None,
@@ -50,7 +48,10 @@ class ConnectivitySubarray(Subarray):
                 compressed must be omitted from the mapping.
 
                 *Parameter example:*
-                  ``{2: (2,)}``
+                  ``{2: (2,)}`` TODOUGRID
+
+            start_index: `int`
+                TODOUGRID
 
             {{init source: optional}}
 
@@ -74,11 +75,12 @@ class ConnectivitySubarray(Subarray):
 
         if source is not None:
             try:
-                start_index = source.get_start_index(0)
+                start_index = source.get_start_index(None)
             except AttributeError:
-                start_index = 0
+                start_index = None
 
-        self._set_component("start_index", start_index, copy=False)
+        if start_index is not None:
+            self._set_component("start_index", start_index, copy=False)
 
     @cached_property
     def dtype(self):
@@ -87,11 +89,13 @@ class ConnectivitySubarray(Subarray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
+        import numpy as np
+
         return np.dtype(bool)
 
     @property
     def start_index(self):
-        """TODOUGRID The data-type of the uncompressed data.
+        """The start index of values in the compressed data.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

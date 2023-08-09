@@ -1,7 +1,5 @@
 from itertools import accumulate, product
 
-import numpy as np
-
 from ...core.utils import cached_property
 from ..subarray import CellConnectivitySubarray, NodeConnectivitySubarray
 from .compressedarray import CompressedArray
@@ -34,7 +32,7 @@ class ConnectivityArray(CompressedArray):
     def __init__(
         self,
         connectivity=None,
-        start_index=0,
+        start_index=None,
         compression_type=None,
         source=None,
         copy=True,
@@ -46,7 +44,7 @@ class ConnectivityArray(CompressedArray):
             connectivity: array_like
                 TODOUGRID
 
-            start_index: `int`, optional
+            start_index: `int`
                 TODOUGRID
 
             compression_type: `str`, optional
@@ -70,11 +68,12 @@ class ConnectivityArray(CompressedArray):
 
         if source is not None:
             try:
-                start_index = source.get_start_index(0)
+                start_index = source.get_start_index(None)
             except AttributeError:
-                start_index = 0
+                start_index = None
 
-        self._set_component("start_index", start_index, copy=False)
+        if start_index is not None:
+            self._set_component("start_index", start_index, copy=False)
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -87,7 +86,6 @@ class ConnectivityArray(CompressedArray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        #        return self._sparse_getitem(indices).toarray()
         # -------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
@@ -96,12 +94,15 @@ class ConnectivityArray(CompressedArray):
         conformed_data = self.conformed_data()
         compressed_data = conformed_data["data"]
 
+        start_index = self.get_start_index()
+
         for _, u_shape, c_indices, _ in zip(*self.subarrays()):
             u = self.get_Subarray()(
                 data=compressed_data,
                 indices=c_indices,
                 shape=u_shape,
                 compressed_dimensions=compressed_dimensions,
+                start_index=start_index,
             )
             u = u[...]
 
@@ -109,40 +110,6 @@ class ConnectivityArray(CompressedArray):
             return u
 
         return self.get_subspace(u, indices, copy=True)
-
-    #    def _sparse_getitem(self, indices):
-    #        """Return a subspace of the uncompressed data.
-    #
-    #        x.__getitem__(indices) <==> x[indices]
-    #
-    #        Returns a subspace of the connectivity array as an independent
-    #        scipy sparse array.
-    #
-    #        .. versionadded:: (cfdm) TODOUGRIDVER
-    #
-    #        """
-    #        #-------------------------------------------------------------
-    #        # Method: Uncompress the entire array and then subspace it
-    #        # ------------------------------------------------------------
-    #        compressed_dimensions = self.compressed_dimensions()
-    #
-    #        conformed_data = self.conformed_data()
-    #        compressed_data = conformed_data["data"]
-    #
-    #        for _, u_shape, c_indices, _ in zip(*self.subarrays()):
-    #            u = self.get_Subarray()(
-    #                data=compressed_data,
-    #                indices=c_indices,
-    #                shape=u_shape,
-    #                compressed_dimensions=compressed_dimensions,
-    #            )
-    #            u = u[...]
-    #            break
-    #
-    #        if indices is Ellipsis:
-    #            return u
-    #
-    #        return self.get_subspace(u, indices, copy=True)
 
     @property
     def array(self):
@@ -162,6 +129,8 @@ class ConnectivityArray(CompressedArray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
+        import numpy as np
+
         return np.dtype(bool)
 
     @property
@@ -174,6 +143,27 @@ class ConnectivityArray(CompressedArray):
 
         """
         return self[...]
+
+    def get_start_index(self, default=ValueError()):
+        """TODOUGRID.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no start index.
+
+                {{default Exception}}
+
+        :Returns:
+
+            `int`
+                The start index.
+
+        """
+        return self._get_component("start_index", default)
 
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.

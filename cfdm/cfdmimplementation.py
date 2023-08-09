@@ -2334,15 +2334,6 @@ class CFDMImplementation(Implementation):
             missing_values=missing_values,
         )
 
-    def initialise_ConnectivityArray(self, compressed_array):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        """
-        cls = self.get_class("ConnectivityArray")
-        return cls(compressed_array=compressed_array)
-
     def initialise_BoundsNodesArray(self, **kwargs):
         """Return a node bounds array.
 
@@ -3631,7 +3622,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             parent: `Field` or `Domain`
-                TODOUGRID
+                A field or domain construct
 
         :Returns:
 
