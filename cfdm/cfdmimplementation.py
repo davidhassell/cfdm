@@ -1,11 +1,11 @@
-from . import (  # DomainTopology,
+from . import (
     CF,
     AuxiliaryCoordinate,
     Bounds,
-    BoundsTopology,
+    DomainToplogy,
+    CellConnectivity,
     CellMeasure,
     CellMethod,
-    CellTopology,
     CoordinateConversion,
     CoordinateReference,
     Count,
@@ -14,6 +14,7 @@ from . import (  # DomainTopology,
     Domain,
     DomainAncillary,
     DomainAxis,
+    DomainTopology,
     Field,
     FieldAncillary,
     Index,
@@ -2036,46 +2037,25 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("DomainTopology")
         return cls(**kwargs)
 
-    def initialise_BoundsTopology(self, **kwargs):
-        """Return a bounds topology construct.
+    def initialise_CellConnectivity(self, **kwargs):
+        """Return a cell connectivity construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the domain topology
+                Parameters for intialising the cell connectivity
                 construct, which are passed to
-                `BoundsTopology.__init__`.
+                `CellConnectivity.__init__`.
 
         :Returns:
 
-            `BoundsTopology`
-                The bounds topology construct.
+            `CellConnectivity`
+                The cell connectivity construct.
 
         """
-        cls = self.get_class("BoundsTopology")
-        return cls(**kwargs)
-
-    def initialise_CellTopology(self, **kwargs):
-        """Return a cell topology construct.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            kwargs: optional
-                Parameters for intialising the domain topology
-                construct, which are passed to
-                `CellTopology.__init__`.
-
-        :Returns:
-
-            `CellTopology`
-                The cell topology construct.
-
-        """
-        cls = self.get_class("CellTopology")
+        cls = self.get_class("CellConnectivity")
         return cls(**kwargs)
 
     def initialise_Field(self):
@@ -2731,10 +2711,10 @@ class CFDMImplementation(Implementation):
 
         return ""
 
-    def set_bounds_topology(
+    def set_domain_topology(
         self, parent, construct, axes, copy=True, **kwargs
     ):
-        """Insert a bounds topology object into a field.
+        """Insert a domain topology object into a field.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -2743,7 +2723,7 @@ class CFDMImplementation(Implementation):
             parent: `Field` or `Domain`
                On what to set the construct
 
-            construct: `BoundsTopology`
+            construct: `DomainToplogy`
 
             axes: `tuple`
 
@@ -2855,8 +2835,9 @@ class CFDMImplementation(Implementation):
         """
         cell_method.set_method(method)
 
-    def set_cell_topology(self, parent, construct, axes, copy=True, **kwargs):
-        """Insert a cell topology object into a field.
+    def set_cell_connectivity(self, parent, construct, axes,
+                              copy=True, **kwargs):
+        """Insert a cell connectivity object into a field.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -2865,7 +2846,7 @@ class CFDMImplementation(Implementation):
             parent: `Field` or `Domain`
                On what to set the construct
 
-            construct: `CellTopology`
+            construct: `CellConnectivity`
 
             axes: `tuple`
 
@@ -3614,8 +3595,8 @@ class CFDMImplementation(Implementation):
         """
         return bool(coordinate_reference.datum)
 
-    def has_mesh_topology(self, parent):
-        """Whether or not a fieldx or domain has a mesh topology.
+    def has_domain_topology(self, parent):
+        """Whether or not a field or domain has a domain topology.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -3627,11 +3608,11 @@ class CFDMImplementation(Implementation):
         :Returns:
 
             `bool`
-                Whether or not *parent* has a mesh topology.
+                Whether or not *parent* has a domain topology.
 
         """
         try:
-            return parent.has_mesh_topology()
+            return bool(parent.domain_topologies(todict=True))
         except AttributeError:
             return False
 
@@ -3694,16 +3675,16 @@ class CFDMImplementation(Implementation):
 _implementation = CFDMImplementation(
     cf_version=CF(),
     AuxiliaryCoordinate=AuxiliaryCoordinate,
-    BoundsTopology=BoundsTopology,
+    CellConnectivity=CellConnectivity,
     CellConnectivityArray=CellConnectivityArray,
     CellMeasure=CellMeasure,
     CellMethod=CellMethod,
-    CellTopology=CellTopology,
     CoordinateReference=CoordinateReference,
     DimensionCoordinate=DimensionCoordinate,
     Domain=Domain,
     DomainAncillary=DomainAncillary,
     DomainAxis=DomainAxis,
+    DomainToplogy=DomainToplogy,
     Field=Field,
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,

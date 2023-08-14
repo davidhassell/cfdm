@@ -1,7 +1,7 @@
 from . import abstract
 
 
-class DomainTopology(abstract.PropertiesData):
+class DomainTopology(abstract.Topology):
     """A domain topology construct of the CF data model.
 
     TODOUGRID
@@ -14,9 +14,9 @@ class DomainTopology(abstract.PropertiesData):
 
     def __init__(
         self,
+            cell_type=None
         properties=None,
-        bounds_connectivity=None,
-        cell_connectivity=None,
+        data=None,
         source=None,
         copy=True,
         _use_data=True,
@@ -25,50 +25,41 @@ class DomainTopology(abstract.PropertiesData):
 
         :Parameters:
 
+            topologyTODOUGRID: `str`, optional
+                Set the topology type that indicates which aspect of
+                the mesh topology is represented by the construct.
+
+                The topology type may also be set after initialisation
+                with the `set_topology` method.
+
             {{init properties: `dict`, optional}}
 
                 *Parameter example:*
-                  ``properties={'standard_name': 'altitude'}``
+                  ``properties={'long_name': 'face-face connectivity'}``
 
-            bounds_connectivity: data_like
-                TODOUGRID
-
-            cell_connectivity: data_like
-                TODOUGRID
+            {{init data: data_like, optional}}
 
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
 
         """
+        super().__init__(
+            properties=properties,
+            source=source,
+            data=data,
+            copy=copy,
+            _use_data=_use_data,
+        )
+
         if source is not None:
             try:
-                properties = source.properties()
+                cell_type = source.get_cell_type(None)
             except AttributeError:
-                properties = None
+                cell_type = None
 
-            if _use_data:
-                try:
-                    bounds_connectivity = source.get_bounds_connectivity(None)
-                except AttributeError:
-                    bounds_connectivity = None
-
-                try:
-                    cell_connectivity = source.get_cell_connectivity(None)
-                except AttributeError:
-                    cell_connectivity = None
-
-        super().__init__(properties=properties, copy=copy)
-
-        if _use_data:
-            if bounds_connectivity is not None:
-                self.set_bounds_connectivity(bounds_connectivity, copy=copy)
-
-            if cell_connectivity is not None:
-                if bounds_connectivity is not None:
-                    raise ValueError("TODOUGRID")
-
-                self.set_cell_connectivity(cell_connectivity, copy=copy)
+        if cell_type is not None:
+            self.set_cell_type(cell_type)
 
     @property
     def construct_type(self):
@@ -90,285 +81,95 @@ class DomainTopology(abstract.PropertiesData):
         """
         return "domain_topology"
 
-    def get_bounds_connectivity(
-        self, default=ValueError(), _units=True, _fill_value=True
-    ):
-        """TODOUGRID.
+    def del_cell_type(self, default=ValueError()):
+        """Remove the cell type.
+
+        {{cell type}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `get_data`, `set_bounds_connectivity`,
-
-        """
-        data = None
-        if self.get_connectivity_type(None) == "bounds":
-            data = self.get_data(
-                default=None, _units=_units, _fill_value=_fill_value
-            )
-
-        if data is not None:
-            return data
-
-        if default is None:
-            return
-
-        return self._default(
-            default,
-            message=(
-                f"{self.__class__.__name__} has no " "bounds connectivity data"
-            ),
-        )
-
-    def get_cell_connectivity(
-        self, default=ValueError(), _units=True, _fill_value=True
-    ):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `get_data`, `set_cell_connectivity`,
-
-        """
-        data = None
-        if self.get_connectivity_type(None) == "cell":
-            data = self.get_data(
-                default=None, _units=_units, _fill_value=_fill_value
-            )
-
-        if data is not None:
-            return data
-
-        if default is None:
-            return
-
-        return self._default(
-            default,
-            message=(
-                f"{self.__class__.__name__} has no " "cell connectivity data"
-            ),
-        )
-
-    def get_connectivity_type(self, default=ValueError()):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `set_bounds_connectivity`,
-                     `set_cell_connectivity`
+        .. seealso:: `get_cell_type`, `has_cell_type`, `set_cell_type`
 
         :Parameters:
 
             default: optional
                 Return the value of the *default* parameter if the
-                connectivty type data has been set.
+                cell type has not been set.
 
                 {{default Exception}}
 
         :Returns:
 
-            `str`
-                The connectivity type.
-
-        **Examples**
-
-        >>> d.get_connectivity_type()
-        'bounds'
-
-        >>> d.get_connectivity_type()
-        'cell'
+                The removed cell type.
 
         """
-        return self._get_component("connectivity_type", default)
+        return self._del_component("cell_type", default=default)
 
-    def set_bounds_connectivity(self, data, copy=True, inplace=True):
-        """Set the data.
+    def has_cell_type(self):
+        """Whether the cell type has been set.
 
-        The units, calendar and fill value of the incoming `Data` instance
-        are removed prior to insertion.
+        {{cell type}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `data`, `del_data`, `get_data`, `has_data`
-
-        :Parameters:
-
-            data: data_like
-                The data to be inserted.
-
-                {{data_like}}
-
-            copy: `bool`, optional
-                If True (the default) then copy the data prior to
-                insertion, else the data is not copied.
-
-            {{inplace: `bool`, optional (default True)}}
+        .. seealso:: `del_cell_type`, `get_cell_type`, `set_cell_type`
 
         :Returns:
 
-            `None` or `{{class}}`
-                If the operation was in-place then `None` is returned,
-                otherwise return a new `{{class}}` instance containing the
-                new data.
-
-        TODOUGRID
-
-        **Examples**
-
-        >>> f = {{package}}.{{class}}()
-        >>> f.set_data([1, 2, 3])
-        >>> f.has_data()
-        True
-        >>> f.get_data()
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> f.data
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> f.del_data()
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> g = f.set_data([4, 5, 6], inplace=False)
-        >>> g.data
-        <{{repr}}Data(3): [4, 5, 6]>
-        >>> f.has_data()
-        False
-        >>> print(f.get_data(None))
-        None
-        >>> print(f.del_data(None))
-        None
+             `bool`
+                True if the cell type has been set, otherwise False.
 
         """
-        if self.get_connectivity_type(None) == "cell":
+        return self._has_component("cell_type")
+
+    def get_cell_type(self, default=ValueError()):
+        """Return the cell type.
+
+        {{cell type}}
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `del_cell_type`, `has_cell_type`, `set_cell_type`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                cell type has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+                The value of the cell type.
+
+        """
+        return self._get_component("cell_type", default=default)
+
+    def set_cell_type(self, cell_type):
+        """Set the cell type type.
+
+        {{cell type}}
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `del_cell_type`, `get_cell_type`, `has_cell_type`
+
+        :Parameters:
+
+            cell_type: `str`
+                The value for the cell type.
+
+        :Returns:
+
+             `None`
+
+        """
+        cell_types = ('node', 'edge', 'face', 'volume')
+        if cell_type not in cell_types:
             raise ValueError(
-                "TODOUGRID remove cell connectivity with 'del_data' first"
+                f"Can't set cell type of {cell_type!r}. "
+                f"Must be one of {cell_types}"
             )
-
-        d = super().set_data(data, copy=copy, inplace=inplace)
-        if d is None:
-            e = self
-        else:
-            e = d
-
-        e._set_component("connectivity_type", "bounds", copy=False)
-        return d
-
-    def set_cell_connectivity(self, data, copy=True, inplace=True):
-        """Set the data. TODOUGRID.
-
-        The units, calendar and fill value of the incoming `Data` instance
-        are removed prior to insertion.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `data`, `del_data`, `get_data`, `has_data`
-
-        :Parameters:
-
-            data: data_like
-                The data to be inserted.
-
-                {{data_like}}
-
-            copy: `bool`, optional
-                If True (the default) then copy the data prior to
-                insertion, else the data is not copied.
-
-            {{inplace: `bool`, optional (default True)}}
-
-        :Returns:
-
-            `None` or `{{class}}`
-                If the operation was in-place then `None` is returned,
-                otherwise return a new `{{class}}` instance containing the
-                new data.
-
-        **Examples**
-
-        >>> f = {{package}}.{{class}}()
-        >>> f.set_data([1, 2, 3])
-        >>> f.has_data()
-        True
-        >>> f.get_data()
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> f.data
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> f.del_data()
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> g = f.set_data([4, 5, 6], inplace=False)
-        >>> g.data
-        <{{repr}}Data(3): [4, 5, 6]>
-        >>> f.has_data()
-        False
-        >>> print(f.get_data(None))
-        None
-        >>> print(f.del_data(None))
-        None
-
-        """
-        if self.get_connectivity_type(None) == "bounds":
-            raise ValueError(
-                "TODOUGRID remove bounds connectivity with 'del_data' first"
-            )
-
-        d = super().set_data(data, copy=copy, inplace=inplace)
-        if d is None:
-            e = self
-        else:
-            e = d
-
-        e._set_component("connectivity_type", "cell", copy=False)
-        return d
-
-    def set_data(self, data, copy=True, inplace=True):
-        """Hmm TODOUGRID Set the data.
-
-        The units, calendar and fill value of the incoming `Data` instance
-        are removed prior to insertion.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `data`, `del_data`, `get_data`, `has_data`
-
-        :Parameters:
-
-            data: data_like
-                The data to be inserted.
-
-                {{data_like}}
-
-            copy: `bool`, optional
-                If True (the default) then copy the data prior to
-                insertion, else the data is not copied.
-
-            {{inplace: `bool`, optional (default True)}}
-
-        :Returns:
-
-            `None` or `{{class}}`
-                If the operation was in-place then `None` is returned,
-                otherwise return a new `{{class}}` instance containing the
-                new data.
-
-        **Examples**
-
-        >>> f = {{package}}.{{class}}()
-        >>> f.set_data([1, 2, 3])
-        >>> f.has_data()
-        True
-        >>> f.get_data()
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> f.data
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> f.del_data()
-        <{{repr}}Data(3): [1, 2, 3]>
-        >>> g = f.set_data([4, 5, 6], inplace=False)
-        >>> g.data
-        <{{repr}}Data(3): [4, 5, 6]>
-        >>> f.has_data()
-        False
-        >>> print(f.get_data(None))
-        None
-        >>> print(f.del_data(None))
-        None
-
-        """
-        raise ValueError(
-            "TODOUGRID use set_bounds_connectivty or set_cell_connectiiy"
-        )
+            
+        self._set_component("cell_type", cell_type, copy=False)

@@ -2,13 +2,13 @@ from . import core, mixin
 from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 
-class DomainTopology(
+class CellConnectivity(
     mixin.NetCDFVariable,
     mixin.PropertiesData,
     mixin.Files,
-    core.DomainTopology,
+    core.CellConnectivity,
 ):
-    """A domain topology construct of the CF data model.
+    """A cell connectivity construct of the CF data model.
 
     TODOUGRID
 
@@ -24,7 +24,7 @@ class DomainTopology(
 
     def __init__(
         self,
-        cell_type=None,
+            connectivity=None,
         properties=None,
         data=None,
         source=None,
@@ -35,7 +35,7 @@ class DomainTopology(
 
         :Parameters:
 
-            {{init cell_type: `str`, optional}}
+            {{init connectivity: `str`, optional}}
 
             {{init properties: `dict`, optional}}
 
@@ -47,7 +47,7 @@ class DomainTopology(
 
         """
         super().__init__(
-            cell_type=cell_type,
+            connectivity=connectivity,
             properties=properties,
             data=data,
             source=source,
@@ -68,7 +68,7 @@ class DomainTopology(
         data_name="data",
         header=True,
     ):
-        """Returns the commands to create the domain topology construct.
+        """Returns the commands to create the cell connectivity construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -106,9 +106,9 @@ class DomainTopology(
             header=header,
         )
 
-        cell_type = self.get_cell_type(None)
-        if cell_type  is not None:
-            out.append(f"{name}.set_cell_type({cell_type!r})")
+        connectivity = self.get_connectivity(None)
+        if connectivity  is not None:
+            out.append(f"{name}.set_connectivity({connectivity!r})")
 
         if string:
             indent = " " * indent
@@ -127,7 +127,7 @@ class DomainTopology(
         _axes=None,
         _axis_names=None,
     ):
-        """A full description of the domain topology construct.
+        """A full description of the cell connectivity construct.
 
         Returns a description of all properties, including those of
         components, and provides selected values of all data arrays.
@@ -146,7 +146,7 @@ class DomainTopology(
 
         """
         if _title is None:
-            _title = "Domain Topology: " + self.identity(default="")
+            _title = "Cell Connectivity: " + self.identity(default="")
 
         return super().dump(
             display=display,
@@ -163,7 +163,7 @@ class DomainTopology(
 
         By default the identity is the first found of the following:
 
-        * The cell type, preceded by ``'cell_type:'``.
+        * The connectivity, preceded by ``'connectivity:'``.
         * The ``standard_name`` property.
         * The ``cf_role`` property, preceded by 'cf_role='.
         * The ``long_name`` property, preceded by 'long_name='.
@@ -185,9 +185,9 @@ class DomainTopology(
                 The identity.
 
         """
-        n = self.get_cell_type(None)
+        n = self.get_connectivity(None)
         if n is not None:
-            return f"cell_type:{n}"
+            return f"connectivity:{n}"
 
         n = self.get_property("standard_name", None)
         if n is not None:
@@ -209,7 +209,7 @@ class DomainTopology(
 
         The identities comprise:
 
-        * The cell type type, preceded by ``'cell_type:'``.
+        * The connectivity type, preceded by ``'connectivity:'``.
         * The ``standard_name`` property.
         * All properties, preceded by the property name and a colon,
           e.g. ``'long_name:Air temperature'``.
@@ -235,9 +235,9 @@ class DomainTopology(
                 The identities.
 
         """
-        n = self.get_cell_type(None)
+        n = self.get_connectivity(None)
         if n is not None:
-            pre = ((f"cell_type:{n}",),)
+            pre = ((f"connectivity:{n}",),)
             pre0 = kwargs.pop("pre", None)
             if pre0:
                 pre = tuple(pre0) + pre
@@ -245,78 +245,3 @@ class DomainTopology(
             kwargs["pre"] = pre
 
         return super().identities(generator=generator, **kwargs)
-
-    @_inplace_enabled(default=False)
-    def normalise(self, start_index=0, inplace=False):
-        """Normalise the data values.
-
-        Normalisation does not change the logical content of the
-        data. It converts the data so that the set of unique values
-        comprises an unbroken sequence from ``0`` to ``N-1`` (if the
-        *start_index* parameter is ``0``), or ``1`` to ``N`` (if
-        *start_index* is ``1``).
-
-        Normalised data is in a form that may be suitable for creating
-        a netCDF UGRID connectivity variable.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            start_index: `int`, optional
-                The start index for bounds identification in the
-                normalised data. Must be ``0`` (the default) or
-                ``1``.
-
-            {{inplace: `bool`, optional}}
-
-        :Returns:
-
-            `{{class}}` or `None`
-                The normailised domain topology construct, or `None`
-                if the operation was in-place.
-
-        **Examples*
-
-        >>> data = {{package}}.Data(
-        ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]]
-        ... )
-        >>> data[1, 3] = {{package}}.masked
-        >>> d = {{package}}.{{class}}(data=data)
-        >>> print(d.array)
-        [[1 4 5 2]
-         [4 10 1 --]
-         [122 123 106 105]]
-        >>> d0 = d.normalise()
-        >>> print(c.array)
-        [[0 2 3 1]
-         [2 4 0 --]
-         [7 8 6 5]]
-        >>> (d0.array == d.normalise().array).all()
-        True
-
-        >>> d1 = d.normalise(start_index=1)
-        >>> print(d1.array)
-        [[1 3 4 2]
-         [3 5 1 --]
-         [8 9 7 6]]
-        >>> (d1.array == d0.array + 1).all()
-        True
-
-        """
-        import numpy as np
-
-        d = _inplace_enabled_define_and_cleanup(self)
-
-        data = d.array
-        n, b = np.where(~np.ma.getmaskarray(data))
-        data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
-
-        if start_index:
-            if start_index != 1:
-                raise ValueError("The 'start_index' parameter must be 0 or 1")
-
-            data += start_index
-
-        d.set_data(data, copy=False)
-        return d

@@ -12,8 +12,8 @@ class Constructs(abstract.Container):
     * coordinate reference constructs
     * domain ancillary constructs
     * cell measure constructs
-    * bounds topology constructs
-    * cell topology constructs
+    * domain topology constructs
+    * cell connectivity constructs
     * cell method constructs
     * field ancillary constructs
 
@@ -37,8 +37,8 @@ class Constructs(abstract.Container):
         cell_measure=None,
         coordinate_reference=None,
         domain_axis=None,
-        bounds_topology=None,
-        cell_topology=None,
+        domain_topology=None,
+        cell_connectivity=None,
         cell_method=None,
         source=None,
         copy=True,
@@ -95,19 +95,20 @@ class Constructs(abstract.Container):
                 *Parameter example:*
                   ``domain_axis='domainaxis'``
 
-            bounds_topology: `str`, optional
-                The base name for keys of bounds topology constructs.
+            domain_topology: `str`, optional
+                The base name for keys of domain topology constructs.
 
                 *Parameter example:*
-                  ``'boundstopology'``
+                  ``'domaintopology'``
 
                 .. versionadded:: (cfdm) TODOUGRIDVER
 
-            cell_topology: `str`, optional
-                The base name for keys of cell topology constructs.
+            cell_connectivity: `str`, optional
+                The base name for keys of cell connectivity
+                constructs.
 
                 *Parameter example:*
-                  ``'celltopology'``
+                  ``'cellconnectivity'``
 
                 .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -240,13 +241,13 @@ class Constructs(abstract.Container):
             self._key_base["cell_measure"] = cell_measure
             self._array_constructs.add("cell_measure")
 
-        if bounds_topology:
-            self._key_base["bounds_topology"] = bounds_topology
-            self._array_constructs.add("bounds_topology")
+        if domain_topology:
+            self._key_base["domain_topology"] = domain_topology
+            self._array_constructs.add("domain_topology")
 
-        if cell_topology:
-            self._key_base["cell_topology"] = cell_topology
-            self._array_constructs.add("cell_topology")
+        if cell_connectivity:
+            self._key_base["cell_connectivity"] = cell_connectivity
+            self._array_constructs.add("cell_connectivity")
 
         if domain_axis:
             self._key_base["domain_axis"] = domain_axis
@@ -733,12 +734,12 @@ class Constructs(abstract.Container):
             axes_shape.append(domain_axes[axis].get_size())
 
         axes_shape = tuple(axes_shape)
-        try:
-            # Note: The construct might be different from the
+        try:tpo
+            # Note: The construct shape might be different from the
             #       construct's data shape. For instance, this will be
             #       the case for an auxiliary coordinate construct
             #       that has bounds but no cell coordinates; or for
-            #       any bounds topology construct or cell topology
+            #       any domain topology construct or cell connectivity
             #       construct.
             if construct.shape != axes_shape:
                 raise ValueError(
@@ -1084,8 +1085,8 @@ class Constructs(abstract.Container):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate
                 ``'cell_measure'``          Cell measure
                 ``'coordinate_reference'``  Coordinate reference
-                ``'bounds_topology'``       Bounds topology
-                ``'cell_topology'``         Cell topology
+                ``'domain_topology'``       Domain topology
+                ``'cell_connectivity'``     Cell connectivity
                 ``'cell_method'``           Cell method
                 ``'field_ancillary'``       Field ancillary
                 ==========================  ==========================

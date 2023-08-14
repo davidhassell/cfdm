@@ -3831,44 +3831,44 @@ class NetCDFRead(IORead):
         # from a UGRID mesh topology (CF>=1.11)
         # ------------------------------------------------------------
         if ugrid:
-            bounds_topology = self._ugrid_create_bounds_topology(
+            domain_topology = self._ugrid_create_domain_topology(
                 field_ncvar, f, mesh, location
             )
-            if bounds_topology is not None:
+            if domain_topology is not None:
                 logger.detail(
                     "        [m] Inserting "
-                    f"{bounds_topology.__class__.__name__} "
-                    f"with size {bounds_topology.size}"
+                    f"{domain_topology.__class__.__name__} with data shape "
+                    f"{self.implementation.get_data_shape(domain_topology)}"
                 )  # pragma: no cover
 
-                key = self.implementation.set_bounds_topology(
+                key = self.implementation.set_domain_topology(
                     f,
-                    bounds_topology,
+                    domain_topology,
                     axes=ugrid_axis,
                     copy=False,
                 )
                 self._reference(ncvar, field_ncvar)
-                ncvar = self.implementation.nc_get_variable(bounds_topology)
+                ncvar = self.implementation.nc_get_variable(domain_topology)
                 ncvar_to_key[ncvar] = key
 
-            cell_topology = self._ugrid_create_cell_topology(
+            cell_connectivity = self._ugrid_create_cell_connectivity(
                 field_ncvar, f, mesh, location
             )
-            if cell_topology is not None:
+            if cell_connectivity is not None:
                 logger.detail(
                     "        [n] Inserting "
-                    f"{cell_topology.__class__.__name__} "
-                    f"with size {cell_topology.size}"
+                    f"{cell_connectivity.__class__.__name__} with data shape "
+                    f"{self.implementation.get_data_shape(cell_connectivity)}"
                 )  # pragma: no cover
 
-                key = self.implementation.set_cell_topology(
+                key = self.implementation.set_cell_connectivity(
                     f,
-                    cell_topology,
+                    cell_connectivity,
                     axes=ugrid_axis,
                     copy=False,
                 )
                 self._reference(ncvar, field_ncvar)
-                ncvar = self.implementation.nc_get_variable(cell_topology)
+                ncvar = self.implementation.nc_get_variable(cell_connectivity)
                 ncvar_to_key[ncvar] = key
 
             # Set the mesh identifier
@@ -8540,10 +8540,10 @@ class NetCDFRead(IORead):
             # The zero-based indices of the location index set (which
             # will be None if there is no location index set)
             "index_set": None,
-            # Bounds topology constructs for each location
-            "bounds_topology": {},
-            # cell topology constructs for each location
-            "cell_topology": {},
+            # Domain topology constructs for each location
+            "domain_topology": {},
+            # Cell connectivity constructs for each location
+            "cell_connectivity": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
             # The netCDF dimension spanned by the mesh cells for each
@@ -8617,10 +8617,10 @@ class NetCDFRead(IORead):
             "location": location,
             # The zero-based indices of the location index set
             "index_set": index_set,
-            # Bounds topology constructs for each location
-            "bounds_topology": {},
-            # cell topology constructs for each location
-            "cell_topology": {},
+            # Domain topology constructs for each location
+            "domain_topology": {},
+            # Cell connectivity constructs for each location
+            "cell_connectivity": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
             # The netCDF dimension spanned by the mesh cells for
@@ -8901,7 +8901,7 @@ class NetCDFRead(IORead):
 
         return aux
 
-    def _ugrid_create_bounds_topology(self, parent_ncvar, f, mesh, location):
+    def _ugrid_create_domain_topology(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -8923,21 +8923,77 @@ class NetCDFRead(IORead):
 
         :Returns:
 
-            `BoundsTopology` or `None`
+            `DomainTopology` or `None`
                 TODOUGRID, or `None` if the domain topology construct
                 could not be created.
 
         """
-        if location == "node":
+        domain_topology = mesh["domain_topology"].get(location)
+        if domain_topology is not None:
+            # Return a copy of an existing domain topology construct
+            return domain_topology.copy()
+        
+        attributes = mesh["mesh_attributes"]
+
+        if location in ("edge", "face", "volume"):
+            connectivity_attr = f"{location}_node_connectivity"
+            connectivity_ncvar = attributes.get(connectivity_attr)
+            if not self._ugrid_check_connectivity_variable(
+                parent_ncvar,
+                mesh["mesh_ncvar"],
+                connectivity_ncvar,
+                connectivity_attr,
+            ):
+                return
+    
+            # CF properties
+            properties = self.read_vars["variable_attributes"][connectivity_ncvar]
+            properties.pop("start_index", None)
+    
+            # Connectivity data
+            domain_connectivity = self._create_data(
+                connectivity_ncvar, compression_index=True
+            )
+    
+            # Initialise the domain topology variable
+            domain_topology = self.implementation.initialise_DomainTopology(
+                cell_type=location,
+                properties=properties,
+                data=bounds_connectivity,
+                copy=False,
+            )
+    
+            # Set the netCDF variable name and the original file names
+            self.implementation.nc_set_variable(domain_topology,
+                                                connectivity_ncvar)
+            self.implementation.set_original_filenames(
+                domain_topology, self.read_vars["filename"]
+            )
+    
+            index_set = mesh["index_set"]
+            if index_set is not None:
+                # Apply a location index set
+                domain_topology = domain_topology[index_set]
+    
+            mesh["domain_topology"][location] = domain_topology
+            return domain_topology
+
+        # Still here? Then location is "node"
+        
+        # Find the connectivity attribute that has the highest
+        # topology dimension (the order of the loop matters).
+        connectivity_attr =None
+        for connectivity_attr in (
+                "volume_node_connectivity",
+                "face_node_connectivity",
+                "edge_node_connectivity",
+        ):
+            if connectivity_attr in attributes:
+                break
+
+        if connectivity_attr is None:
             return
 
-        connectivity_attr = f"{location}_node_connectivity"
-        topology = mesh["bounds_topology"].get(connectivity_attr)
-        if topology is not None:
-            # Return a copy of an existing bounds topology construct
-            return topology.copy()
-
-        attributes = mesh["mesh_attributes"]
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._ugrid_check_connectivity_variable(
             parent_ncvar,
@@ -8949,36 +9005,34 @@ class NetCDFRead(IORead):
 
         # CF properties
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
-        properties.pop("start_index", None)
+        start_index = properties.pop("start_index", 0)
 
         # Connectivity data
-        bounds_connectivity = self._create_data(
-            connectivity_ncvar, compression_index=True
+        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+        array = self.implementation.initialise_NodeConnectivityArray(
+                connectivity=indices,
+                start_index=start_index,
+                copy=False,
+            )
+        
+        cell_connectivity = self._create_Data(
+            array,
+            units=kwargs["units"],
+            calendar=kwargs["calendar"],
+            ncvar=connectivity_ncvar,
         )
 
         # Initialise the domain topology variable
-        topology = self.implementation.initialise_BoundsTopology(
+        topology = self.implementation.initialise_CellTopology(
             topology=connectivity_attr,
             properties=properties,
-            data=bounds_connectivity,
+            data=cell_connectivity,
             copy=False,
         )
 
-        # Set the netCDF variable name and the original file names
-        self.implementation.nc_set_variable(topology, connectivity_ncvar)
-        self.implementation.set_original_filenames(
-            topology, self.read_vars["filename"]
-        )
 
-        index_set = mesh["index_set"]
-        if index_set is not None:
-            # Apply a location index set
-            topology = topology[index_set]
-
-        mesh["bounds_topology"][connectivity_attr] = topology
-        return topology
-
-    def _ugrid_create_cell_topology(self, parent_ncvar, f, mesh, location):
+        
+    def _ugrid_create_cell_connectivity(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -9008,7 +9062,7 @@ class NetCDFRead(IORead):
         attributes = mesh["mesh_attributes"]
 
         connectivity = f"{location}_{location}_connectivity"
-        topology = mesh["cell_topology"].get(connectivity)
+        topology = mesh["cell_connectivity"].get(connectivity)
         if topology is not None:
             # Return a copy of an existing cell topology construct
             return topology.copy()
@@ -9085,7 +9139,7 @@ class NetCDFRead(IORead):
             # Apply a location index set
             topology = topology[index_set]
 
-        mesh["cell_topology"][connectivity] = topology
+        mesh["cell_connectivity"][connectivity] = topology
         return topology
 
     def _ugrid_check_mesh_topology(self, mesh_ncvar):

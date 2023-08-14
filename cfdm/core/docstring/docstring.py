@@ -26,6 +26,39 @@ _docstring_substitution_definitions = {
     # ----------------------------------------------------------------
     "{{repr}}": "",
     # ----------------------------------------------------------------
+    # # Method description susbstitutions (1 level of indentation)
+    # ----------------------------------------------------------------
+    # cell type
+    "{{cell type}}": """The cell type indicates the common geometrical element type of
+        the cells for which there is a domain topology. It takes one
+        of the following values:
+
+        * ``'node'``: Node cells comprising 0-dimensional elements
+                      each defined by a point.
+
+        * ``'edge'``: Edge cells comprising 1-dimensional elements
+                      each defined by a line bounded by two nodes.
+
+        * ``'face'``: Face cells comprising 2-dimensional elements
+                      each defined by a surface enclosed by a set of edges.
+
+        * ``'volume'``: Volume cells comprising 3-dimensional elements
+                        each defined by a volume enclosed by a set of
+                        faces.""",
+    # cell connectivity type
+    "{{cell connectivity type}}: """The connectivity type describes a characteristic of inter-cell
+        connectivity defined by the domain topology construct. It may
+        take any value, but the following values are standardised:
+
+        * ``'node'``: Edge, face or volume cells connected by one or
+                      more shared nodes.
+
+        * ``'edge'``: Face or volume cells connected by one or more
+                      shared edges.
+        
+        * ``'face'``: Volume cells connected by one or more shared
+                      faces.""",        
+    # ----------------------------------------------------------------
     # # Method description susbstitutions (2 levels of indentation)
     # ----------------------------------------------------------------
     # cached: optional

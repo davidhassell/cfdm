@@ -573,7 +573,7 @@ class FieldDomain:
             **filter_kwargs,
         )
 
-    def bounds_topology(
+    def domain_topology(
         self,
         *identity,
         default=ValueError(),
@@ -581,25 +581,25 @@ class FieldDomain:
         item=False,
         **filter_kwargs,
     ):
-        """Select a bounds topology construct.
+        """Select a domain topology construct.
 
         {{unique construct}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `construct`, `bounds_topologies`
+        .. seealso:: `construct`, `domain_topologies`
 
         :Parameters:
 
             identity: optional
-                Select bounds topology constructs that have an
+                Select domain topology constructs that have an
                 identity, defined by their `!identities` methods, that
                 matches any of the given values.
 
                 Additionally, the values are matched against construct
                 identifiers, with or without the ``'key%'`` prefix.
 
-                If no values are provided then all bounds toplogy
+                If no values are provided then all domain toplogy
                 constructs are selected.
 
                 {{value match}}
@@ -624,17 +624,17 @@ class FieldDomain:
         **Examples**
 
         >>> f = {{package}}.example_{{class_lower}}(8)
-        >>> f.bounds_topology()
-        <{{repr}}BoundsTopology: topology:face_node_connectivity(3, 4) >
-        >>> f.bounds_topology('topology:face_node_connectivity', key=True)
-        'boundstopology0'
-        >>> f.bounds_topology('topology:face_node_connectivity', item=True)
-        ('boundstopology0', <{{repr}}BoundsTopology: topology:face_node_connectivity(3, 4) >)
+        >>> f.domain_topology()
+        <{{repr}}DomainTopology: cell_type:face(3) >
+        >>> f.domain_topology('cell_type:face', key=True)
+        'domaintopology0'
+        >>> f.domain_topology('cell_type:face', item=True)
+        ('domaintopology0', <{{repr}}DomainTopology: cell_type:face(3) >)
 
         """
         return self._construct(
-            "bounds_topology",
-            "bounds_topologies",
+            "domain_topology",
+            "domain_topologies",
             identity,
             key=key,
             item=item,
@@ -642,14 +642,14 @@ class FieldDomain:
             **filter_kwargs,
         )
 
-    def bounds_topologies(self, *identities, **filter_kwargs):
-        """Return bounds topology constructs.
+    def domain_topologies(self, *identities, **filter_kwargs):
+        """Return domain topology constructs.
 
-        Note that ``f.bounds_topologies(*identities,
+        Note that ``f.domain_topologies(*identities,
 
         **filter_kwargs)`` is equivalent to
 
-        ``f.constructs.filter(filter_by_type=["bounds_topology"],
+        ``f.constructs.filter(filter_by_type=["domain_topology"],
         filter_by_identity=identities, **filter_kwargs)``.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -659,11 +659,11 @@ class FieldDomain:
         :Parameters:
 
             identities: optional
-                Select bounds topology constructs that have an
+                Select domain topology constructs that have an
                 identity, defined by their `!identities` methods, that
                 matches any of the given values.
 
-                If no identities are provided then all bounds topology
+                If no identities are provided then all domain topology
                 constructs are selected.
 
                 {{value match}}
@@ -679,14 +679,14 @@ class FieldDomain:
         **Examples:**
 
         >>> f = {{package}}.example_{{class_lower}}(8)
-        >>> print(f.bounds_topologies())
+        >>> print(f.domain_topologies())
         Constructs:
-        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(3, 4) >}
+        {'domaintopology0': <{{repr}}DomainTopology: 'cell_type:face(3) >}
 
         """
         return self._filter_interface(
-            ("bounds_topology",),
-            "bounds_topologies",
+            ("domain_topology",),
+            "domain_topologies",
             identities,
             **filter_kwargs,
         )
@@ -1515,7 +1515,7 @@ class FieldDomain:
             ("cell_measure",), "cell_measures", identities, **filter_kwargs
         )
 
-    def cell_topology(
+    def cell_connectivity(
         self,
         *identity,
         default=ValueError(),
@@ -1523,25 +1523,25 @@ class FieldDomain:
         item=False,
         **filter_kwargs,
     ):
-        """Select a cell topology construct.
+        """Select a cell connectivity construct.
 
         {{unique construct}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `construct`, `cell_topologies`
+        .. seealso:: `construct`, `cell_connectivities`
 
         :Parameters:
 
             identity: optional
-                Select cell topology constructs that have an identity,
-                defined by their `!identities` methods, that matches
-                any of the given values.
+                Select cell connectivity constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
 
                 Additionally, the values are matched against construct
                 identifiers, with or without the ``'key%'`` prefix.
 
-                If no values are provided then all cell topology
+                If no values are provided then all cell connectivity
                 constructs are selected.
 
                 {{value match}}
@@ -1566,17 +1566,17 @@ class FieldDomain:
         **Examples**
 
         >>> f = {{package}}.example_{{class_lower}}(8)
-        >>> f.cell_topology()
-        <{{repr}}CellTopology: topology:face_face_connectivity(3, 3) >
-        >>> f.cell_topology('topology:face_face_connectivity', key=True)
-        'celltopology0'
-        >>> f.cell_topology('topology:face_face_connectivity', item=True)
-        ('celltopology0', <{{repr}}CellTopology: topology:face_face_connectivity(3, 3) >)
+        >>> f.cell_connectivity()
+        <{{repr}}CellConnectivity: connectivity:edge(3) >
+        >>> f.cell_connectivity('connectivity:edge', key=True)
+        'cellconnectivity0'
+        >>> f.cell_connectivity('connectivity:edge', item=True)
+        ('cellconnectivity0', <{{repr}}CellConnectivity: connectivity:edge(3) >)
 
         """
         return self._construct(
-            "cell_topology",
-            "cell_topologies",
+            "cell_connectivity",
+            "cell_connectivities",
             identity,
             key=key,
             item=item,
@@ -1584,30 +1584,30 @@ class FieldDomain:
             **filter_kwargs,
         )
 
-    def cell_topologies(self, *identities, **filter_kwargs):
-        """Select a cell topology construct.
+    def cell_connectivities(self, *identities, **filter_kwargs):
+        """Select cell connectivity constructs.
 
         {{unique construct}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `construct`, `cell_topologies`
+        .. seealso:: `construct`, `cell_connectivity`
 
-        Note that ``f.cell_topologies(*identities, **filter_kwargs)``
+        Note that ``f.cell_connectivities(*identities, **filter_kwargs)``
         is equivalent to
-        ``f.constructs.filter(filter_by_type=["cell_topology"],
+        ``f.constructs.filter(filter_by_type=["cell_connectivity"],
         filter_by_identity=identities, **filter_kwargs)``.
 
 
         :Parameters:
 
             identities: optional
-                Select cell topology constructs that have an identity,
-                defined by their `!identities` methods, that matches
-                any of the given values.
+                Select cell connectivity constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
 
-                If no identities are provided then all cell topology
-                constructs are selected.
+                If no identities are provided then all cell
+                connectivity constructs are selected.
 
                 {{value match}}
 
@@ -1622,14 +1622,14 @@ class FieldDomain:
         **Examples**
 
         >>> f = {{package}}.example_{{class_lower}}(8)
-        >>> print(f.cell_topologies())
+        >>> print(f.cell_connectivities())
         Constructs:
-        {'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(3, 3) >}
+        {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(3) >}
 
         """
         return self._filter_interface(
-            ("cell_topology",),
-            "cell_topologies",
+            ("cell_connectivity",),
+            "cell_connectivities",
             identities,
             **filter_kwargs,
         )
@@ -2211,28 +2211,28 @@ class FieldDomain:
 
         return False
 
-    def has_mesh_topology(self):
-        """Return whether or not the domain contains a mesh topology.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Returns:
-
-            `bool`
-                True if the domain contains a mesh topology.
-
-        **Examples**
-
-        >>> f = {{package}}.{{class}}()
-        >>> f.has_mesh_topology()
-        False
-
-        """
-        return bool(self.bounds_topologies(todict=True)) or bool(
-            self.cell_topologies(todict=True)
-        )
-
-
+#    def has_mesh_topology(self):
+#        """Return whether or not the domain contains a mesh topology.
+#
+#        .. versionadded:: (cfdm) TODOUGRIDVER
+#
+#        :Returns:
+#
+#            `bool`
+#                True if the domain contains a mesh topology.
+#
+#        **Examples**
+#
+#        >>> f = {{package}}.{{class}}()
+#        >>> f.has_mesh_topology()
+#        False
+#
+#        """
+#        return bool(self.domain_topologies(todict=True)) or bool(
+#            self.cell_connectivities(todict=True)
+#        )
+#
+#
 #    def ugrid_components(
 #        self, identity, start_index=0, cell_cell_connectivity=False
 #    ):

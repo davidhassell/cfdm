@@ -48,8 +48,8 @@ class Constructs(mixin.Container, core.Constructs):
     * coordinate reference constructs
     * domain ancillary constructs
     * cell measure constructs
-    * bounds topology constructs
-    * cell topology constructs
+    * domain topology constructs
+    * cell connectivity constructs
     * cell method constructs
     * field ancillary constructs
 
@@ -181,43 +181,43 @@ class Constructs(mixin.Container, core.Constructs):
                             'dimension_coordinate': {'dimensioncoordinate0': <DimensionCoordinate: atmosphere_hybrid_height_coordinate(1) >},
                             'domain_ancillary'    : {'domainancillary0': <DomainAncillary: ncvar%a(1) m>,
                                                      'domainancillary1': <DomainAncillary: ncvar%b(1) >},
-                            'bounds_topology': {},
-                            'cell_topology': {},
+                            'domain_topology'     : {},
+                            'cell_connectivity'   : {},
                             'field_ancillary'     : {}},
          ('domainaxis1',): {'auxiliary_coordinate': {'auxiliarycoordinate2': <AuxiliaryCoordinate: long_name=Grid latitude name(10) >},
                             'cell_measure'        : {},
                             'dimension_coordinate': {'dimensioncoordinate1': <DimensionCoordinate: grid_latitude(10) degrees>},
                             'domain_ancillary'    : {},
-                            'bounds_topology'     : {},
-                            'cell_topology'       : {},
+                            'domain_topology'     : {},
+                            'cell_connectivity'   : {},
                             'field_ancillary'     : {}},
          ('domainaxis1', 'domainaxis2'): {'auxiliary_coordinate': {'auxiliarycoordinate0': <AuxiliaryCoordinate: latitude(10, 9) degrees_N>},
                                           'cell_measure'        : {},
                                           'dimension_coordinate': {},
                                           'domain_ancillary'    : {'domainancillary2': <DomainAncillary: surface_altitude(10, 9) m>},
-                                          'bounds_topology'     : {},
-                                          'cell_topology'       : {},
+                                          'domain_topology'     : {},
+                                          'cell_connectivity'   : {},
                                           'field_ancillary'     : {'fieldancillary0': <FieldAncillary: air_temperature standard_error(10, 9) K>}},
          ('domainaxis2',): {'auxiliary_coordinate': {},
                             'cell_measure'        : {},
                             'dimension_coordinate': {'dimensioncoordinate2': <DimensionCoordinate: grid_longitude(9) degrees>},
                             'domain_ancillary'    : {},
-                            'bounds_topology'     : {},
-                            'cell_topology'       : {},
+                            'domain_topology'     : {},
+                            'cell_connectivity'   : {},
                             'field_ancillary'     : {}},
          ('domainaxis2', 'domainaxis1'): {'auxiliary_coordinate': {'auxiliarycoordinate1': <AuxiliaryCoordinate: longitude(9, 10) degrees_E>},
                                           'cell_measure'        : {'cellmeasure0': <CellMeasure: measure:area(9, 10) km2>},
                                           'dimension_coordinate': {},
                                           'domain_ancillary'    : {},
-                                          'bounds_topology'     : {},
-                                          'cell_topology'       : {},
+                                          'domain_topology'     : {},
+                                          'cell_connectivity'   : {},
                                           'field_ancillary'     : {}},
          ('domainaxis3',): {'auxiliary_coordinate': {},
                             'cell_measure'        : {},
                             'dimension_coordinate': {'dimensioncoordinate3': <DimensionCoordinate: time(1) days since 2018-12-01 >},
                             'domain_ancillary'    : {},
-                            'bounds_topology'     : {},
-                            'cell_topology'       : {},
+                            'domain_topology'     : {},
+                            'cell_connectivity'   : {},
                             'field_ancillary'     : {}}}
 
         """
@@ -1655,9 +1655,10 @@ class Constructs(mixin.Container, core.Constructs):
     ):
         """Worker function for some "_filter_by_* methods.
 
-        Used by `_filter_by_measure`, `_filter_by_method`, and
-        `_filter_by_topology` to filter by measure, method and
-        topology components, respectively.
+        Used by `_filter_by_measure`, `_filter_by_method`,
+        `_filter_by_cell_type`, and `_filter_by_connectivity` to
+        filter by measure, method, cell_type and connectivity
+        components, respectively.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -1679,7 +1680,7 @@ class Constructs(mixin.Container, core.Constructs):
 
             construct_types: sequence of `str`
                 The construct types, e.g. ``['cell_measure']`` or
-                ``['bounds_topology', 'cell_topology']``.
+                ``['domain_topology', 'cell_connectivity']``.
 
             filter_by: `str`
                 The name of the public "filter_by" method,
@@ -1926,6 +1927,181 @@ class Constructs(mixin.Container, core.Constructs):
             return cached
 
         return self._filter_by_axis(self, axes, todict, axis_mode)
+
+
+    def _filter_by_cell_type(self, arg, cell_types, todict):
+        """Worker function for `filter_by_cell_type` and `filter`.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        return self._component_filter(
+            arg,
+            topologies,
+            ("domain_topology",),
+            "filter_by_cell_type",
+            "get_cell_type",
+            todict,
+        )
+
+    def filter_by_cell_type(self, *cell_types, todict=False, cached=None):cl
+        """Select domain topology constructs by cell type.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
+                     `clear_filters_applied`, `unfilter`
+
+        :Parameters:
+
+            cell_types: optional
+                Select domain topology constructs that have a cell
+                type, defined by their `!get_cell_type` methods, that
+                matches any of the given values.
+
+                If no cell types are provided then all domain topology
+                constructs are selected.
+
+                {{value match}}
+
+            {{todict: `bool`, optional}}
+
+            {{cached: optional}}
+
+        :Returns:
+
+            `Constructs` or `dict` or *cached*
+                The selected domain topology constructs, or a cached
+                valued.
+
+        **Examples**
+
+        >>> print(t.constructs.filter_by_type('domain_topology')
+        Constructs:
+        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+
+        Select domain topology constructs that have a cell type of
+        "face":
+
+        >>> print(c.filter_by_cell_type('face')
+        Constructs:
+        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+
+        Select domain topology constructs that have a cell type of
+        'face' or 'edge':
+
+        >>> print(c.filter_by_cell_type('face', 'edge')
+        Constructs:
+        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+
+        Select domain topology constructs that have a cell type that
+        ends with "e":
+
+        >>> print(c.filter_by_cell_type(re.compile('e$')))
+        Constructs:
+        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+
+        Select domain topology costructs that have a cell type of any
+        value:
+
+        >>> print(c.filter_by_cell_type())
+        Constructs:
+        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+
+        """
+        if cached is not None:
+            return cached
+
+        return self._filter_by_cell_type(self, cell_types, todict)
+
+    def _filter_by_connectivity(self, arg, connectivities, todict):
+        """Worker function for `filter_by_connectivity` and `filter`.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        return self._component_filter(
+            arg,
+            connectivities,
+            ("cell_connectivity",),
+            "filter_by_connectivity",
+            "get_connectivity",
+            todict,
+        )
+
+    def filter_by_connectivity(self, *connectivities, todict=False,
+                               cached=None):
+        """Select cell connectivity constructs by connectivity type.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
+                     `clear_filters_applied`, `unfilter`
+
+        :Parameters:
+
+            connectivities: optional
+                Select cell connectivity constructs that have a
+                connectivity type, defined by their `!get_connectivity`
+                methods, that matches any of the given values.
+
+                If no connectivities are provided then all cell
+                connectivity constructs are selected.
+
+                {{value match}}
+
+            {{todict: `bool`, optional}}
+
+            {{cached: optional}}
+
+        :Returns:
+
+            `Constructs` or `dict` or *cached*
+                The selected cell connectivity constructs, or a cached
+                valued.
+
+        **Examples**
+
+        >>> print(t.constructs.filter_by_type('cell_connectivity')
+        Constructs:
+        {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(13824) >,
+         'cellconnectivity1': <{{repr}}CellConnectivity: connectivity:node(13824) >}
+
+        Select cell connectivity constructs that have a connectivity
+        type of "edge":
+
+        >>> print(c.filter_by_connectivity('edge')
+        Constructs:
+        {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(13824) >,
+
+        Select cell connectivity constructs that have a connectivity
+        type of 'edge' or 'node':
+
+        >>> print(c.filter_by_connectivity('edge', 'node') 
+        Constructs:
+        {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(13824) >,
+         'cellconnectivity1': <{{repr}}CellConnectivity: connectivity:node(13824) >}
+
+        Select cell connectivity constructs that have a cnnnectivity
+        type that starts with "n":
+
+        >>> print(c.filter_by_connectivity(re.compile('^n')))
+        Constructs:
+        {'cellconnectivity1': <{{repr}}CellConnectivity: connectivity:node(13824) >}
+
+        Select cell connectivity constructs that have a connectivity
+        type of any value:
+
+        >>> print(c.filter_by_connectivity())
+        Constructs:
+        {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(13824) >,
+         'cellconnectivity1': <{{repr}}CellConnectivity: connectivity:node(13824) >}
+
+        """
+        if cached is not None:
+            return cached
+
+        return self._filter_by_connectivity(self, connectivities, todict)
 
     def _filter_by_data(self, arg, ignored, todict, filter_applied=None):
         """Worker function for `filter_by_data` and `filter`.
@@ -3041,6 +3217,99 @@ class Constructs(mixin.Container, core.Constructs):
 
         return self._filter_by_size(self, sizes, todict)
 
+#    def _filter_by_topology(self, arg, topologies, todict):
+#        """Worker function for `filter_by_topology` and `filter`.
+#
+#        .. versionadded:: (cfdm) TODOUGRIDVER
+#
+#        """
+#        return self._component_filter(
+#            arg,
+#            topologies,
+#            ("domain_topology", "cell_connectivity"),
+#            "filter_by_topology",
+#            "get_topology",
+#            todict,
+#        )
+#
+#    def filter_by_topology(self, *topologies, todict=False, cached=None):
+#        """Select cell and bounds topology constructs by topology.
+#
+#        .. versionadded:: (cfdm) TODOUGRIDVER
+#
+#        .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
+#                     `clear_filters_applied`, `unfilter`
+#
+#        :Parameters:
+#
+#            topologies: optional
+#                Select cell topology and bounds topology and
+#                constructs that have a topology, defined by their
+#                `!get_topology` methods, that matches any of the given
+#                values.
+#
+#                If no topologies are provided then all cell topology
+#                and bounds topology constructs are selected.
+#
+#                {{value match}}
+#
+#            {{todict: `bool`, optional}}
+#
+#            {{cached: optional}}
+#
+#        :Returns:
+#
+#            `Constructs` or `dict` or *cached*
+#                The selected constructs, or a cached valued.
+#
+#            `Constructs`
+#                The selected constructs and their construct keys.
+#
+#        **Examples**
+#
+#        >>> print(t.constructs.filter_by_type('domain_topology', 'cell_connectivity'))
+#        Constructs:
+#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+#
+#        Select cell or bounds topology constructs that have a topology
+#        of 'face_node_connectivity':
+#
+#        >>> print(c.filter_by_topology('face_node_connectivity'))
+#        Constructs:
+#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >}
+#
+#        Select cell or bounds topology constructs that have a topology
+#        of 'face_node_connectivity' or 'face_face_connectivity':
+#
+#        >>> print(c.filter_by_topology('face_node_connectivity', 'face_face_connectivity'))
+#        Constructs:
+#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+#
+#        Select cell or bounds topology constructs that have a topology
+#        that starts with "face":
+#
+#        >>> print(c.filter_by_topology(re.compile('^face')))
+#        Constructs:
+#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+#
+#
+#        Select cell or bounds topology costructs that have a topology
+#        of any value:
+#
+#        >>> print(c.filter_by_topology())
+#        Constructs:
+#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
+#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
+#
+#        """
+#        if cached is not None:
+#            return cached
+#
+#        return self._filter_by_topology(self, topologies, todict)
+
     def _filter_by_type(self, arg, types, todict, filter_applied=None):
         """Worker function for `filter_by_type` and `filter`.
 
@@ -3070,99 +3339,6 @@ class Constructs(mixin.Container, core.Constructs):
 
         return out
 
-    def _filter_by_topology(self, arg, topologies, todict):
-        """Worker function for `filter_by_topology` and `filter`.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        """
-        return self._component_filter(
-            arg,
-            topologies,
-            ("bounds_topology", "cell_topology"),
-            "filter_by_topology",
-            "get_topology",
-            todict,
-        )
-
-    def filter_by_topology(self, *topologies, todict=False, cached=None):
-        """Select cell and bounds topology constructs by topology.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
-                     `clear_filters_applied`, `unfilter`
-
-        :Parameters:
-
-            topologies: optional
-                Select cell topology and bounds topology and
-                constructs that have a topology, defined by their
-                `!get_topology` methods, that matches any of the given
-                values.
-
-                If no topologies are provided then all cell topology
-                and bounds topology constructs are selected.
-
-                {{value match}}
-
-            {{todict: `bool`, optional}}
-
-            {{cached: optional}}
-
-        :Returns:
-
-            `Constructs` or `dict` or *cached*
-                The selected constructs, or a cached valued.
-
-            `Constructs`
-                The selected constructs and their construct keys.
-
-        **Examples**
-
-        >>> print(t.constructs.filter_by_type('bounds_topology', 'cell_topology'))
-        Constructs:
-        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-
-        Select cell or bounds topology constructs that have a topology
-        of 'face_node_connectivity':
-
-        >>> print(c.filter_by_topology('face_node_connectivity'))
-        Constructs:
-        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >}
-
-        Select cell or bounds topology constructs that have a topology
-        of 'face_node_connectivity' or 'face_face_connectivity':
-
-        >>> print(c.filter_by_topology('face_node_connectivity', 'face_face_connectivity'))
-        Constructs:
-        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-
-        Select cell or bounds topology constructs that have a topology
-        that starts with "face":
-
-        >>> print(c.filter_by_topology(re.compile('^face')))
-        Constructs:
-        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-
-
-        Select cell or bounds topology costructs that have a topology
-        of any value:
-
-        >>> print(c.filter_by_topology())
-        Constructs:
-        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-
-        """
-        if cached is not None:
-            return cached
-
-        return self._filter_by_topology(self, topologies, todict)
-
     def filter_by_type(self, *types, todict=False, cached=None):
         """Select metadata constructs by type.
 
@@ -3188,8 +3364,8 @@ class Constructs(mixin.Container, core.Constructs):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate constructs
                 ``'cell_measure'``          Cell measure constructs
                 ``'coordinate_reference'``  Coordinate reference constructs
-                ``'bounds_topology'``       Bounds topology constructs
-                ``'cell_topology'``         Cell topology constructs
+                ``'domain_topology'``       Bounds topology constructs
+                ``'cell_connectivity'``     Cell connectivity constructs
                 ``'cell_method'``           Cell method constructs
                 ``'field_ancillary'``       Field ancillary constructs
                 ==========================  ================================
