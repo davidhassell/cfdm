@@ -306,17 +306,46 @@ class DomainTopology(
         """
         import numpy as np
 
-        d = _inplace_enabled_define_and_cleanup(self)
+        if start_index not in (0, 1):
+            raise ValueError(
+                "The 'start_index' parameter must be 0 or 1"
+            )
+        
+        d = _inplace_enabled_define_and_cleanup(self)        
 
         data = d.array
-        n, b = np.where(~np.ma.getmaskarray(data))
-        data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
+        mask = np.ma.getmaskarray(data)
 
-        if start_index:
-            if start_index != 1:
-                raise ValueError("The 'start_index' parameter must be 0 or 1")
+        if self.get_cell_type() == 'point':
+            x = data[:, 0]
+            xmin = x.min()
+            if xmin < 0:
+                x -= xmin
 
-            data += start_index
+            for i, j in zip(x.tolist(), range(-1, -x.size-1, -1)):
+                data = np.where(data == i, j, data)
+            
+            data *= -1
+            if not start_index:
+                data -= 1 
 
+            data = np.ma.array(data, mask=mask)
+
+            # Remove redundant cell indices (TODOUGRID - this should
+            # be done in getitem)
+            largest_index = data[0, -1]
+            if data.max() > largest_index:
+                data = np.ma.where(data > largest_index, np.ma.masked, data)
+                
+            # Move missing values to the end of the rows (TODOUGRID -
+            # this should be done in getitem)
+            data[:, 1:].sort(axis=1, endwith=True)
+        else:
+            n, b = np.where(~mask)
+            data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
+            
+            if start_index:
+                data += 1
+                
         d.set_data(data, copy=False)
         return d

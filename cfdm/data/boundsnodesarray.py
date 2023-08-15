@@ -47,16 +47,18 @@ class BoundsNodesArray(CompressedArray):
         :Parameters:
 
             node_connectivity: array_like
-                TODOUGRID The compressed array. This contains the bounds
-                locations as found in a UGRID "node_coordinates"
+                A 2-d integer array that maps the bounds positions of
+                each cell to the corresponding mesh nodes, as found in
+                a UGRID "edge_node_connection",
+                "face_node_connection", or "volume_node_connection"
                 variable.
 
             shape: `tuple`
-                The shape of the TODOUGRID.
+                The shape of the bounds array.
 
             node_coordinates: array_like
-                TODOUGRID The "list variable" required to uncompress the data,
-                identical to the data of a CF-netCDF list variable.
+                A 1-d array that contains a coordinate for each mesh
+                node, as found in a UGRID "node_coordinates" variable.
 
             start_index: `int`, optional
                 TODOUGRID

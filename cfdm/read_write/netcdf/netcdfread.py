@@ -8543,7 +8543,7 @@ class NetCDFRead(IORead):
             # Domain topology constructs for each location
             "domain_topology": {},
             # Cell connectivity constructs for each location
-            "cell_connectivity": {},
+            "cell_connectivities": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
             # The netCDF dimension spanned by the mesh cells for each
@@ -8620,7 +8620,7 @@ class NetCDFRead(IORead):
             # Domain topology constructs for each location
             "domain_topology": {},
             # Cell connectivity constructs for each location
-            "cell_connectivity": {},
+            "cell_connectivities": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
             # The netCDF dimension spanned by the mesh cells for
@@ -8936,6 +8936,8 @@ class NetCDFRead(IORead):
         attributes = mesh["mesh_attributes"]
 
         if location in ("edge", "face", "volume"):
+            cell_type = location
+            
             connectivity_attr = f"{location}_node_connectivity"
             connectivity_ncvar = attributes.get(connectivity_attr)
             if not self._ugrid_check_connectivity_variable(
@@ -8948,90 +8950,80 @@ class NetCDFRead(IORead):
     
             # CF properties
             properties = self.read_vars["variable_attributes"][connectivity_ncvar]
-            properties.pop("start_index", None)
+            start_index = properties.pop("start_index", 0)
     
             # Connectivity data
-            domain_connectivity = self._create_data(
-                connectivity_ncvar, compression_index=True
-            )
+            data = self._create_data(connectivity_ncvar,
+                                     compression_index=True
+                                     )
+        else:
+            # Node
+            cell_type = 'point'
+            
+            # Find the connectivity attribute
+            connectivity_attr =None
+            for connectivity_attr in (
+                    "edge_node_connectivity",
+                    "face_node_connectivity",
+                    "volume_node_connectivity",
+            ):
+                if connectivity_attr in attributes:
+                    break
     
-            # Initialise the domain topology variable
-            domain_topology = self.implementation.initialise_DomainTopology(
-                cell_type=location,
-                properties=properties,
-                data=bounds_connectivity,
-                copy=False,
-            )
+            if connectivity_attr is None:
+                return
     
-            # Set the netCDF variable name and the original file names
-            self.implementation.nc_set_variable(domain_topology,
-                                                connectivity_ncvar)
-            self.implementation.set_original_filenames(
-                domain_topology, self.read_vars["filename"]
-            )
+            connectivity_ncvar = attributes.get(connectivity_attr)
+            if not self._ugrid_check_connectivity_variable(
+                parent_ncvar,
+                mesh["mesh_ncvar"],
+                connectivity_ncvar,
+                connectivity_attr,
+            ):
+                return
     
-            index_set = mesh["index_set"]
-            if index_set is not None:
-                # Apply a location index set
-                domain_topology = domain_topology[index_set]
+            # CF properties
+            properties = self.read_vars["variable_attributes"][connectivity_ncvar]
+            start_index = properties.pop("start_index", 0)
     
-            mesh["domain_topology"][location] = domain_topology
-            return domain_topology
-
-        # Still here? Then location is "node"
+            # Connectivity data    
+            indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+            array = self.implementation.initialise_NodeConnectivityArray(
+                    connectivity=indices,
+                    start_index=start_index,
+                    copy=False,
+                )
         
-        # Find the connectivity attribute that has the highest
-        # topology dimension (the order of the loop matters).
-        connectivity_attr =None
-        for connectivity_attr in (
-                "volume_node_connectivity",
-                "face_node_connectivity",
-                "edge_node_connectivity",
-        ):
-            if connectivity_attr in attributes:
-                break
-
-        if connectivity_attr is None:
-            return
-
-        connectivity_ncvar = attributes.get(connectivity_attr)
-        if not self._ugrid_check_connectivity_variable(
-            parent_ncvar,
-            mesh["mesh_ncvar"],
-            connectivity_ncvar,
-            connectivity_attr,
-        ):
-            return
-
-        # CF properties
-        properties = self.read_vars["variable_attributes"][connectivity_ncvar]
-        start_index = properties.pop("start_index", 0)
-
-        # Connectivity data
-        indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-        array = self.implementation.initialise_NodeConnectivityArray(
-                connectivity=indices,
-                start_index=start_index,
-                copy=False,
+            data = self._create_Data(
+                array,
+                units=kwargs["units"],
+                calendar=kwargs["calendar"],
+                ncvar=connectivity_ncvar,
             )
-        
-        cell_connectivity = self._create_Data(
-            array,
-            units=kwargs["units"],
-            calendar=kwargs["calendar"],
-            ncvar=connectivity_ncvar,
-        )
 
         # Initialise the domain topology variable
-        topology = self.implementation.initialise_CellTopology(
-            topology=connectivity_attr,
+        topology = self.implementation.initialise_DomainTopology(
+            cell_type=cell_type,
             properties=properties,
-            data=cell_connectivity,
+            data=data,
             copy=False,
         )
-
-
         
+        # Set the netCDF variable name and the original file names
+        self.implementation.nc_set_variable(domain_topology,
+                                            connectivity_ncvar)
+        self.implementation.set_original_filenames(
+            domain_topology, self.read_vars["filename"]
+        )
+        
+        index_set = mesh["index_set"]
+        if index_set is not None:
+            # Apply a location index set
+            domain_topology = domain_topology[index_set]
+    
+        mesh["domain_topology"][location] = domain_topology
+        return domain_topology
+
     def _ugrid_create_cell_connectivity(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
@@ -9069,15 +9061,7 @@ class NetCDFRead(IORead):
 
         connectivity_attr = connectivity
         if location == "node":
-            # Selct the connectivity attribute that has the highest
-            # topology dimension (the order of the loop matters).
-            for connectivity_attr in (
-                "volume_node_connectivity",
-                "face_node_connectivity",
-                "edge_node_connectivity",
-            ):
-                if connectivity_attr in attributes:
-                    break
+            return 
 
         if connectivity_attr not in attributes:
             # No cell topology in the mesh
