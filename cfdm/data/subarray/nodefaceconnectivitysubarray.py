@@ -6,7 +6,7 @@ from .abstract import ConnectivitySubarray
 class PointConnectivitySubarray(ConnectivitySubarray):
     """A subarray of a compressed UGRID connectivity array.
 
-    Node-node connectivity derived from a UGRID
+    Point cell connectivity derived from a UGRID
     "face_node_connectivity" variable.
 
     A subarray describes a unique part of the uncompressed array.
@@ -33,33 +33,57 @@ class PointConnectivitySubarray(ConnectivitySubarray):
         face_node_connectivity = self._select_data(check_mask=True)
         masked = np.ma.isMA(face_node_connectivity)
 
+        shape = self.shape
         n_nodes = int(face_node_connectivity.max())
         if not self.start_index:
             n_nodes += 1
         
-        p = 0
-        pointers = [0]
-        col = []
-        col_append = col.append
-        pointers_append = pointers.append
-        np_isin = np.isin
-
-        ddd = []
+        
+        # Find the unique edges
         
         # WARNING: This loop is a potential performance bottleneck
+        edges = []
+        edges_extend = edges.extend        
         for i, nodes in enumerate(face_node_connectivity):
             if masked:
-                 nodes = face_nodes_i.compressed()
+                 nodes = nodes.compressed()
 
             nodes = nodes.tolist()
             nodes.append(nodes[0])
-                
-            ddd.extend(
-                set([(m, n) for m, n in zip(nodes[:-1], nodes[1:])])
+            edges_extend(
+                set(
+                    [(m, n) if m < n else (n, m)
+                     for m, n in zip(nodes[:-1], nodes[1:])]
+                )
             )
             
+        edges = np.array(tuple(set(edges)))
 
-                 
+        # Infer the node-node connectivity from the edges
+        start = 0
+        stop = n_nodes
+        if self.start_index:
+            start += 1
+            stop += 1
+
+        dtype = integer_dtype(n_nodes)
+        u = np.ma.masked_all(shape, dtype=dtype)
+        u[:, 0] = np.arange(start, stop, dtype=dtype) 
+
+        
+        # WARNING: This loop is a potential performance bottleneck
+        for i, j in enumerate(range(start, stop))
+            nodes = edges[np.where(edges == j)[0]][:, 1]
+            u[i, 1:nodes.size + 1] = nodes
+
+        u[:, 1:].sort(axis=1, endwith=True)
+            
+        if indices is Ellipsis:
+            return u
+
+        return u[indices]
+
+            
             connected_faces = np_where(
                 np_isin(face_node_connectivity == face_nodes_i)
             )[0]

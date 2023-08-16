@@ -1,3 +1,4 @@
+from ..subarray import PointConnectivitySubarray
 from .abstract import ConnectivityArray
 
 
@@ -9,6 +10,22 @@ class PointConnectivityArray(ConnectivityArray):
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
+
+    def __new__(cls, *args, **kwargs):
+        """Store subarray classes.
+
+        If a child class requires different subarray classes than the
+        ones defined here, then they must be defined in the __new__
+        method of the child class.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        instance = super().__new__(cls)
+        instance._Subarray = {
+            "point connectivity": PointConnectivitySubarray,
+        }
+        return instance
 
     def __init__(
         self, connectivity=None, start_index=0, source=None, copy=True

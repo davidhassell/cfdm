@@ -86,15 +86,17 @@ class BoundsNodesArray(CompressedArray):
                 node_coordinates = None
 
             try:
-                start_index = source._get_component("start_index", 0)
+                start_index = source._get_component("start_index", None)
             except AttributeError:
-                start_index = 0
+                start_index = None
 
-        self._set_component("start_index", start_index, copy=False)
         if node_coordinates is not None:
             self._set_component(
-                "node_coordinates", node_coordinates, copy=False
+                "node_coordinates", node_coordinates, copy=copy
             )
+
+        if start index is not None:
+            self._set_component("start_index", start_index, copy=False)
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -134,41 +136,6 @@ class BoundsNodesArray(CompressedArray):
             return u
 
         return self.get_subspace(u, indices, copy=True)
-
-    def _uncompressed_indices(self):
-        """Indices of the uncompressed subarray for the compressed data.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Returns:
-
-            `tuple`
-                The indices of the uncompressed subarray for the
-                compressed data. Dimensions not compressed by
-                gathering will have an index of ``slice(None)``.
-
-        **Examples**
-
-        For an original 3-d array with shape (12, 4, 6) for which the
-        last two dimensions have been compressed by gathering with
-        list variable indices (1, 2, 5, 6, 13, 15, 16, 22) then:
-
-        >>> for i in x._uncompressed_indices():
-        ...     print(i)
-        ...
-        slice(None, None, None)
-        array([0, 0, 0, 1, 2, 2, 2, 3])
-        array([1, 2, 5, 0, 1, 3, 4, 4])
-
-        """
-        connectivity_indices = np.ma.compressed(
-            self.get_connectivity_indices()
-        )
-        start_index = self.get_start_index()
-        if start_index:
-            connectivity_indices -= connectivity_indices
-
-        return np.unravel_index(connectivity_indices, self.shape)
 
     @property
     def dtype(self):
