@@ -3,12 +3,15 @@ from numbers import Number
 
 import numpy as np
 
-from .abstract import CompressedArray
-from .subarray import BoundsNodesSubarray
+from .abstract import MeshArray
+from .subarray import BoundsFromNodesSubarray
 
 
-class BoundsNodesArray(CompressedArray):
+class BoundsFromNodesArray(MeshArray):
     """TODOUGRID An underlying gathered array.
+
+    Create cell bounds from data as stored by a
+    [face|ege|volum]_node_connectivity variable
 
     Compression by gathering combines axes of a multidimensional array
     into a new, discrete axis whilst omitting the missing values and
@@ -30,15 +33,15 @@ class BoundsNodesArray(CompressedArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"bounds nodes": BoundsNodesSubarray}
+        instance._Subarray = {"bounds from nodes": BoundsFromNodesSubarray}
         return instance
 
     def __init__(
         self,
         node_connectivity=None,
         shape=None,
+            start_index=None,
         node_coordinates=None,
-        start_index=0,
         source=None,
         copy=True,
     ):
@@ -68,11 +71,15 @@ class BoundsNodesArray(CompressedArray):
             {{init copy: `bool`, optional}}
 
         """
+        if shape is None and node_connectivity is not None:
+            shape = node_connectivity.shape
+            
         super().__init__(
             compressed_array=node_connectivity,
             shape=shape,
+            start_index=start_index,
             compressed_dimensions={1: (1,)},
-            compression_type="bounds nodes",
+            compression_type="bounds from nodes",
             source=source,
             copy=copy,
         )
@@ -85,18 +92,10 @@ class BoundsNodesArray(CompressedArray):
             except AttributeError:
                 node_coordinates = None
 
-            try:
-                start_index = source._get_component("start_index", None)
-            except AttributeError:
-                start_index = None
-
         if node_coordinates is not None:
             self._set_component(
                 "node_coordinates", node_coordinates, copy=copy
             )
-
-        if start index is not None:
-            self._set_component("start_index", start_index, copy=False)
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -183,27 +182,6 @@ class BoundsNodesArray(CompressedArray):
         """
         return self._get_component("node_coordinates", default=default)
 
-    def get_start_index(self, default=ValueError()):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            default: optional
-                Return the value of the *default* parameter if there
-                is no start index.
-
-                {{default Exception}}
-
-        :Returns:
-
-            `int`
-                The start index.
-
-        """
-        return self._get_component("start_index", default)
-
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.
 
@@ -256,6 +234,9 @@ class BoundsNodesArray(CompressedArray):
         [(2,), (3,), (2, 2)]
 
         """
+        # TODOUGRID - should be able to inherit this .... I think that
+        # if u_dims are all axes, then all it can return is [(size,)
+        # for size in self.shape] - CHECK THIS!!!!
         u_dims = self.get_compressed_axes()
 
         if shapes == -1:
@@ -392,6 +373,7 @@ class BoundsNodesArray(CompressedArray):
         (1, 0, 0)
 
         """
+        # TODOUGRID - should be able to inherit this ....
         d1, u_dims = self.compressed_dimensions().popitem()
 
         shapes = self.subarray_shapes(shapes)

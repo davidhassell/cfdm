@@ -250,14 +250,16 @@ class DomainTopology(
     def normalise(self, start_index=0, inplace=False):
         """Normalise the data values.
 
+        Normalised data is in a form that is be suitable for creating
+        a CF-netCDF UGRID connectivity variable.
+
         Normalisation does not change the logical content of the
         data. It converts the data so that the set of unique values
         comprises an unbroken sequence from ``0`` to ``N-1`` (if the
         *start_index* parameter is ``0``), or ``1`` to ``N`` (if
         *start_index* is ``1``).
 
-        Normalised data is in a form that may be suitable for creating
-        a netCDF UGRID connectivity variable.
+        For point cells ...TODOUGRID
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -278,11 +280,13 @@ class DomainTopology(
 
         **Examples*
 
+        Face cells (similarly for edge and volume cells):
+
         >>> data = {{package}}.Data(
         ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]]
         ... )
         >>> data[1, 3] = {{package}}.masked
-        >>> d = {{package}}.{{class}}(data=data)
+        >>> d = {{package}}.{{class}}(cell_type='face', data=data)
         >>> print(d.array)
         [[1 4 5 2]
          [4 10 1 --]
@@ -294,7 +298,6 @@ class DomainTopology(
          [7 8 6 5]]
         >>> (d0.array == d.normalise().array).all()
         True
-
         >>> d1 = d.normalise(start_index=1)
         >>> print(d1.array)
         [[1 3 4 2]
@@ -302,6 +305,26 @@ class DomainTopology(
          [8 9 7 6]]
         >>> (d1.array == d0.array + 1).all()
         True
+
+        Point cells:
+
+        >>> data = {{package}}.Data(
+        ...   [[4, 1, 125], [1, 4, -99], [125, 4, -99]]
+        ... )
+        >>> data.where(cf.eq(-99), cf.masked, inplace=True)
+        >>> d = {{package}}.{{class}}(cell_type='point', data=data)
+        >>> print(d.array)
+        [[4 1 125]
+         [1 4 --]
+         [125 4 --]]
+        >>> print(d.normalise().array)
+        [[0 1 2]
+         [1 0 --]
+         [2 0 --]]
+        >>> print(d.normalise(start_index=1).array)
+        [[1 2 3]
+         [2 1 --]
+         [3 1 --]]
 
         """
         import numpy as np
@@ -317,35 +340,41 @@ class DomainTopology(
         mask = np.ma.getmaskarray(data)
 
         if self.get_cell_type() == 'point':
-            x = data[:, 0]
-            xmin = x.min()
-            if xmin < 0:
-                x -= xmin
+            # Point cells
 
-            for i, j in zip(x.tolist(), range(-1, -x.size-1, -1)):
-                data = np.where(data == i, j, data)
+            # Remove negative values
+            dmin = data.min()
+            if dmin < 0:
+                data -= dmin
+
+            # Get the original node id for each cell
+            ids = data[:, 0]
             
+            for i, j in zip(ids.tolist(), range(-1, -ids.size-1, -1)):
+                data = np.where(data == i, j, data)
+
+            # Convert the new negative values to non-negative values
             data *= -1
             if not start_index:
                 data -= 1 
 
             data = np.ma.array(data, mask=mask)
 
-            # Remove redundant cell indices (TODOUGRID - this should
-            # be done in getitem)
+            # Remove redundant node ids, i.e. those with a value
+            # greater than the number of cells.
             largest_index = data[0, -1]
             if data.max() > largest_index:
                 data = np.ma.where(data > largest_index, np.ma.masked, data)
                 
-            # Move missing values to the end of the rows (TODOUGRID -
-            # this should be done in getitem)
+            # Move missing values to the end of each rows
             data[:, 1:].sort(axis=1, endwith=True)
         else:
+            # Edge, face or volume cells.
             n, b = np.where(~mask)
             data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
             
             if start_index:
                 data += 1
-                
+
         d.set_data(data, copy=False)
         return d

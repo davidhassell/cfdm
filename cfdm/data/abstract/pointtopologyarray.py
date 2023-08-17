@@ -3,20 +3,38 @@ from itertools import accumulate, product
 from .compressedarray import CompressedArray
 
 
-class MeshArray(CompressedArray):
+class PointTopologyArray(CompressedArray):
     """Abstract base class for an underlying UGRID connectivity array.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
+    
+    def __new__(cls, *args, **kwargs):
+        """Store subarray classes.
+
+        If a child class requires different subarray classes than the
+        ones defined here, then they must be defined in the __new__
+        method of the child class.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        instance = super().__new__(cls)
+        instance._Subarray = {
+            "point topology from edge": PointTopologyFromEdgeSubarray
+            "point topology from face": PointTopologyFromFaceSubarray
+            "point topology from volume": PointTopologyFromVolumeSubarray
+        }
+        return instance
 
     def __init__(
-        self,
-        connectivity=None,
-        start_index=None,
-        compression_type=None,
-        source=None,
-        copy=True,
+            self,
+            compressed_array=None,
+            shape=None,
+            compression_type=None,
+            source=None,
+            copy=True,
     ):
         """**Initialisation**
 
@@ -38,23 +56,12 @@ class MeshArray(CompressedArray):
         """
         super().__init__(
             compressed_array=connectivity,
+            shape=shape,
             compressed_dimensions={0: (0,), 1: (1,)},
             compression_type=compression_type,
             source=source,
             copy=copy,
         )
-
-        shape = (self._get_compressed_Array().shape[0],) * 2
-        self._set_component("shape", shape, copy=False)
-
-        if source is not None:
-            try:
-                start_index = source.get_start_index(None)
-            except AttributeError:
-                start_index = None
-
-        if start_index is not None:
-            self._set_component("start_index", start_index, copy=False)
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -100,27 +107,6 @@ class MeshArray(CompressedArray):
 
         """
         return self._get_compressed_Array().dtype
-
-    def get_start_index(self, default=ValueError()):
-        """TODOUGRID.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            default: optional
-                Return the value of the *default* parameter if there
-                is no start index.
-
-                {{default Exception}}
-
-        :Returns:
-
-            `int`
-                The start index.
-
-        """
-        return self._get_component("start_index", default)
 
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.

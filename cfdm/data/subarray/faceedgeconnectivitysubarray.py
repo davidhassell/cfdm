@@ -13,6 +13,74 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
+    def __getitem__(self, indices):
+        """Return a subspace of the uncompressed data.
+
+        x.__getitem__(indices) <==> x[indices]
+
+        Returns a subspace of the uncompressed data as an independent
+        `scipy` Compressed Sparse Row (CSR) array.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        """
+        face_node_connectivity = self._select_data(check_mask=True)
+        masked = np.ma.isMA(face_node_connectivity)
+
+        shape = self.shape
+        n_nodes = int(face_node_connectivity.max())
+        if not self.start_index:
+            n_nodes += 1
+
+        x = n_nodes + 1
+        
+        # Find the unique edges
+        
+        # WARNING: This loop is a potential performance bottleneck
+        edges = []
+        edges_append = edges.append
+        edges_extend = edges.extend        
+        for i, nodes in enumerate(face_node_connectivity):
+            if masked:
+                 nodes = nodes.compressed()
+
+            nodes = nodes.tolist()
+            nodes.append(nodes[0])
+            edges.append(
+                [(m* x + n) if m < n else (n*x +  m)
+                 for m, n in zip(nodes[:-1], nodes[1:])]
+            )
+
+        
+            
+        edges = np.array(tuple(set(edges)))
+
+        # Infer the node-node connectivity from the edges
+        start = 0
+        stop = n_nodes
+        if self.start_index:
+            start += 1
+            stop += 1
+
+        dtype = integer_dtype(n_nodes)
+        u = np.ma.masked_all(shape, dtype=dtype)
+        u[:, 0] = np.arange(start, stop, dtype=dtype) 
+
+        
+        # WARNING: This loop is a potential performance bottleneck
+        for i, j in enumerate(range(start, stop))
+            nodes = edges[np.where(edges == j)[0]][:, 1]
+            u[i, 1:nodes.size + 1] = nodes
+
+        u[:, 1:].sort(axis=1, endwith=True)
+            
+        if indices is Ellipsis:
+            return u
+
+        return u[indices]
+
+            
+        
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -25,8 +93,6 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        
-        
         from scipy.sparse import csr_array
 
         face_node_connectivity = self._select_data(check_mask=True)
@@ -35,12 +101,17 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
         p = 0
         pointers = [0]
         col = []
-        col_append = col.append
+        data = []
         pointers_append = pointers.append
+        col_append = col.append
+        data_append = data.append
         np_isin = np.isin
 
         # WARNING: This loop is a potential performance bottleneck
         for i, face_nodes_i in enumerate(face_node_connectivity):
+            data_append(i+1)
+            p += 1
+            
             if masked:
                  face_nodes_i = face_nodes_i.compressed()
 
@@ -63,87 +134,34 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
 
                 # Add the first node to the end of the list
                 face_nodes_j.append(face_nodes_j[0])
-                
                 for m, n in zip(face_nodes_j[:-1], face_nodes_j[1:]): 
                     if m in common_nodes and n in common nodes:
                         # These two nodes are adjacent in face j =>
                         # face i and face j share an edge
                         p += 1
                         col_append(j)
+                        data_append(j+1)
                         break
 
             pointers_append(p)
 
-        data = np.ones((pointers[-1],), dtype=bool)
-        c = csr_array((data, col, pointers), shape=self.shape)
-        c = c + c.T
+        shape = self.shape
+        dtype = integer_dtype(shape[0] + 1)
+        if dtype == np.dtype('int32'):
+            data = np.array(data, dtype=dtype)
+            
+        data = csr_array((data, col, pointers), shape=shape)
+        data = (data + data.T).todense()
+    
+        # Replace zeos with missing data and sort the values
+        if masked:
+            data = np.ma.where(data == 0, np.ma.masked, data)
+            data[:, 1:].sort(axis=1, endwith=True)
+        else:
+            data[:, 1:].sort(axis=1)
 
+        data -= 1
         if indices is Ellipsis:
-            return c
+            return data
 
-        return c[indices]
-#
-#
-#
-#    set_nodes = set(nodes)
-#
-#        # Find all of the edges j that possibly share an edge
-#        # with face i
-#        node_test = connectivity == nodes[0]
-#        for node in nodes[1:]:
-#            node_test |= connectivity == node
-#
-#        possibly_connected_faces = set(np.where(node_test)[0].tolist())
-#        possibly_connected_faces.remove(i)
-#
-#        # For each possibly connected face j, check to see if
-#        # it really connected to face i. Faces i and j are
-#        # connected if they share two or more nodes which are
-#        # adjacent in both faces.
-#        for j in possibly_connected_faces:
-#            nodes1 = compressed(connectivity[j]).tolist()
-#            common_nodes = set_nodes.intersection(nodes1)
-#            n_common_nodes = len(common_nodes)
-#            if n_common_nodes < 2:
-#                # Faces i and j share fewer than two nodes =>
-#                # they are not connected
-#                continue
-#
-#            if n_common_nodes == 2:
-#                # Faces i and j share two nodes
-#                x = common_nodes.pop()
-#                y = common_nodes.pop()
-#                diff = abs(nodes.index(x) - nodes.index(y))
-#                if diff == 1 or diff == n_face_nodes_minus_1[i]:
-#                    # The two common nodes are adjacent in
-#                    # face i
-#                    diff = abs(nodes1.index(x) - nodes1.index(y))
-#                    if diff == 1 or diff == n_face_nodes_minus_1[j]:
-#                        # The two common nodes are also
-#                        # adjacent in face j => faces i and j
-#                        # are connected
-#                        row_ind.append(i)
-#                        col_ind.append(j)
-#            else:
-#                # TODOUGRID: 3 or more shared nodes
-#                pass
-#
-#    
-#    # WARNING: This loop is a potential performance bottleneck
-   #     for nodes in enumerate(face_node_connectivity):
-   #         nodes = compressed(nodes).tolist()
-   #         edges_extend(
-   #             [(i, j) for i, j in zip(nodes[:-1], nodes[1:])]
-   #             + [(nodes[0], nodes[-1])]
-   #         )
-   #
-   #     ddd = EdgeNodeConnectivity(
-   #         np.array(edges),
-   #         indices=Ellipsis,
-   #         shape=self.shape,
-   #         compressed_dimensions=self.compressed_dimensions,
-   #         start_index=start_index
-   #     )
-   #
-   #     return ddd[indices]
-        
+        return data[indices]

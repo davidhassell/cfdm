@@ -1,11 +1,11 @@
+from math import nan
+
+from ..subarray import PointTopologyFromEdgesSubarray
 from .abstract import MeshArray
-from .subarray import CellConnectivitySubarray
 
 
-class CellConnectivityArray(MeshArray):
+class PointTopologyFromEdgesArray(MeshArray):
     """An underlying UGRID connectivity array.
-
-    For edge-edge, face-face and volume-volume connectivty onlu.
 
     See CF section 5.9 "Mesh Topology Variables".
 
@@ -24,12 +24,13 @@ class CellConnectivityArray(MeshArray):
 
         """
         instance = super().__new__(cls)
-        instance._Subarray = {"cell connectivity": CellConnectivitySubarray}
+        instance._Subarray = {
+            "point topology from edges": PointTopologyFromEdgeSubarray
+        }
         return instance
     
     def __init__(
-        self,
-            cell_connectivity=None,
+            edge_node_connectivity=None,
             shape=None,
             start_index=None,
             source=None,
@@ -50,16 +51,14 @@ class CellConnectivityArray(MeshArray):
             {{init copy: `bool`, optional}}
 
         """
-        if shape is None and cell_connectivity is  not None:
-            shape = list(compressed_array.shape)            
-            shape[1] = shape[1] + 1
-            shape=tuple(shape)
+        if shape is None:
+            shap = (nan, nan)
             
         super().__init__(
-            compressed_array=cell_connectivity,
+            compressed_array=edge_node_connectivity,
             shape=shape,
-            start_index=start_index,
-            compression_type="cell connectivity",
+            start_index=start_index,            
+            compression_type="point topology from edges"
             source=source,
             copy=copy,
         )

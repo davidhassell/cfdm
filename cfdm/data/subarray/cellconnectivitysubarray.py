@@ -26,64 +26,32 @@ class CellConnectivitySubarray(ConnectivitySubarray):
 
         """
         shape = self.shape
-        n_cells = shape[0]
         start = 0
-        stop = n_cells
-        if self.start_index:
+        stop = shape[0]
+        start_index = self.start_index
+        if start_index:
             start += 1
             stop += 1
 
-        dtype = integer_dtype(n_cells)
-        u = np.ma.empty(shape, dtype=dtype)
+        data = self._select_data(check_mask=True)
+        if start_index:
+            data -= 1
+            
+        if np.ma.isMA(data):
+            empty = np.ma.empty
+        else:
+            empty  np.empty
+
+        dtype = integer_dtype(stop-1)        
+        u = empty(shape, dtype=dtype)
         u[:, 0] = np.arange(start, stop, dtype=dtype) 
-        u[:, 1:] = self._select_data(check_mask=False)
-        
-        if indices is Ellipsis:
-            return u
+        u[:, 1:] = data
 
-        return u[indices]
+        if indices is not Ellipsis:
+            u =  u[indices]
 
-
-#    def __getitem__(self, indices):
-#        """Return a subspace of the uncompressed data.
-#
-#        x.__getitem__(indices) <==> x[indices]
-#
-#        Returns a subspace of the uncompressed data as an independent
-#        `scipy` Compressed Sparse Row (CSR) array.
-#
-#        .. versionadded:: (cfdm) TODOUGRIDVER
-#
-#        """
-#        from scipy.sparse import csr_array
-#
-#        cell_connectivity = self._select_data(check_mask=False)
-#        shape = cell_connectivity.shape
-#        n_cells = shape[0]
-#        dtype = integer_dtype(n_cells)
-#
-#        if np.ma.is_masked(cell_connectivity):
-#            pointers = np.empty((1 + n_cells,), dtype=dtype)
-#            pointers[1:] = np.ma.count(cell_connectivity, axis=1)
-#            pointers[0] = 0
-#            cell_connectivity = cell_connectivity.compressed()
-#        else:
-#            pointers = np.full((1 + n_cells,), shape[1], dtype=dtype)
-#            pointers[0] = 0
-#            cell_connectivity = cell_connectivity.flatten()
-#
-#        pointers = np.cumsum(pointers, out=pointers)
-#
-#        start_index = self.start_index
-#        if start_index:
-#            cell_connectivity = cell_connectivity - start_index
-#
-#        data = np.ones((cell_connectivity.size,), bool)
-#        c = csr_array(
-#            (data, cell_connectivity, pointers), shape=(n_cells, n_cells)
-#        )
-#
-#        if indices is Ellipsis:
-#            return c
-#
-#        return c[indices]
+        # Make sure the values are zero-based
+        if start_index:
+            u -= 1
+            
+        return u

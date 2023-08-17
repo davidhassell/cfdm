@@ -94,7 +94,7 @@ class BoundsNodesSubarray(Subarray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        node_connectivity = self._select_data()
+        node_connectivity = self._select_data(check_mask=True)
         if np.ma.isMA(node_connectivity):
             node_indices = node_connectivity.compressed()
             u = np.ma.masked_all(self.shape, dtype=self.dtype)

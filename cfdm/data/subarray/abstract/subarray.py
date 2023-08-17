@@ -170,7 +170,7 @@ class Subarray(Array):
 
             data = np.asanyarray(data)
 
-        if check_mask and not np.ma.is_masked(data):
+        if check_mask and np.ma.isMA(data) and not np.ma.is_masked(data):
             data = np.array(data)
 
         return data
@@ -203,7 +203,7 @@ class Subarray(Array):
         if data is None:
             data = self.data
 
-        return self._asanyarray(data[self.indices])
+        return self._asanyarray(data[self.indices], check_mask=check_mask)
 
     @property
     def data(self):

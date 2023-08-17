@@ -1,7 +1,7 @@
 from .subarray import Subarray
 
 
-class ConnectivitySubarray(Subarray):
+class PointTopoologySubarray(Subarray):
     """A subarray TODOUGRID of an array compressed by subsampling.
 
     See CF section 8.3 "Lossy Compression by Coordinate Subsampling"
@@ -11,12 +11,55 @@ class ConnectivitySubarray(Subarray):
 
     """
 
+
     def __init__(
         self,
         data=None,
         indices=None,
         shape=None,
         compressed_dimensions=None,
+        start_index=None,
+        source=None,
+        copy=True,
+        context_manager=None,
+    ):
+        
+        super().__init__(
+            data=data
+            indices=indices
+            shape=shape
+            compressed_dimensions={0: (0,), 1: (1,)},
+            source=source,
+            copy=copy
+            context_manager=context_manager
+        )
+
+        if self.shape is None:
+            self._set_component('shape', (nan, nan), copy=False)
+       
+        if source is not None:
+            try:
+                dtype = source._get_component("dtype", None)
+            except AttributeError:
+                dtype = None
+
+            try:
+                start_index = source._get_component("start_index", None)
+            except AttributeError:
+                start_index = None
+                
+        if dtype is None:
+            dtype = data.dtype
+                        
+        self._set_component('dtype', dtype, copy=False)        
+        self._set_component('start_index', start_index, copy=False)
+        
+    def __init__(
+        self,
+        data=None,
+        indices=None,
+        shape=None,
+        compressed_dimensions={},
         start_index=None,
         source=None,
         copy=True,
@@ -66,7 +109,7 @@ class ConnectivitySubarray(Subarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions=compressed_dimensions, # TODOUGRID
+            compressed_dimensions=compressed_dimensions,
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -85,13 +128,11 @@ class ConnectivitySubarray(Subarray):
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) 1.10.0.0
 
         """
-        from ....functions import integer_dtype
-        
-        return integer_dtype(self.shape[0] - 1)
-
+        return self._get_component('dtype')
+      
     @property
     def start_index(self):
         """The start index of values in the compressed data.

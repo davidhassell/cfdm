@@ -10,9 +10,23 @@ class MeshArray(CompressedArray):
 
     """
 
+    def __new__(cls, *args, **kwargs):
+        """Store subarray classes.
+
+        A child class must define its subarray classes in the
+        `_Subarray` dictionary.
+
+        .. versionadded:: (cfdm) 1.10.0.0
+
+        """
+        instance = super().__new__(cls)
+        instance._Subarray = {}
+        return instance
+
     def __init__(
         self,
         connectivity=None,
+            shape=None,
         start_index=None,
         compression_type=None,
         source=None,
@@ -38,14 +52,12 @@ class MeshArray(CompressedArray):
         """
         super().__init__(
             compressed_array=connectivity,
+            shape=shape
             compressed_dimensions={0: (0,), 1: (1,)},
             compression_type=compression_type,
             source=source,
             copy=copy,
         )
-
-        shape = (self._get_compressed_Array().shape[0],) * 2
-        self._set_component("shape", shape, copy=False)
 
         if source is not None:
             try:
@@ -156,6 +168,7 @@ class MeshArray(CompressedArray):
         [(4,), (4)]
 
         """
+        TODOUGRID - this won't work for shap (nan, nan!)
         return [(size,) for size in self.shape]
 
     def subarrays(self, shapes=-1):
