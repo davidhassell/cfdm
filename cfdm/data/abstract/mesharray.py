@@ -168,7 +168,6 @@ class MeshArray(CompressedArray):
         [(4,), (4)]
 
         """
-        TODOUGRID - this won't work for shap (nan, nan!)
         return [(size,) for size in self.shape]
 
     def subarrays(self, shapes=-1):

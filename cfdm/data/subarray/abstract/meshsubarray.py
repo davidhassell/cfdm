@@ -1,9 +1,7 @@
-from math import nan
-
 from .subarray import Subarray
 
 
-class PointTopoologySubarray(Subarray):
+class MeshSubarray(Subarray):
     """A subarray TODOUGRID of an array compressed by subsampling.
 
     See CF section 8.3 "Lossy Compression by Coordinate Subsampling"
@@ -13,55 +11,13 @@ class PointTopoologySubarray(Subarray):
 
     """
 
-
     def __init__(
         self,
         data=None,
         indices=None,
         shape=None,
         compressed_dimensions=None,
-        start_index=None,
-        source=None,
-        copy=True,
-        context_manager=None,
-    ):
-        
-        super().__init__(
-            data=data
-            indices=indices
-            shape=shape
-            compressed_dimensions={0: (0,), 1: (1,)},
-            source=source,
-            copy=copy
-            context_manager=context_manager
-        )
-
-        if self.shape is None:
-            self._set_component('shape', (nan, nan), copy=False)
-       
-        if source is not None:
-            try:
-                dtype = source._get_component("dtype", None)
-            except AttributeError:
-                dtype = None
-
-            try:
-                start_index = source._get_component("start_index", None)
-            except AttributeError:
-                start_index = None
-                
-        if dtype is None:
-            dtype = data.dtype
-                        
-        self._set_component('dtype', dtype, copy=False)        
-        self._set_component('start_index', start_index, copy=False)
-        
-    def __init__(
-        self,
-        data=None,
-        indices=None,
-        shape=None,
-        compressed_dimensions={},
+            dtype=None,
         start_index=None,
         source=None,
         copy=True,
@@ -111,7 +67,7 @@ class PointTopoologySubarray(Subarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions=compressed_dimensions,
+            compressed_dimensions=compressed_dimensions, # TODOUGRID
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -123,21 +79,45 @@ class PointTopoologySubarray(Subarray):
             except AttributeError:
                 start_index = None
 
+            try:         
+                dtype = source._get_component('dtype', None))
+            except AttributeError:
+                dtype = None
+
         if start_index is not None:
             self._set_component("start_index", start_index, copy=False)
+
+        if dtype is not None:
+            self._set_component("dtype", dtype, copy=False)
 
     @property
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        return self._get_component('dtype')
-      
+        return self.data.dtype
+#        d =    self._get_component("dtype", None)
+#        if d is not None:
+#            return d
+#                
+#        from math import nan
+#        from ....functions import integer_dtype
+#
+#        size = self.shape[0]
+#        if size is nan:
+#            d = self.data.dtype
+#        
+#        d = integer_dtype(size - 1)
+#        d =    self._set_component("dtype", d, copy=False)
+#        return d
+
     @property
     def start_index(self):
         """The start index of values in the compressed data.
+
+        Either ``0`` or ``1``.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

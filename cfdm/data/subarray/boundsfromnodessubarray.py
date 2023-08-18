@@ -1,9 +1,9 @@
 import numpy as np
 
-from .abstract import Subarray
+from .abstract import MeshSubarray
 
 
-class BoundsNodesSubarray(Subarray):
+class BoundsFromNodesSubarray(MeshSubarray):
     """TODOUGRID A subarray of an array compressed by gathering.
 
     A subarray describes a unique part of the uncompressed array.
@@ -58,7 +58,8 @@ class BoundsNodesSubarray(Subarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions={1: (1,)},
+            compressed_dimensions={1: (1,)}, # ??
+            start_index=start_index,
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -72,12 +73,6 @@ class BoundsNodesSubarray(Subarray):
             except AttributeError:
                 node_coordinates = None
 
-            try:
-                start_index = source._get_component("start_index", 0)
-            except AttributeError:
-                start_index = 0
-
-        self._set_component("start_index", start_index, copy=False)
         if node_coordinates is not None:
             self._set_component(
                 "node_coordinates", node_coordinates, copy=False
@@ -149,17 +144,6 @@ class BoundsNodesSubarray(Subarray):
 
         """
         return self.nodes_coordinates.dtype
-
-    @property
-    def start_index(self):
-        """The base of the node indices.
-
-        Either ``0`` or ``1``.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        """
-        return self._get_component("start_index")
 
     @property
     def node_coordinates(self):

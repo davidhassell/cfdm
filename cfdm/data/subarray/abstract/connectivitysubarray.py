@@ -88,9 +88,14 @@ class ConnectivitySubarray(Subarray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
+        from math import nan
         from ....functions import integer_dtype
+
+        size = self.shape[0]
+        if size is nan:
+            return self.data.dtype
         
-        return integer_dtype(self.shape[0] - 1)
+        return integer_dtype(size - 1)
 
     @property
     def start_index(self):

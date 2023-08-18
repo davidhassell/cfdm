@@ -30,7 +30,6 @@ class CellConnectivityArray(MeshArray):
     def __init__(
         self,
             cell_connectivity=None,
-            shape=None,
             start_index=None,
             source=None,
             copy=True,
@@ -50,10 +49,11 @@ class CellConnectivityArray(MeshArray):
             {{init copy: `bool`, optional}}
 
         """
-        if shape is None and cell_connectivity is  not None:
-            shape = list(compressed_array.shape)            
-            shape[1] = shape[1] + 1
-            shape=tuple(shape)
+        if cell_connectivity is None:
+            shape = None
+        else:
+            shape = compressed_array.shape
+            shape = (shape[0], shape[1] + 1)
             
         super().__init__(
             compressed_array=cell_connectivity,

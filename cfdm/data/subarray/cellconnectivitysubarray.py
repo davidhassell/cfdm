@@ -1,10 +1,9 @@
 import numpy as np
 
-from ...functions import integer_dtype
-from .abstract import ConnectivitySubarray
+from .abstract import MeshSubarray
 
 
-class CellConnectivitySubarray(ConnectivitySubarray):
+class CellConnectivitySubarray(MeshSubarray):
     """A subarray of a compressed UGRID connectivity array.
 
     A subarray describes a unique part of the uncompressed array.
@@ -34,15 +33,18 @@ class CellConnectivitySubarray(ConnectivitySubarray):
             stop += 1
 
         data = self._select_data(check_mask=True)
-        if start_index:
-            data -= 1
+        data_dtype = data.dtype            
+        if stop -1 == np.iinfo(data_dtype).max:
+            dtype= np.dtype(int)
+        else:
+            dtype =  data_dtype
             
         if np.ma.isMA(data):
             empty = np.ma.empty
         else:
-            empty  np.empty
-
-        dtype = integer_dtype(stop-1)        
+            empty  = np.empty
+            
+        dtype = self.dty
         u = empty(shape, dtype=dtype)
         u[:, 0] = np.arange(start, stop, dtype=dtype) 
         u[:, 1:] = data
@@ -54,4 +56,7 @@ class CellConnectivitySubarray(ConnectivitySubarray):
         if start_index:
             u -= 1
             
+        if u.dtype != data_dtype:
+            u = u.astype(data_dtype, copy=False)
+        
         return u
