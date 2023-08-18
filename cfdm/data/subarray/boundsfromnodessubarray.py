@@ -58,7 +58,7 @@ class BoundsFromNodesSubarray(MeshSubarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions={1: (1,)}, # ??
+            compressed_dimensions={1: (1,)},
             start_index=start_index,
             source=source,
             copy=copy,

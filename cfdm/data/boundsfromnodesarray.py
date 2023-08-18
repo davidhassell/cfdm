@@ -389,20 +389,13 @@ class BoundsFromNodesArray(MeshArray):
             if d in u_dims:
                 locations.append((0,))
                 u_shapes.append((size,))
-                u_indices.append((slice(0, size),))
+                u_indices.append((slice(None),))
             else:
                 locations.append([i for i in range(len(c))])
                 u_shapes.append(c)
 
                 c = tuple(accumulate((0,) + c))
                 u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
-
-        #        for size, c in zip(self.shape, shapes):
-        #            locations.append([i for i in range(len(c))])
-        #            u_shapes.append(c)
-        #
-        #            c = tuple(accumulate((0,) + c))
-        #            u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
 
         # The indices of the compressed array that correspond to each
         # subarray

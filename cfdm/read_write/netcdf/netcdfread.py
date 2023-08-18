@@ -8784,7 +8784,7 @@ class NetCDFRead(IORead):
                 ):
                     # The auxiliary coordinate doesn't have any
                     # bounds => create bounds from the mesh nodes.
-                    aux = self._ugrid_create_bounds_from_mesh_nodes(
+                    aux = self._ugrid_create_bounds_from_nodes(
                         parent_ncvar,
                         node_ncvar,
                         f,
@@ -8801,7 +8801,7 @@ class NetCDFRead(IORead):
             # variable. These will only contain bounds, with no
             # coordinate values.
             for ncvar in nodes_ncvar:
-                aux = self._ugrid_create_bounds_from_mesh_nodes(
+                aux = self._ugrid_create_bounds_from_nodes(
                     parent_ncvar,
                     ncvar,
                     f,
@@ -8819,7 +8819,7 @@ class NetCDFRead(IORead):
         mesh["auxiliary_coordinates"][location] = auxs
         return auxs
 
-    def _ugrid_create_bounds_from_mesh_nodes(
+    def _ugrid_create_bounds_from_nodes(
         self,
         parent_ncvar,
         node_ncvar,
@@ -8873,14 +8873,8 @@ class NetCDFRead(IORead):
         if not g["mask"]:
             self._set_default_FillValue(bounds, node_ncvar)
 
-        if location == "face":
-            attr = "face_node_connectivity"
-        elif location == "edge":
-            attr = "edge_node_connectivity"
-        elif location == "volume":
-            attr = "volume_node_connectivity"
-
-        connectivity_ncvar = mesh["mesh_attributes"][attr]
+        connectivity_attr = f"{location}_node_connectivity"
+        connectivity_ncvar = mesh["mesh_attributes"][connectivity_attr]
         node_connectivity = self._create_data(
             connectivity_ncvar,
             uncompress_override=True,
@@ -8894,19 +8888,18 @@ class NetCDFRead(IORead):
         )
 
         # Create and set the bounds data
-        array = self.implementation.initialise_BoundsNodesArray(
+        array = self.implementation.initialise_BoundsFromNodesArray(
             node_connectivity=node_connectivity,
             shape=node_connectivity.shape,
             node_coordinates=node_coordinates,
             start_index=start_index,
             copy=False,
         )
-
         bounds_data = self._create_Data(
             array,
-            ncvar=node_ncvar,
             units=properties.get("units"),
             calendar=properties.get("calendar"),
+            ncvar=node_ncvar, # TODOUGRID ??? maybe leave out 
         )
         self.implementation.set_data(bounds, bounds_data, copy=False)
 
