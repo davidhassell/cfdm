@@ -107,7 +107,7 @@ class DomainTopology(
         )
 
         cell_type = self.get_cell_type(None)
-        if cell_type  is not None:
+        if cell_type is not None:
             out.append(f"{name}.set_cell_type({cell_type!r})")
 
         if string:
@@ -330,16 +330,14 @@ class DomainTopology(
         import numpy as np
 
         if start_index not in (0, 1):
-            raise ValueError(
-                "The 'start_index' parameter must be 0 or 1"
-            )
-        
-        d = _inplace_enabled_define_and_cleanup(self)        
+            raise ValueError("The 'start_index' parameter must be 0 or 1")
+
+        d = _inplace_enabled_define_and_cleanup(self)
 
         data = d.array
         mask = np.ma.getmaskarray(data)
 
-        if self.get_cell_type() == 'point':
+        if self.get_cell_type() == "point":
             # Point cells
 
             # Remove negative values
@@ -349,14 +347,14 @@ class DomainTopology(
 
             # Get the original node id for each cell
             ids = data[:, 0]
-            
-            for i, j in zip(ids.tolist(), range(-1, -ids.size-1, -1)):
+
+            for i, j in zip(ids.tolist(), range(-1, -ids.size - 1, -1)):
                 data = np.where(data == i, j, data)
 
             # Convert the new negative values to non-negative values
             data *= -1
             if not start_index:
-                data -= 1 
+                data -= 1
 
             data = np.ma.array(data, mask=mask)
 
@@ -365,14 +363,14 @@ class DomainTopology(
             largest_index = data[0, -1]
             if data.max() > largest_index:
                 data = np.ma.where(data > largest_index, np.ma.masked, data)
-                
+
             # Move missing values to the end of each rows
             data[:, 1:].sort(axis=1, endwith=True)
         else:
             # Edge, face or volume cells.
             n, b = np.where(~mask)
             data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
-            
+
             if start_index:
                 data += 1
 

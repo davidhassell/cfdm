@@ -17,7 +17,7 @@ class MeshSubarray(Subarray):
         indices=None,
         shape=None,
         compressed_dimensions=None,
-            dtype=None,
+        dtype=None,
         start_index=None,
         source=None,
         copy=True,
@@ -67,7 +67,7 @@ class MeshSubarray(Subarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions=compressed_dimensions, # TODOUGRID
+            compressed_dimensions=compressed_dimensions,  # TODOUGRID
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -79,8 +79,8 @@ class MeshSubarray(Subarray):
             except AttributeError:
                 start_index = None
 
-            try:         
-                dtype = source._get_component('dtype', None))
+            try:
+                dtype = source._get_component("dtype", None)
             except AttributeError:
                 dtype = None
 
@@ -98,20 +98,21 @@ class MeshSubarray(Subarray):
 
         """
         return self.data.dtype
-#        d =    self._get_component("dtype", None)
-#        if d is not None:
-#            return d
-#                
-#        from math import nan
-#        from ....functions import integer_dtype
-#
-#        size = self.shape[0]
-#        if size is nan:
-#            d = self.data.dtype
-#        
-#        d = integer_dtype(size - 1)
-#        d =    self._set_component("dtype", d, copy=False)
-#        return d
+
+    #        d =    self._get_component("dtype", None)
+    #        if d is not None:
+    #            return d
+    #
+    #        from math import nan
+    #        from ....functions import integer_dtype
+    #
+    #        size = self.shape[0]
+    #        if size is nan:
+    #            d = self.data.dtype
+    #
+    #        d = integer_dtype(size - 1)
+    #        d =    self._set_component("dtype", d, copy=False)
+    #        return d
 
     @property
     def start_index(self):

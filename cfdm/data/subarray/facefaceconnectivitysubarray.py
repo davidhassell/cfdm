@@ -13,6 +13,7 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
+
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
 
@@ -40,11 +41,11 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
 
         # WARNING: This loop is a potential performance bottleneck
         for i, face_nodes_i in enumerate(face_node_connectivity):
-            data_append(i+1)
+            data_append(i + 1)
             p += 1
-            
+
             if masked:
-                 face_nodes_i = face_nodes_i.compressed()
+                face_nodes_i = face_nodes_i.compressed()
 
             connected_faces = np_where(
                 np_isin(face_node_connectivity == face_nodes_i)
@@ -56,7 +57,7 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
                 if masked:
                     face_nodes_j = face_nodes_j.compressed()
 
-                face_nodes_j = face_nodes_j.tolist())
+                face_nodes_j = face_nodes_j.tolist()
                 common_nodes = face_nodes_i.intersection(face_nodes_j)
                 if len(common_nodes) == 1:
                     # Face i and face j share only one node => they
@@ -65,13 +66,13 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
 
                 # Add the first node to the end of the list
                 face_nodes_j.append(face_nodes_j[0])
-                for m, n in zip(face_nodes_j[:-1], face_nodes_j[1:]): 
-                    if m in common_nodes and n in common nodes:
+                for m, n in zip(face_nodes_j[:-1], face_nodes_j[1:]):
+                    if m in common_nodes and n in common_nodes:
                         # These two nodes are adjacent in face j =>
                         # face i and face j share an edge
                         p += 1
                         col_append(j)
-                        data_append(j+1)
+                        data_append(j + 1)
                         break
 
             # 'pointers[p]' is the number faces connected to face i,
@@ -80,9 +81,9 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
 
         shape = self.shape
         dtype = integer_dtype(shape[0] + 1)
-        if dtype == np.dtype('int32'):
+        if dtype == np.dtype("int32"):
             data = np.array(data, dtype=dtype)
-            
+
         data = csr_array((data, col, pointers), shape=shape)
         data = (data + data.T).todense()
         if masked:

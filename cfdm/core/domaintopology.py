@@ -14,7 +14,7 @@ class DomainTopology(abstract.Topology):
 
     def __init__(
         self,
-            cell_type=None
+        cell_type=None,
         properties=None,
         data=None,
         source=None,
@@ -165,11 +165,11 @@ class DomainTopology(abstract.Topology):
              `None`
 
         """
-        cell_types = ('node', 'edge', 'face', 'volume')
+        cell_types = ("node", "edge", "face", "volume")
         if cell_type not in cell_types:
             raise ValueError(
                 f"Can't set cell type of {cell_type!r}. "
                 f"Must be one of {cell_types}"
             )
-            
+
         self._set_component("cell_type", cell_type, copy=False)

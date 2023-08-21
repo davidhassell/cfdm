@@ -26,13 +26,13 @@ class CellConnectivityArray(MeshArray):
         instance = super().__new__(cls)
         instance._Subarray = {"cell connectivity": CellConnectivitySubarray}
         return instance
-    
+
     def __init__(
         self,
-            cell_connectivity=None,
-            start_index=None,
-            source=None,
-            copy=True,
+        cell_connectivity=None,
+        start_index=None,
+        source=None,
+        copy=True,
     ):
         """**Initialisation**
 
@@ -52,9 +52,9 @@ class CellConnectivityArray(MeshArray):
         if cell_connectivity is None:
             shape = None
         else:
-            shape = compressed_array.shape
+            shape = cell_connectivity.shape
             shape = (shape[0], shape[1] + 1)
-            
+
         super().__init__(
             compressed_array=cell_connectivity,
             shape=shape,

@@ -2,7 +2,6 @@ from . import (
     CF,
     AuxiliaryCoordinate,
     Bounds,
-    DomainToplogy,
     CellConnectivity,
     CellMeasure,
     CellMethod,
@@ -2711,38 +2710,6 @@ class CFDMImplementation(Implementation):
 
         return ""
 
-    def set_domain_topology(
-        self, parent, construct, axes, copy=True, **kwargs
-    ):
-        """Insert a domain topology object into a field.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            parent: `Field` or `Domain`
-               On what to set the construct
-
-            construct: `DomainToplogy`
-
-            axes: `tuple`
-
-            copy: `bool`, optional
-
-            kwargs: optional
-                Additional parameters to the `set_construct` of
-                *parent* that may be used by subclasses.
-
-
-        :Returns:
-
-            `str`
-
-        """
-        return self.set_construct(
-            parent, construct, axes=axes, copy=copy, **kwargs
-        )
-
     def set_cell_measure(self, parent, construct, axes, copy=True, **kwargs):
         """Insert a cell_measure object into a field.
 
@@ -2835,8 +2802,9 @@ class CFDMImplementation(Implementation):
         """
         cell_method.set_method(method)
 
-    def set_cell_connectivity(self, parent, construct, axes,
-                              copy=True, **kwargs):
+    def set_cell_connectivity(
+        self, parent, construct, axes, copy=True, **kwargs
+    ):
         """Insert a cell connectivity object into a field.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -3684,7 +3652,7 @@ _implementation = CFDMImplementation(
     Domain=Domain,
     DomainAncillary=DomainAncillary,
     DomainAxis=DomainAxis,
-    DomainToplogy=DomainToplogy,
+    DomainTopology=DomainTopology,
     Field=Field,
     FieldAncillary=FieldAncillary,
     Bounds=Bounds,

@@ -46,7 +46,7 @@ _docstring_substitution_definitions = {
                         each defined by a volume enclosed by a set of
                         faces.""",
     # cell connectivity type
-    "{{cell connectivity type}}: """The connectivity type describes a characteristic of inter-cell
+    "{{cell connectivity type}}": """The connectivity type describes a characteristic of inter-cell
         connectivity defined by the domain topology construct. It may
         take any value, but the following values are standardised:
 
@@ -55,9 +55,9 @@ _docstring_substitution_definitions = {
 
         * ``'edge'``: Face or volume cells connected by one or more
                       shared edges.
-        
+
         * ``'face'``: Volume cells connected by one or more shared
-                      faces.""",        
+                      faces.""",
     # ----------------------------------------------------------------
     # # Method description susbstitutions (2 levels of indentation)
     # ----------------------------------------------------------------

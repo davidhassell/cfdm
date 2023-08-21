@@ -14,7 +14,7 @@ class CellConnectivity(abstract.Topology):
 
     def __init__(
         self,
-            connectivity=None,
+        connectivity=None,
         properties=None,
         data=None,
         source=None,
@@ -160,7 +160,7 @@ class CellConnectivity(abstract.Topology):
 
             connectivity: `str`
                 The value for the connectivity.
-        
+
         :Returns:
 
              `None`

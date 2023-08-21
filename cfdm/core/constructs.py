@@ -734,7 +734,7 @@ class Constructs(abstract.Container):
             axes_shape.append(domain_axes[axis].get_size())
 
         axes_shape = tuple(axes_shape)
-        try:tpo
+        try:
             # Note: The construct shape might be different from the
             #       construct's data shape. For instance, this will be
             #       the case for an auxiliary coordinate construct

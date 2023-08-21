@@ -33,30 +33,30 @@ class CellConnectivitySubarray(MeshSubarray):
             stop += 1
 
         data = self._select_data(check_mask=True)
-        data_dtype = data.dtype            
-        if stop -1 == np.iinfo(data_dtype).max:
-            dtype= np.dtype(int)
+        data_dtype = data.dtype
+        if stop - 1 == np.iinfo(data_dtype).max:
+            dtype = np.dtype(int)
         else:
-            dtype =  data_dtype
-            
+            dtype = data_dtype
+
         if np.ma.isMA(data):
             empty = np.ma.empty
         else:
-            empty  = np.empty
-            
+            empty = np.empty
+
         dtype = self.dty
         u = empty(shape, dtype=dtype)
-        u[:, 0] = np.arange(start, stop, dtype=dtype) 
+        u[:, 0] = np.arange(start, stop, dtype=dtype)
         u[:, 1:] = data
 
         if indices is not Ellipsis:
-            u =  u[indices]
+            u = u[indices]
 
         # Make sure the values are zero-based
         if start_index:
             u -= 1
-            
+
         if u.dtype != data_dtype:
             u = u.astype(data_dtype, copy=False)
-        
+
         return u

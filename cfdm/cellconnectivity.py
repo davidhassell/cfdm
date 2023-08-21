@@ -1,5 +1,4 @@
 from . import core, mixin
-from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 
 class CellConnectivity(
@@ -24,7 +23,7 @@ class CellConnectivity(
 
     def __init__(
         self,
-            connectivity=None,
+        connectivity=None,
         properties=None,
         data=None,
         source=None,
@@ -68,7 +67,7 @@ class CellConnectivity(
         data_name="data",
         header=True,
     ):
-        """Returns the commands to create the cell connectivity construct.
+        """Returns the commands to create the construct.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -107,7 +106,7 @@ class CellConnectivity(
         )
 
         connectivity = self.get_connectivity(None)
-        if connectivity  is not None:
+        if connectivity is not None:
             out.append(f"{name}.set_connectivity({connectivity!r})")
 
         if string:

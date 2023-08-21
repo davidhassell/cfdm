@@ -4,12 +4,12 @@ import numpy as np
 
 
 class PointTopology:
-    """TODOUGRID
+    """TODOUGRID.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
- 
+
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
 
@@ -25,50 +25,47 @@ class PointTopology:
 
         dtype = node_connectivity.dtype
         if not start_index:
-            if  max(node_connectivity) == np.iinfo(dtype).max:
-                node_connectivity = node_connectivity.astype(
-                    int, copy=False
-                )
+            if max(node_connectivity) == np.iinfo(dtype).max:
+                node_connectivity = node_connectivity.astype(int, copy=False)
                 dtype = node_connectivity.dtype
-                
+
             # Add 1 to remove all zeros (0 is the fill value in the
             # sparse array)
-            node_connectivity = node_connectivity + 1        
-        
+            node_connectivity = node_connectivity + 1
+
         p = 0
         pointers = [0]
         cols = []
         u = []
-        
+
         pointers_append = pointers.append
-        col_append = col.append
+        cols_extend = cols.extend
         u_extend = u.extend
 
         # WARNING: This loop is a potential performance bottleneck
         for node in np.unique(node_connectivity).tolist():
-            # Find all nodes that are joined to 'node' by an edge of a
-            # face
+            # Find all nodes that are joined to 'node' by lines in the
+            # mesh
             nodes = self._dddddd(node, node_connectivity)
-        
+
             n_nodes = nodes.size
             nodes = nodes.tolist()
             nodes.remove(node)
             nodes.insert(0, node)
 
-            p += n_nodes 
+            p += n_nodes
             pointers_append(p)
-            cols_extend(range(n_nodes ))
+            cols_extend(range(n_nodes))
             u_extend(nodes)
 
         u = np.array(u, dtype=dtype)
-        
-        u = csr_array((u, col, pointers))
+        u = csr_array((u, cols, pointers))
         u = u.toarray()
 
         if self.shape == (nan, nan):
             # Store the uncompressed shape
-            self._set_component('shape', u.shape, copy=False)
-        
+            self._set_component("shape", u.shape, copy=False)
+
         if indices is not Ellipsis:
             u = u[indices]
 
@@ -79,5 +76,5 @@ class PointTopology:
             # Subtract 1 to get back to zero-based node identities
             u -= 1
             u = u.astype(self.dtype, copy=False)
-        
+
         return u

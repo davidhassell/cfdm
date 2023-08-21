@@ -2211,6 +2211,7 @@ class FieldDomain:
 
         return False
 
+
 #    def has_mesh_topology(self):
 #        """Return whether or not the domain contains a mesh topology.
 #

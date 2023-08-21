@@ -40,7 +40,7 @@ class BoundsFromNodesArray(MeshArray):
         self,
         node_connectivity=None,
         shape=None,
-            start_index=None,
+        start_index=None,
         node_coordinates=None,
         source=None,
         copy=True,
@@ -73,7 +73,7 @@ class BoundsFromNodesArray(MeshArray):
         """
         if shape is None and node_connectivity is not None:
             shape = node_connectivity.shape
-            
+
         super().__init__(
             compressed_array=node_connectivity,
             shape=shape,

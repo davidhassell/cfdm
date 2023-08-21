@@ -1506,14 +1506,14 @@ class Constructs(mixin.Container, core.Constructs):
 
         .. versionadded:: (cfdm) 1.8.9.0
 
-        .. seealso:: `filter_by_axis`, `filter_by_data`,
+        .. seealso:: `filter_by_axis`, `filter_by_cell_type`,
+                     `filter_by_connectivity`, `filter_by_data`,
                      `filter_by_identity`, `filter_by_key`,
                      `filter_by_measure`, `filter_by_method`,
                      `filter_by_identity`, `filter_by_naxes`,
                      `filter_by_ncdim`, `filter_by_ncvar`,
-                     `filter_by_property`, `filter_by_topology`,
-                     `filter_by_type`, `filters_applied`,
-                     `inverse_filter`, `unfilter`,
+                     `filter_by_property`, `filter_by_type`,
+                     `filters_applied`, `inverse_filter`, `unfilter`,
                      `clear_filters_applied`
 
         :Parameters:
@@ -1532,62 +1532,68 @@ class Constructs(mixin.Container, core.Constructs):
 
                 Valid keywords and their values are:
 
-                ======================  ==============================
-                Keyword                 Value
-                ======================  ==============================
-                ``filter_by_axis``      A sequence as expected by the
-                                        *axes* parameter of
-                                        `filter_by_axis`
+                ==========================  ==========================
+                Keyword                     Value
+                ==========================  ==========================
+                ``filter_by_axis`` --- ---- A sequence as expected by
+                                            the *axes* parameter of
+                                            `filter_by_axis`
 
-                ``filter_by_identity``  A sequence as expected by the
-                                        *identities* parameter of
-                                        `filter_by_identity`
+                ``filter_by_cell_type`` ----A sequence as expected by
+                                            the *cell_types* parameter
+                                            of `filter_by_cell_type`
 
-                ``filter_by_key``       A sequence as expected by the
-                                        *keys* parameter of
-                                        `filter_by_key`
+                ``filter_by_connectivity``- A sequence as expected by
+                                            the *connectivity*
+                                            parameter of
+                                            `filter_by_connectivities`
 
-                ``filter_by_measure``   A sequence as expected by the
-                                        *measures* parameter of
-                                        `filter_by_measure`
+                ``filter_by_data``--------- Any value is allowed which
+                                            will be ignored, as
+                                            `filter_by_data` does not
+                                            have any positional
+                                            arguments.
+                ``filter_by_identity`` ---- A sequence as expected by
+                                            the *identities* parameter
+                                            of `filter_by_identity`
 
-                ``filter_by_method``    A sequence as expected by the
-                                        *methods* parameter of
-                                        `filter_by_method`
+                ``filter_by_key``---------- A sequence as expected by
+                                            the *keys* parameter of
+                                            `filter_by_key`
 
-                ``filter_by_naxes``     A sequence as expected by the
-                                        *naxes* parameter of
-                                        `filter_by_naxes`
+                ``filter_by_measure`` ----- A sequence as expected by
+                                            the *measures* parameter
+                                            of `filter_by_measure`
 
-                ``filter_by_ncdim``     A sequence as expected by the
-                                        *ncdims* parameter of
-                                        `filter_by_ncdim`
+                ``filter_by_method`` ------ A sequence as expected by
+                                            the *methods* parameter of
+                                            `filter_by_method`
 
-                ``filter_by_ncvar``     A sequence as expected by the
-                                        *ncvars* parameter of
-                                        `filter_by_ncvar`
+                ``filter_by_naxes``-------- A sequence as expected by
+                                            the *naxes* parameter of
+                                            `filter_by_naxes`
 
-                ``filter_by_size``      A sequence as expected by the
-                                        *sizes* parameter of
-                                        `filter_by_size`
+                ``filter_by_ncdim`` -q----- A sequence as expected by
+                                            the *ncdims* parameter of
+                                            `filter_by_ncdim`
 
-                ``filter_by_topology``  A sequence as expected by the
-                                        *topologies* parameter of
-                                        `filter_by_topology`
+                ``filter_by_ncvar`` ------- A sequence as expected by
+                                            the *ncvars* parameter of
+                                            `filter_by_ncvar`
 
-                ``filter_by_type``      A sequence as expected by the
-                                        *types* parameter of
-                                        `filter_by_type`
+                ``filter_by_property``----- A dictionary as expected
+                                            by the *properties*
+                                            parameter of
+                                            `filter_by_property`
 
-                ``filter_by_property``  A dictionary as expected by
-                                        the *properties* parameter of
-                                        `filter_by_property`
+                ``filter_by_size`` -------- A sequence as expected by
+                                            the *sizes* parameter of
+                                            `filter_by_size`
 
-                ``filter_by_data``      Any value is allowed which
-                                        will be ignored, as
-                                        `filter_by_data` does not have
-                                        any positional arguments.
-                ======================  ==============================
+                ``filter_by_type`` ---------A sequence as expected by
+                                            the *types* parameter of
+                                            `filter_by_type`
+                ==========================  ==========================
 
             axis_mode: `str`, optional
                 Provide a value for the *axis_mode* parameter of the
@@ -1928,7 +1934,6 @@ class Constructs(mixin.Container, core.Constructs):
 
         return self._filter_by_axis(self, axes, todict, axis_mode)
 
-
     def _filter_by_cell_type(self, arg, cell_types, todict):
         """Worker function for `filter_by_cell_type` and `filter`.
 
@@ -1937,14 +1942,14 @@ class Constructs(mixin.Container, core.Constructs):
         """
         return self._component_filter(
             arg,
-            topologies,
+            cell_types,
             ("domain_topology",),
             "filter_by_cell_type",
             "get_cell_type",
             todict,
         )
 
-    def filter_by_cell_type(self, *cell_types, todict=False, cached=None):cl
+    def filter_by_cell_type(self, *cell_types, todict=False, cached=None):
         """Select domain topology constructs by cell type.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -2029,8 +2034,9 @@ class Constructs(mixin.Container, core.Constructs):
             todict,
         )
 
-    def filter_by_connectivity(self, *connectivities, todict=False,
-                               cached=None):
+    def filter_by_connectivity(
+        self, *connectivities, todict=False, cached=None
+    ):
         """Select cell connectivity constructs by connectivity type.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -2077,7 +2083,7 @@ class Constructs(mixin.Container, core.Constructs):
         Select cell connectivity constructs that have a connectivity
         type of 'edge' or 'node':
 
-        >>> print(c.filter_by_connectivity('edge', 'node') 
+        >>> print(c.filter_by_connectivity('edge', 'node')
         Constructs:
         {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(13824) >,
          'cellconnectivity1': <{{repr}}CellConnectivity: connectivity:node(13824) >}
@@ -3217,99 +3223,6 @@ class Constructs(mixin.Container, core.Constructs):
 
         return self._filter_by_size(self, sizes, todict)
 
-#    def _filter_by_topology(self, arg, topologies, todict):
-#        """Worker function for `filter_by_topology` and `filter`.
-#
-#        .. versionadded:: (cfdm) TODOUGRIDVER
-#
-#        """
-#        return self._component_filter(
-#            arg,
-#            topologies,
-#            ("domain_topology", "cell_connectivity"),
-#            "filter_by_topology",
-#            "get_topology",
-#            todict,
-#        )
-#
-#    def filter_by_topology(self, *topologies, todict=False, cached=None):
-#        """Select cell and bounds topology constructs by topology.
-#
-#        .. versionadded:: (cfdm) TODOUGRIDVER
-#
-#        .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
-#                     `clear_filters_applied`, `unfilter`
-#
-#        :Parameters:
-#
-#            topologies: optional
-#                Select cell topology and bounds topology and
-#                constructs that have a topology, defined by their
-#                `!get_topology` methods, that matches any of the given
-#                values.
-#
-#                If no topologies are provided then all cell topology
-#                and bounds topology constructs are selected.
-#
-#                {{value match}}
-#
-#            {{todict: `bool`, optional}}
-#
-#            {{cached: optional}}
-#
-#        :Returns:
-#
-#            `Constructs` or `dict` or *cached*
-#                The selected constructs, or a cached valued.
-#
-#            `Constructs`
-#                The selected constructs and their construct keys.
-#
-#        **Examples**
-#
-#        >>> print(t.constructs.filter_by_type('domain_topology', 'cell_connectivity'))
-#        Constructs:
-#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-#
-#        Select cell or bounds topology constructs that have a topology
-#        of 'face_node_connectivity':
-#
-#        >>> print(c.filter_by_topology('face_node_connectivity'))
-#        Constructs:
-#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >}
-#
-#        Select cell or bounds topology constructs that have a topology
-#        of 'face_node_connectivity' or 'face_face_connectivity':
-#
-#        >>> print(c.filter_by_topology('face_node_connectivity', 'face_face_connectivity'))
-#        Constructs:
-#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-#
-#        Select cell or bounds topology constructs that have a topology
-#        that starts with "face":
-#
-#        >>> print(c.filter_by_topology(re.compile('^face')))
-#        Constructs:
-#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-#
-#
-#        Select cell or bounds topology costructs that have a topology
-#        of any value:
-#
-#        >>> print(c.filter_by_topology())
-#        Constructs:
-#        {'boundstopology0': <{{repr}}BoundsTopology: topology:face_node_connectivity(13824, 4) >,
-#         'celltopology0': <{{repr}}CellTopology: topology:face_face_connectivity(13824, 13824) >}
-#
-#        """
-#        if cached is not None:
-#            return cached
-#
-#        return self._filter_by_topology(self, topologies, todict)
-
     def _filter_by_type(self, arg, types, todict, filter_applied=None):
         """Worker function for `filter_by_type` and `filter`.
 
@@ -3364,7 +3277,7 @@ class Constructs(mixin.Container, core.Constructs):
                 ``'auxiliary_coordinate'``  Auxiliary coordinate constructs
                 ``'cell_measure'``          Cell measure constructs
                 ``'coordinate_reference'``  Coordinate reference constructs
-                ``'domain_topology'``       Bounds topology constructs
+                ``'domain_topology'``       Domain topology constructs
                 ``'cell_connectivity'``     Cell connectivity constructs
                 ``'cell_method'``           Cell method constructs
                 ``'field_ancillary'``       Field ancillary constructs
