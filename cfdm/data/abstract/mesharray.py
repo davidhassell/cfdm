@@ -27,6 +27,7 @@ class MeshArray(CompressedArray):
         self,
         connectivity=None,
         shape=None,
+        compressed_dimensions=None,
         start_index=None,
         compression_type=None,
         source=None,
@@ -53,7 +54,7 @@ class MeshArray(CompressedArray):
         super().__init__(
             compressed_array=connectivity,
             shape=shape,
-            compressed_dimensions={0: (0,), 1: (1,)},
+            compressed_dimensions=compressed_dimensions,  # {0: (0,), 1: (1,)},
             compression_type=compression_type,
             source=source,
             copy=copy,

@@ -80,16 +80,14 @@ from .domain import Domain
 from .interiorring import InteriorRing
 
 from .auxiliarycoordinate import AuxiliaryCoordinate
+from .cellconnectivity import CellConnectivity
 from .cellmeasure import CellMeasure
 from .cellmethod import CellMethod
 from .coordinatereference import CoordinateReference
 from .dimensioncoordinate import DimensionCoordinate
 from .domainancillary import DomainAncillary
 from .domainaxis import DomainAxis
-
-# from .domaintopology import DomainTopology
-from .boundstopology import BoundsTopology
-from .celltopology import CellTopology
+from .domaintopology import DomainTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
 
@@ -101,6 +99,7 @@ from .abstract import (
     Coordinate,
     Parameters,
     ParametersDomainAncillaries,
+    Topology,
 )
 
 from .meta import DocstringRewriteMeta

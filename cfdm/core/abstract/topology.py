@@ -2,7 +2,8 @@ from .propertiesdata import PropertiesData
 
 
 class Topology(PropertiesData):
-    """Abstract base class for bounds and cell topology constructs.
+    """Abstract base class for domain topology and cell connectivity
+    constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 

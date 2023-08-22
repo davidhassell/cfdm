@@ -120,7 +120,8 @@ from .constructs import Constructs
 
 from .data import (
     Array,
-    BoundsNodesArray,
+    BoundsFromNodesArray,
+    CellConnectivityArray,
     CompressedArray,
     Data,
     GatheredArray,
@@ -130,16 +131,18 @@ from .data import (
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
+    SparseArray,
     SubsampledArray,
 )
 
 from .data import (
     BiLinearSubarray,
     BiQuadraticLatitudeLongitudeSubarray,
+    BoundsFromNodesSubarray,
+    CellConnectivitySubarray,
     GatheredSubarray,
     InterpolationSubarray,
     LinearSubarray,
-    BoundsNodesSubarray,
     QuadraticLatitudeLongitudeSubarray,
     QuadraticSubarray,
     RaggedSubarray,
@@ -161,6 +164,7 @@ from .datum import Datum
 from .interiorring import InteriorRing
 
 from .auxiliarycoordinate import AuxiliaryCoordinate
+from .cellconnectivity import CellConnectivity
 from .cellmeasure import CellMeasure
 from .cellmethod import CellMethod
 from .coordinatereference import CoordinateReference
@@ -168,10 +172,7 @@ from .dimensioncoordinate import DimensionCoordinate
 from .domain import Domain
 from .domainancillary import DomainAncillary
 from .domainaxis import DomainAxis
-
-# from .domaintopology import DomainTopology
-from .boundstopology import BoundsTopology
-from .celltopology import CellTopology
+from .domaintopology import DomainTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
 

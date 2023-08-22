@@ -75,7 +75,7 @@ class BoundsFromNodesArray(MeshArray):
             shape = node_connectivity.shape
 
         super().__init__(
-            compressed_array=node_connectivity,
+            connectivity=node_connectivity,
             shape=shape,
             start_index=start_index,
             compressed_dimensions={1: (1,)},

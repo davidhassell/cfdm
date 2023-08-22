@@ -39,15 +39,14 @@ class Field(mixin.FieldDomain, abstract.PropertiesData):
     # ----------------------------------------------------------------
     _construct_key_base = {
         "auxiliary_coordinate": "auxiliarycoordinate",
+        "cell_connectivity": "cellconnectivity",
         "cell_measure": "cellmeasure",
         "cell_method": "cellmethod",
         "coordinate_reference": "coordinatereference",
         "dimension_coordinate": "dimensioncoordinate",
         "domain_ancillary": "domainancillary",
         "domain_axis": "domainaxis",
-        #        "domain_topology": "domaintopology",
-        "bounds_topology": "boundstopology",
-        "cell_topology": "celltopology",
+        "domain_topology": "domaintopology",
         "field_ancillary": "fieldancillary",
     }
 

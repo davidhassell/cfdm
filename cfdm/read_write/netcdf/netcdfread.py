@@ -260,7 +260,7 @@ class NetCDFRead(IORead):
             "bi_quadratic_latitude_longitude": ("latitude", "longitude"),
         }
 
-    def ugrid_connectivity_types(self):
+    def ugrid_cell_connectivity_types(self):
         """TODOUGRID.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -9095,7 +9095,7 @@ class NetCDFRead(IORead):
         indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
 
         array = self.implementation.initialise_CellConnectivityArray(
-            compressed_array=indices,
+            cell_connectivity=indices,
             start_index=start_index,
             copy=False,
         )
@@ -9108,7 +9108,9 @@ class NetCDFRead(IORead):
 
         # Initialise the cell connectivity construct
         connectivity = self.implementation.initialise_CellConnectivity(
-            connectivity=self.ugrid_connectivity_types(connectivity_attr),
+            connectivity=self.ugrid_cell_connectivity_types()[
+                connectivity_attr
+            ],
             properties=properties,
             data=data,
             copy=False,

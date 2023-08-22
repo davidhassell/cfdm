@@ -44,7 +44,8 @@ class CellConnectivitySubarray(MeshSubarray):
         else:
             empty = np.empty
 
-        dtype = self.dty
+        dtype = self.dtype
+
         u = empty(shape, dtype=dtype)
         u[:, 0] = np.arange(start, stop, dtype=dtype)
         u[:, 1:] = data

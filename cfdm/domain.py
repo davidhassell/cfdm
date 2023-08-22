@@ -263,23 +263,23 @@ class Domain(
         #    x = "\n                : ".join(x)
         #    string.append(f"Topologies      : {x}")
 
-        # Bounds topology
+        # Domain topology
         x = [
             _print_item(self, cid, v, construct_data_axes[cid])
-            for cid, v in sorted(self.bounds_topologies(todict=True).items())
+            for cid, v in sorted(self.domain_topologies(todict=True).items())
         ]
         if x:
             x = "\n                : ".join(x)
-            string.append(f"Bounds Topology : {x}")
+            string.append(f"Domain Topology : {x}")
 
-        # Cell topologies
+        # Cell connectivities
         x = [
             _print_item(self, cid, v, construct_data_axes[cid])
-            for cid, v in sorted(self.cell_topologies(todict=True).items())
+            for cid, v in sorted(self.cell_connectivities(todict=True).items())
         ]
         if x:
             x = "\n                : ".join(x)
-            string.append(f"Cell topologies : {x}")
+            string.append(f"Cell connects   : {x}")
 
         return "\n".join(string)
 
@@ -646,8 +646,8 @@ class Domain(
             "auxiliary_coordinate",
             "cell_measure",
             "domain_ancillary",
-            "bounds_topology",
-            "cell_topology",
+            "domain_topology",
+            "cell_connectivity",
         ).items():
             out.extend(
                 c.creation_commands(
@@ -833,41 +833,30 @@ class Domain(
             )
 
         # Domain topologies
-        # for cid, value in sorted(self.domain_topologies(todict=True).items()):
-        #    string.append("")
-        #    string.append(
-        #        value.dump(
-        #            display=False,
-        #            _key=cid,
-        #            _level=_level,
-        #            _title=f"Domain topology: {construct_name[cid]}",
-        #            _axes=construct_data_axes[cid],
-        #            _axis_names=axis_to_name,
-        #        )
-        #    )
-        # Bounds topologies
-        for cid, value in sorted(self.bounds_topologies(todict=True).items()):
+        for cid, value in sorted(self.domain_topologies(todict=True).items()):
             string.append("")
             string.append(
                 value.dump(
                     display=False,
                     _key=cid,
                     _level=_level,
-                    _title=f"Bounds topology: {construct_name[cid]}",
+                    _title=f"Domain topology: {construct_name[cid]}",
                     _axes=construct_data_axes[cid],
                     _axis_names=axis_to_name,
                 )
             )
 
-        # Cell topologies
-        for cid, value in sorted(self.cell_topologies(todict=True).items()):
+        # Cell connectivities
+        for cid, value in sorted(
+            self.cell_connectivities(todict=True).items()
+        ):
             string.append("")
             string.append(
                 value.dump(
                     display=False,
                     _key=cid,
                     _level=_level,
-                    _title=f"Cell topology: {construct_name[cid]}",
+                    _title=f"Cell connectivity: {construct_name[cid]}",
                     _axes=construct_data_axes[cid],
                     _axis_names=axis_to_name,
                 )

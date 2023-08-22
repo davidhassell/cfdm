@@ -56,8 +56,9 @@ class CellConnectivityArray(MeshArray):
             shape = (shape[0], shape[1] + 1)
 
         super().__init__(
-            compressed_array=cell_connectivity,
+            connectivity=cell_connectivity,
             shape=shape,
+            compressed_dimensions={1: (1,)},
             start_index=start_index,
             compression_type="cell connectivity",
             source=source,

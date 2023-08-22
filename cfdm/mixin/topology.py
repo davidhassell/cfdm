@@ -2,7 +2,8 @@ from . import PropertiesData
 
 
 class Topology(PropertiesData):
-    """Mixin class for bounds topology and cell topology constructs.
+    """Mixin class for domain topology and cell connnectivity
+    constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 

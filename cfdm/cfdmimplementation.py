@@ -26,12 +26,11 @@ from . import (
 )
 from .abstract import Implementation
 from .data import (
-    BoundsNodesArray,
+    BoundsFromNodesArray,
     CellConnectivityArray,
     Data,
     GatheredArray,
     NetCDFArray,
-    NodeConnectivityArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
@@ -2313,7 +2312,7 @@ class CFDMImplementation(Implementation):
             missing_values=missing_values,
         )
 
-    def initialise_BoundsNodesArray(self, **kwargs):
+    def initialise_BoundsFromNodesArray(self, **kwargs):
         """Return a node bounds array.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -2322,14 +2321,14 @@ class CFDMImplementation(Implementation):
 
             kwargs: optional
                 Parameters for intialising the node bounds array.
-                which are passed to `BoundsNodesArray.__init__`.
+                which are passed to `BoundsFromNodesArray.__init__`.
 
         :Returns:
 
-            `BoundsNodesArray`
+            `BoundsFromNodesArray`
 
         """
-        cls = self.get_class("BoundsNodesArray")
+        cls = self.get_class("BoundsFromNodesArray")
         return cls(**kwargs)
 
     def initialise_NodeCountProperties(self):
@@ -2343,25 +2342,25 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("NodeCountProperties")
         return cls()
 
-    def initialise_NodeConnectivityArray(self, **kwargs):
-        """Return a node connectivity array.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        :Parameters:
-
-            kwargs: optional
-                Parameters for intialising the node connectivity
-                array, which are passed to
-                `NodeConnectivityArray.__init__`.
-
-        :Returns:
-
-            `NodeConnectivityArray`
-
-        """
-        cls = self.get_class("NodeConnectivityArray")
-        return cls(**kwargs)
+    #    def initialise_NodeConnectivityArray(self, **kwargs):
+    #        """Return a node connectivity array.
+    #
+    #        .. versionadded:: (cfdm) TODOUGRIDVER
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Parameters for intialising the node connectivity
+    #                array, which are passed to
+    #                `NodeConnectivityArray.__init__`.
+    #
+    #        :Returns:
+    #
+    #            `NodeConnectivityArray`
+    #
+    #        """
+    #        cls = self.get_class("NodeConnectivityArray")
+    #        return cls(**kwargs)
 
     def initialise_PartNodeCount(self):
         """Return a part node count properties variable.
@@ -3663,11 +3662,10 @@ _implementation = CFDMImplementation(
     List=List,
     Index=Index,
     Count=Count,
-    NodeConnectivityArray=NodeConnectivityArray,
     NodeCountProperties=NodeCountProperties,
     PartNodeCountProperties=PartNodeCountProperties,
     Data=Data,
-    BoundsNodesArray=BoundsNodesArray,
+    BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
     NetCDFArray=NetCDFArray,
     RaggedContiguousArray=RaggedContiguousArray,
