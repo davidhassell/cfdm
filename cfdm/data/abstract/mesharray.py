@@ -4,7 +4,7 @@ from .compressedarray import CompressedArray
 
 
 class MeshArray(CompressedArray):
-    """Abstract base class for an underlying UGRID connectivity array.
+    """Abstract base class for data bsed on a UGRID connectivity array.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -16,7 +16,7 @@ class MeshArray(CompressedArray):
         A child class must define its subarray classes in the
         `_Subarray` dictionary.
 
-        .. versionadded:: (cfdm) 1.10.0.0
+        .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         instance = super().__new__(cls)
@@ -40,6 +40,9 @@ class MeshArray(CompressedArray):
             connectivity: array_like
                 TODOUGRID
 
+            shape
+                TODOUGRID
+
             start_index: `int`
                 TODOUGRID
 
@@ -54,7 +57,7 @@ class MeshArray(CompressedArray):
         super().__init__(
             compressed_array=connectivity,
             shape=shape,
-            compressed_dimensions=compressed_dimensions,  # {0: (0,), 1: (1,)},
+            compressed_dimensions=compressed_dimensions,
             compression_type=compression_type,
             source=source,
             copy=copy,
@@ -74,36 +77,40 @@ class MeshArray(CompressedArray):
 
         x.__getitem__(indices) <==> x[indices]
 
-        Returns a subspace of the uncompressed data as an independent
-        `scipy` Compressed Sparse Row (CSR) array.
+        Returns a subspace of the uncompressed array as an independent
+        numpy array.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
-        # -------------------------------------------------------------
+        # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
+        # Initialise the un-sliced uncompressed array
+        u = np.ma.empty(self.shape, dtype=self.dtype)
+        
         compressed_dimensions = self.compressed_dimensions()
 
         conformed_data = self.conformed_data()
-        compressed_data = conformed_data["data"]
+#        compressed_data = conformed_data["data"]
 
         start_index = self.get_start_index()
 
-        for _, u_shape, c_indices, _ in zip(*self.subarrays()):
-            u = self.get_Subarray()(
-                data=compressed_data,
+        for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
+            subarray = self.get_Subarray()(
+#                data=compressed_data,
                 indices=c_indices,
                 shape=u_shape,
                 compressed_dimensions=compressed_dimensions,
                 start_index=start_index,
+                **conformed_data
             )
-            u = u[...]
+            u[u_indices] = subarray[...]
 
         if indices is Ellipsis:
             return u
 
-        return self.get_subspace(u, indices, copy=True)
+        return self.get_subspace(u, indices, copy=False)
 
     @property
     def dtype(self):

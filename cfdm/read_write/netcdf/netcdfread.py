@@ -261,9 +261,16 @@ class NetCDFRead(IORead):
         }
 
     def ugrid_cell_connectivity_types(self):
-        """TODOUGRID.
+        """Cell connectivity types.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Returns:
+
+            `dict`
+               A mapping of netCDF UGRID mesh topology variable
+               attributes to cell connectivity construct
+               "connectivity" types.
 
         """
         return {

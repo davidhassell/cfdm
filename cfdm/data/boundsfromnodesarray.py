@@ -112,7 +112,7 @@ class BoundsFromNodesArray(MeshArray):
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
-        u = np.ma.masked_all(self.shape, dtype=self.dtype)
+        u = np.ma.empty(self.shape, dtype=self.dtype)
 
         Subarray = self.get_Subarray()
 
