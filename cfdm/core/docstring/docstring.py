@@ -31,20 +31,20 @@ _docstring_substitution_definitions = {
     # cell type
     "{{cell type}}": """The cell type indicates the common geometrical element type of
         the cells for which there is a domain topology. It takes one
-        of the following values:
+        of the following values: TODOUGRID
 
-        * ``'node'``: Node cells comprising 0-dimensional elements
-                      each defined by a point.
+        * ``'point'``: Node cells comprising 0-dimensional elements
+                       each defined by a point. TODOUGRID
 
         * ``'edge'``: Edge cells comprising 1-dimensional elements
-                      each defined by a line bounded by two nodes.
+                      each defined by a line bounded by two nodes. TODOUGRID
 
-        * ``'face'``: Face cells comprising 2-dimensional elements
+        * ``'face'``: Face cells comprising 2-dimensional elements TODOUGRID
                       each defined by a surface enclosed by a set of edges.
 
         * ``'volume'``: Volume cells comprising 3-dimensional elements
                         each defined by a volume enclosed by a set of
-                        faces.""",
+                        faces. TODOUGRID""",
     # cell connectivity type
     "{{cell connectivity type}}": """The connectivity type describes a characteristic of inter-cell
         connectivity defined by the domain topology construct. It may

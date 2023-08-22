@@ -14,7 +14,7 @@ class DomainTopology(abstract.Topology):
 
     def __init__(
         self,
-        cell_type=None,
+        cell=None,
         properties=None,
         data=None,
         source=None,
@@ -54,12 +54,12 @@ class DomainTopology(abstract.Topology):
 
         if source is not None:
             try:
-                cell_type = source.get_cell_type(None)
+                cell = source.get_cell(None)
             except AttributeError:
-                cell_type = None
+                cell = None
 
-        if cell_type is not None:
-            self.set_cell_type(cell_type)
+        if cell is not None:
+            self.set_cell(cell)
 
     @property
     def construct_type(self):
@@ -81,14 +81,14 @@ class DomainTopology(abstract.Topology):
         """
         return "domain_topology"
 
-    def del_cell_type(self, default=ValueError()):
+    def del_cell(self, default=ValueError()):
         """Remove the cell type.
 
         {{cell type}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `get_cell_type`, `has_cell_type`, `set_cell_type`
+        .. seealso:: `get_cell`, `has_cell`, `set_cell`
 
         :Parameters:
 
@@ -103,16 +103,16 @@ class DomainTopology(abstract.Topology):
                 The removed cell type.
 
         """
-        return self._del_component("cell_type", default=default)
+        return self._del_component("cell", default=default)
 
-    def has_cell_type(self):
+    def has_cell(self):
         """Whether the cell type has been set.
 
         {{cell type}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `del_cell_type`, `get_cell_type`, `set_cell_type`
+        .. seealso:: `del_cell`, `get_cell`, `set_cell`
 
         :Returns:
 
@@ -120,16 +120,16 @@ class DomainTopology(abstract.Topology):
                 True if the cell type has been set, otherwise False.
 
         """
-        return self._has_component("cell_type")
+        return self._has_component("cell")
 
-    def get_cell_type(self, default=ValueError()):
+    def get_cell(self, default=ValueError()):
         """Return the cell type.
 
         {{cell type}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `del_cell_type`, `has_cell_type`, `set_cell_type`
+        .. seealso:: `del_cell`, `has_cell`, `set_cell`
 
         :Parameters:
 
@@ -144,20 +144,20 @@ class DomainTopology(abstract.Topology):
                 The value of the cell type.
 
         """
-        return self._get_component("cell_type", default=default)
+        return self._get_component("cell", default=default)
 
-    def set_cell_type(self, cell_type):
+    def set_cell(self, cell):
         """Set the cell type type.
 
         {{cell type}}
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `del_cell_type`, `get_cell_type`, `has_cell_type`
+        .. seealso:: `del_cell`, `get_cell`, `has_cell`
 
         :Parameters:
 
-            cell_type: `str`
+            cell: `str`
                 The value for the cell type.
 
         :Returns:
@@ -165,11 +165,11 @@ class DomainTopology(abstract.Topology):
              `None`
 
         """
-        cell_types = ("node", "edge", "face", "volume")
-        if cell_type not in cell_types:
+        cell_types = ("point", "edge", "face", "volume")
+        if cell not in cell_types:
             raise ValueError(
-                f"Can't set cell type of {cell_type!r}. "
+                f"Can't set cell type of {cell!r}. "
                 f"Must be one of {cell_types}"
             )
 
-        self._set_component("cell_type", cell_type, copy=False)
+        self._set_component("cell", cell, copy=False)

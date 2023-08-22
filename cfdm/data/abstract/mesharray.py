@@ -1,4 +1,7 @@
 from itertools import accumulate, product
+from numbers import Number
+
+import numpy as np
 
 from .compressedarray import CompressedArray
 
@@ -88,22 +91,21 @@ class MeshArray(CompressedArray):
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
         u = np.ma.empty(self.shape, dtype=self.dtype)
-        
+
+        Subarray = self.get_Subarray()
+
         compressed_dimensions = self.compressed_dimensions()
 
         conformed_data = self.conformed_data()
-#        compressed_data = conformed_data["data"]
-
         start_index = self.get_start_index()
 
         for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
-            subarray = self.get_Subarray()(
-#                data=compressed_data,
+            subarray = Subarray(
                 indices=c_indices,
                 shape=u_shape,
                 compressed_dimensions=compressed_dimensions,
                 start_index=start_index,
-                **conformed_data
+                **conformed_data,
             )
             u[u_indices] = subarray[...]
 
@@ -176,7 +178,32 @@ class MeshArray(CompressedArray):
         [(4,), (4)]
 
         """
-        return [(size,) for size in self.shape]
+        if shapes == -1:
+            return [(size,) for size in self.shape]
+
+        u_dims = self.get_compressed_axes()
+
+        if isinstance(shapes, (str, Number)):
+            return [
+                (size,) if i in u_dims else shapes
+                for i, size in enumerate(self.shape)
+            ]
+
+        if isinstance(shapes, dict):
+            shapes = [
+                shapes[i] if i in shapes else None for i in range(self.ndim)
+            ]
+        elif len(shapes) != self.ndim:
+            raise ValueError(
+                f"Wrong number of 'shapes' elements in {shapes}: "
+                f"Got {len(shapes)}, expected {self.ndim}"
+            )
+
+        # chunks is a sequence
+        return [
+            (size,) if i in u_dims else c
+            for i, (size, c) in enumerate(zip(self.shape, shapes))
+        ]
 
     def subarrays(self, shapes=-1):
         """Return descriptors for every subarray.
@@ -230,27 +257,37 @@ class MeshArray(CompressedArray):
         (0, 0)
 
         """
-        d1, u_dims = self.compressed_dimensions().popitem()
+        dims = self.compressed_dimensions().keys()
 
         shapes = self.subarray_shapes(shapes)
 
         # The indices of the uncompressed array that correspond to
         # each subarray, the shape of each uncompressed subarray, and
-        # the location of each subarray.
-        c = shapes[0]
-        size1 = self.shape[1]
-        locations = [[i for i in range(len(c))], (0,)]
-        u_shapes = [c, (size1,)]
+        # the location of each subarray
+        locations = []
+        u_shapes = []
+        u_indices = []
+        for d, (size, c) in enumerate(zip(self.shape, shapes)):
+            if d in dims:
+                locations.append((0,))
+                u_shapes.append((size,))
+                u_indices.append((slice(None),))
+            else:
+                # Note: c != (nan,) when d not in dims
+                locations.append([i for i in range(len(c))])
+                u_shapes.append(c)
 
-        c = tuple(accumulate((0,) + c))
-        u_indices = [
-            [slice(i, j) for i, j in zip(c[:-1], c[1:])],
-            (slice(0, size1),),
-        ]
+                c = tuple(accumulate((0,) + c))
+                u_indices.append([slice(i, j) for i, j in zip(c[:-1], c[1:])])
 
         # The indices of the compressed array that correspond to each
         # subarray
-        c_indices = [u_indices[0], (slice(0, self.source().shape[1]),)]
+        if 0 in dims:
+            c_indices = [(slice(None),)]
+        else:
+            c_indices = [u_indices[0]]
+
+        c_indices.append((slice(None),))
 
         return (
             product(*u_indices),

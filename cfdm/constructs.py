@@ -1506,7 +1506,7 @@ class Constructs(mixin.Container, core.Constructs):
 
         .. versionadded:: (cfdm) 1.8.9.0
 
-        .. seealso:: `filter_by_axis`, `filter_by_cell_type`,
+        .. seealso:: `filter_by_axis`, `filter_by_cell`,
                      `filter_by_connectivity`, `filter_by_data`,
                      `filter_by_identity`, `filter_by_key`,
                      `filter_by_measure`, `filter_by_method`,
@@ -1539,9 +1539,9 @@ class Constructs(mixin.Container, core.Constructs):
                                             the *axes* parameter of
                                             `filter_by_axis`
 
-                ``filter_by_cell_type`` ----A sequence as expected by
-                                            the *cell_types* parameter
-                                            of `filter_by_cell_type`
+                ``filter_by_cell`` ---------A sequence as expected by
+                                            the *cells* parameter of
+                                            `filter_by_cell`
 
                 ``filter_by_connectivity``- A sequence as expected by
                                             the *connectivity*
@@ -1662,9 +1662,9 @@ class Constructs(mixin.Container, core.Constructs):
         """Worker function for some "_filter_by_* methods.
 
         Used by `_filter_by_measure`, `_filter_by_method`,
-        `_filter_by_cell_type`, and `_filter_by_connectivity` to
-        filter by measure, method, cell_type and connectivity
-        components, respectively.
+        `_filter_by_cell`, and `_filter_by_connectivity` to filter by
+        measure, method, cell and connectivity components,
+        respectively.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -1934,22 +1934,22 @@ class Constructs(mixin.Container, core.Constructs):
 
         return self._filter_by_axis(self, axes, todict, axis_mode)
 
-    def _filter_by_cell_type(self, arg, cell_types, todict):
-        """Worker function for `filter_by_cell_type` and `filter`.
+    def _filter_by_cell(self, arg, cells, todict):
+        """Worker function for `filter_by_cell` and `filter`.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
         return self._component_filter(
             arg,
-            cell_types,
+            cells,
             ("domain_topology",),
-            "filter_by_cell_type",
-            "get_cell_type",
+            "filter_by_cell",
+            "get_cell",
             todict,
         )
 
-    def filter_by_cell_type(self, *cell_types, todict=False, cached=None):
+    def filter_by_cell(self, *cells, todict=False, cached=None):
         """Select domain topology constructs by cell type.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
@@ -1959,9 +1959,9 @@ class Constructs(mixin.Container, core.Constructs):
 
         :Parameters:
 
-            cell_types: optional
+            cells: optional
                 Select domain topology constructs that have a cell
-                type, defined by their `!get_cell_type` methods, that
+                type, defined by their `!get_cell` methods, that
                 matches any of the given values.
 
                 If no cell types are provided then all domain topology
@@ -1983,41 +1983,41 @@ class Constructs(mixin.Container, core.Constructs):
 
         >>> print(t.constructs.filter_by_type('domain_topology')
         Constructs:
-        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+        {'domaintopology0': <{{repr}}DomainTopology: cell:face>}
 
         Select domain topology constructs that have a cell type of
         "face":
 
-        >>> print(c.filter_by_cell_type('face')
+        >>> print(c.filter_by_cell('face')
         Constructs:
-        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+        {'domaintopology0': <{{repr}}DomainTopology: cell:face>}
 
         Select domain topology constructs that have a cell type of
         'face' or 'edge':
 
-        >>> print(c.filter_by_cell_type('face', 'edge')
+        >>> print(c.filter_by_cell('face', 'edge')
         Constructs:
-        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+        {'domaintopology0': <{{repr}}DomainTopology: cell:face>}
 
         Select domain topology constructs that have a cell type that
         ends with "e":
 
-        >>> print(c.filter_by_cell_type(re.compile('e$')))
+        >>> print(c.filter_by_cell(re.compile('e$')))
         Constructs:
-        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+        {'domaintopology0': <{{repr}}DomainTopology: cell:face>}
 
         Select domain topology costructs that have a cell type of any
         value:
 
-        >>> print(c.filter_by_cell_type())
+        >>> print(c.filter_by_cell())
         Constructs:
-        {'domaintopology0': <{{repr}}DomainTopology: cell_type:face>}
+        {'domaintopology0': <{{repr}}DomainTopology: cell:face>}
 
         """
         if cached is not None:
             return cached
 
-        return self._filter_by_cell_type(self, cell_types, todict)
+        return self._filter_by_cell(self, cells, todict)
 
     def _filter_by_connectivity(self, arg, connectivities, todict):
         """Worker function for `filter_by_connectivity` and `filter`.

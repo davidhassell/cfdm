@@ -625,11 +625,11 @@ class FieldDomain:
 
         >>> f = {{package}}.example_{{class_lower}}(8)
         >>> f.domain_topology()
-        <{{repr}}DomainTopology: cell_type:face(3) >
-        >>> f.domain_topology('cell_type:face', key=True)
+        <{{repr}}DomainTopology: cell:face(3) >
+        >>> f.domain_topology('cell:face', key=True)
         'domaintopology0'
-        >>> f.domain_topology('cell_type:face', item=True)
-        ('domaintopology0', <{{repr}}DomainTopology: cell_type:face(3) >)
+        >>> f.domain_topology('cell:face', item=True)
+        ('domaintopology0', <{{repr}}DomainTopology: cell:face(3) >)
 
         """
         return self._construct(
@@ -681,7 +681,7 @@ class FieldDomain:
         >>> f = {{package}}.example_{{class_lower}}(8)
         >>> print(f.domain_topologies())
         Constructs:
-        {'domaintopology0': <{{repr}}DomainTopology: 'cell_type:face(3) >}
+        {'domaintopology0': <{{repr}}DomainTopology: 'cell:face(3) >}
 
         """
         return self._filter_interface(

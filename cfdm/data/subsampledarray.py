@@ -1144,7 +1144,6 @@ class SubsampledArray(CompressedArray):
         #           interpolation subarea, then that location is
         #           excluded from the index, thereby avoiding any
         #           overlaps.
-        # u_indices = [(slice(None),)] * self.ndim # tp_ndim
         u_indices = [None] * self.ndim
         u_shapes = u_indices[:]
         subarray_locations = u_indices[:]

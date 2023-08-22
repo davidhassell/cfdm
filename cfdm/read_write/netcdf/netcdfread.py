@@ -8957,7 +8957,7 @@ class NetCDFRead(IORead):
         attributes = mesh["mesh_attributes"]
 
         if location == "node":
-            cell_type = "point"
+            cell = "point"
             connectivity_attr = None
             for connectivity_attr in (
                 "edge_node_connectivity",
@@ -8968,7 +8968,7 @@ class NetCDFRead(IORead):
                     break
         else:
             # location in ("edge", "face", "volume")
-            cell_type = location
+            cell = location
             connectivity_attr = f"{location}_node_connectivity"
 
         connectivity_ncvar = attributes.get(connectivity_attr)
@@ -8985,7 +8985,7 @@ class NetCDFRead(IORead):
         start_index = properties.pop("start_index", 0)
 
         # Create data
-        if cell_type == "point":
+        if cell == "point":
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
             if connectivity_attr == "edge_node_connectivity":
                 array = (
@@ -9023,7 +9023,7 @@ class NetCDFRead(IORead):
 
         # Initialise the domain topology variable
         domain_topology = self.implementation.initialise_DomainTopology(
-            cell_type=cell_type,
+            cell=cell,
             properties=properties,
             data=data,
             copy=False,

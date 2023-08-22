@@ -182,8 +182,8 @@ def example_field(n, _implementation=_implementation):
     Dimension coords: time(3) = [2016-01-02 01:00:00, 2016-01-02 11:00:00, 2016-01-02 21:00:00] gregorian
     Auxiliary coords: longitude(ncdim%nMesh2d_face(3)) = [-44.067, -44.067, -42.19] degrees_east
                     : latitude(ncdim%nMesh2d_face(3)) = [34.82, 33.078, 35.65] degrees_north
-    Domain Topology : cell_type:face(ncdim%nMesh2d_face(3), 4) = [[2, ..., 1]]
-    Cell Connects   : connectivity:edge(ncdim%nMesh2d_face(3), 3) = [[False, ..., False]]
+    Domain Topology : cell:face(ncdim%nMesh2d_face(3), 4) = [[2, ..., 1]]
+    Cell connects   : connectivity:edge(ncdim%nMesh2d_face(3), 5) = [[0, ..., --]]
 
     """
     # For safety given the private second argument which we might not
@@ -5225,13 +5225,13 @@ def example_field(n, _implementation=_implementation):
             c, axes=("domainaxis2",), key="auxiliarycoordinate1", copy=False
         )
         #
-        # domain_topology: cell_type:face
+        # domain_topology: cell:face
         c = DomainTopology()
         c.set_properties({"long_name": "Maps every face to its corner nodes"})
         c.nc_set_variable("Mesh2d_face_nodes")
         data = Data([[2, 3, 1, 0], [6, 7, 3, 2], [3, 5, 4, 1]], dtype="i4")
         c.set_data(data)
-        c.set_cell_type("face")
+        c.set_cell("face")
         f.set_construct(
             c, axes=("domainaxis2",), key="domaintopology0", copy=False
         )

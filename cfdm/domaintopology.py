@@ -24,7 +24,7 @@ class DomainTopology(
 
     def __init__(
         self,
-        cell_type=None,
+        cell=None,
         properties=None,
         data=None,
         source=None,
@@ -35,7 +35,7 @@ class DomainTopology(
 
         :Parameters:
 
-            {{init cell_type: `str`, optional}}
+            {{init cell: `str`, optional}}
 
             {{init properties: `dict`, optional}}
 
@@ -47,7 +47,7 @@ class DomainTopology(
 
         """
         super().__init__(
-            cell_type=cell_type,
+            cell=cell,
             properties=properties,
             data=data,
             source=source,
@@ -106,9 +106,9 @@ class DomainTopology(
             header=header,
         )
 
-        cell_type = self.get_cell_type(None)
-        if cell_type is not None:
-            out.append(f"{name}.set_cell_type({cell_type!r})")
+        cell = self.get_cell(None)
+        if cell is not None:
+            out.append(f"{name}.set_cell({cell!r})")
 
         if string:
             indent = " " * indent
@@ -163,7 +163,7 @@ class DomainTopology(
 
         By default the identity is the first found of the following:
 
-        * The cell type, preceded by ``'cell_type:'``.
+        * The cell type, preceded by ``'cell:'``.
         * The ``standard_name`` property.
         * The ``cf_role`` property, preceded by 'cf_role='.
         * The ``long_name`` property, preceded by 'long_name='.
@@ -185,9 +185,9 @@ class DomainTopology(
                 The identity.
 
         """
-        n = self.get_cell_type(None)
+        n = self.get_cell(None)
         if n is not None:
-            return f"cell_type:{n}"
+            return f"cell:{n}"
 
         n = self.get_property("standard_name", None)
         if n is not None:
@@ -209,7 +209,7 @@ class DomainTopology(
 
         The identities comprise:
 
-        * The cell type type, preceded by ``'cell_type:'``.
+        * The cell type type, preceded by ``'cell:'``.
         * The ``standard_name`` property.
         * All properties, preceded by the property name and a colon,
           e.g. ``'long_name:Air temperature'``.
@@ -235,9 +235,9 @@ class DomainTopology(
                 The identities.
 
         """
-        n = self.get_cell_type(None)
+        n = self.get_cell(None)
         if n is not None:
-            pre = ((f"cell_type:{n}",),)
+            pre = ((f"cell:{n}",),)
             pre0 = kwargs.pop("pre", None)
             if pre0:
                 pre = tuple(pre0) + pre
@@ -286,7 +286,7 @@ class DomainTopology(
         ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]]
         ... )
         >>> data[1, 3] = {{package}}.masked
-        >>> d = {{package}}.{{class}}(cell_type='face', data=data)
+        >>> d = {{package}}.{{class}}(cell='face', data=data)
         >>> print(d.array)
         [[1 4 5 2]
          [4 10 1 --]
@@ -312,7 +312,7 @@ class DomainTopology(
         ...   [[4, 1, 125], [1, 4, -99], [125, 4, -99]]
         ... )
         >>> data.where(cf.eq(-99), cf.masked, inplace=True)
-        >>> d = {{package}}.{{class}}(cell_type='point', data=data)
+        >>> d = {{package}}.{{class}}(cell='point', data=data)
         >>> print(d.array)
         [[4 1 125]
          [1 4 --]
@@ -337,7 +337,7 @@ class DomainTopology(
         data = d.array
         mask = np.ma.getmaskarray(data)
 
-        if self.get_cell_type() == "point":
+        if self.get_cell() == "point":
             # Point cells
 
             # Remove negative values
