@@ -5179,20 +5179,26 @@ def example_field(n, _implementation=_implementation):
             {"standard_name": "longitude", "units": "degrees_east"}
         )
         c.nc_set_variable("Mesh2d_face_x")
-        data = Data(
-            [-44.067, -44.067, -42.19], units="degrees_east", dtype="f8"
-        )
+        data = Data([-44.0, -44.0, -42.0], units="degrees_east", dtype="f8")
         c.set_data(data)
         b = Bounds()
         b.nc_set_variable("Mesh2d_node_x")
         data = Data(
             [
-                [-45.0, -43.125, -43.125, -45.0],
-                [-45.0, -43.125, -43.125, -45.0],
-                [-43.125, -41.25, -41.25, -43.125],
+                [-45.0, -43.0, -43.0, -45.0],
+                [-45.0, -43.0, -43.0, -45.0],
+                [-40.0, -43.0, -43.0, -999],
             ],
             units="degrees_east",
             dtype="f8",
+            mask=Data(
+                [
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, True],
+                ],
+                dtype="b1",
+            ),
         )
         b.set_data(data)
         c.set_bounds(b)
@@ -5206,18 +5212,26 @@ def example_field(n, _implementation=_implementation):
             {"standard_name": "latitude", "units": "degrees_north"}
         )
         c.nc_set_variable("Mesh2d_face_y")
-        data = Data([34.82, 33.078, 35.65], units="degrees_north", dtype="f8")
+        data = Data([34.0, 34.0, 34.0], units="degrees_north", dtype="f8")
         c.set_data(data)
         b = Bounds()
         b.nc_set_variable("Mesh2d_node_y")
         data = Data(
             [
-                [33.52, 34.36, 36.12, 35.26],
-                [31.8, 32.62, 34.36, 33.52],
-                [34.36, 35.15, 36.94, 36.12],
+                [33.0, 33.0, 35.0, 35.0],
+                [31.0, 31.0, 33.0, 33.0],
+                [34.0, 35.0, 33.0, -999],
             ],
             units="degrees_north",
             dtype="f8",
+            mask=Data(
+                [
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, True],
+                ],
+                dtype="b1",
+            ),
         )
         b.set_data(data)
         c.set_bounds(b)
@@ -5229,7 +5243,18 @@ def example_field(n, _implementation=_implementation):
         c = DomainTopology()
         c.set_properties({"long_name": "Maps every face to its corner nodes"})
         c.nc_set_variable("Mesh2d_face_nodes")
-        data = Data([[2, 3, 1, 0], [6, 7, 3, 2], [3, 5, 4, 1]], dtype="i4")
+        data = Data(
+            [[2, 3, 1, 0], [6, 7, 3, 2], [1, 3, 8, -999]],
+            dtype="i4",
+            mask=Data(
+                [
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, True],
+                ],
+                dtype="b1",
+            ),
+        )
         c.set_data(data)
         c.set_cell("face")
         f.set_construct(
@@ -5244,9 +5269,9 @@ def example_field(n, _implementation=_implementation):
         c.nc_set_variable("Mesh2d_face_links")
         data = Data(
             [
-                [0, 1, 2, -2147483647, -2147483647],
-                [1, 2, -2147483647, -2147483647, -2147483647],
-                [2, 0, -2147483647, -2147483647, -2147483647],
+                [0, 1, 2, -999, -999],
+                [1, 0, -999, -999, -999],
+                [2, 0, -999, -999, -999],
             ],
             dtype="i4",
             mask=Data(

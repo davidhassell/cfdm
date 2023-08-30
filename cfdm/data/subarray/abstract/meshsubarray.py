@@ -30,7 +30,7 @@ class MeshSubarray(Subarray):
             data: array_like
                 The full compressed array spanning all subarrays, from
                 which the elements for this subarray are defined by
-                the *indices*.
+                the *indices*. TODOUGRID
 
             indices: `tuple` of `slice`
                 The indices of *data* that define this subarray.
@@ -38,20 +38,12 @@ class MeshSubarray(Subarray):
             shape: `tuple` of `int`
                 The shape of the uncompressed subarray.
 
-            compressed_dimensions: `dict`
-                Mapping of compressed to uncompressed dimensions.
-
-                A dictionary key is a position of a dimension in the
-                compressed data, with a value of the positions of the
-                corresponding dimensions in the uncompressed
-                data. Compressed array dimensions that are not
-                compressed must be omitted from the mapping.
+            {{init compressed_dimensions: `dict`}}
 
                 *Parameter example:*
                   ``{2: (2,)}`` TODOUGRID
 
-            start_index: `int`
-                TODOUGRID
+            {{start_index: `int`}}
 
             {{init source: optional}}
 

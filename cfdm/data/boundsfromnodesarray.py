@@ -3,21 +3,17 @@ from .subarray import BoundsFromNodesSubarray
 
 
 class BoundsFromNodesArray(MeshArray):
-    """TODOUGRID An underlying gathered array.
+    """An array of cell bounds defined by UGRID node coordinates.
 
-    Create cell bounds from data as stored by a
-    [face|ege|volum]_node_connectivity variable
-
-    Compression by gathering combines axes of a multidimensional array
-    into a new, discrete axis whilst omitting the missing values and
-    thus reducing the number of values that need to be stored.
-
-    The information needed to uncompress the data is stored in a "list
-    variable" that gives the indices of the required points.
-
-    See CF section 8.2 "Lossless Compression by Gathering".
+    The UGRID node coordinates contain the locations of the nodes of
+    the domain topology. In UGRID, the bounds of edge, face and volume
+    cells may be defined by the these locations in conjunction with a
+    mapping from from each cell boundary vertex to its corresponding
+    coordinate value.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
+
+    .. seealso:: `BoundsFromNodesSubarray`
 
     """
 
@@ -44,22 +40,23 @@ class BoundsFromNodesArray(MeshArray):
 
         :Parameters:
 
-            node_connectivity: array_like
-                A 2-d integer array that maps the bounds positions of
-                each cell to the corresponding mesh nodes, as found in
-                a UGRID "edge_node_connection",
-                "face_node_connection", or "volume_node_connection"
+            node_connectivity: array_like            
+                A 2-d integer array that contains indices which map
+                each cell boundary vertex to its corresponding
+                position in the 1-d *node_coordinates* array, as found
+                in a UGRID "edge _node_connectivty",
+                "face_node_connectivty", or "volume_node_connectivty"
                 variable.
 
             shape: `tuple`
                 The shape of the bounds array.
 
             node_coordinates: array_like
-                A 1-d array that contains a coordinate for each mesh
-                node, as found in a UGRID "node_coordinates" variable.
+                A 1-d array that contains a coordinate location for
+                each mesh node, as found in a UGRID "node_coordinates"
+                variable.
 
-            start_index: `int`, optional
-                TODOUGRID
+            {{start_index: `int`}}
 
             {{init source: optional}}
 
@@ -102,16 +99,19 @@ class BoundsFromNodesArray(MeshArray):
         return self.get_node_coordinates().dtype
 
     def conformed_data(self):
-        """The compressed data and TODOUGRID connectivity indices.
+        """The conformed node connectivity and node coordinate data.
+
+        The conformed data arrays are mutually consistent and are
+        suitable fo use in `Subarray` classes.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Returns:
 
             `dict`
-                The conformed gathered data, with the key ``'data'``;
-                and the `tuple` of uncompressed indices with the key
-                ``'uncompressed_indices'``.
+                The node connectivty data, with the key ``'data'``,
+                and the node coordinate data with the key
+                ``'node_coordinates'``.
 
         """
         out = super().conformed_data()

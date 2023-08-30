@@ -3,7 +3,7 @@ from .mixin import PointTopology
 
 
 class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
-    """A subarray of a compressed.
+    """A subarray of a compressed.TODOUGRID
 
     A subarray describes a unique part of the uncompressed array.
 
@@ -13,8 +13,8 @@ class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
 
     """
 
-    def _dddddd(self, node, node_connectivity):
-        """Return nodes that are joined to *node* by face edges.
+    def _connected_nodes(self, node, node_connectivity):
+        """Return nodes that are joined to *node* by edges.
 
         The input *node* is included in the returned array.
 
@@ -23,7 +23,7 @@ class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
         :Parameters:
 
             node: `int`
-                TODOUGRID
+                A node identifier.
 
             node_connectivity: `numpy.ndarray`
                 A "face_node_connectivity" array.
@@ -31,7 +31,8 @@ class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
         :Returns:
 
             `numpy.ndarray`
-                TODOUGRID
+                The 1-d integer array of all nodes that are joined to
+                *node*, including *node* itself.
 
         """
         return NotImplementedError("TODOUGRID")

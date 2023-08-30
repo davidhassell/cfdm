@@ -61,11 +61,7 @@ class GatheredArray(CompressedArray):
             shape: `tuple`
                 The shape of the uncompressed array.
 
-            compressed_dimensions: `dict`
-                Mapping of dimensions of the compressed array to their
-                corresponding dimensions in the uncompressed
-                array. Compressed array dimensions that are not
-                compressed must be omitted from the mapping.
+            {{init compressed_dimensions: `dict`}}
 
                 *Parameter example:*
                   ``{2: (2, 3)}``

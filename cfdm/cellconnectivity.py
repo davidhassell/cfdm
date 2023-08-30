@@ -9,7 +9,49 @@ class CellConnectivity(
 ):
     """A cell connectivity construct of the CF data model.
 
-    TODOUGRID
+    A cell connectivity construct defines explicitly how cells
+    arranged in two or three dimensions in real space but indexed by a
+    single domain (discrete) axis are connected. Connectivity can only
+    be provided when the domain axis construct also has a domain
+    topology construct, and two cells can only be connected if they
+    also have a topological relationship. For instance, the
+    connectivity of two-dimensional face cells could be characterised
+    by whether or not they have shared edges, where the edges are
+    defined by connected nodes of the domain topology construct.
+
+    The cell connectivity construct consists of an array recording the
+    connectivity, and properties to describe the data. There must be a
+    property indicating the condition by which the connectivity is
+    derived from the domain topology. The array spans the domain axis
+    construct with the addition of a ragged dimension that indexes a
+    unique identity for the cell as well as the identities of all
+    other cells to which it is connected. The cell identity must be
+    recorded in the first element of the ragged dimension, otherwise
+    the order is arbitrary. Note that the connectivity array for point
+    cells is, by definition, equivalent to the array of the domain
+    topology construct.
+
+    When cell connectivity constructs are present they are considered
+    to be definitive and must be used in preference to the
+    connectivities implied by inspection of any other constructs,
+    apart from the domain topology construct, which are not guaranteed
+    to be the same.
+
+    In CF-netCDF a cell topology construct can only be provided by a
+    UGRID mesh topology variable. The construct array is supplied
+    either indirectly by any of the UGRID variables that are used to
+    define a domain topology construct, or directly by the UGRID
+    "edge_edge_connectivity" variable (for edge cells) or
+    "face_face_connectivity" variable (for face cells). In the direct
+    case, the integer indices contained in the UGRID variable may be
+    used as the cell identities, although the CF data model attaches
+    no significance to the values other than the fact that some values
+    are the same as others.
+    
+    Restricting the types of connectivity to those implied by the
+    geospatial topology of the cells precludes connectivity derived
+    from any other sources, but is consistent with UGRID encoding
+    within CF-netCDF.
 
     See CF Appendix I "The CF Data Model".
 
@@ -34,9 +76,12 @@ class CellConnectivity(
 
         :Parameters:
 
-            {{init connectivity: `str`, optional}}
+            {{init connectivty: `str`, optional}}
 
             {{init properties: `dict`, optional}}
+
+                *Parameter example:*
+                  ``properties={'long_name': 'face-face connectivity'}``
 
             {{init data: data_like, optional}}
 

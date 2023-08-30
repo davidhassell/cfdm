@@ -4,13 +4,17 @@ from .abstract import MeshSubarray
 
 
 class CellConnectivitySubarray(MeshSubarray):
-    """A subarray of a compressed UGRID connectivity array.
+    """A cell connectivity subarray defined by UGRID connectivity.
 
     A subarray describes a unique part of the uncompressed array.
 
-    See CF section 5.9 "Mesh Topology Variables".
+    A UGRID connectivity variable contains indices which map each cell
+    to its neighbours, as found in a UGRID "edge_edge_connectivty",
+    "face_face_connectivty", or "volume_volume_connectivty" variable.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
+
+    .. seealso:: `CellConnectivityArray`
 
     """
 
@@ -24,30 +28,27 @@ class CellConnectivitySubarray(MeshSubarray):
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         """
+        start_index = self.start_index
         shape = self.shape
         start = 0
         stop = shape[0]
-        start_index = self.start_index
         if start_index:
             start += 1
             stop += 1
 
         data = self._select_data(check_mask=True)
-        data_dtype = data.dtype
-        if stop - 1 == np.iinfo(data_dtype).max:
-            dtype = np.dtype(int)
-        else:
-            dtype = data_dtype
-
         if np.ma.isMA(data):
             empty = np.ma.empty
         else:
             empty = np.empty
 
-        dtype = self.dtype
-
+        dtype = integer_dtype(stop - 1)
         u = empty(shape, dtype=dtype)
+        
+        # Store the cell identifiers in the first column
         u[:, 0] = np.arange(start, stop, dtype=dtype)
+        # Store the identifiers of the connected cells in the other
+        # columns
         u[:, 1:] = data
 
         if indices is not Ellipsis:
@@ -56,8 +57,5 @@ class CellConnectivitySubarray(MeshSubarray):
         # Make sure the values are zero-based
         if start_index:
             u -= 1
-
-        if u.dtype != data_dtype:
-            u = u.astype(data_dtype, copy=False)
 
         return u

@@ -49,14 +49,7 @@ class SubsampledSubarray(Subarray):
             shape: `tuple` of `int`
                 The shape of the uncompressed subarray.
 
-            compressed_dimensions: `dict`
-                Mapping of compressed to uncompressed dimensions.
-
-                A dictionary key is a position of a dimension in the
-                compressed data, with a value of the positions of the
-                corresponding dimensions in the uncompressed
-                data. Compressed array dimensions that are not
-                compressed miust be omitted from the mapping.
+            {{init compressed_dimensions: `dict`}}
 
                 *Parameter example:*
                   ``{1: (1,)}``

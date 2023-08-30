@@ -4,13 +4,19 @@ from .abstract import MeshSubarray
 
 
 class BoundsFromNodesSubarray(MeshSubarray):
-    """TODOUGRID A subarray of an array compressed by gathering.
+    """A subarray of cell bounds defined by UGRID node coordinates.
 
     A subarray describes a unique part of the uncompressed array.
 
-    See CF section 8.2. "Lossless Compression by Gathering".
+    The UGRID node coordinates contain the locations of the nodes of
+    the domain topology. In UGRID, the bounds of edge, face and volume
+    cells may be defined by the these locations in conjunction with a
+    mapping from from each cell boundary vertex to its corresponding
+    coordinate value.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
+
+    .. seealso:: `BoundsFromNodesArray`
 
     """
 
@@ -30,10 +36,14 @@ class BoundsFromNodesSubarray(MeshSubarray):
 
         :Parameters:
 
-            data: array_like
-                The full compressed array spanning all subarrays, from
-                which the elements for this subarray are defined by
-                the *indices*.
+            data: array_like             
+                A 2-d integer array that contains zero-based indices
+                that map each cell boundary vertex to its
+                corresponding position in the 1-d *node_coordinates*
+                array, as found in a UGRID "edge _node_connectivty",
+                "face_node_connectivty", or "volume_node_connectivty"
+                variable. This array contains the mapping for all
+                subarrays.
 
             indices: `tuple` of `slice`
                 The indices of *data* that define this subarray.
@@ -41,9 +51,20 @@ class BoundsFromNodesSubarray(MeshSubarray):
             shape: `tuple` of `int`
                 The shape of the uncompressed subarray.
 
+            {{init compressed_dimensions: `dict`}}        
+                This parameter is included for API consistecy, but is
+                currently ignored.
+
+                *Parameter example:*
+                  ``{1: (1,)}``
+
             node_coordinates: array_like
-                TODOUGRID Indices of the uncompressed subarray for the
-                compressed data.
+                A 1-d array that contains a coordinate location for
+                each mesh node, as found in a UGRID "node_coordinates"
+                variable. This array contains the node coordinates for
+                all subarrays.
+
+            {{start_index: `int`}}
 
             {{init source: optional}}
 

@@ -371,6 +371,20 @@ _docstring_substitution_definitions = {
                 stored. The original file names of any constituent
                 parts are not updated. Can't be used with the *define*
                 parameter.""",
+    # init source
+    "{{init compressed_dimensions: `dict`}}": """compressed_dimensions: `dict`
+                Mapping of compressed to uncompressed dimensions.
+
+                A dictionary key is a position of a dimension in the
+                compressed data, with a value of the positions of the
+                corresponding dimensions in the uncompressed
+                data. Compressed array dimensions that are not
+                compressed must be omitted from the mapping.""",
+        # init start_index
+    '{{start_index: `int`}}': """start_index: `int`
+                The base of the indices provided by the integer index
+                array. Must be ``0`` or ``1`` for zero- or one-based
+                indices respectively.""",
     # ----------------------------------------------------------------
     # Method description susbstitutions (4 levels of indentataion)
     # ----------------------------------------------------------------

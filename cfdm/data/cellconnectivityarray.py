@@ -3,13 +3,19 @@ from .subarray import CellConnectivitySubarray
 
 
 class CellConnectivityArray(MeshArray):
-    """An underlying UGRID connectivity array.
+    """A connectivity array derived from a UGRID connectivity variable.
+       
+    A UGRID connectivity variable contains indices which map each cell
+    to its neighbours, as found in a UGRID "edge_edge_connectivty",
+    "face_face_connectivty", or "volume_volume_connectivty" variable.
 
-    For edge-edge, face-face and volume-volume connectivty onlu.
-
-    See CF section 5.9 "Mesh Topology Variables".
+    The connectivity array has one more column than the corresponding
+    UGRID variable. The extra column, in the first position, contains
+    the identifier for each cell.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
+
+    .. seealso:: `CellConnectivitySubarray`
 
     """
 
@@ -38,11 +44,13 @@ class CellConnectivityArray(MeshArray):
 
         :Parameters:
 
-            connectivity: array_like
-                TODOUGRID
+            cell_connectivity: array_like         
+                A 2-d integer array that contains indices which map
+                each cell to its neighbours, as found in a UGRID
+                "edge_edge_connectivty" or "face_face_connectivty"
+                variable.
 
-            start_index: `int`, optional
-                TODOUGRID
+            {{start_index: `int`}}
 
             {{init source: optional}}
 

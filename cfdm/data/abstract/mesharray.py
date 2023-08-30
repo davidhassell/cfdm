@@ -7,7 +7,7 @@ from .compressedarray import CompressedArray
 
 
 class MeshArray(CompressedArray):
-    """Abstract base class for data bsed on a UGRID connectivity array.
+    """Abstract base class for data based on a UGRID connectivity array.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -31,8 +31,8 @@ class MeshArray(CompressedArray):
         connectivity=None,
         shape=None,
         compressed_dimensions=None,
-        start_index=None,
         compression_type=None,
+        start_index=None,
         source=None,
         copy=True,
     ):
@@ -41,16 +41,19 @@ class MeshArray(CompressedArray):
         :Parameters:
 
             connectivity: array_like
-                TODOUGRID
+                A 2-d integer array of indices that corresponds to a
+                UGRID "edge_node_connectivity",
+                "face_node_connectivity", "edge_edge_connectivty",
+                "face_face_connectivty", or variable.
 
             shape
-                TODOUGRID
+                The shape of the CF data model view of the
+                connectivity array.
 
-            start_index: `int`
-                TODOUGRID
+            {{start_index: `int`}}
 
             compression_type: `str`, optional
-                TODOUGRID
+                The type of compression.
 
             {{init source: optional}}
 
@@ -124,7 +127,7 @@ class MeshArray(CompressedArray):
         return self._get_compressed_Array().dtype
 
     def get_start_index(self, default=ValueError()):
-        """TODOUGRID.
+        """Return the start index.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

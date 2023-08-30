@@ -29,35 +29,24 @@ _docstring_substitution_definitions = {
     # # Method description susbstitutions (1 level of indentation)
     # ----------------------------------------------------------------
     # cell type
-    "{{cell type}}": """The cell type indicates the common geometrical element type of
-        the cells for which there is a domain topology. It takes one
-        of the following values: TODOUGRID
+    "{{cell type}}": """The cell type indicates the common spatial dimensionality of
+        the cells, one of
 
-        * ``'point'``: Node cells comprising 0-dimensional elements
-                       each defined by a point. TODOUGRID
-
-        * ``'edge'``: Edge cells comprising 1-dimensional elements
-                      each defined by a line bounded by two nodes. TODOUGRID
-
-        * ``'face'``: Face cells comprising 2-dimensional elements TODOUGRID
-                      each defined by a surface enclosed by a set of edges.
-
-        * ``'volume'``: Volume cells comprising 3-dimensional elements
-                        each defined by a volume enclosed by a set of
-                        faces. TODOUGRID""",
+        * ``'point'``: A point is zero-dimensional and has no boundary
+                       vertices.
+        * ``'edge'``: An edge is one-dimensional and corresponds to a
+                      line connecting two boundary vertices.
+        * ``'face'``: A face is two-dimensional and corresponds to a
+                      surface enclosed by a set of edges.""",
     # cell connectivity type
     "{{cell connectivity type}}": """The connectivity type describes a characteristic of inter-cell
         connectivity defined by the domain topology construct. It may
         take any value, but the following values are standardised:
 
-        * ``'node'``: Edge, face or volume cells connected by one or
-                      more shared nodes.
-
-        * ``'edge'``: Face or volume cells connected by one or more
-                      shared edges.
-
-        * ``'face'``: Volume cells connected by one or more shared
-                      faces.""",
+        * ``'node'``: Edge or face cells connected by one or more
+                      shared nodes.
+        * ``'edge'``: Face cells connected by one or more shared
+                      edges.""",
     # ----------------------------------------------------------------
     # # Method description susbstitutions (2 levels of indentation)
     # ----------------------------------------------------------------
@@ -149,6 +138,21 @@ _docstring_substitution_definitions = {
                 Note that if ``x`` is also a `{{class}}` instance then
                 ``{{package}}.{{class}}(source=x)`` is equivalent to
                 ``x.copy()``.""",
+    # init cell
+    '{{init cell: `str`, optional}}': """cell: `str`, optional
+               The cell type that indicates the spatial dimensionality
+               of the cells, one of ``'point'`` (a 0-d point with no
+               boundary vertices), ``'edge'`` (a 1-d line connecting
+               two boundary vertices), or ``'face'`` (a 2-d surface
+               enclosed by a set of edges)."""    
+    # init connectivity
+    '{{init connectivity: `str`, optional}}': """connectivity: `str`, optional
+               The connectivity type describes a characteristic of
+               inter-cell connectivity defined by the domain topology
+               construct. It may take any value, but the following
+               values are standardised: ``'node'``(edge or face cells
+               connected by one or more shared nodes) and ``'edge'``
+               (face cells connected by one or more shared edges).""",
     # data_like
     "{{data_like}}": """A data_like object is any object that can be converted
                 to a `Data` object, i.e. `numpy` array_like objects,

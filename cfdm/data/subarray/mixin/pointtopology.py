@@ -44,9 +44,9 @@ class PointTopology:
 
         # WARNING: This loop is a potential performance bottleneck
         for node in np.unique(node_connectivity).tolist():
-            # Find all nodes that are joined to 'node' by lines in the
-            # mesh
-            nodes = self._dddddd(node, node_connectivity)
+            # Find the collection of all nodes that are joined to this
+            # node via links in the mesh, including this node itself.
+            nodes = self._connected_nodes(node, node_connectivity)
 
             n_nodes = nodes.size
             nodes = nodes.tolist()
@@ -63,7 +63,7 @@ class PointTopology:
         u = u.toarray()
 
         if self.shape == (nan, nan):
-            # Store the uncompressed shape
+            # Now that the shape is known, store it.
             self._set_component("shape", u.shape, copy=False)
 
         if indices is not Ellipsis:
