@@ -8579,8 +8579,8 @@ class NetCDFRead(IORead):
             "ncdim": {},
             # A unique identifier for the mesh. This is should be
             # copied to every domain construct based on this mesh, so
-            # that it can be ascertained which domains belong to the
-            # same mesh.
+            # that after reading it can be ascertained which domains
+            # belong to the same mesh.
             "mesh_id": uuid4().hex,
         }
 
@@ -8656,8 +8656,8 @@ class NetCDFRead(IORead):
             "ncdim": {},
             # A unique identifier for the mesh. This is should be
             # copied to every domain construct based on this mesh, so
-            # that it can be ascertained which domains belong to the
-            # same mesh.
+            # that after reading it can be ascertained which domains
+            # belong to the same mesh.
             "mesh_id": uuid4().hex,
         }
 
@@ -8987,29 +8987,11 @@ class NetCDFRead(IORead):
         # Create data
         if cell == "point":
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-            if connectivity_attr == "edge_node_connectivity":
-                array = (
-                    self.implementation.initialise_PointTopologyFromEdgeArray(
-                        connectivity=indices,
-                        start_index=start_index,
-                        copy=False,
-                    )
-                )
-            elif connectivity_attr == "face_node_connectivity":
-                array = (
-                    self.implementation.initialise_PointTopologyFromFaceArray(
-                        connectivity=indices,
-                        start_index=start_index,
-                        copy=False,
-                    )
-                )
-            elif connectivity_attr == "volume_node_connectivity":
-                array = self.implementation.initialise_PointTopologyFromVolumeArray(
-                    connectivity=indices,
-                    start_index=start_index,
-                    copy=False,
-                )
-
+            array = self.implementation.initialise_PointTopologyArray(
+                start_index=start_index,
+                copy=False,
+                **{connectivity_attr: indices},
+            )
             data = self._create_Data(
                 array,
                 units=kwargs["units"],
@@ -9017,6 +8999,7 @@ class NetCDFRead(IORead):
                 ncvar=connectivity_ncvar,
             )
         else:
+            # Edge or face cells
             data = self._create_data(
                 connectivity_ncvar, compression_index=True
             )

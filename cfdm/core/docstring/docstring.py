@@ -139,14 +139,14 @@ _docstring_substitution_definitions = {
                 ``{{package}}.{{class}}(source=x)`` is equivalent to
                 ``x.copy()``.""",
     # init cell
-    '{{init cell: `str`, optional}}': """cell: `str`, optional
+    "{{init cell: `str`, optional}}": """cell: `str`, optional
                The cell type that indicates the spatial dimensionality
                of the cells, one of ``'point'`` (a 0-d point with no
                boundary vertices), ``'edge'`` (a 1-d line connecting
                two boundary vertices), or ``'face'`` (a 2-d surface
-               enclosed by a set of edges)."""    
+               enclosed by a set of edges).""",
     # init connectivity
-    '{{init connectivity: `str`, optional}}': """connectivity: `str`, optional
+    "{{init connectivity: `str`, optional}}": """connectivity: `str`, optional
                The connectivity type describes a characteristic of
                inter-cell connectivity defined by the domain topology
                construct. It may take any value, but the following

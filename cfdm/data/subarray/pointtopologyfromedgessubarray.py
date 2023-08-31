@@ -5,7 +5,7 @@ from .mixin import PointTopology
 
 
 class PointTopologyFromEdgesSubarray(MeshSubarray, PointTopology):
-    """A subarray of a compressed.TODOUGRID
+    """A subarray of a compressed.TODOUGRID.
 
     A subarray describes a unique part of the uncompressed array.
 

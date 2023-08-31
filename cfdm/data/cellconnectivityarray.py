@@ -4,7 +4,7 @@ from .subarray import CellConnectivitySubarray
 
 class CellConnectivityArray(MeshArray):
     """A connectivity array derived from a UGRID connectivity variable.
-       
+
     A UGRID connectivity variable contains indices which map each cell
     to its neighbours, as found in a UGRID "edge_edge_connectivty",
     "face_face_connectivty", or "volume_volume_connectivty" variable.
@@ -44,7 +44,7 @@ class CellConnectivityArray(MeshArray):
 
         :Parameters:
 
-            cell_connectivity: array_like         
+            cell_connectivity: array_like
                 A 2-d integer array that contains indices which map
                 each cell to its neighbours, as found in a UGRID
                 "edge_edge_connectivty" or "face_face_connectivty"

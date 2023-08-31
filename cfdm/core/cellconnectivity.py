@@ -42,7 +42,7 @@ class CellConnectivity(abstract.Topology):
     used as the cell identities, although the CF data model attaches
     no significance to the values other than the fact that some values
     are the same as others.
-    
+
     Restricting the types of connectivity to those implied by the
     geospatial topology of the cells precludes connectivity derived
     from any other sources, but is consistent with UGRID encoding
@@ -141,7 +141,7 @@ class CellConnectivity(abstract.Topology):
                 The removed connectivity.
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_connectivity()
         False
@@ -157,8 +157,8 @@ class CellConnectivity(abstract.Topology):
             ...
         ValueError: {{class}} has no 'connectivity' component
         >>> print(d.get_connectivity(None))
-        None 
-    
+        None
+
         """
         return self._del_component("connectivity", default=default)
 
@@ -179,7 +179,7 @@ class CellConnectivity(abstract.Topology):
                 `False`.
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_connectivity()
         False
@@ -225,7 +225,7 @@ class CellConnectivity(abstract.Topology):
                 The value of the connectivity.
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_connectivity()
         False
@@ -241,8 +241,8 @@ class CellConnectivity(abstract.Topology):
             ...
         ValueError: {{class}} has no 'connectivity' component
         >>> print(d.get_connectivity(None))
-        None 
-    
+        None
+
         """
         return self._get_component("connectivity", default=default)
 
@@ -266,7 +266,7 @@ class CellConnectivity(abstract.Topology):
              `None`
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_connectivity()
         False
@@ -282,7 +282,7 @@ class CellConnectivity(abstract.Topology):
             ...
         ValueError: {{class}} has no 'connectivity' component
         >>> print(d.get_connectivity(None))
-        None 
-    
+        None
+
         """
         self._set_component("connectivity", connectivity, copy=False)

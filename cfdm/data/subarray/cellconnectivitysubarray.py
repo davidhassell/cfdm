@@ -44,7 +44,7 @@ class CellConnectivitySubarray(MeshSubarray):
 
         dtype = integer_dtype(stop - 1)
         u = empty(shape, dtype=dtype)
-        
+
         # Store the cell identifiers in the first column
         u[:, 0] = np.arange(start, stop, dtype=dtype)
         # Store the identifiers of the connected cells in the other

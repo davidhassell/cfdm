@@ -380,8 +380,8 @@ _docstring_substitution_definitions = {
                 corresponding dimensions in the uncompressed
                 data. Compressed array dimensions that are not
                 compressed must be omitted from the mapping.""",
-        # init start_index
-    '{{start_index: `int`}}': """start_index: `int`
+    # init start_index
+    "{{start_index: `int`}}": """start_index: `int`
                 The base of the indices provided by the integer index
                 array. Must be ``0`` or ``1`` for zero- or one-based
                 indices respectively.""",

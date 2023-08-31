@@ -276,7 +276,7 @@ class MeshArray(CompressedArray):
                 u_shapes.append((size,))
                 u_indices.append((slice(None),))
             else:
-                # Note: c != (nan,) when d not in dims
+                # Note: c can not be (nan,) when d is not in dims
                 locations.append([i for i in range(len(c))])
                 u_shapes.append(c)
 

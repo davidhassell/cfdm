@@ -62,7 +62,7 @@ class PointTopology:
         u = csr_array((u, cols, pointers))
         u = u.toarray()
 
-        if self.shape == (nan, nan):
+        if nan in self.shape:
             # Now that the shape is known, store it.
             self._set_component("shape", u.shape, copy=False)
 

@@ -36,7 +36,7 @@ class BoundsFromNodesSubarray(MeshSubarray):
 
         :Parameters:
 
-            data: array_like             
+            data: array_like
                 A 2-d integer array that contains zero-based indices
                 that map each cell boundary vertex to its
                 corresponding position in the 1-d *node_coordinates*
@@ -51,7 +51,7 @@ class BoundsFromNodesSubarray(MeshSubarray):
             shape: `tuple` of `int`
                 The shape of the uncompressed subarray.
 
-            {{init compressed_dimensions: `dict`}}        
+            {{init compressed_dimensions: `dict`}}
                 This parameter is included for API consistecy, but is
                 currently ignored.
 

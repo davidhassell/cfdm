@@ -40,7 +40,7 @@ class BoundsFromNodesArray(MeshArray):
 
         :Parameters:
 
-            node_connectivity: array_like            
+            node_connectivity: array_like
                 A 2-d integer array that contains indices which map
                 each cell boundary vertex to its corresponding
                 position in the 1-d *node_coordinates* array, as found

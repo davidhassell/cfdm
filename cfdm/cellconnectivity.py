@@ -47,7 +47,7 @@ class CellConnectivity(
     used as the cell identities, although the CF data model attaches
     no significance to the values other than the fact that some values
     are the same as others.
-    
+
     Restricting the types of connectivity to those implied by the
     geospatial topology of the cells precludes connectivity derived
     from any other sources, but is consistent with UGRID encoding

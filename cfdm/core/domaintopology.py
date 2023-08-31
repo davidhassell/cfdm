@@ -165,7 +165,7 @@ class DomainTopology(abstract.Topology):
                 The removed cell type.
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_cell()
         False
@@ -181,8 +181,8 @@ class DomainTopology(abstract.Topology):
             ...
         ValueError: {{class}} has no 'cell' component
         >>> print(d.get_cell(None))
-        None 
-    
+        None
+
         """
         return self._del_component("cell", default=default)
 
@@ -202,7 +202,7 @@ class DomainTopology(abstract.Topology):
                 `False`.
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_cell()
         False
@@ -218,8 +218,8 @@ class DomainTopology(abstract.Topology):
             ...
         ValueError: {{class}} has no 'cell' component
         >>> print(d.get_cell(None))
-        None 
-    
+        None
+
         """
         return self._has_component("cell")
 
@@ -245,7 +245,7 @@ class DomainTopology(abstract.Topology):
                 The value of the cell type.
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_cell()
         False
@@ -261,8 +261,8 @@ class DomainTopology(abstract.Topology):
             ...
         ValueError: {{class}} has no 'cell' component
         >>> print(d.get_cell(None))
-        None 
-    
+        None
+
         """
         return self._get_component("cell", default=default)
 
@@ -285,7 +285,7 @@ class DomainTopology(abstract.Topology):
              `None`
 
         **Examples**
-        
+
         >>> d = {{package}}.{{class}}()
         >>> d.has_cell()
         False
@@ -301,8 +301,8 @@ class DomainTopology(abstract.Topology):
             ...
         ValueError: {{class}} has no 'cell' component
         >>> print(d.get_cell(None))
-        None 
-    
+        None
+
         """
         cell_types = ("point", "edge", "face")
         if cell not in cell_types:
