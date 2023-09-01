@@ -2,10 +2,7 @@ from .subarray import Subarray
 
 
 class MeshSubarray(Subarray):
-    """A subarray TODOUGRID of an array compressed by subsampling.
-
-    See CF section 8.3 "Lossy Compression by Coordinate Subsampling"
-    and appendix J "Coordinate Interpolation Methods".
+    """A subarray of an arry defined by a UGRID connectivity variable.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -28,9 +25,10 @@ class MeshSubarray(Subarray):
         :Parameters:
 
             data: array_like
-                The full compressed array spanning all subarrays, from
-                which the elements for this subarray are defined by
-                the *indices*. TODOUGRID
+                A 2-d integer array that contains zero-based indices
+                that identifies UGRID nodes for each cell, as found in
+                a UGRID connectivty variable. This array contains the
+                indices for all subarrays.
 
             indices: `tuple` of `slice`
                 The indices of *data* that define this subarray.
@@ -39,9 +37,6 @@ class MeshSubarray(Subarray):
                 The shape of the uncompressed subarray.
 
             {{init compressed_dimensions: `dict`}}
-
-                *Parameter example:*
-                  ``{2: (2,)}`` TODOUGRID
 
             {{start_index: `int`}}
 
@@ -59,7 +54,7 @@ class MeshSubarray(Subarray):
             data=data,
             indices=indices,
             shape=shape,
-            compressed_dimensions=compressed_dimensions,  # TODOUGRID
+            compressed_dimensions=compressed_dimensions,
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -90,21 +85,6 @@ class MeshSubarray(Subarray):
 
         """
         return self.data.dtype
-
-    #        d =    self._get_component("dtype", None)
-    #        if d is not None:
-    #            return d
-    #
-    #        from math import nan
-    #        from ....functions import integer_dtype
-    #
-    #        size = self.shape[0]
-    #        if size is nan:
-    #            d = self.data.dtype
-    #
-    #        d = integer_dtype(size - 1)
-    #        d =    self._set_component("dtype", d, copy=False)
-    #        return d
 
     @property
     def start_index(self):

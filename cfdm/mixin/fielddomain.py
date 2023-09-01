@@ -2211,68 +2211,27 @@ class FieldDomain:
 
         return False
 
-
-#    def has_mesh_topology(self):
-#        """Return whether or not the domain contains a mesh topology.
-#
-#        .. versionadded:: (cfdm) TODOUGRIDVER
-#
-#        :Returns:
-#
-#            `bool`
-#                True if the domain contains a mesh topology.
-#
-#        **Examples**
-#
-#        >>> f = {{package}}.{{class}}()
-#        >>> f.has_mesh_topology()
-#        False
-#
-#        """
-#        return bool(self.domain_topologies(todict=True)) or bool(
-#            self.cell_connectivities(todict=True)
-#        )
-#
-#
 #    def ugrid_components(
 #        self, identity, start_index=0, cell_cell_connectivity=False
 #    ):
-#        """TODOUGRID.
+#        """
 #
 #        .. versionadded:: (cfdm) TODOUGRIDVER
 #
 #        :Parameters:
 #
 #            identity:
-#                TODOUGRID
 #
 #            cell_cell_connectivity: `bool`, optional
-#                TODOUGRID
 #
 #        :Returns:
 #
 #            `dict`
-#                TODOUGRID
 #
 #        **Examples**
 #
-#        TODOUGRID
 #
 #        """
-#        # TODOUGRID: Hmmm
-#        # https://github.com/ugrid-conventions/ugrid-conventions/issues/65#issuecomment-1522763032 says:
-#        #
-#        # No. That's one of the reasons to use nodes, rather than
-#        # simply coordinates. If two faces share a node that means
-#        # they ARE connected by that node, as opposed to two nodes
-#        # that may happen to have the same coordinates.
-#        #
-#        # In fact, there's little reason to do this with an
-#        # unstructured mesh, but if you want two faces to be exactly
-#        # next to each other, but not share a logical boundary, then
-#        # you could have multiple nodes that have the same
-#        # coordinates.
-#
 #        domain_axis, axis_key = self.domain_axis(identity, item=True)
 #        domain_topology = self.domain_topology(filter_by_axis=(axis_key,))
 #

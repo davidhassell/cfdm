@@ -7,10 +7,12 @@ from ..subarray import (
 from .abstract import MeshArray
 
 
-class PointTopologyFromEdgesArray(MeshArray):
-    """An underlying UGRID connectivity array.
+class PointTopologyArray(MeshArray):
+    """A point cell domain topology array derived from a UGRID variable.
 
-    See CF section 5.9 "Mesh Topology Variables".
+    A point cell domain topology array derived from an underlying
+    UGRID "edge_node_connectivity" or UGRID "face_node_connectivity"
+    array.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -46,14 +48,17 @@ class PointTopologyFromEdgesArray(MeshArray):
         :Parameters:
 
             edge_node_connectivity: array_like, optional
-                TODOUGRID
+                A 2-d integer array of indices that corresponds to a
+                UGRID "edge_node_connectivity" variable.
 
             face_node_connectivity: array_like, optional
-                TODOUGRID
+                A 2-d integer array of indices that corresponds to a
+                UGRID "face_node_connectivity" variable.
 
             shape
                 The shape of the point cell domain topology array. If
-                the shape is unknown then set to `None`, which will
+                the shape is unknown (beacuse the connectivity array
+                has not been read yet) then set to `None`, which will
                 result in a shape of ``(math.nan, math.nan)``.
 
             {{start_index: `int`, optional}}

@@ -23,7 +23,8 @@ class CellConnectivitySubarray(MeshSubarray):
 
         x.__getitem__(indices) <==> x[indices]
 
-        Returns a TODOUGRID
+        Returns a subspace of the uncompressed data as an independent
+        numpy array.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 

@@ -2,9 +2,11 @@ from math import nan
 
 import numpy as np
 
+from ....functions import integer_dtype
+
 
 class PointTopology:
-    """TODOUGRID.
+    """Mixin class for point topology array compressed by UGRID.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -22,16 +24,17 @@ class PointTopology:
 
         start_index = self.start_index
         node_connectivity = self._select_data(check_mask=False)
+        masked = np.ma.isMA(node_connectivity)
 
-        dtype = node_connectivity.dtype
+        max_node = node_connectivity.max()
         if not start_index:
-            if max(node_connectivity) == np.iinfo(dtype).max:
+            if max_node == np.iinfo(node_connectivity.dtype).max:
                 node_connectivity = node_connectivity.astype(int, copy=False)
-                dtype = node_connectivity.dtype
 
             # Add 1 to remove all zeros (0 is the fill value in the
             # sparse array)
             node_connectivity = node_connectivity + 1
+            max_node += 1
 
         p = 0
         pointers = [0]
@@ -46,19 +49,19 @@ class PointTopology:
         for node in np.unique(node_connectivity).tolist():
             # Find the collection of all nodes that are joined to this
             # node via links in the mesh, including this node itself.
-            nodes = self._connected_nodes(node, node_connectivity)
+            nodes = self._connected_nodes(node, node_connectivity, masked)
 
-            n_nodes = nodes.size
-            nodes = nodes.tolist()
+            # Move 'node' to the front of the list
             nodes.remove(node)
             nodes.insert(0, node)
 
+            n_nodes = len(nodes)
             p += n_nodes
             pointers_append(p)
             cols_extend(range(n_nodes))
             u_extend(nodes)
 
-        u = np.array(u, dtype=dtype)
+        u = np.array(u, dtype=integer_dtype(max_node))
         u = csr_array((u, cols, pointers))
         u = u.toarray()
 
@@ -75,6 +78,5 @@ class PointTopology:
         if not start_index:
             # Subtract 1 to get back to zero-based node identities
             u -= 1
-            u = u.astype(self.dtype, copy=False)
 
         return u

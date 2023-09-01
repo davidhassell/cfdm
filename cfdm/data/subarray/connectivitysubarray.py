@@ -141,7 +141,7 @@ class ConnectivitySubarray(Subarray):
                                 row_ind.append(i)
                                 col_ind.append(j)
                     else:
-                        # TODOUGRID: 3 or more shared nodes
+                        # 3 or more shared nodes
                         pass
 
         elif cell_dimension == 1:
@@ -164,7 +164,7 @@ class ConnectivitySubarray(Subarray):
         data = np.ones((len(row_ind),), dtype=bool)
         c = csr_array((data, (row_ind, col_ind)), shape=(n_cells, n_cells))
         c = c[indices]
-        # TODOUGRID: what if c[indices] does not create suitable square?
+        # what if c[indices] does not create suitable square?
 
         return c + c.T
 

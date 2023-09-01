@@ -5,17 +5,15 @@ from .mixin import PointTopology
 
 
 class PointTopologyFromEdgesSubarray(MeshSubarray, PointTopology):
-    """A subarray of a compressed.TODOUGRID.
+    """A subarray of an point topology array compressed by UGRID edges.
 
     A subarray describes a unique part of the uncompressed array.
-
-    See CF section 5.9 "Mesh Topology Variables".
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
-    def _connected_nodes(self, node, node_connectivity):
+    def _connected_nodes(self, node, node_connectivity, masked):
         """Return nodes that are joined to *node* by edges.
 
         The input *node* is also included in the returned array.
@@ -30,13 +28,17 @@ class PointTopologyFromEdgesSubarray(MeshSubarray, PointTopology):
             node_connectivity: `numpy.ndarray`
                 A UGRID "edge_node_connectivity" array.
 
+            masked: `bool`, optional
+                Whether or not *node_connectivity* has masked
+                elements.
+
         :Returns:
 
-            `numpy.ndarray`
-                The 1-d integer array of all nodes that are joined to
-                *node*, including *node* itself.
+            `list`
+                All nodes that are joined to *node*, including *node*
+                itself.
 
         """
         return np.unique(
             node_connectivity[np.where(node_connectivity == node)[0]]
-        )
+        ).tolist()
