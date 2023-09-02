@@ -5114,7 +5114,7 @@ def example_field(n, _implementation=_implementation):
         f = Field()
         f.set_properties(
             {
-                "Conventions": "CF-1.11",
+                "Conventions": f"CF-{CF()}",
                 "standard_name": "northward_wind",
                 "units": "ms-1",
             }

@@ -247,9 +247,9 @@ class ArrayMixin:
                     array = array[tuple(slices)]
 
                 if n_axes_with_list_indices:
-                    # Apply subspaces defined by lists (this method
-                    # works with numpy arrays and scipy sparse
-                    # arrays).
+                    # Apply subspaces defined by lists (this
+                    # methodology works for both numpy arrays and
+                    # scipy sparse arrays).
                     lists = [slice(None)] * n_indices
                     for axis in axes_with_list_indices:
                         lists[axis] = indices[axis]

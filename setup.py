@@ -120,11 +120,12 @@ tests_require = (
         "pytest",
         "pycodestyle",
         "coverage",
+        "scipy",
     ],
 )
 extras_require = {
     "documentation": [
-        "sphinx>=2,<=4",
+        "sphinx==2.4.5",
         "sphinx-copybutton",
         "sphinx-toggleprompt",
         "sphinxcontrib-spelling",

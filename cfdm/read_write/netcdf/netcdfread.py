@@ -276,7 +276,6 @@ class NetCDFRead(IORead):
         return {
             "edge_edge_connectivity": "node",
             "face_face_connectivity": "edge",
-            "volume_volume_connectivity": "face",
         }
 
     def _is_unreferenced(self, ncvar):
@@ -972,7 +971,7 @@ class NetCDFRead(IORead):
         g["file_version"] = Version(file_version)
 
         # Set minimum/maximum versions
-        for vn in ("1.6", "1.7", "1.8", "1.9", "1.10"):
+        for vn in ("1.6", "1.7", "1.8", "1.9", "1.10", "1.11"):
             g["CF>=" + vn] = g["file_version"] >= g["version"][vn]
 
         # TODOUGRID

@@ -3260,11 +3260,14 @@ class NetCDFWrite(IOWrite):
             ).get("grid_mapping_name", False)
         ]
 
-        # Check if the field or domain has a UGRID mesh topology
+        # Check if the field or domain has a domain topology construct
         # (CF>=1.11)
-        ugrid = self.implementation.has_mesh_topology(f)
+        ugrid = self.implementation.has_domain_topology()
         if ugrid:
-            raise ValueError("TODOUGRID")
+            raise NotImplementedError(
+                "Can't create UGRID cf-netCDF files. "
+                "This feature is coming soon ..."
+            )
 
         field_coordinates = self.implementation.get_coordinates(f)
 
