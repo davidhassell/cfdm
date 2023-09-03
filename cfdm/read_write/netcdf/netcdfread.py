@@ -830,6 +830,7 @@ class NetCDFRead(IORead):
             # --------------------------------------------------------
             # UGRID mesh topologies (CF>=1.11)
             # --------------------------------------------------------
+            "UGRID_version": None,
             "mesh": {},
             # --------------------------------------------------------
             # Compression by coordinate subsampling (CF>=1.9)
@@ -952,6 +953,10 @@ class NetCDFRead(IORead):
         for c in all_conventions:
             if c.startswith("CF-"):
                 file_version = c.replace("CF-", "", 1)
+            elif c.startswith("UGRID-"):
+                # Allow UGRID if it has been specified in Conventions,
+                # regardless of the version of CF.
+                g["UGRID_version"] = Version(c.replace("UGRID-", "", 1))
             elif c.startswith("CFA-"):
                 g["cfa"] = True
                 g["CFA_version"] = Version(c.replace("CFA-", "", 1))
@@ -974,9 +979,10 @@ class NetCDFRead(IORead):
         for vn in ("1.6", "1.7", "1.8", "1.9", "1.10", "1.11"):
             g["CF>=" + vn] = g["file_version"] >= g["version"][vn]
 
-        # TODOUGRID
-        g["CF>=1.11"] = True
-
+        if g["CF>=1.11"] and g["UGRID_version"] is None:
+            # From CF-1.11 we can assume UGRID-1.0
+            g["UGRID_version"] = "1.0"
+            
         # ------------------------------------------------------------
         # Create a dictionary keyed by netCDF variable names where
         # each key's value is a dictionary of that variable's netCDF
@@ -1507,7 +1513,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Parse UGRID mesh topologies (CF>=1.11)
         # ------------------------------------------------------------
-        if g["CF>=1.11"]:
+        if g["UGRID_version"] is not None:
             for ncvar, attributes in variable_attributes.items():
                 if "topology_dimension" in attributes:
                     # This variable is a mesh topology
@@ -3400,7 +3406,7 @@ class NetCDFRead(IORead):
         location_index_set_ncvar = self.implementation.get_property(
             f, "location_index_set"
         )
-        ugrid = g["CF>=1.11"] and (
+        ugrid = g["UGRID_version"] is not None and (
             mesh_ncvar is not None or location_index_set_ncvar is not None
         )
 
@@ -4986,7 +4992,6 @@ class NetCDFRead(IORead):
             properties = {}
 
         # Check for tie points
-        # TODOUGRID field - parent?
         tie_points = ncvar in g["tie_point_ncvar"].get(parent_ncvar, ())
 
         # Look for a geometry container
@@ -5038,7 +5043,6 @@ class NetCDFRead(IORead):
 
         data = None
         if has_coordinates and ncvar is not None:
-            # TODOUGRID field - parent?
             data = self._create_data(ncvar, c, parent_ncvar=parent_ncvar)
             self.implementation.set_data(c, data, copy=False)
 
@@ -7141,44 +7145,6 @@ class NetCDFRead(IORead):
             parameter_dimensions=parameter_dimensions,
         )
 
-    #    def _create_connectivity_array(
-    #        self,
-    #        connectivity_array=None,
-    #        uncompressed_shape=None,
-    #        start_index=0,
-    #        connectivity_type=None,
-    #    ):
-    #        """TODOUGRID Creates Data for a compressed-by-gathering netCDF
-    #        variable.
-    #
-    #        .. versionadded:: (cfdm) TODOUGRIDVER
-    #
-    #        :Parameters:
-    #
-    #            connectivity_array: `NetCDFArray`
-    #
-    #            uncompressed_shape: sequence of `int`, optional
-    #
-    #            start_index: `int`, optional
-    #
-    #            connectivity_type: `str`, optional
-    #
-    #        :Returns:
-    #
-    #            `ConnectivityAarray`
-    #
-    #        """
-    #        if compressed_dimension is None:
-    #            ndim = connectivity_array.ndim
-    #            compressed_dimensions = {ndim: (ndim,)}
-    #
-    #        return self.implementation.initialise_ConnectivityArray(
-    #            compressed_array=connectivity_array,
-    #            shape=uncompressed_shape,
-    #            compressed_dimensions=compressed_dimensions,
-    #            start_index=start_index,
-    #        )
-
     def _create_Data(
         self,
         array,
@@ -8555,7 +8521,7 @@ class NetCDFRead(IORead):
             # The netCDF name of the location index set variable
             # (which will be None if there isn't one)
             "mesh_attributes": attributes,
-            # TODOUGRID
+            # The netCDF variable names of the node coordinates
             "node_coordinates": node_coordinates,
             # The attributes of the location index set variable
             # (which will be None if there is no location index set)
@@ -8571,7 +8537,7 @@ class NetCDFRead(IORead):
             "index_set": None,
             # Domain topology construct for each location
             "domain_topology": {},
-            # Cell connectivity construct for each location
+            # Cell connectivity constructs for each location
             "cell_connectivity": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
@@ -8579,9 +8545,9 @@ class NetCDFRead(IORead):
             # location
             "ncdim": {},
             # A unique identifier for the mesh. This is should be
-            # copied to every domain construct based on this mesh, so
-            # that after reading it can be ascertained which domains
-            # belong to the same mesh.
+            # copied to every field/domain construct based on this
+            # mesh, so that after reading it can be ascertained which
+            # domains belong to the same mesh.
             "mesh_id": uuid4().hex,
         }
 
@@ -8636,7 +8602,7 @@ class NetCDFRead(IORead):
             "mesh_ncvar": mesh_ncvar,
             # The attributes of the netCDF mesh topology variable
             "mesh_attributes": attributes,
-            # TODOUGRID
+            # The netCDF variable names of the node coordinates
             "node_coordinates": None,
             # The netCDF name of the location index set variable
             "location_index_set_ncvar": location_index_set_ncvar,
@@ -8646,19 +8612,19 @@ class NetCDFRead(IORead):
             "location": location,
             # The zero-based indices of the location index set
             "index_set": index_set,
-            # Domain topology construct for each location
+            # Domain topology construct for the location
             "domain_topology": {},
-            # Cell connectivity construct for each location
+            # Cell connectivity constructs for the location
             "cell_connectivity": {},
             # Auxiliary coordinate constructs for each location
             "auxiliary_coordinates": {},
-            # The netCDF dimension spanned by the mesh cells for
-            # the location
+            # The netCDF dimension spanned by the mesh cells for the
+            # location
             "ncdim": {},
             # A unique identifier for the mesh. This is should be
-            # copied to every domain construct based on this mesh, so
-            # that after reading it can be ascertained which domains
-            # belong to the same mesh.
+            # copied to every field/domain construct based on this
+            # mesh, so that after reading it can be ascertained which
+            # domains belong to the same mesh.
             "mesh_id": uuid4().hex,
         }
 
