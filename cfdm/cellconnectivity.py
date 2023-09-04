@@ -289,3 +289,67 @@ class CellConnectivity(
             kwargs["pre"] = pre
 
         return super().identities(generator=generator, **kwargs)
+
+    @_inplace_enabled(default=False)
+    def normalise(self, start_index=0, inplace=False):
+        """Normalise the data values.
+
+        Normalised data is in a form that is suitable for creating a
+        CF-netCDF UGRID "edge_edge_connectivity" or
+        "face_face_connectivity" variable.
+
+        Normalisation does not change the logical content of the
+        data. It converts the data so that the set of unique values
+        comprises all of the integers in the range ``[0, N-1]`` (if
+        the *start_index* parameter is ``0``), or ``[1, N]`` (if
+        *start_index* is ``1``), where ``N`` is the number of cells.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            start_index: `int`, optional
+                The start index for the data values in the normalised
+                data. Must be ``0`` (the default) or ``1`` for zero-
+                or one-based indices respectively.
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                The normailised cell connectivity construct, or `None`
+                if the operation was in-place.
+
+        **Examples*
+
+        >>> data = {{package}}.Data(
+        ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]]
+        ... )
+        >>> data.where(cf.eq(-99), cf.masked, inplace=True)
+        >>> c = {{package}}.{{class}}(cell='point', data=data)
+        >>> print(c.array)
+        [[4 1 10 125]
+         [1 4 -- --]
+         [125 4 -- --]]
+        >>> print(c.normalise().array)
+        [[0 1 2]
+         [1 0 --]
+         [2 0 --]]
+        >>> print(c.normalise(start_index=1).array)
+        [[1 2 3]
+         [2 1 --]
+         [3 1 --]]
+
+        """
+        import numpy as np
+
+        if start_index not in (0, 1):
+            raise ValueError("The 'start_index' parameter must be 0 or 1")
+
+        d = _inplace_enabled_define_and_cleanup(self)
+
+        data = d.array
+        data = self._normalise_cell_ids(data, start_index)
+        d.set_data(data, copy=False)
+        return d

@@ -250,9 +250,7 @@ class NetCDFMixin:
 
         """
         if not value or value == "/":
-            raise ValueError(
-                f"Invalid netCDF {entity} name: {value!r}"
-            )
+            raise ValueError(f"Invalid netCDF {entity} name: {value!r}")
 
         if "/" in value:
             if not value.startswith("/"):
@@ -899,26 +897,27 @@ class NetCDFVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         """
         return self._nc_set("variable", value)
-#
-#        if not value or value == "/":
-#            raise ValueError(f"Invalid netCDF variable name: {value!r}")
-#
-#        if "/" in value:
-#            if not value.startswith("/"):
-#                raise ValueError(
-#                    "A netCDF variable name with a group structure "
-#                    f"must start with a '/'. Got {value!r}"
-#                )
-#
-#            if value.count("/") == 1:
-#                value = value[1:]
-#            elif value.endswith("/"):
-#                raise ValueError(
-#                    "A netCDF variable name with a group structure "
-#                    f"can't end with a '/'. Got {value!r}"
-#                )
-#
-#        self._get_component("netcdf")["variable"] = value
+
+    #
+    #        if not value or value == "/":
+    #            raise ValueError(f"Invalid netCDF variable name: {value!r}")
+    #
+    #        if "/" in value:
+    #            if not value.startswith("/"):
+    #                raise ValueError(
+    #                    "A netCDF variable name with a group structure "
+    #                    f"must start with a '/'. Got {value!r}"
+    #                )
+    #
+    #            if value.count("/") == 1:
+    #                value = value[1:]
+    #            elif value.endswith("/"):
+    #                raise ValueError(
+    #                    "A netCDF variable name with a group structure "
+    #                    f"can't end with a '/'. Got {value!r}"
+    #                )
+    #
+    #        self._get_component("netcdf")["variable"] = value
 
     def nc_variable_groups(self):
         """Return the netCDF variable group hierarchy.
@@ -4258,8 +4257,10 @@ class NetCDFInterpolationSubareaDimension(
             nc_groups=self.nc_interpolation_subarea_dimension_groups,
         )
 
+
 class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
-    """Mixin class for accessing the netCDF node coordinate variable name.
+    """Mixin class for accessing the netCDF node coordinate variable
+    name.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -4319,7 +4320,7 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         :Parameters:
 
-            default: optional 
+            default: optional
                 Return the value of the *default* parameter if the
                 netCDF node coordinate variable name has not been
                 set. If set to an `Exception` instance then it will be
@@ -4351,7 +4352,8 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         return self._nc_get("node_coordinate_variable", default=default)
 
     def nc_has_node_coordinate_variable(self):
-        """Whether the netCDF node coordinate variable name has been set.
+        """Whether the netCDF node coordinate variable name has been
+        set.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
@@ -4594,4 +4596,3 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
             nc_set=self.nc_set_node_coordinate_variable,
             nc_groups=self.nc_node_coordinate_variable_groups,
         )
-

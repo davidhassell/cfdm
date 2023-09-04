@@ -21,6 +21,7 @@ from .netcdf import (
     NetCDFHDF5,
     NetCDFInterpolationSubareaDimension,
     NetCDFMixin,
+    NetCDFNodeCoordinateVariable,
     NetCDFSampleDimension,
     NetCDFSubsampledDimension,
     NetCDFUnreferenced,

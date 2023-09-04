@@ -2,7 +2,7 @@ from .propertiesdata import PropertiesData
 
 
 class Topology(PropertiesData):
-    """Abstract base class for topology and constructs.
+    """Abstract base class for topology related constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 

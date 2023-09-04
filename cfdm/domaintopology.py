@@ -383,22 +383,22 @@ class DomainTopology(
         Point cells:
 
         >>> data = {{package}}.Data(
-        ...   [[4, 1, 125], [1, 4, -99], [125, 4, -99]]
+        ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]]
         ... )
         >>> data.where(cf.eq(-99), cf.masked, inplace=True)
         >>> d = {{package}}.{{class}}(cell='point', data=data)
         >>> print(d.array)
-        [[4 1 125]
-         [1 4 --]
-         [125 4 --]]
+        [[4 1 10 125]
+         [1 4 -- --]
+         [125 4 -- --]]
         >>> print(d.normalise().array)
-        [[0 1 2]
-         [1 0 --]
-         [2 0 --]]
+        [[0 1 2 --]
+         [1 0 -- --]
+         [2 0 -- --]]
         >>> print(d.normalise(start_index=1).array)
-        [[1 2 3]
-         [2 1 --]
-         [3 1 --]]
+        [[1 2 3 --]
+         [2 1 -- --]
+         [3 1 -- --]]
 
         """
         import numpy as np
@@ -406,40 +406,21 @@ class DomainTopology(
         if start_index not in (0, 1):
             raise ValueError("The 'start_index' parameter must be 0 or 1")
 
+        cell = self.get_cell(None)
+        if cell is None:
+            raise ValueError(
+                f"Can't normalise {self.__class__.__name__} with unknown "
+                "cell type"
+            )
+
         d = _inplace_enabled_define_and_cleanup(self)
 
         data = d.array
         mask = np.ma.getmaskarray(data)
 
-        if self.get_cell() == "point":
+        if cell == "point":
             # Point cells
-
-            # Remove negative values
-            dmin = data.min()
-            if dmin < 0:
-                data -= dmin
-
-            # Get the original node id for each cell
-            ids = data[:, 0]
-
-            for i, j in zip(ids.tolist(), range(-1, -ids.size - 1, -1)):
-                data = np.where(data == i, j, data)
-
-            # Convert the new negative values to non-negative values
-            data *= -1
-            if not start_index:
-                data -= 1
-
-            data = np.ma.array(data, mask=mask)
-
-            # Remove redundant node ids, i.e. those with a value
-            # greater than the number of cells.
-            largest_index = data[0, -1]
-            if data.max() > largest_index:
-                data = np.ma.where(data > largest_index, np.ma.masked, data)
-
-            # Move missing values to the end of each rows
-            data[:, 1:].sort(axis=1, endwith=True)
+            data = self._normalise_cells(data, mask)
         else:
             # Edge, face or volume cells.
             n, b = np.where(~mask)

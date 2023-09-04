@@ -8751,7 +8751,9 @@ class NetCDFRead(IORead):
             for coord_ncvar, node_ncvar in zip(coords_ncvar, nodes_ncvar):
                 # This auxiliary coordinate needs creating from
                 # a [node|edge|face|volume]_coordinate variable.
-                aux = self._create_auxiliary_coordinate(parent_ncvar, coord_ncvar, f)
+                aux = self._create_auxiliary_coordinate(
+                    parent_ncvar, coord_ncvar, f
+                )
                 if location != "node" and not self.implementation.has_bounds(
                     aux
                 ):

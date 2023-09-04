@@ -1,156 +1,82 @@
-from . import PropertiesData
-
-
-class Topology(PropertiesData):
+class Topology:
     """Mixin class for topology constructs.
 
     .. versionadded:: (cfdm) TODOUGRIDVER
 
     """
 
-    def creation_commands(
-        self,
-        representative_data=False,
-        namespace=None,
-        indent=0,
-        string=True,
-        name="c",
-        data_name="data",
-        header=True,
-    ):
-        """Returns the commands to create the construct.
+    @classmethod
+    def _normalise_cell_ids(cls, data, start_index):
+        """Normalise cell identifier values.
+
+        Normalised data is in a form that is suitable for creating a
+        CF-netCDF UGRID connectivity variable.
+
+        See `normalise` for further details.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
-        .. seealso:: `{{package}}.Data.creation_commands`,
-                     `{{package}}.Field.creation_commands`
+        .. seealso:: `normalise`
 
         :Parameters:
 
-            {{representative_data: `bool`, optional}}
+            data: `np.ndarray`
+                TODOUGRID
 
-            {{namespace: `str`, optional}}
-
-            {{indent: `int`, optional}}
-
-            {{string: `bool`, optional}}
-
-            {{name: `str`, optional}}
-
-            {{data_name: `str`, optional}}
-
-            {{header: `bool`, optional}}
+            start_index: `int`, optional
+                The start index for the data values in the normalised
+                data. Must be ``0`` or ``1`` for zero- or one-based
+                indices respectively.
 
         :Returns:
 
-            {{returns creation_commands}}
+            `numpy.ndarray`
+                The normailised data.
+
+        **Examples*
+
+        See `normalise` for examples.
 
         """
-        out = super().creation_commands(
-            representative_data=representative_data,
-            indent=0,
-            namespace=namespace,
-            string=False,
-            name=name,
-            data_name=data_name,
-            header=header,
-        )
+        import numpy as np
 
-        topology = self.get_topology(None)
-        if topology is not None:
-            out.append(f"{name}.set_topology({topology!r})")
+        masked = np.ma.is_masked(data)
+        if masked:
+            mask = data.mask
+        
+        # Remove negative values
+        dmin = data.min()
+        if dmin < 0:
+            data -= dmin
 
-        if string:
-            indent = " " * indent
-            out[0] = indent + out[0]
-            out = ("\n" + indent).join(out)
+        # Get the original cell ids
+        ids = data[:, 0]
 
-        return out
+        where = np.where
+        for i, j in zip(ids.tolist(), range(-ids.size, 0)):
+            data = where(data == i, j, data)
 
-    def identity(self, default=""):
-        """Return the canonical identity.
+        if masked:
+            data = np.ma.array(data, mask=mask)
 
-        By default the identity is the first found of the following:
+        # Remove redundant cell ids
+        if data.max() > 0:
+            data = np.ma.where(data > 0, np.ma.masked, data)
 
-        * The topology type, preceded by ``'topology:'``.
-        * The ``standard_name`` property.
-        * The ``cf_role`` property, preceded by 'cf_role='.
-        * The ``long_name`` property, preceded by 'long_name='.
-        * The netCDF variable name, preceded by 'ncvar%'.
-        * The value of the default parameter.
+        if np.ma.is_masked(data):
+            # Move missing values to the end of each row
+            data[:, 1:].sort(axis=1, endwith=True)
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+            # Discard columns that are all missing data
+            count = data.count(axis=0)[0]
+            if not count.min():
+                index = np.where(count)[0]
+                data = data[:, index[0] : index[-1] + 1]
 
-        .. seealso:: `identities`
+        # Convert the new negative values to non-negative values
+        if start_index:
+            data += ids.size + 1
+        else:
+            data += ids.size
 
-        :Parameters:
-
-            default: optional
-                If no identity can be found then return the value of the
-                default parameter.
-
-        :Returns:
-
-                The identity.
-
-        """
-        n = self.get_topology(None)
-        if n is not None:
-            return f"topology:{n}"
-
-        n = self.get_property("standard_name", None)
-        if n is not None:
-            return n
-
-        for prop in ("cf_role", "long_name"):
-            n = self.get_property(prop, None)
-            if n is not None:
-                return f"{prop}={n}"
-
-        n = self.nc_get_variable(None)
-        if n is not None:
-            return f"ncvar%{n}"
-
-        return default
-
-    def identities(self, generator=False, **kwargs):
-        """Return all possible identities.
-
-        The identities comprise:
-
-        * The topology type, preceded by ``'topology:'``.
-        * The ``standard_name`` property.
-        * All properties, preceded by the property name and a colon,
-          e.g. ``'long_name:Air temperature'``.
-        * The netCDF variable name, preceded by ``'ncvar%'``.
-
-        .. versionadded:: (cfdm) TODOUGRIDVER
-
-        .. seealso:: `identity`
-
-        :Parameters:
-
-            generator: `bool`, optional
-                If True then return a generator for the identities,
-                rather than a list.
-
-            kwargs: optional
-                Additional configuration parameters. Currently
-                none. Unrecognised parameters are ignored.
-
-        :Returns:
-
-            `list` or generator
-                The identities.
-
-        """
-        topology = self.get_topology(None)
-        if topology is not None:
-            pre = ((f"topology:{topology}",),)
-            pre0 = kwargs.pop("pre", None)
-            if pre0:
-                pre = tuple(pre0) + pre
-
-            kwargs["pre"] = pre
-
-        return super().identities(generator=generator, **kwargs)
+        return data

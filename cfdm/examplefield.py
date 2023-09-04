@@ -21,31 +21,31 @@ def example_field(n, _implementation=_implementation):
             ======  ==================================================
             ``0``   Cell method and dimension coordinate metdata
                     constructs.
-                    
+
             ``1``   Cell method, dimension coordinate, auxiliary
                     coordinate, cell measure, coordinate reference,
                     domain ancillary and field ancillary metadata
                     constructs.
-                    
+
             ``2``   A monthly time series at each latitude-longitude
                     location.
-                    
+
             ``3``   Discrete sampling geometry (DSG) "timeSeries"
                     features.
-                    
+
             ``4``   Discrete sampling geometry (DSG)
                     "timeSeriesProfile" features.
-                    
+
             ``5``   A 12 hourly time series at each latitude-longitude
                     location.
-                    
+
             ``6``   Polygon geometry coordinate cells with interior
                     ring variables.
-                    
+
             ``7``   Rotated pole dimension coordinate constructs and
                     2-d latitude and longitude auxiliary coordinate
                     constructs.
-                    
+
             ``8``   A UGRID mesh topology of face cells.
             ======  ==================================================
 
@@ -227,7 +227,7 @@ def example_field(n, _implementation=_implementation):
     Data = _implementation.get_class("Data")
 
     mesh_id = "f51e5aa5e2b0439f9fae4f04e51556f7"
-      
+
     if n == 0:
         f = Field()
 
@@ -5168,7 +5168,7 @@ def example_field(n, _implementation=_implementation):
         )
         c.nc_set_variable("time")
         data = Data(
-            [36000.0, 72000.0],
+            [36000, 72000],
             units="seconds since 2016-01-01 15:00:00",
             calendar="gregorian",
             dtype="f8",
@@ -5177,7 +5177,7 @@ def example_field(n, _implementation=_implementation):
         b = Bounds()
         b.nc_set_variable("time_bounds")
         data = Data(
-            [[36000.0, 36000.0], [72000.0, 72000.0]],
+            [[36000, 36000], [72000, 72000]],
             units="seconds since 2016-01-01 15:00:00",
             calendar="gregorian",
             dtype="f8",
@@ -5194,15 +5194,15 @@ def example_field(n, _implementation=_implementation):
             {"standard_name": "longitude", "units": "degrees_east"}
         )
         c.nc_set_variable("Mesh2_face_x")
-        data = Data([-44.0, -44.0, -42.0], units="degrees_east", dtype="f8")
+        data = Data([-44, -44, -42], units="degrees_east", dtype="f8")
         c.set_data(data)
         b = Bounds()
-        b.nc_set_variable("Mesh2_node_x")
+        b.nc_set_variable("Mesh2_node_x_bounds")
         data = Data(
             [
-                [-45.0, -43.0, -43.0, -45.0],
-                [-45.0, -43.0, -43.0, -45.0],
-                [-40.0, -43.0, -43.0, -999],
+                [-45, -43, -43, -45],
+                [-45, -43, -43, -45],
+                [-40, -43, -43, -99],
             ],
             units="degrees_east",
             dtype="f8",
@@ -5227,15 +5227,15 @@ def example_field(n, _implementation=_implementation):
             {"standard_name": "latitude", "units": "degrees_north"}
         )
         c.nc_set_variable("Mesh2_face_y")
-        data = Data([34.0, 34.0, 34.0], units="degrees_north", dtype="f8")
+        data = Data([34, 32, 34], units="degrees_north", dtype="f8")
         c.set_data(data)
         b = Bounds()
-        b.nc_set_variable("Mesh2_node_y")
+        b.nc_set_variable("Mesh2_node_y_bounds")
         data = Data(
             [
-                [33.0, 33.0, 35.0, 35.0],
-                [31.0, 31.0, 33.0, 33.0],
-                [34.0, 35.0, 33.0, -999],
+                [33, 33, 35, 35],
+                [31, 31, 33, 33],
+                [34, 35, 33, -99],
             ],
             units="degrees_north",
             dtype="f8",
@@ -5259,7 +5259,7 @@ def example_field(n, _implementation=_implementation):
         c.set_properties({"long_name": "Maps every face to its corner nodes"})
         c.nc_set_variable("Mesh2_face_nodes")
         data = Data(
-            [[2, 3, 1, 0], [6, 7, 3, 2], [1, 3, 8, -999]],
+            [[2, 3, 1, 0], [6, 7, 3, 2], [1, 3, 8, -99]],
             dtype="i4",
             mask=Data(
                 [
@@ -5282,9 +5282,9 @@ def example_field(n, _implementation=_implementation):
         c.nc_set_variable("Mesh2_face_links")
         data = Data(
             [
-                [0, 1, 2, -999, -999],
-                [1, 0, -999, -999, -999],
-                [2, 0, -999, -999, -999],
+                [0, 1, 2, -99, -99],
+                [1, 0, -99, -99, -99],
+                [2, 0, -99, -99, -99],
             ],
             dtype="i4",
             mask=Data(
@@ -5324,7 +5324,7 @@ def example_field(n, _implementation=_implementation):
         )
         f.nc_set_variable("v")
         data = Data(
-            [[8.96, 8.69, 9.21],     [8.53, 7.99, 8.23]],
+            [[8.96, 8.69, 9.21], [8.53, 7.99, 8.23]],
             units="ms-1",
             dtype="f8",
         )
@@ -5356,7 +5356,7 @@ def example_field(n, _implementation=_implementation):
         )
         c.nc_set_variable("time")
         data = Data(
-            [36000.0, 72000.0],
+            [36000, 72000],
             units="seconds since 2016-01-01 15:00:00",
             calendar="gregorian",
             dtype="f8",
@@ -5365,7 +5365,7 @@ def example_field(n, _implementation=_implementation):
         b = Bounds()
         b.nc_set_variable("time_bounds")
         data = Data(
-            [[36000.0, 36000.0], [72000.0, 72000.0]],
+            [[36000, 36000], [72000, 72000]],
             units="seconds since 2016-01-01 15:00:00",
             calendar="gregorian",
             dtype="f8",
@@ -5382,26 +5382,28 @@ def example_field(n, _implementation=_implementation):
             {"standard_name": "longitude", "units": "degrees_east"}
         )
         c.nc_set_variable("Mesh2_edge_x")
-        data = Data([-44.0, -44.0, -42.0], units="degrees_east", dtype="f8") # TODOUGRID
+        data = Data(
+            [-41.5, -41.5, -43, -44, -45, -44, -45, -44, -43],
+            units="degrees_east",
+            dtype="f8",
+        )
         c.set_data(data)
         b = Bounds()
-        b.nc_set_variable("Mesh2_node_x")
-        data = Data( # TODOUGRID
+        b.nc_set_variable("Mesh2_node_x_bounds")
+        data = Data(
             [
-                [-45.0, -43.0, -43.0, -45.0],
-                [-45.0, -43.0, -43.0, -45.0],
-                [-40.0, -43.0, -43.0, -999],
+                [-43, -40],
+                [-43, -40],
+                [-43, -43],
+                [-45, -43],
+                [-45, -45],
+                [-45, -43],
+                [-45, -45],
+                [-43, -45],
+                [-43, -43],
             ],
             units="degrees_east",
             dtype="f8",
-            mask=Data( # TODOUGRID
-                [
-                    [False, False, False, False],
-                    [False, False, False, False],
-                    [False, False, False, True],
-                ],
-                dtype="b1",
-            ),
         )
         b.set_data(data)
         c.set_bounds(b)
@@ -5415,26 +5417,28 @@ def example_field(n, _implementation=_implementation):
             {"standard_name": "latitude", "units": "degrees_north"}
         )
         c.nc_set_variable("Mesh2_edge_y")
-        data = Data([34.0, 34.0, 34.0], units="degrees_north", dtype="f8") # TODOUGRID
+        data = Data(
+            [34.5, 33.5, 34, 35, 34, 33, 32, 31, 32],
+            units="degrees_north",
+            dtype="f8",
+        )
         c.set_data(data)
         b = Bounds()
-        b.nc_set_variable("Mesh2_node_y")
-        data = Data( # TODOUGRID
+        b.nc_set_variable("Mesh2_node_y_bounds")
+        data = Data(
             [
-                [33.0, 33.0, 35.0, 35.0],
-                [31.0, 31.0, 33.0, 33.0],
-                [34.0, 35.0, 33.0, -999],
+                [35, 34],
+                [33, 34],
+                [33, 35],
+                [35, 35],
+                [33, 35],
+                [33, 33],
+                [33, 31],
+                [31, 31],
+                [33, 31],
             ],
             units="degrees_north",
             dtype="f8",
-            mask=Data( # TODOUGRID
-                [
-                    [False, False, False, False],
-                    [False, False, False, False],
-                    [False, False, False, True],
-                ],
-                dtype="b1",
-            ),
         )
         b.set_data(data)
         c.set_bounds(b)
@@ -5444,10 +5448,22 @@ def example_field(n, _implementation=_implementation):
         #
         # domain_topology: cell:edge
         c = DomainTopology()
-        c.set_properties({"long_name": "Maps every edge to the two nodes that it connects"})
+        c.set_properties(
+            {"long_name": "Maps every edge to the two nodes that it connects"}
+        )
         c.nc_set_variable("Mesh2_edge_nodes")
         data = Data(
-            [[1, 8],[3, 8], [3, 1], [0, 1], [2, 0], [2, 3], [2, 6], [7, 6], [3, 7]], 
+            [
+                [1, 8],
+                [3, 8],
+                [3, 1],
+                [0, 1],
+                [2, 0],
+                [2, 3],
+                [2, 6],
+                [7, 6],
+                [3, 7],
+            ],
             dtype="i4",
         )
         c.set_data(data)
@@ -5458,19 +5474,19 @@ def example_field(n, _implementation=_implementation):
         #
         # cell_connectivity: connectivity:edge
         c = CellConnectivity()
-        c.set_properties({"long_name": "neighbour edges for edges"))
+        c.set_properties({"long_name": "neighbour edges for edges"})
         c.nc_set_variable("Mesh2_edge_links")
         data = Data(
             [
-                [0, 1, 2, 3, -999, -999], 
-                [1, 0, 2, 5, 8, -999],
+                [0, 1, 2, 3, -99, -99],
+                [1, 0, 2, 5, 8, -99],
                 [2, 3, 0, 1, 5, 8],
-                [3, 4, 2, 0 , -999, -999],
-                [4, 3, 5, 6 -999, -999],
+                [3, 4, 2, 0, -99, -99],
+                [4, 3, 5, 6 - 99, -99],
                 [5, 4, 6, 2, 1, 8],
-                [6, 4, 5, 7 -999, -999],
-                [7, 6, 8, -999, -999, -999],
-                [8, 7, 5, 2, 1, -999],
+                [6, 4, 5, 7 - 99, -99],
+                [7, 6, 8, -99, -99, -99],
+                [8, 7, 5, 2, 1, -99],
             ],
             dtype="i4",
             mask=Data(
