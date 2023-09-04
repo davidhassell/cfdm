@@ -3448,6 +3448,29 @@ class CFDMImplementation(Implementation):
         if ncvar is not None:
             field.nc_set_geometry_variable(ncvar)
 
+    def nc_set_node_coordinate_variable(self, parent, ncvar):
+        """Set the netCDF node coordinate variable name.
+
+        .. versionadded:: (cfdm) TODOUGRIDVER
+
+        :Parameters:
+
+            parent: `AuxiliaryCoordinate`
+                The auxiliary coordinate construct on which to set the
+                netCDF node coordinate variable name.
+
+            ncvar: `str` or `None`
+                The netCDF node coordinate variable name. If `None`
+                then the name is not set.
+
+        :Returns:
+
+            `None`
+
+        """
+        if ncvar is not None:
+            parent.nc_set_node_coordinate_variable(ncvar)
+
     def nc_set_variable(self, parent, ncvar):
         """Set the netCDF variable name.
 

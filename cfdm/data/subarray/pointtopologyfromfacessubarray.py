@@ -1,3 +1,5 @@
+import numpy as np
+
 from .abstract import MeshSubarray
 from .mixin import PointTopology
 
@@ -47,17 +49,19 @@ class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
 
         nodes = []
         nodes_extend = nodes.extend
-           
+
         for face_nodes in node_connectivity[faces]:
             if masked:
                 face_nodes = face_nodes.compressed()
-                
+
             face_nodes = face_nodes.tolist()
             face_nodes.append(face_nodes[0])
             nodes_extend(
-                [m
-                 for m, n in zip(face_nodes[:-1], face_nodes[1:])
-                 if n == node]
+                [
+                    m
+                    for m, n in zip(face_nodes[:-1], face_nodes[1:])
+                    if n == node
+                ]
             )
 
         nodes = list(set(nodes))

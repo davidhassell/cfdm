@@ -9,7 +9,7 @@ replacement text, and will be substituted as usual.
 
 Replacement text may not contain other non-special substitutions.
 
-Keys must be `str` or `re.Pattern` objects:
+Keys must be a `str` or `re.Pattern` object:
 
 * If a key is a `str` then the corresponding value must be a string.
 

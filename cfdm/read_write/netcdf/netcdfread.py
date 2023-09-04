@@ -982,7 +982,7 @@ class NetCDFRead(IORead):
         if g["CF>=1.11"] and g["UGRID_version"] is None:
             # From CF-1.11 we can assume UGRID-1.0
             g["UGRID_version"] = "1.0"
-            
+
         # ------------------------------------------------------------
         # Create a dictionary keyed by netCDF variable names where
         # each key's value is a dictionary of that variable's netCDF
@@ -3439,6 +3439,11 @@ class NetCDFRead(IORead):
             if ugrid:
                 # The UGRID specification is OK, so get the
                 # coordinates.
+
+                if location == "volume":
+                    raise NotImplementedError(
+                        "Can't read UGRID volume cell files"
+                    )
 
                 # Remove attributes from the properties
                 if mesh_ncvar is not None:
@@ -8640,7 +8645,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-               TODOUGRID
+               The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8700,7 +8705,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                TODOUGRID
+               The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8743,14 +8748,14 @@ class NetCDFRead(IORead):
             # ordered identically to the [edge|face|volume]
             # coordinates
             # (https://github.com/ugrid-conventions/ugrid-conventions/issues/67)
-            for ncvar, node_ncvar in zip(coords_ncvar, nodes_ncvar):
+            for coord_ncvar, node_ncvar in zip(coords_ncvar, nodes_ncvar):
                 # This auxiliary coordinate needs creating from
                 # a [node|edge|face|volume]_coordinate variable.
-                aux = self._create_auxiliary_coordinate(parent_ncvar, ncvar, f)
+                aux = self._create_auxiliary_coordinate(parent_ncvar, coord_ncvar, f)
                 if location != "node" and not self.implementation.has_bounds(
                     aux
                 ):
-                    # The auxiliary coordinate doesn't have any
+                    # These auxiliary edge/face coordinates don't have
                     # bounds => create bounds from the mesh nodes.
                     aux = self._ugrid_create_bounds_from_nodes(
                         parent_ncvar,
@@ -8761,6 +8766,9 @@ class NetCDFRead(IORead):
                         aux=aux,
                     )
 
+                self.implementation.nc_set_node_coordinate_variable(
+                    aux, node_ncvar
+                )
                 auxs.append(aux)
 
         elif nodes_ncvar:
@@ -8768,13 +8776,16 @@ class NetCDFRead(IORead):
             # from an [edge|face|volume]_node_connectivity
             # variable. These will only contain bounds, with no
             # coordinate values.
-            for ncvar in nodes_ncvar:
+            for node_ncvar in nodes_ncvar:
                 aux = self._ugrid_create_bounds_from_nodes(
                     parent_ncvar,
-                    ncvar,
+                    node_ncvar,
                     f,
                     mesh,
                     location,
+                )
+                self.implementation.nc_set_node_coordinate_variable(
+                    aux, node_ncvar
                 )
                 auxs.append(aux)
 
@@ -8813,7 +8824,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                TODOUGRID
+               The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8867,12 +8878,11 @@ class NetCDFRead(IORead):
             array,
             units=properties.get("units"),
             calendar=properties.get("calendar"),
-            ncvar=node_ncvar,  # TODOUGRID ??? maybe leave out
+            ncvar=node_ncvar,
         )
         self.implementation.set_data(bounds, bounds_data, copy=False)
 
-        # Set the netCDF variable name and the original file names
-        self.implementation.nc_set_variable(bounds, node_ncvar)
+        # Set the original file names
         self.implementation.set_original_filenames(
             bounds, g["variable_filename"][node_ncvar]
         )
@@ -8897,7 +8907,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                TODOUGRID
+               The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8906,8 +8916,8 @@ class NetCDFRead(IORead):
         :Returns:
 
             `DomainTopology` or `None`
-                TODOUGRID, or `None` if the domain topology construct
-                could not be created.
+                The domain topology construct, or `None` if it could
+                not be created.
 
         """
         domain_topology = mesh["domain_topology"].get(location)
@@ -9003,7 +9013,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                TODOUGRID
+               The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -9012,8 +9022,8 @@ class NetCDFRead(IORead):
         :Returns:
 
             `CellConnectivity` or `None`
-                TODOUGRID, or `None` if the cell connectivity
-                construct could not be created.
+                The cell connectivity construct, or `None` if could
+                not be created.
 
         """
         if location == "node":
@@ -9304,7 +9314,8 @@ class NetCDFRead(IORead):
         :Parameters:
 
             location_index_set_ncvar: `str`
-                The netCDF variable name of TODOUGRID
+                The name of the UGRID location index set netCDF
+                variable.
 
         :Returns:
 
@@ -9395,7 +9406,8 @@ class NetCDFRead(IORead):
                 construct.
 
             location_index_set_ncvar: `str`
-                The netCDF variable name of TODOUGRID
+                The name of the UGRID location index set netCDF
+                variable.
 
         :Returns:
 

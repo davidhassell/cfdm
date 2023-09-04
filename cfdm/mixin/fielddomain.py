@@ -2211,6 +2211,7 @@ class FieldDomain:
 
         return False
 
+
 #    def ugrid_components(
 #        self, identity, start_index=0, cell_cell_connectivity=False
 #    ):

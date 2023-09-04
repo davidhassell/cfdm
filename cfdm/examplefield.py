@@ -16,37 +16,38 @@ def example_field(n, _implementation=_implementation):
         n: `int`
             Select the example field construct to return, one of:
 
-            =====  ===================================================
-            *n*    Description
-            =====  ===================================================
-            ``0``  A field construct with properties as well as a
-                   cell method construct and dimension coordinate
-                   constructs with bounds.
-
-            ``1``  A field construct with properties as well as at
-                   least one of every type of metadata construct.
-
-            ``2``  A field construct that contains a monthly time
-                   series at each latitude-longitude location.
-
-            ``3``  A field construct that contains discrete sampling
-                   geometry (DSG) "timeSeries" features.
-
-            ``4``  A field construct that contains discrete sampling
-                   geometry (DSG) "timeSeriesProfile" features.
-
-            ``5``  A field construct that contains a 12 hourly time
-                   series at each latitude-longitude location.
-
-            ``6``  A field construct that has polygon geometry
-                   coordinate cells with interior ring variables.
-
-            ``7``  A field construct that has rotated pole dimension
-                   coordinate constructs and 2-d latitude and
-                   longitude auxiliary coordinate constructs.
-
-            ``8``  A field construct that has a UGRID mesh topology
-            =====  ===================================================
+            ======  ==================================================
+            *n*     Field constuct description
+            ======  ==================================================
+            ``0``   Cell method and dimension coordinate metdata
+                    constructs.
+                    
+            ``1``   Cell method, dimension coordinate, auxiliary
+                    coordinate, cell measure, coordinate reference,
+                    domain ancillary and field ancillary metadata
+                    constructs.
+                    
+            ``2``   A monthly time series at each latitude-longitude
+                    location.
+                    
+            ``3``   Discrete sampling geometry (DSG) "timeSeries"
+                    features.
+                    
+            ``4``   Discrete sampling geometry (DSG)
+                    "timeSeriesProfile" features.
+                    
+            ``5``   A 12 hourly time series at each latitude-longitude
+                    location.
+                    
+            ``6``   Polygon geometry coordinate cells with interior
+                    ring variables.
+                    
+            ``7``   Rotated pole dimension coordinate constructs and
+                    2-d latitude and longitude auxiliary coordinate
+                    constructs.
+                    
+            ``8``   A UGRID mesh topology of face cells.
+            ======  ==================================================
 
             See the examples for details.
 
@@ -56,9 +57,8 @@ def example_field(n, _implementation=_implementation):
 
     :Returns:
 
-        `Field` or `int`
-            The example field construct, or if *n_field* is True, the
-            number of field constructs that are available.
+        `Field`
+            The example field construct.
 
     **Examples**
 
@@ -175,15 +175,27 @@ def example_field(n, _implementation=_implementation):
 
     >>> f = cfdm.example_field(8)
     >>> print(f)
+    Field: air_temperature (ncvar%ta)
+    ---------------------------------
+    Data            : air_temperature(time(2), ncdim%nMesh2_face(3)) K
+    Cell methods    : time(2): point (interval: 3600 s)
+    Dimension coords: time(2) = [2016-01-02 01:00:00, 2016-01-02 11:00:00] gregorian
+    Auxiliary coords: longitude(ncdim%nMesh2_face(3)) = [-44.0, -44.0, -42.0] degrees_east
+                    : latitude(ncdim%nMesh2_face(3)) = [34.0, 34.0, 34.0] degrees_north
+    Domain Topology : cell:face(ncdim%nMesh2_face(3), 4) = [[2, ..., --]]
+    Cell connects   : connectivity:edge(ncdim%nMesh2_face(3), 5) = [[0, ..., --]]
+
+    >>> f = cfdm.example_field(9)
+    >>> print(f)
     Field: northward_wind (ncvar%v)
     -------------------------------
-    Data            : northward_wind(time(3), ncdim%nMesh2d_face(3)) ms-1
-    Cell methods    : time(3): point (interval: 3600 s)
-    Dimension coords: time(3) = [2016-01-02 01:00:00, 2016-01-02 11:00:00, 2016-01-02 21:00:00] gregorian
-    Auxiliary coords: longitude(ncdim%nMesh2d_face(3)) = [-44.067, -44.067, -42.19] degrees_east
-                    : latitude(ncdim%nMesh2d_face(3)) = [34.82, 33.078, 35.65] degrees_north
-    Domain Topology : cell:face(ncdim%nMesh2d_face(3), 4) = [[2, ..., 1]]
-    Cell connects   : connectivity:edge(ncdim%nMesh2d_face(3), 5) = [[0, ..., --]]
+    Data            : northward_wind(time(2), ncdim%nMesh2_face(3)) ms-1
+    Cell methods    : time(2): point (interval: 3600 s)
+    Dimension coords: time(2) = [2016-01-02 01:00:00, 2016-01-02 11:00:00] gregorian
+    Auxiliary coords: longitude(ncdim%nMesh2_face(3)) = [-44.0, -44.0, -42.0] degrees_east
+                    : latitude(ncdim%nMesh2_face(3)) = [34.0, 34.0, 34.0] degrees_north
+    Domain Topology : cell:face(ncdim%nMesh2_face(3), 4) = [[2, ..., --]]
+    Cell connects   : connectivity:edge(ncdim%nMesh2_face(3), 5) = [[0, ..., --]]
 
     """
     # For safety given the private second argument which we might not
@@ -193,7 +205,8 @@ def example_field(n, _implementation=_implementation):
     if isinstance(_implementation, int):
         raise ValueError(
             "Only one example construct can be returned at a time. "
-            "Provide a single integer argument only."
+            "Provide a single integer argument only. "
+            "Use the 'example_fields' function to return multiple fields."
         )
 
     AuxiliaryCoordinate = _implementation.get_class("AuxiliaryCoordinate")
@@ -213,6 +226,8 @@ def example_field(n, _implementation=_implementation):
 
     Data = _implementation.get_class("Data")
 
+    mesh_id = "f51e5aa5e2b0439f9fae4f04e51556f7"
+      
     if n == 0:
         f = Field()
 
@@ -5110,35 +5125,35 @@ def example_field(n, _implementation=_implementation):
         f.set_construct(c)
 
     elif n == 8:
-        # field: northward_wind
+        # field: air_temperature
         f = Field()
         f.set_properties(
             {
                 "Conventions": f"CF-{CF()}",
-                "standard_name": "northward_wind",
-                "units": "ms-1",
+                "standard_name": "air_temperature",
+                "units": "K",
             }
         )
-        f.nc_set_variable("v")
+        f.nc_set_variable("ta")
         data = Data(
-            [[9.96, 9.69, 10.21], [8.53, 7.99, 8.23], [9.35, 7.12, 11.56]],
-            units="ms-1",
+            [[282.96, 282.69, 283.21], [281.53, 280.99, 281.23]],
+            units="K",
             dtype="f8",
         )
         f.set_data(data)
-        f.set_mesh_id("f51e5aa5e2b0449f9fae4f04e51556f7")
+        f.set_mesh_id(mesh_id)
         #
         # domain_axis: ncdim%time
         c = DomainAxis()
-        c.set_size(3)
+        c.set_size(2)
         c.nc_set_dimension("time")
         c.nc_set_unlimited(True)
         f.set_construct(c, key="domainaxis0", copy=False)
         #
-        # domain_axis: ncdim%nMesh2d_face
+        # domain_axis: ncdim%nMesh2_face
         c = DomainAxis()
         c.set_size(3)
-        c.nc_set_dimension("nMesh2d_face")
+        c.nc_set_dimension("nMesh2_face")
         f.set_construct(c, key="domainaxis2", copy=False)
         #
         # dimension_coordinate: time
@@ -5153,7 +5168,7 @@ def example_field(n, _implementation=_implementation):
         )
         c.nc_set_variable("time")
         data = Data(
-            [36000.0, 72000.0, 108000.0],
+            [36000.0, 72000.0],
             units="seconds since 2016-01-01 15:00:00",
             calendar="gregorian",
             dtype="f8",
@@ -5162,7 +5177,7 @@ def example_field(n, _implementation=_implementation):
         b = Bounds()
         b.nc_set_variable("time_bounds")
         data = Data(
-            [[36000.0, 36000.0], [72000.0, 72000.0], [108000.0, 108000.0]],
+            [[36000.0, 36000.0], [72000.0, 72000.0]],
             units="seconds since 2016-01-01 15:00:00",
             calendar="gregorian",
             dtype="f8",
@@ -5178,11 +5193,11 @@ def example_field(n, _implementation=_implementation):
         c.set_properties(
             {"standard_name": "longitude", "units": "degrees_east"}
         )
-        c.nc_set_variable("Mesh2d_face_x")
+        c.nc_set_variable("Mesh2_face_x")
         data = Data([-44.0, -44.0, -42.0], units="degrees_east", dtype="f8")
         c.set_data(data)
         b = Bounds()
-        b.nc_set_variable("Mesh2d_node_x")
+        b.nc_set_variable("Mesh2_node_x")
         data = Data(
             [
                 [-45.0, -43.0, -43.0, -45.0],
@@ -5211,11 +5226,11 @@ def example_field(n, _implementation=_implementation):
         c.set_properties(
             {"standard_name": "latitude", "units": "degrees_north"}
         )
-        c.nc_set_variable("Mesh2d_face_y")
+        c.nc_set_variable("Mesh2_face_y")
         data = Data([34.0, 34.0, 34.0], units="degrees_north", dtype="f8")
         c.set_data(data)
         b = Bounds()
-        b.nc_set_variable("Mesh2d_node_y")
+        b.nc_set_variable("Mesh2_node_y")
         data = Data(
             [
                 [33.0, 33.0, 35.0, 35.0],
@@ -5242,7 +5257,7 @@ def example_field(n, _implementation=_implementation):
         # domain_topology: cell:face
         c = DomainTopology()
         c.set_properties({"long_name": "Maps every face to its corner nodes"})
-        c.nc_set_variable("Mesh2d_face_nodes")
+        c.nc_set_variable("Mesh2_face_nodes")
         data = Data(
             [[2, 3, 1, 0], [6, 7, 3, 2], [1, 3, 8, -999]],
             dtype="i4",
@@ -5263,10 +5278,8 @@ def example_field(n, _implementation=_implementation):
         #
         # cell_connectivity: connectivity:edge
         c = CellConnectivity()
-        c.set_properties(
-            {"long_name": "Indicates which other faces neighbour each face"}
-        )
-        c.nc_set_variable("Mesh2d_face_links")
+        c.set_properties({"long_name": "neighbour faces for faces"})
+        c.nc_set_variable("Mesh2_face_links")
         data = Data(
             [
                 [0, 1, 2, -999, -999],
@@ -5285,6 +5298,198 @@ def example_field(n, _implementation=_implementation):
         )
         c.set_data(data)
         c.set_connectivity("edge")
+        f.set_construct(
+            c, axes=("domainaxis2",), key="cellconnectivity0", copy=False
+        )
+        #
+        # cell_method: point
+        c = CellMethod()
+        c.set_method("point")
+        c.set_axes(("domainaxis0",))
+        c.set_qualifier("interval", [Data(3600, units="s", dtype="i8")])
+        f.set_construct(c)
+        #
+        # field data axes
+        f.set_data_axes(("domainaxis0", "domainaxis2"))
+
+    elif n == 9:
+        # field: northward_wind
+        f = Field()
+        f.set_properties(
+            {
+                "Conventions": f"CF-{CF()}",
+                "standard_name": "northward_wind",
+                "units": "ms-1",
+            }
+        )
+        f.nc_set_variable("v")
+        data = Data(
+            [[8.96, 8.69, 9.21],     [8.53, 7.99, 8.23]],
+            units="ms-1",
+            dtype="f8",
+        )
+        f.set_data(data)
+        f.set_mesh_id(mesh_id)
+        #
+        # domain_axis: ncdim%time
+        c = DomainAxis()
+        c.set_size(2)
+        c.nc_set_dimension("time")
+        c.nc_set_unlimited(True)
+        f.set_construct(c, key="domainaxis0", copy=False)
+        #
+        # domain_axis: ncdim%nedge
+        c = DomainAxis()
+        c.set_size(3)
+        c.nc_set_dimension("nMesh2_edge")
+        f.set_construct(c, key="domainaxis2", copy=False)
+        #
+        # dimension_coordinate: time
+        c = DimensionCoordinate()
+        c.set_properties(
+            {
+                "axis": "T",
+                "standard_name": "time",
+                "calendar": "gregorian",
+                "units": "seconds since 2016-01-01 15:00:00",
+            }
+        )
+        c.nc_set_variable("time")
+        data = Data(
+            [36000.0, 72000.0],
+            units="seconds since 2016-01-01 15:00:00",
+            calendar="gregorian",
+            dtype="f8",
+        )
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("time_bounds")
+        data = Data(
+            [[36000.0, 36000.0], [72000.0, 72000.0]],
+            units="seconds since 2016-01-01 15:00:00",
+            calendar="gregorian",
+            dtype="f8",
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis0",), key="dimensioncoordinate0", copy=False
+        )
+        #
+        # auxiliary_coordinate: longitude
+        c = AuxiliaryCoordinate()
+        c.set_properties(
+            {"standard_name": "longitude", "units": "degrees_east"}
+        )
+        c.nc_set_variable("Mesh2_edge_x")
+        data = Data([-44.0, -44.0, -42.0], units="degrees_east", dtype="f8") # TODOUGRID
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("Mesh2_node_x")
+        data = Data( # TODOUGRID
+            [
+                [-45.0, -43.0, -43.0, -45.0],
+                [-45.0, -43.0, -43.0, -45.0],
+                [-40.0, -43.0, -43.0, -999],
+            ],
+            units="degrees_east",
+            dtype="f8",
+            mask=Data( # TODOUGRID
+                [
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, True],
+                ],
+                dtype="b1",
+            ),
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis2",), key="auxiliarycoordinate0", copy=False
+        )
+        #
+        # auxiliary_coordinate: latitude
+        c = AuxiliaryCoordinate()
+        c.set_properties(
+            {"standard_name": "latitude", "units": "degrees_north"}
+        )
+        c.nc_set_variable("Mesh2_edge_y")
+        data = Data([34.0, 34.0, 34.0], units="degrees_north", dtype="f8") # TODOUGRID
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("Mesh2_node_y")
+        data = Data( # TODOUGRID
+            [
+                [33.0, 33.0, 35.0, 35.0],
+                [31.0, 31.0, 33.0, 33.0],
+                [34.0, 35.0, 33.0, -999],
+            ],
+            units="degrees_north",
+            dtype="f8",
+            mask=Data( # TODOUGRID
+                [
+                    [False, False, False, False],
+                    [False, False, False, False],
+                    [False, False, False, True],
+                ],
+                dtype="b1",
+            ),
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis2",), key="auxiliarycoordinate1", copy=False
+        )
+        #
+        # domain_topology: cell:edge
+        c = DomainTopology()
+        c.set_properties({"long_name": "Maps every edge to the two nodes that it connects"})
+        c.nc_set_variable("Mesh2_edge_nodes")
+        data = Data(
+            [[1, 8],[3, 8], [3, 1], [0, 1], [2, 0], [2, 3], [2, 6], [7, 6], [3, 7]], 
+            dtype="i4",
+        )
+        c.set_data(data)
+        c.set_cell("edge")
+        f.set_construct(
+            c, axes=("domainaxis2",), key="domaintopology0", copy=False
+        )
+        #
+        # cell_connectivity: connectivity:edge
+        c = CellConnectivity()
+        c.set_properties({"long_name": "neighbour edges for edges"))
+        c.nc_set_variable("Mesh2_edge_links")
+        data = Data(
+            [
+                [0, 1, 2, 3, -999, -999], 
+                [1, 0, 2, 5, 8, -999],
+                [2, 3, 0, 1, 5, 8],
+                [3, 4, 2, 0 , -999, -999],
+                [4, 3, 5, 6 -999, -999],
+                [5, 4, 6, 2, 1, 8],
+                [6, 4, 5, 7 -999, -999],
+                [7, 6, 8, -999, -999, -999],
+                [8, 7, 5, 2, 1, -999],
+            ],
+            dtype="i4",
+            mask=Data(
+                [
+                    [False, False, False, False, True, True],
+                    [False, False, False, False, False, True],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, True, True],
+                    [False, False, False, False, True, True],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, True, True],
+                    [False, False, False, True, True, True],
+                    [False, False, False, False, False, True],
+                ],
+                dtype="b1",
+            ),
+        )
+        c.set_data(data)
+        c.set_connectivity("node")
         f.set_construct(
             c, axes=("domainaxis2",), key="cellconnectivity0", copy=False
         )
