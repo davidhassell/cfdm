@@ -1,10 +1,12 @@
 from . import core, mixin
+from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 
 class CellConnectivity(
     mixin.NetCDFVariable,
     mixin.PropertiesData,
     mixin.Files,
+    mixin.Topology,
     core.CellConnectivity,
 ):
     """A cell connectivity construct of the CF data model.
@@ -59,7 +61,7 @@ class CellConnectivity(
 
     {{netCDF variable}}
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -114,7 +116,7 @@ class CellConnectivity(
     ):
         """Returns the commands to create the construct.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `{{package}}.Data.creation_commands`,
                      `{{package}}.Field.creation_commands`
@@ -176,7 +178,7 @@ class CellConnectivity(
         Returns a description of all properties, including those of
         components, and provides selected values of all data arrays.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -214,7 +216,7 @@ class CellConnectivity(
         * The netCDF variable name, preceded by 'ncvar%'.
         * The value of the default parameter.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `identities`
 
@@ -259,7 +261,7 @@ class CellConnectivity(
           e.g. ``'long_name:Air temperature'``.
         * The netCDF variable name, preceded by ``'ncvar%'``.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `identity`
 
@@ -304,7 +306,7 @@ class CellConnectivity(
         the *start_index* parameter is ``0``), or ``[1, N]`` (if
         *start_index* is ``1``), where ``N`` is the number of cells.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -342,13 +344,10 @@ class CellConnectivity(
          [3 1 --]]
 
         """
-        import numpy as np
-
         if start_index not in (0, 1):
             raise ValueError("The 'start_index' parameter must be 0 or 1")
 
         d = _inplace_enabled_define_and_cleanup(self)
-
         data = d.array
         data = self._normalise_cell_ids(data, start_index)
         d.set_data(data, copy=False)

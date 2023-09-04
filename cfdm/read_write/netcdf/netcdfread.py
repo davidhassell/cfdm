@@ -263,7 +263,7 @@ class NetCDFRead(IORead):
     def ugrid_cell_connectivity_types(self):
         """Cell connectivity types.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Returns:
 
@@ -4717,7 +4717,7 @@ class NetCDFRead(IORead):
     def _include_component_report(self, parent_ncvar, ncvar):
         """Include a component in the dataset compliance report.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -8464,7 +8464,7 @@ class NetCDFRead(IORead):
         location_index_set variable to
         ``self.read_vars["do_not_create_field"]``.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -8557,7 +8557,7 @@ class NetCDFRead(IORead):
         location_index_set variable to
         ``self.read_vars["do_not_create_field"]``.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -8630,22 +8630,26 @@ class NetCDFRead(IORead):
     def _ugrid_get_dimension(self, parent_ncvar, f, mesh, location):
         """Find the netCDF name of the UGRID mesh topology dimension.
 
+        If The dimension may be that of a location index set variable.
+
         It is assumed that the compliance checks of
         `_ugrid_check_field_mesh` or
-        `_ugrid_check_field_location_index_set` have been passed.
+        `_ugrid_check_field_location_index_set` have already been
+        passed.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
             parent_ncvar: `str`
-                The netCDF variable name of the parent field construct.
+                The netCDF variable name of the parent field
+                construct.
 
             f: `Field`
                 The parent field construct.
 
             mesh: `dict`
-               The mesh description.
+                The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8654,7 +8658,8 @@ class NetCDFRead(IORead):
         :Returns:
 
             `str` or `None`
-                TODOUGRID
+                The netCDF name of the UGRID mesh topology dimension,
+                or `None` if one could not be found.
 
         """
         ncdim = mesh["ncdim"].get(location)
@@ -8692,9 +8697,9 @@ class NetCDFRead(IORead):
         mesh,
         location,
     ):
-        """TODOUGRID.
+        """Create auxiliary coordinate constructs from a UGRID mesh.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -8705,7 +8710,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-               The mesh description.
+                The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8714,7 +8719,8 @@ class NetCDFRead(IORead):
         :Returns:
 
             `list` of `AuxiliaryCoordinate`
-                TODOUGRID
+                The auxiliary coordinates, with bounds, for the UGRID
+                cells.
 
         """
         auxs = mesh["auxiliary_coordinates"].get(location)
@@ -8811,7 +8817,7 @@ class NetCDFRead(IORead):
     ):
         """Create coordinate bounds from UGRID nodes.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -8826,19 +8832,23 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-               The mesh description.
+                The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
-                ``'volume'``, ``'face'``, ``'edge'``.
+                ``'edge'``, ``'face'``, or ``'volume'``.
 
             aux: `AuxiliaryCoordinate`, optional
-                TODOUGRID
+                An existing auxiliary coordinate construct that
+                contains the cell coordinates, but has no bounds. By
+                default a new auxiliary coordinate construct is
+                created that has no coordinates.
 
         :Returns:
 
             `AuxiliaryCoordinate`
-                TODOUGRID
+                The auxiliary coordinate construct, with bounds, for
+                the UGRID cells.
 
         """
         g = self.read_vars
@@ -8898,7 +8908,7 @@ class NetCDFRead(IORead):
     def _ugrid_create_domain_topology(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -8909,7 +8919,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-               The mesh description.
+                The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8952,6 +8962,8 @@ class NetCDFRead(IORead):
             connectivity_attr,
         ):
             return
+
+        # Still here?
 
         # CF properties
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
@@ -9004,7 +9016,7 @@ class NetCDFRead(IORead):
     def _ugrid_create_cell_connectivity(self, parent_ncvar, f, mesh, location):
         """TODOUGRID.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -9015,7 +9027,7 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-               The mesh description.
+                The mesh description.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -9096,7 +9108,7 @@ class NetCDFRead(IORead):
     def _ugrid_check_mesh_topology(self, mesh_ncvar):
         """Check a UGRID mesh topology variable.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -9311,7 +9323,7 @@ class NetCDFRead(IORead):
     ):
         """TODOUGRID.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -9399,7 +9411,7 @@ class NetCDFRead(IORead):
     ):
         """TODOUGRID.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -9518,7 +9530,7 @@ class NetCDFRead(IORead):
     ):
         """TODOUGRID.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -9665,9 +9677,9 @@ class NetCDFRead(IORead):
     def _ugrid_check_connectivity_variable(
         self, parent_ncvar, mesh_ncvar, connectivity_ncvar, connectivity_attr
     ):
-        """TODOUGRID.
+        """Check a UGRID connectivity variable.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -9676,10 +9688,11 @@ class NetCDFRead(IORead):
                 construct.
 
             mesh_ncvar: `str`
-                The netCDF variable name of TODOUGRID
+                The netCDF variable name of the UGRID mesh topology
+                variable.
 
             connectivity_ncvar: `str`
-                The netCDF variable name of UGRID connectivity
+                The netCDF variable name of the UGRID connectivity
                 variable.
 
             connectivity_attr: `str`
@@ -9694,15 +9707,6 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         ok = True
-        if connectivity_attr is None:
-            self._add_message(
-                parent_ncvar,
-                connectivity_ncvar,  # TODOUGRID all over here!
-                message=(f"{connectivity_attr} attribute", "is missing"),
-                variable=mesh_ncvar,
-            )
-            ok = False
-
         if connectivity_ncvar is None:
             self._add_message(
                 parent_ncvar,
@@ -9711,7 +9715,9 @@ class NetCDFRead(IORead):
                 variable=mesh_ncvar,
             )
             ok = False
-        elif connectivity_ncvar not in g["internal_variables"]:
+            return ok
+
+        if connectivity_ncvar not in g["internal_variables"]:
             connectivity_ncvar, message = self._missing_variable(
                 connectivity_ncvar, f"{connectivity_attr} variable"
             )
@@ -9725,7 +9731,23 @@ class NetCDFRead(IORead):
                 variable=mesh_ncvar,
             )
             ok = False
+            return ok
 
-        # TODOUGRID - check leading dimension
+        parent_ncdims = self._ncdimensions(parent_ncvar)
+        connectivity_ncdims = self._ncdimensions(connectivity_ncvar)[0]
+        if not connectivity_ncdims[0] not in parent_ncdims:
+            self._add_message(
+                parent_ncvar,
+                mesh_ncvar,
+                message=(
+                    f"UGRID {connectivity_attr} variable",
+                    "spans incorrect dimensions",
+                ),
+                attribute={
+                    f"mesh:{connectivity_attr}": f"{connectivity_ncvar}"
+                },
+                dimensions=g["variable_dimensions"][connectivity_ncvar],
+            )
+            ok = False
 
         return ok

@@ -2,9 +2,9 @@ from .propertiesdata import PropertiesData
 
 
 class Topology(PropertiesData):
-    """Abstract base class for topology related constructs.
+    """Abstract base class for topology-related constructs.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -15,7 +15,7 @@ class Topology(PropertiesData):
         Only the data dimensions that corresponds to a domain axis
         construct is included.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `data`, `has_data`, `shape`, `size`
 
@@ -43,7 +43,7 @@ class Topology(PropertiesData):
         Only the data dimension that corresponds to a domain axis
         construct is included.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
@@ -72,7 +72,7 @@ class Topology(PropertiesData):
         `size` is equal to the product of `shape`, that only includes
         the data dimension corresponding to a domain axis construct.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 

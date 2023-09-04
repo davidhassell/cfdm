@@ -11,7 +11,7 @@ class ConnectivitySubarray(Subarray):
 
     See CF section 5.9 "Mesh Topology Variables".
 
-    .. versionadded:: (cfdm) 1.10.0.0
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -80,7 +80,7 @@ class ConnectivitySubarray(Subarray):
         Returns a subspace of the uncompressed data as an independent
         `scipy` Compressed Sparse Row (CSR) array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         from scipy.sparse import csr_array
@@ -192,7 +192,7 @@ class ConnectivitySubarray(Subarray):
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         return np.dtype(bool)

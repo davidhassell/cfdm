@@ -9,7 +9,7 @@ class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
 
     A subarray describes a unique part of the uncompressed array.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -18,7 +18,7 @@ class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
 
         The input *node* is included in the returned array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 

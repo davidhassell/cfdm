@@ -4,7 +4,7 @@ from .subarray import Subarray
 class MeshSubarray(Subarray):
     """A subarray of an arry defined by a UGRID connectivity variable.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -81,7 +81,7 @@ class MeshSubarray(Subarray):
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         return self.data.dtype
@@ -92,7 +92,7 @@ class MeshSubarray(Subarray):
 
         Either ``0`` or ``1``.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         return self._get_component("start_index")

@@ -9,7 +9,7 @@ from .compressedarray import CompressedArray
 class MeshArray(CompressedArray):
     """Abstract base class for data based on a UGRID connectivity array.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -19,7 +19,7 @@ class MeshArray(CompressedArray):
         A child class must define its subarray classes in the
         `_Subarray` dictionary.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         instance = super().__new__(cls)
@@ -86,7 +86,7 @@ class MeshArray(CompressedArray):
         Returns a subspace of the uncompressed array as an independent
         numpy array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         # ------------------------------------------------------------
@@ -121,7 +121,7 @@ class MeshArray(CompressedArray):
     def dtype(self):
         """The data-type of the uncompressed data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         return self._get_compressed_Array().dtype
@@ -129,7 +129,7 @@ class MeshArray(CompressedArray):
     def get_start_index(self, default=ValueError()):
         """Return the start index.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -154,7 +154,7 @@ class MeshArray(CompressedArray):
         because each dimension of the compressed data corresponds to a
         unique dimension of the uncompressed data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `subarray`
 
@@ -213,7 +213,7 @@ class MeshArray(CompressedArray):
 
         These descriptors are used during subarray decompression.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 

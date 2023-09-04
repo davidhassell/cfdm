@@ -1,7 +1,7 @@
 class Topology:
-    """Mixin class for topology constructs.
+    """Mixin class for topology-related constructs.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -14,14 +14,14 @@ class Topology:
 
         See `normalise` for further details.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `normalise`
 
         :Parameters:
 
-            data: `np.ndarray`
-                TODOUGRID
+            data: `numpy.ndarray`
+                The original numpy array of cell identifiers.
 
             start_index: `int`, optional
                 The start index for the data values in the normalised
@@ -43,7 +43,7 @@ class Topology:
         masked = np.ma.is_masked(data)
         if masked:
             mask = data.mask
-        
+
         # Remove negative values
         dmin = data.min()
         if dmin < 0:
@@ -52,9 +52,12 @@ class Topology:
         # Get the original cell ids
         ids = data[:, 0]
 
-        where = np.where
+        # Replace the original cell ids with negative numbers
+        #
+        # PERFORMANCE WARNING: This loop could be slow
+        place = np.place
         for i, j in zip(ids.tolist(), range(-ids.size, 0)):
-            data = where(data == i, j, data)
+            place(data, data == i, j)
 
         if masked:
             data = np.ma.array(data, mask=mask)

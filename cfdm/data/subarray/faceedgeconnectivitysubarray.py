@@ -10,7 +10,7 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
 
     See CF section 5.9 "Mesh Topology Variables".
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -22,7 +22,7 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
         Returns a subspace of the uncompressed data as an independent
         `scipy` Compressed Sparse Row (CSR) array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         face_node_connectivity = self._select_data(check_mask=True)
@@ -88,7 +88,7 @@ class FaceEdgeConnectivitySubarray(ConnectivitySubarray):
         Returns a subspace of the uncompressed data as an independent
         `scipy` Compressed Sparse Row (CSR) array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         from scipy.sparse import csr_array

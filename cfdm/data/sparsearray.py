@@ -4,7 +4,7 @@ from .numpyarray import NumpyArray
 class SparseArray(NumpyArray):
     """An underlying `scipy` sparse array.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -12,7 +12,7 @@ class SparseArray(NumpyArray):
     def array(self):
         """Return an independent numpy array containing the data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `sparse_array`
 
@@ -33,7 +33,7 @@ class SparseArray(NumpyArray):
     def sparse_array(self):
         """Return an independent `scipy` sparse array of the data.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `array`
 

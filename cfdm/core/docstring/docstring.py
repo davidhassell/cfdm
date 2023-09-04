@@ -26,7 +26,7 @@ _docstring_substitution_definitions = {
     # ----------------------------------------------------------------
     "{{repr}}": "",
     # ----------------------------------------------------------------
-    # # Method description susbstitutions (1 level of indentation)
+    # Method description susbstitutions (1 level of indentation)
     # ----------------------------------------------------------------
     # cell type
     "{{cell type}}": """The cell type indicates the common spatial dimensionality of
@@ -48,7 +48,7 @@ _docstring_substitution_definitions = {
         * ``'edge'``: Face cells connected by one or more shared
                       edges.""",
     # ----------------------------------------------------------------
-    # # Method description susbstitutions (2 levels of indentation)
+    # Method description susbstitutions (2 levels of indentation)
     # ----------------------------------------------------------------
     # cached: optional
     "{{cached: optional}}": """cached: optional
@@ -60,7 +60,7 @@ _docstring_substitution_definitions = {
                 by their construct identifiers, instead of a
                 `Constructs` object. This is a faster option.""",
     # ----------------------------------------------------------------
-    # # Method description susbstitutions (3 levels of indentation)
+    # Method description susbstitutions (3 levels of indentation)
     # ----------------------------------------------------------------
     # axes int examples
     "{{axes int examples}}": """Each axis is identified by its integer position in the

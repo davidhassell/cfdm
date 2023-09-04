@@ -1299,7 +1299,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         An `AttributeError` is raised if a sparse array representation
         is not available.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `array`
 

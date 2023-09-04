@@ -1666,7 +1666,7 @@ class Constructs(mixin.Container, core.Constructs):
         measure, method, cell and connectivity components,
         respectively.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -1937,7 +1937,7 @@ class Constructs(mixin.Container, core.Constructs):
     def _filter_by_cell(self, arg, cells, todict):
         """Worker function for `filter_by_cell` and `filter`.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         return self._component_filter(
@@ -1952,7 +1952,7 @@ class Constructs(mixin.Container, core.Constructs):
     def filter_by_cell(self, *cells, todict=False, cached=None):
         """Select domain topology constructs by cell type.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
                      `clear_filters_applied`, `unfilter`
@@ -2022,7 +2022,7 @@ class Constructs(mixin.Container, core.Constructs):
     def _filter_by_connectivity(self, arg, connectivities, todict):
         """Worker function for `filter_by_connectivity` and `filter`.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         return self._component_filter(
@@ -2039,7 +2039,7 @@ class Constructs(mixin.Container, core.Constructs):
     ):
         """Select cell connectivity constructs by connectivity type.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `filter`, `filters_applied`, `inverse_filter`,
                      `clear_filters_applied`, `unfilter`

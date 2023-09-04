@@ -4259,17 +4259,16 @@ class NetCDFInterpolationSubareaDimension(
 
 
 class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
-    """Mixin class for accessing the netCDF node coordinate variable
-    name.
+    """Mixin for accessing the netCDF node coordinate variable name.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
     def nc_del_node_coordinate_variable(self, default=ValueError()):
         """Remove the netCDF node coordinate variable name.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `nc_get_node_coordinate_variable`,
                      `nc_has_node_coordinate_variable`,
@@ -4290,15 +4289,13 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        TODOUGRID
-
-        >>> f.nc_set_node_coordinate_variable('lon')
+        >>> f.nc_set_node_coordinate_variable('node_x')
         >>> f.nc_has_node_coordinate_variable()
         True
         >>> f.nc_get_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_del_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_has_node_coordinate_variable()
         False
         >>> print(f.nc_get_node_coordinate_variable(None))
@@ -4312,7 +4309,7 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
     def nc_get_node_coordinate_variable(self, default=ValueError()):
         """Return the netCDF node coordinate variable name.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `nc_get_node_coordinate_variable`,
                      `nc_has_node_coordinate_variable`,
@@ -4334,13 +4331,13 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        >>> f.nc_set_node_coordinate_variable('lon')
+        >>> f.nc_set_node_coordinate_variable('node_x')
         >>> f.nc_has_node_coordinate_variable()
         True
         >>> f.nc_get_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_del_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_has_node_coordinate_variable()
         False
         >>> print(f.nc_get_node_coordinate_variable(None))
@@ -4352,10 +4349,9 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         return self._nc_get("node_coordinate_variable", default=default)
 
     def nc_has_node_coordinate_variable(self):
-        """Whether the netCDF node coordinate variable name has been
-        set.
+        """Whether the netCDF node coordinate variable name is set.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `nc_get_node_coordinate_variable`,
                      `nc_has_node_coordinate_variable`,
@@ -4369,13 +4365,13 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        >>> f.nc_set_node_coordinate_variable('lon')
+        >>> f.nc_set_node_coordinate_variable('node_x')
         >>> f.nc_has_node_coordinate_variable()
         True
         >>> f.nc_get_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_del_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_has_node_coordinate_variable()
         False
         >>> print(f.nc_get_node_coordinate_variable(None))
@@ -4395,7 +4391,7 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         contains no others, the name is assumed to be in the root
         group.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `nc_get_node_coordinate_variable`,
                      `nc_has_node_coordinate_variable`,
@@ -4413,13 +4409,13 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        >>> f.nc_set_node_coordinate_variable('lon')
+        >>> f.nc_set_node_coordinate_variable('node_x')
         >>> f.nc_has_node_coordinate_variable()
         True
         >>> f.nc_get_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_del_node_coordinate_variable()
-        'lon'
+        'node_x'
         >>> f.nc_has_node_coordinate_variable()
         False
         >>> print(f.nc_get_node_coordinate_variable(None))
@@ -4440,10 +4436,10 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         characters then an empty sequence is returned, signifying the
         root group.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
-        .. seealso:: `nc_clear_node coordinate variable_groups`,
-                     `nc_set_node coordinate variable_groups`
+        .. seealso:: `nc_clear_node_coordinate_variable_groups`,
+                     `nc_set_node_coordinate_variable_groups`
 
         :Returns:
 
@@ -4452,27 +4448,25 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        TODOUGRID
-
-        >>> f.nc_set_variable('time')
-        >>> f.nc_variable_groups()
+        >>> f.nc_set_node_coordinate_variable('time')
+        >>> f.nc_node_coordinate_variable_groups()
         ()
-        >>> f.nc_set_variable_groups(['forecast', 'model'])
-        >>> f.nc_variable_groups()
+        >>> f.nc_set_node_coordinate_variable_groups(['forecast', 'model'])
+        >>> f.nc_node_coordinate_variable_groups()
         ('forecast', 'model')
-        >>> f.nc_get_variable()
+        >>> f.nc_get_node_coordinate_variable()
         '/forecast/model/time'
-        >>> f.nc_clear_variable_groups()
+        >>> f.nc_clear_node_coordinate_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_variable()
         'time'
 
-        >>> f.nc_set_variable('/forecast/model/time')
+        >>> f.nc_set_node_coordinate_variable('/forecast/model/time')
         >>> f.nc_variable_groups()
         ('forecast', 'model')
-        >>> f.nc_del_variable('/forecast/model/time')
+        >>> f.nc_del_node_coordinate_variable('/forecast/model/time')
         '/forecast/model/time'
-        >>> f.nc_variable_groups()
+        >>> f.nc_node_coordinate_variable_groups()
         ()
 
         """
@@ -4493,7 +4487,7 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         `nc_set_node_coordinate_variable`, with the group structure
         delimited by ``/`` characters.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `nc_clear_node_coordinate_variable_groups`,
                      `nc_node_coordinate_variable_groups`
@@ -4510,27 +4504,25 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        TODOUGRID
-
-        >>> f.nc_set_variable('time')
-        >>> f.nc_variable_groups()
+        >>> f.nc_set_node_coordinate_variable('time')
+        >>> f.nc_node_coordinate_variable_groups()
         ()
-        >>> f.nc_set_variable_groups(['forecast', 'model'])
-        >>> f.nc_variable_groups()
+        >>> f.nc_set_node_coordinate_variable_groups(['forecast', 'model'])
+        >>> f.nc_node_coordinate_variable_groups()
         ('forecast', 'model')
-        >>> f.nc_get_variable()
+        >>> f.nc_get_node_coordinate_variable()
         '/forecast/model/time'
-        >>> f.nc_clear_variable_groups()
+        >>> f.nc_clear_node_coordinate_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_variable()
         'time'
 
-        >>> f.nc_set_variable('/forecast/model/time')
+        >>> f.nc_set_node_coordinate_variable('/forecast/model/time')
         >>> f.nc_variable_groups()
         ('forecast', 'model')
-        >>> f.nc_del_variable('/forecast/model/time')
+        >>> f.nc_del_node_coordinate_variable('/forecast/model/time')
         '/forecast/model/time'
-        >>> f.nc_variable_groups()
+        >>> f.nc_node_coordinate_variable_groups()
         ()
 
         """
@@ -4555,7 +4547,7 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         to set the netCDF node coordinate variable name, with
         `nc_set_node_coordinate_variable`, with no ``/`` characters.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `nc_node_coordinate_variable_groups`,
                      `nc_set_node_coordinate_variable_groups`
@@ -4567,27 +4559,25 @@ class NetCDFNodeCoordinateVariable(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         **Examples**
 
-        TODOUGRID
-
-        >>> f.nc_set_variable('time')
-        >>> f.nc_variable_groups()
+        >>> f.nc_set_node_coordinate_variable('time')
+        >>> f.nc_node_coordinate_variable_groups()
         ()
-        >>> f.nc_set_variable_groups(['forecast', 'model'])
-        >>> f.nc_variable_groups()
+        >>> f.nc_set_node_coordinate_variable_groups(['forecast', 'model'])
+        >>> f.nc_node_coordinate_variable_groups()
         ('forecast', 'model')
-        >>> f.nc_get_variable()
+        >>> f.nc_get_node_coordinate_variable()
         '/forecast/model/time'
-        >>> f.nc_clear_variable_groups()
+        >>> f.nc_clear_node_coordinate_variable_groups()
         ('forecast', 'model')
         >>> f.nc_get_variable()
         'time'
 
-        >>> f.nc_set_variable('/forecast/model/time')
+        >>> f.nc_set_node_coordinate_variable('/forecast/model/time')
         >>> f.nc_variable_groups()
         ('forecast', 'model')
-        >>> f.nc_del_variable('/forecast/model/time')
+        >>> f.nc_del_node_coordinate_variable('/forecast/model/time')
         '/forecast/model/time'
-        >>> f.nc_variable_groups()
+        >>> f.nc_node_coordinate_variable_groups()
         ()
 
         """

@@ -1595,7 +1595,7 @@ def is_log_level_info(logger):
 def integer_dtype(n):
     """Return the smallest data type that can store the given integer.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     :Parameters:
 

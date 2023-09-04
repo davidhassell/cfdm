@@ -12,7 +12,7 @@ class CellConnectivitySubarray(MeshSubarray):
     to its neighbours, as found in a UGRID "edge_edge_connectivty",
     "face_face_connectivty", or "volume_volume_connectivty" variable.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     .. seealso:: `CellConnectivityArray`
 
@@ -26,7 +26,7 @@ class CellConnectivitySubarray(MeshSubarray):
         Returns a subspace of the uncompressed data as an independent
         numpy array.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         start_index = self.start_index

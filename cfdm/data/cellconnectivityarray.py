@@ -13,7 +13,7 @@ class CellConnectivityArray(MeshArray):
     UGRID variable. The extra column, in the first position, contains
     the identifier for each cell.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     .. seealso:: `CellConnectivitySubarray`
 
@@ -26,7 +26,7 @@ class CellConnectivityArray(MeshArray):
         ones defined here, then they must be defined in the __new__
         method of the child class.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         instance = super().__new__(cls)

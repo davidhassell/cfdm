@@ -8,7 +8,7 @@ from ....functions import integer_dtype
 class PointTopology:
     """Mixin class for point topology array compressed by UGRID.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -17,7 +17,7 @@ class PointTopology:
 
         x.__getitem__(indices) <==> x[indices]
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         """
         from scipy.sparse import csr_array

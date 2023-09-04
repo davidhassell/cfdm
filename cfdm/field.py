@@ -1658,7 +1658,7 @@ class Field(
         identifier may be assumed to have domains with a shared UGRID
         mesh topology.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
 
@@ -1940,7 +1940,7 @@ class Field(
         identifier may be assumed to have domains with a shared UGRID
         mesh topology.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
 
@@ -1983,7 +1983,7 @@ class Field(
         identifier may be assumed to have domains with a shared UGRID
         mesh topology.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
 
@@ -2479,7 +2479,7 @@ class Field(
         identifier may be assumed to have domains with a shared UGRID
         mesh topology.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `del_mesh_id`, `get_mesh_id`, `has_mesh_id`
 

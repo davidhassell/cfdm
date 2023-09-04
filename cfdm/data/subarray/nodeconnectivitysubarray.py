@@ -10,7 +10,7 @@
 #
 #    See CF section 5.9 "Mesh Topology Variables".
 #
-#    .. versionadded:: (cfdm) TODOUGRIDVER
+#    .. versionadded:: (cfdm) UGRIDVER
 #
 #    """
 #
@@ -22,7 +22,7 @@
 #        Returns a subspace of the uncompressed data as an independent
 #        `scipy` Compressed Sparse Row (CSR) array.
 #
-#        .. versionadded:: (cfdm) TODOUGRIDVER
+#        .. versionadded:: (cfdm) UGRIDVER
 #
 #        """
 #        from scipy.sparse import csr_array

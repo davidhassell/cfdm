@@ -6,6 +6,7 @@ class DomainTopology(
     mixin.NetCDFVariable,
     mixin.PropertiesData,
     mixin.Files,
+    mixin.Topology,
     core.DomainTopology,
 ):
     """A domain topology construct of the CF data model.
@@ -89,7 +90,7 @@ class DomainTopology(
     be accessed with the `nc_set_variable`, `nc_get_variable`,
     `nc_del_variable`, and `nc_has_variable` methods.
 
-    .. versionadded:: (cfdm) TODOUGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -144,7 +145,7 @@ class DomainTopology(
     ):
         """Returns the commands to create the domain topology construct.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `{{package}}.Data.creation_commands`,
                      `{{package}}.Field.creation_commands`
@@ -206,7 +207,7 @@ class DomainTopology(
         Returns a description of all properties, including those of
         components, and provides selected values of all data arrays.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -244,7 +245,7 @@ class DomainTopology(
         * The netCDF variable name, preceded by 'ncvar%'.
         * The value of the default parameter.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `identities`
 
@@ -289,7 +290,7 @@ class DomainTopology(
           e.g. ``'long_name:Air temperature'``.
         * The netCDF variable name, preceded by ``'ncvar%'``.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `identity`
 
@@ -335,7 +336,7 @@ class DomainTopology(
         *start_index* is ``1``), where ``N`` is the number of mesh
         nodes.
 
-        .. versionadded:: (cfdm) TODOUGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
 
@@ -414,15 +415,14 @@ class DomainTopology(
             )
 
         d = _inplace_enabled_define_and_cleanup(self)
-
         data = d.array
-        mask = np.ma.getmaskarray(data)
 
         if cell == "point":
             # Point cells
-            data = self._normalise_cells(data, mask)
+            data = self._normalise_cell_ids(data, start_index)
         else:
             # Edge, face or volume cells.
+            mask = np.ma.getmaskarray(data)
             n, b = np.where(~mask)
             data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
 
