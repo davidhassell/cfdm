@@ -4710,12 +4710,21 @@ class NetCDFRead(IORead):
         return d
 
     def _include_component_report(self, parent_ncvar, ncvar):
-        """TODOUGRID.
+        """Include a component in the dataset compliance report.
 
         .. versionadded:: (cfdm) TODOUGRIDVER
 
         :Parameters:
-            TODOUGRID
+
+            parent_ncvar: `str`
+                The netCDF variable name of the parent varable.
+
+                *Parameter example:*
+                  ``'tas'``
+
+            ncvar: `str`
+                The netCDF variable name of the parent component that
+                has the problem.
 
         :Returns:
 
@@ -6053,22 +6062,7 @@ class NetCDFRead(IORead):
                         uncompressed_shape=uncompressed_shape,
                         index_variable=c["index_variable"],
                     )
-                #                elif (
-                #                    parent_ncvar is not None
-                #                    and f"node_connectivity {parent_ncvar} {ncvar}" in c
-                #                ):
-                #                    # ------------------------------------------------
-                #                    # TODOUGRID .... array
-                #                    # ------------------------------------------------
-                #                    c = c[f"connectivity {parent_ncvar} {ncvar}"]
-                #                    connectivity_ncvar = c["connectivity_ncvar"]
-                #                    array
-                #                    array = self._create_cell_connectivity_array(
-                #                        ragged_indexed_array=self._create_Data(
-                #                            array, ncvar=connectivity_ncvar
-                #                        ),
-                #                        uncompressed_shape=uncompressed_shape,
-                #                    )
+
                 elif (
                     parent_ncvar is not None
                     and f"subsampled {parent_ncvar} {ncvar}" in c
@@ -8629,7 +8623,7 @@ class NetCDFRead(IORead):
         }
 
     def _ugrid_get_dimension(self, parent_ncvar, f, mesh, location):
-        """TODOUGRID.
+        """Find the netCDF name of the UGRID mesh topology dimension.
 
         It is assumed that the compliance checks of
         `_ugrid_check_field_mesh` or
