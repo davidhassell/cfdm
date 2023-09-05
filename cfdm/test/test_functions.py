@@ -227,7 +227,7 @@ class FunctionsTest(unittest.TestCase):
 
     def test_example_field(self):
         """Test the `example_field` function."""
-        top = 9
+        top = 10
 
         example_fields = cfdm.example_fields()
         self.assertEqual(len(example_fields), top)
@@ -237,9 +237,9 @@ class FunctionsTest(unittest.TestCase):
 
             self.assertIsInstance(f.dump(display=False), str)
 
-            # TODOUGRID: When writing UGRID is enables, we don't need
-            #            the exclusion of field 8.
-            if n != 8:
+            # TODOUGRID: When writing UGRID is enabled, we won't need
+            #            the exclusion of fields 8 and 9.
+            if n not in (8, 9):
                 cfdm.write(f, temp_file)
                 g = cfdm.read(temp_file, verbose=1)
 

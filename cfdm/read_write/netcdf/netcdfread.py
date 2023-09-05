@@ -8677,12 +8677,25 @@ class NetCDFRead(IORead):
                     f"{location}_node_connectivity"
                 )
                 if ncvar is None:
-                    # TODOUGRID: Add compliance message
+                    self._add_message(
+                        parent_ncvar,
+                        mesh["mesh_ncvar"],
+                        message=(
+                            f"Mesh {location}_node_connectivity attribute",
+                            "is missing",
+                        ),
+                    )
                     return
 
         ncdim = self.read_vars["variable_dimensions"].get(ncvar)
         if ncdim is None:
-            # TODOUGRID: Add compliance message
+            self._add_message(
+                parent_ncvar,
+                mesh["mesh_ncvar"],
+                message=(
+                    f"Mesh {mesh['mesh_ncvar']}" "spans incorrect dimensions"
+                ),
+            )
             return
         else:
             ncdim = ncdim[0]
@@ -8906,7 +8919,7 @@ class NetCDFRead(IORead):
         return aux
 
     def _ugrid_create_domain_topology(self, parent_ncvar, f, mesh, location):
-        """TODOUGRID.
+        """Create a domain topology construct.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -9014,7 +9027,7 @@ class NetCDFRead(IORead):
         return domain_topology
 
     def _ugrid_create_cell_connectivity(self, parent_ncvar, f, mesh, location):
-        """TODOUGRID.
+        """Create a cell connectivity construct.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -9107,6 +9120,8 @@ class NetCDFRead(IORead):
 
     def _ugrid_check_mesh_topology(self, mesh_ncvar):
         """Check a UGRID mesh topology variable.
+
+        These checks are independent of any parent data variable.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -9321,7 +9336,9 @@ class NetCDFRead(IORead):
         self,
         location_index_set_ncvar,
     ):
-        """TODOUGRID.
+        """Check a UGRID location index set variable.
+
+        These checks are independent of any parent data variable.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -9409,7 +9426,9 @@ class NetCDFRead(IORead):
         parent_ncvar,
         location_index_set_ncvar,
     ):
-        """TODOUGRID.
+        """Check a UGRID location index set variable.
+
+        These checks are in the context of a parent data variable.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -9528,7 +9547,9 @@ class NetCDFRead(IORead):
         parent_ncvar,
         mesh_ncvar,
     ):
-        """TODOUGRID.
+        """Check a UGRID mesh topology variable.
+
+        These checks are in the context of a parent data variable.
 
         .. versionadded:: (cfdm) UGRIDVER
 

@@ -1266,6 +1266,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         The Boolean mask has True where the data array has missing data
         and False otherwise.
 
+        .. seealso:: `masked_values`
+
         :Returns:
 
             `{{class}}`
@@ -3076,6 +3078,61 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         """
         return self._item((slice(-1, None, 1),) * self.ndim)
+
+    @_inplace_enabled(default=False)
+    def masked_values(self, value, rtol=None, atol=None, inplace=False):
+        """Mask using floating point equality.
+
+        Masks the data where elements are approximately equal to the
+        given value. For integer types, exact equality is used.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        .. seealso:: `mask`
+
+        :Parameters:
+
+            value: number
+                Masking value.
+
+            {{rtol: number, optional}}
+
+            {{atol: number, optional}}
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                The result of masking the data where approximately
+                equal to *value*, or `None` if the operation was
+                in-place.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}([1, 1.1, 2, 1.1, 3])
+        >>> e = d.masked_values(1.1)
+        >>> print(e.array)
+        [1.0 -- 2.0 -- 3.0]
+
+        """
+        d = _inplace_enabled_define_and_cleanup(self)
+
+        if rtol is None:
+            rtol = self._rtol
+        else:
+            rtol = float(rtol)
+
+        if atol is None:
+            atol = self._atol
+        else:
+            atol = float(atol)
+
+        array = np.ma.masked_values(
+            d.array, value, rtol=rtol, atol=atol, copy=False
+        )
+        d._set_Array(array, copy=False)
+        return d
 
     def second_element(self):
         """Return the second element of the data as a scalar.
