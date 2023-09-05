@@ -2,25 +2,27 @@ import datetime
 import faulthandler
 import unittest
 
-import numpy as np
-
 faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
 
 # Create test domain topology object
-d = cfdm.DomainTopology()
-d.set_property("long_name", "test")
-array = np.array(
-    [[0, 1, 1, 1], [1, 0, 0, 1], [1, 0, 0, 1], [1, 1, 1, 0]], dtype=bool
+c = cfdm.DomainTopology()
+c.set_properties({"long_name": "Maps every face to its corner nodes"})
+c.nc_set_variable("Mesh2_face_nodes")
+data = cfdm.Data(
+    [[2, 3, 1, 0], [6, 7, 3, 2], [1, 3, 8, -99]],
+    dtype="i4",
 )
-d.set_data(array)
+data.masked_values(-99, inplace=True)
+c.set_data(data)
+c.set_cell("face")
 
 
 class DomainTopologyTest(unittest.TestCase):
     """Unit test for the DomainTopology class."""
 
-    d = d
+    d = c
 
     def setUp(self):
         """Preparations called immediately before each test method."""
@@ -38,13 +40,13 @@ class DomainTopologyTest(unittest.TestCase):
     def test_DomainTopology__repr__str__dump(self):
         """Test all means of DomainTopology inspection."""
         d = self.d
-        self.assertEqual(repr(d), "<DomainTopology: long_name=test(4, 4) >")
-        self.assertEqual(str(d), "long_name=test(4, 4) ")
+        self.assertEqual(repr(d), "<DomainTopology: cell:face(3, 4) >")
+        self.assertEqual(str(d), "cell:face(3, 4) ")
         self.assertEqual(
             d.dump(display=False),
-            """Domain Topology: long_name=test
-    long_name = 'test'
-    Data(4, 4) = [[False, ..., False]]""",
+            """Domain Topology: cell:face
+    long_name = 'Maps every face to its corner nodes'
+    Data(3, 4) = [[2, ..., --]]""",
         )
 
     def test_DomainTopology_copy(self):
@@ -55,12 +57,7 @@ class DomainTopologyTest(unittest.TestCase):
     def test_DomainTopology_data(self):
         """Test the data of DomainTopology."""
         d = self.d
-        # Diagonal elements should be False
-        self.assertTrue(not np.any(np.diagonal(d.data.array)))
-        # Data should be 2-d
-        self.assertEqual(d.ndim, 2)
-        # Data should be symmetric
-        self.assertTrue(d.data.equals(d.transpose().data))
+        self.assertEqual(d.ndim, 1)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ from .cellconnectivityarray import CellConnectivityArray
 from .gatheredarray import GatheredArray
 from .netcdfarray import NetCDFArray
 from .numpyarray import NumpyArray
+from .pointtopologyarray import PointTopologyArray
 from .raggedcontiguousarray import RaggedContiguousArray
 from .raggedindexedarray import RaggedIndexedArray
 from .raggedindexedcontiguousarray import RaggedIndexedContiguousArray

@@ -47,6 +47,10 @@ def example_field(n, _implementation=_implementation):
                     constructs.
 
             ``8``   A UGRID mesh topology of face cells.
+
+            ``9``   A UGRID mesh topology of edge cells.
+
+            ``10``  A UGRID mesh topology of point cells.f.dump()
             ======  ==================================================
 
             See the examples for details.
@@ -4754,7 +4758,7 @@ def example_field(n, _implementation=_implementation):
         c.set_properties({"long_name": "Maps every face to its corner nodes"})
         c.nc_set_variable("Mesh2_face_nodes")
         data = Data(
-            [[2, 3, 1, 0], [6, 7, 3, 2], [1, 3, 8, -99]],
+            [[2, 3, 1, 0], [4, 5, 3, 2], [1, 3, 6, -99]],
             dtype="i4",
         )
         data.masked_values(-99, inplace=True)
@@ -4938,15 +4942,15 @@ def example_field(n, _implementation=_implementation):
         c.nc_set_variable("Mesh2_edge_nodes")
         data = Data(
             [
-                [1, 8],
-                [3, 8],
+                [1, 6],
+                [3, 6],
                 [3, 1],
                 [0, 1],
                 [2, 0],
                 [2, 3],
-                [2, 6],
-                [7, 6],
-                [3, 7],
+                [2, 4],
+                [5, 4],
+                [3, 5],
             ],
             dtype="i4",
         )
@@ -4990,6 +4994,148 @@ def example_field(n, _implementation=_implementation):
         #
         # field data axes
         f.set_data_axes(("domainaxis0", "domainaxis2"))
+
+    elif n == 10:
+        # field: air_pressure
+        f = Field()
+        f.set_properties(
+            {
+                "Conventions": f"CF-{CF()}",
+                "standard_name": "air_pressure",
+                "units": "hPa",
+            }
+        )
+        f.nc_set_variable("pa")
+        data = Data(
+            [
+                [999.67, 1006.45, 999.85, 1006.55, 1006.14, 1005.68, 999.48],
+                [
+                    1003.48,
+                    1006.42,
+                    1000.83,
+                    1002.98,
+                    1008.28,
+                    1002.97,
+                    1002.47,
+                ],
+            ],
+            units="hPa",
+            dtype="f8",
+        )
+        f.set_data(data)
+        f.set_mesh_id(mesh_id)
+        #
+        # domain_axis: ncdim%time
+        c = DomainAxis()
+        c.set_size(2)
+        c.nc_set_dimension("time")
+        c.nc_set_unlimited(True)
+        f.set_construct(c, key="domainaxis0", copy=False)
+        #
+        # domain_axis: ncdim%nedge
+        c = DomainAxis()
+        c.set_size(7)
+        c.nc_set_dimension("nMesh2_node")
+        f.set_construct(c, key="domainaxis2", copy=False)
+        #
+        # dimension_coordinate: time
+        c = DimensionCoordinate()
+        c.set_properties(
+            {
+                "axis": "T",
+                "standard_name": "time",
+                "calendar": "gregorian",
+                "units": "seconds since 2016-01-01 15:00:00",
+            }
+        )
+        c.nc_set_variable("time")
+        data = Data(
+            [36000, 72000],
+            units="seconds since 2016-01-01 15:00:00",
+            calendar="gregorian",
+            dtype="f8",
+        )
+        c.set_data(data)
+        b = Bounds()
+        b.nc_set_variable("time_bounds")
+        data = Data(
+            [[36000, 36000], [72000, 72000]],
+            units="seconds since 2016-01-01 15:00:00",
+            calendar="gregorian",
+            dtype="f8",
+        )
+        b.set_data(data)
+        c.set_bounds(b)
+        f.set_construct(
+            c, axes=("domainaxis0",), key="dimensioncoordinate0", copy=False
+        )
+        #
+        # auxiliary_coordinate: longitude
+        c = AuxiliaryCoordinate()
+        c.set_properties(
+            {"standard_name": "longitude", "units": "degrees_east"}
+        )
+        c.nc_set_variable("Mesh2_node_x")
+        data = Data(
+            [-45, -43, -45, -43, -45, -43, -40],
+            units="degrees_east",
+            dtype="f8",
+        )
+        c.set_data(data)
+        f.set_construct(
+            c, axes=("domainaxis2",), key="auxiliarycoordinate0", copy=False
+        )
+        #
+        # auxiliary_coordinate: latitude
+        c = AuxiliaryCoordinate()
+        c.set_properties(
+            {"standard_name": "latitude", "units": "degrees_north"}
+        )
+        c.nc_set_variable("Mesh2_node_y")
+        data = Data(
+            [35, 35, 33, 33, 31, 31, 34],
+            units="degrees_north",
+            dtype="f8",
+        )
+        c.set_data(data)
+        f.set_construct(
+            c, axes=("domainaxis2",), key="auxiliarycoordinate1", copy=False
+        )
+        #
+        # domain_topology: cell:node
+        c = DomainTopology()
+        c.set_properties(
+            {"long_name": "Maps every node to its connected nodes"}
+        )
+        c.nc_set_variable("Mesh2_edge_nodes")
+        data = Data(
+            [
+                [0, 1, 2, -99, -99],
+                [1, 0, 3, 6, -99],
+                [2, 0, 4, 3, -99],
+                [3, 2, 1, 5, 6],
+                [4, 5, 2, -99, -99],
+                [5, 4, 3, -99, -99],
+                [6, 3, 1, -99, -99],
+            ],
+            dtype="i4",
+        )
+        data.masked_values(-99, inplace=True)
+        c.set_data(data)
+        c.set_cell("point")
+        f.set_construct(
+            c, axes=("domainaxis2",), key="domaintopology0", copy=False
+        )
+        #
+        # cell_method: point
+        c = CellMethod()
+        c.set_method("point")
+        c.set_axes(("domainaxis0",))
+        c.set_qualifier("interval", [Data(3600, units="s", dtype="i8")])
+        f.set_construct(c)
+        #
+        # field data axes
+        f.set_data_axes(("domainaxis0", "domainaxis2"))
     else:
         raise ValueError(
             "Must select an example construct with an integer "
@@ -5012,35 +5158,42 @@ def example_fields(*n, _func=example_field):
             Select the example field constructs to return, any
             combination of:
 
-            =====  ===================================================
-            *n*    Description
-            =====  ===================================================
-            ``0``  A field construct with properties as well as a
-                   cell method construct and dimension coordinate
-                   constructs with bounds.
+            ======  ==================================================
+            *n*     Field constuct description
+            ======  ==================================================
+            ``0``   Cell method and dimension coordinate metdata
+                    constructs.
 
-            ``1``  A field construct with properties as well as at
-                   least one of every type of metadata construct.
+            ``1``   Cell method, dimension coordinate, auxiliary
+                    coordinate, cell measure, coordinate reference,
+                    domain ancillary and field ancillary metadata
+                    constructs.
 
-            ``2``  A field construct that contains a monthly time
-                   series at each latitude-longitude location.
+            ``2``   A monthly time series at each latitude-longitude
+                    location.
 
-            ``3``  A field construct that contains discrete sampling
-                   geometry (DSG) "timeSeries" features.
+            ``3``   Discrete sampling geometry (DSG) "timeSeries"
+                    features.
 
-            ``4``  A field construct that contains discrete sampling
-                   geometry (DSG) "timeSeriesProfile" features.
+            ``4``   Discrete sampling geometry (DSG)
+                    "timeSeriesProfile" features.
 
-            ``5``  A field construct that contains a 12 hourly time
-                   series at each latitude-longitude location.
+            ``5``   A 12 hourly time series at each latitude-longitude
+                    location.
 
-            ``6``  A field construct that has polygon geometry
-                   coordinate cells with interior ring variables.
+            ``6``   Polygon geometry coordinate cells with interior
+                    ring variables.
 
-            ``7``  A field construct that has rotated pole dimension
-                   coordinate constructs and 2-d latitude and
-                   longitude auxiliary coordinate constructs.
-            =====  ===================================================
+            ``7``   Rotated pole dimension coordinate constructs and
+                    2-d latitude and longitude auxiliary coordinate
+                    constructs.
+
+            ``8``   A UGRID mesh topology of face cells.
+
+            ``9``   A UGRID mesh topology of edge cells.
+
+            ``10``  A UGRID mesh topology of point cells.
+            ======  ==================================================
 
             If no individual field constructs are selected then all
             available field constructs will be returned.
@@ -5068,7 +5221,9 @@ def example_fields(*n, _func=example_field):
      <Field: air_temperature(cf_role=timeseries_id(3), ncdim%timeseries(26), ncdim%profile_1(4)) K>,
      <Field: air_potential_temperature(time(118), latitude(5), longitude(8)) K>,
      <Field: precipitation_amount(cf_role=timeseries_id(2), time(4))>,
-     <Field: eastward_wind(time(3), air_pressure(1), grid_latitude(4), grid_longitude(5)) m s-1>]
+     <Field: eastward_wind(time(3), air_pressure(1), grid_latitude(4), grid_longitude(5)) m s-1>,
+     <Field: air_temperature(time(2), ncdim%nMesh2_face(3)) K>,
+     <Field: northward_wind(time(2), ncdim%nMesh2_edge(9)) ms-1>]
 
     >>> cfdm.example_fields(7, 1)
     [<Field: eastward_wind(time(3), air_pressure(1), grid_latitude(4), grid_longitude(5)) m s-1>,
@@ -5113,35 +5268,40 @@ def example_domain(n, _func=example_field):
         n: `int`
             Select the example domain construct to return, one of:
 
-            =====  ===================================================
-            *n*    Description
-            =====  ===================================================
-            ``0``  A domain construct dimension coordinate constructs
-                   with bounds.
+            ======  ==================================================
+            *n*     Field constuct description
+            ======  ==================================================
+            ``0``   Dimension coordinate metdata constructs.
 
-            ``1``  A domain construct with at least one of every
-                   possible type of metadata construct.
+            ``1``   Dimension coordinate, auxiliary coordinate, cell
+                    measure, coordinate reference, domain ancillary
+                    and field ancillary metadata constructs.
 
-            ``2``  A domain construct dimension coordinate constructs
-                   with bounds.
-                   series at each latitude-longitude location.
+            ``2``   A monthly time series at each latitude-longitude
+                    location.
 
-            ``3``  A domain construct for discrete sampling geometry
-                   (DSG) "timeSeries" features.
+            ``3``   Discrete sampling geometry (DSG) "timeSeries"
+                    features.
 
-            ``4``  A domain construct or discrete sampling geometry
-                   (DSG) "timeSeriesProfile" features.
+            ``4``   Discrete sampling geometry (DSG)
+                    "timeSeriesProfile" features.
 
-            ``5``  A domain construct dimension coordinate constructs
-                   with bounds.
+            ``5``   A 12 hourly time series at each latitude-longitude
+                    location.
 
-            ``6``  A domain construct that has polygon geometry
-                   coordinate cells with interior ring variables.
+            ``6``   Polygon geometry coordinate cells with interior
+                    ring variables.
 
-            ``7``  A domain construct that has rotated pole dimension
-                   coordinate constructs and 2-d latitude and
-                   longitude auxiliary coordinate constructs.
-            =====  ===================================================
+            ``7``   Rotated pole dimension coordinate constructs and
+                    2-d latitude and longitude auxiliary coordinate
+                    constructs.
+
+            ``8``   A UGRID mesh topology of face cells.
+
+            ``9``   A UGRID mesh topology of edge cells.
+
+            ``10``  A UGRID mesh topology of point cells.
+            ======  ==================================================
 
             See the examples for details.
 

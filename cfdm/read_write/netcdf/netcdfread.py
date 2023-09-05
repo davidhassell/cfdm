@@ -8,6 +8,7 @@ import tempfile
 from ast import literal_eval
 from copy import deepcopy
 from functools import reduce
+from math import nan
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -8979,13 +8980,22 @@ class NetCDFRead(IORead):
         # Still here?
 
         # CF properties
-        properties = self.read_vars["variable_attributes"][connectivity_ncvar]
+        properties = self.read_vars["variable_attributes"][
+            connectivity_ncvar
+        ].copy()
         start_index = properties.pop("start_index", 0)
 
         # Create data
         if cell == "point":
+            properties[
+                "long_name"
+            ] = "Maps every point to its connected points"
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
+            n_nodes = self.read_vars["internal_dimension_sizes"][
+                mesh["ncdim"][location]
+            ]
             array = self.implementation.initialise_PointTopologyArray(
+                shape=(n_nodes, nan),
                 start_index=start_index,
                 copy=False,
                 **{connectivity_attr: indices},

@@ -67,7 +67,7 @@ class CellConnectivity(abstract.Topology):
 
         :Parameters:
 
-            {{init connectivty: `str`, optional}}
+            {{init connectivity: `str`, optional}}
 
             {{init properties: `dict`, optional}}
 

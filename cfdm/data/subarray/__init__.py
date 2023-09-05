@@ -7,6 +7,8 @@ from .biquadraticlatitudelongitudesubarray import (
 )
 from .interpolationsubarray import InterpolationSubarray
 from .linearsubarray import LinearSubarray
+from .pointtopologyfromedgessubarray import PointTopologyFromEdgesSubarray
+from .pointtopologyfromfacessubarray import PointTopologyFromFacesSubarray
 from .quadraticlatitudelongitudesubarray import (
     QuadraticLatitudeLongitudeSubarray,
 )

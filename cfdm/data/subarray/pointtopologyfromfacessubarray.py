@@ -4,7 +4,7 @@ from .abstract import MeshSubarray
 from .mixin import PointTopology
 
 
-class PointTopoologyFromFacesSubarray(MeshSubarray, PointTopology):
+class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
     """A subarray of an point topology array compressed by UGRID faces.
 
     A subarray describes a unique part of the uncompressed array.

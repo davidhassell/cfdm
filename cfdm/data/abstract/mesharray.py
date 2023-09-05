@@ -89,11 +89,16 @@ class MeshArray(CompressedArray):
         .. versionadded:: (cfdm) UGRIDVER
 
         """
+        from math import nan
+
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
-        u = np.ma.empty(self.shape, dtype=self.dtype)
+        shape = self.shape
+        known_shape = nan not in shape
+        if known_shape:
+            u = np.ma.empty(self.shape, dtype=self.dtype)
 
         Subarray = self.get_Subarray()
 
@@ -110,7 +115,16 @@ class MeshArray(CompressedArray):
                 start_index=start_index,
                 **conformed_data,
             )
-            u[u_indices] = subarray[...]
+            if known_shape:
+                u[u_indices] = subarray[...]
+            else:
+                # When the shape is unknown, there must be only only
+                # pass through this loop
+                u = subarray[...]
+
+        if not known_shape:
+            # Store the shape, now that is it known.
+            self._set_component("shape", u.shape, copy=False)
 
         if indices is Ellipsis:
             return u

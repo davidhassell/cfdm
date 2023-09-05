@@ -755,7 +755,7 @@ class DataTest(unittest.TestCase):
         s = csr_array((data, indices, indptr), shape=(3, 3))
 
         d = cfdm.Data(s)
-        self.assertFalse((d.sparse_array != s).any())
+        self.assertFalse((d.sparse_array != s).toarray().any())
         self.assertTrue((d.array == s.toarray()).all())
 
         d = cfdm.Data(s, dtype=float)
@@ -768,6 +768,18 @@ class DataTest(unittest.TestCase):
         self.assertTrue((d.array == np.ma.array(s.toarray(), mask=mask)).all())
         with self.assertRaises(AttributeError):
             d.sparse_array
+
+    def test_Data_masked_values(self):
+        """Test Data.masked_values."""
+        array = np.array([[1, 1.1, 2, 1.1, 3]])
+        d = cfdm.Data(array)
+        e = d.masked_values(1.1)
+        ea = e.array
+        a = np.ma.masked_values(array, 1.1, rtol=cfdm.rtol(), atol=cfdm.atol())
+        self.assertTrue(np.isclose(ea, a).all())
+        self.assertTrue((ea.mask == a.mask).all())
+        self.assertIsNone(d.masked_values(1.1, inplace=True))
+        self.assertTrue(d.equals(e))
 
 
 if __name__ == "__main__":

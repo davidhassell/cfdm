@@ -5221,7 +5221,158 @@ def _make_subsampled_2(filename):
     r[...] = np.arange(48 * 32).reshape(48, 32)
 
     n.close()
+    return filename
 
+
+def _make_ugrid_1(filename):
+    """Create UGRID file."""
+    n = netCDF4.Dataset(filename, "w")
+
+    n.Conventions = f"CF-{VN} UGRID-1.0"
+
+    n.createDimension("time", 2)
+    n.createDimension("nMesh2_node", 7)
+    n.createDimension("nMesh2_edge", 9)
+    n.createDimension("nMesh2_face", 3)
+    n.createDimension("Two", 2)
+    n.createDimension("Four", 4)
+
+    Mesh2 = n.createVariable("Mesh2", "i4", ())
+    Mesh2.cf_role = "mesh_topology"
+    Mesh2.topology_dimension = 2
+    Mesh2.node_coordinates = "Mesh2_node_x Mesh2_node_y"
+    Mesh2.face_node_connectivity = "Mesh2_face_nodes"
+    Mesh2.face_dimension = "nMesh2_face"
+    Mesh2.edge_node_connectivity = "Mesh2_edge_nodes"
+    Mesh2.edge_dimension = "nMesh2_edge"
+    Mesh2.edge_coordinates = "Mesh2_edge_x Mesh2_edge_y"
+    Mesh2.face_coordinates = "Mesh2_face_x Mesh2_face_y"
+    Mesh2.face_edge_connectivity = "Mesh2_face_edges"
+    Mesh2.face_face_connectivity = "Mesh2_face_links"
+    Mesh2.edge_face_connectivity = "Mesh2_edge_face_links"
+
+    Mesh2_face_nodes = n.createVariable(
+        "Mesh2_face_nodes", "i4", ("nMesh2_face", "Four"), fill_value=-99
+    )
+    Mesh2_face_nodes.long_name = "Maps every face to its corner nodes"
+    Mesh2_face_nodes[...] = [[2, 3, 1, 0], [4, 5, 3, 2], [1, 3, 6, -99]]
+
+    Mesh2_edge_nodes = n.createVariable(
+        "Mesh2_edge_nodes", "i4", ("nMesh2_edge", "Two")
+    )
+    Mesh2_edge_nodes.long_name = "Maps every edge to its two nodes"
+    Mesh2_edge_nodes[...] = [
+        [1, 6],
+        [3, 6],
+        [3, 1],
+        [0, 1],
+        [2, 0],
+        [2, 3],
+        [2, 4],
+        [5, 4],
+        [3, 5],
+    ]
+
+    # Optional mesh topology variables
+    Mesh2_face_edges = n.createVariable(
+        "Mesh2_face_edges", "i4", ("nMesh2_face", "Four"), fill_value=-99
+    )
+    Mesh2_face_edges.long_name = "Maps every face to its edges."
+
+    Mesh2_face_links = n.createVariable(
+        "Mesh2_face_links", "i4", ("nMesh2_face", "Four"), fill_value=-99
+    )
+    Mesh2_face_links.long_name = "neighbour faces for faces"
+    Mesh2_face_links[...] = [
+        [1, 2, -99, -99],
+        [0, -99, -99, -99],
+        [0, -99, -99, -99],
+    ]
+
+    Mesh2_edge_face_links = n.createVariable(
+        "Mesh2_edge_face_links", "i4", ("nMesh2_edge", "Two"), fill_value=-99
+    )
+    Mesh2_edge_face_links.long_name = "neighbour faces for edges"
+
+    # Mesh node coordinates
+    Mesh2_node_x = n.createVariable("Mesh2_node_x", "f4", ("nMesh2_node",))
+    Mesh2_node_x.standard_name = "longitude"
+    Mesh2_node_x.units = "degrees_east"
+    Mesh2_node_x[...] = [-45, -43, -45, -43, -45, -43, -40]
+
+    Mesh2_node_y = n.createVariable("Mesh2_node_y", "f4", ("nMesh2_node",))
+    Mesh2_node_y.standard_name = "latitude"
+    Mesh2_node_y.units = "degrees_north"
+    Mesh2_node_y[...] = [35, 35, 33, 33, 31, 31, 34]
+
+    # Optional mesh face and edge coordinate variables
+    Mesh2_face_x = n.createVariable("Mesh2_face_x", "f4", ("nMesh2_face",))
+    Mesh2_face_x.standard_name = "longitude"
+    Mesh2_face_x.units = "degrees_east"
+    Mesh2_face_x[...] = [-44, -44, -42]
+
+    Mesh2_face_y = n.createVariable("Mesh2_face_y", "f4", ("nMesh2_face",))
+    Mesh2_face_y.standard_name = "latitude"
+    Mesh2_face_y.units = "degrees_north"
+    Mesh2_face_y[...] = [34, 32, 34]
+
+    Mesh2_edge_x = n.createVariable("Mesh2_edge_x", "f4", ("nMesh2_edge",))
+    Mesh2_edge_x.standard_name = "longitude"
+    Mesh2_edge_x.units = "degrees_east"
+    Mesh2_edge_x[...] = [-41.5, -41.5, -43, -44, -45, -44, -45, -44, -43]
+
+    Mesh2_edge_y = n.createVariable("Mesh2_edge_y", "f4", ("nMesh2_edge",))
+    Mesh2_edge_y.standard_name = "latitude"
+    Mesh2_edge_y.units = "degrees_north"
+    Mesh2_edge_y[...] = [34.5, 33.5, 34, 35, 34, 33, 32, 31, 32]
+
+    # Non-mesh coordiantes
+    t = n.createVariable("time", "f8", ("time",))
+    t.standard_name = "time"
+    t.units = "seconds since 2016-01-01 15:00:00"
+    t.bounds = "time_bounds"
+    t[...] = [36000, 72000]
+
+    t_bounds = n.createVariable("time_bounds", "f8", ("time", "Two"))
+    t_bounds[...] = [[36000, 36000], [72000, 72000]]
+
+    # Data variables
+    ta = n.createVariable("ta", "f4", ("time", "nMesh2_face"))
+    ta.standard_name = "air_temperature"
+    ta.units = "K"
+    ta.mesh = "Mesh2"
+    ta.location = "face"
+    ta[...] = [[282.96, 282.69, 283.21], [281.53, 280.99, 281.23]]
+
+    v = n.createVariable("v", "f4", ("time", "nMesh2_edge"))
+    v.standard_name = "northward_wind"
+    v.units = "ms-1"
+    v.mesh = "Mesh2"
+    v.location = "edge"
+    v[...] = [
+        [10.2, 10.63, 8.74, 9.05, 8.15, 10.89, 8.44, 10.66, 8.93],
+        [9.66, 10.74, 9.24, 10.58, 9.79, 10.27, 10.58, 11.68, 11.22],
+    ]
+
+    pa = n.createVariable("pa", "f4", ("time", "nMesh2_node"))
+    pa.standard_name = "air_pressure"
+    pa.units = "hPa"
+    pa.mesh = "Mesh2"
+    pa.location = "node"
+    pa[...] = [
+        [999.67, 1006.45, 999.85, 1006.55, 1006.14, 1005.68, 999.48],
+        [
+            1003.48,
+            1006.42,
+            1000.83,
+            1002.98,
+            1008.28,
+            1002.97,
+            1002.47,
+        ],
+    ]
+
+    n.close()
     return filename
 
 
@@ -5245,6 +5396,8 @@ string_char_file = _make_string_char_file("string_char.nc")
 
 subsampled_file_1 = _make_subsampled_1("subsampled_1.nc")
 subsampled_file_1 = _make_subsampled_2("subsampled_2.nc")
+
+ugrid_1 = _make_ugrid_1("ugrid_1.nc")
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

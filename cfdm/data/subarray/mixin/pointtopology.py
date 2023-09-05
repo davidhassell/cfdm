@@ -66,7 +66,7 @@ class PointTopology:
         u = u.toarray()
 
         if nan in self.shape:
-            # Now that the shape is known, store it.
+            # Store the shape, now that is it known.
             self._set_component("shape", u.shape, copy=False)
 
         if indices is not Ellipsis:

@@ -3262,10 +3262,10 @@ class NetCDFWrite(IOWrite):
 
         # Check if the field or domain has a domain topology construct
         # (CF>=1.11)
-        ugrid = self.implementation.has_domain_topology()
+        ugrid = self.implementation.has_domain_topology(f)
         if ugrid:
             raise NotImplementedError(
-                "Can't create UGRID cf-netCDF files. "
+                "Can't yet create UGRID cf-netCDF files. "
                 "This feature is coming soon ..."
             )
 

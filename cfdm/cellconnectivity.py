@@ -78,7 +78,7 @@ class CellConnectivity(
 
         :Parameters:
 
-            {{init connectivty: `str`, optional}}
+            {{init connectivity: `str`, optional}}
 
             {{init properties: `dict`, optional}}
 

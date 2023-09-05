@@ -143,11 +143,11 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 except AttributeError:
                     array = NumpyArray(array.array.astype(dtype))
             elif isinstance(array, np.ndarray):
-                array = NumpyArray(array.astype(dtype))
+                array = array.astype(dtype)
             elif issparse(array):
-                array = SparseArray(array.astype(dtype))
+                array = array.astype(dtype)
             else:
-                array = NumpyArray(np.asanyarray(array).astype(dtype))
+                array = np.asanyarray(array).astype(dtype)
 
         if mask is not None:
             if isinstance(array, abstract.Array):

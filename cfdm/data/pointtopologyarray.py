@@ -1,10 +1,10 @@
 from math import nan
 
-from ..subarray import (
+from .abstract import MeshArray
+from .subarray import (
     PointTopologyFromEdgesSubarray,
     PointTopologyFromFacesSubarray,
 )
-from .abstract import MeshArray
 
 
 class PointTopologyArray(MeshArray):
@@ -36,6 +36,7 @@ class PointTopologyArray(MeshArray):
         return instance
 
     def __init__(
+        self,
         edge_node_connectivity=None,
         face_node_connectivity=None,
         shape=None,
@@ -68,12 +69,12 @@ class PointTopologyArray(MeshArray):
             {{init copy: `bool`, optional}}
 
         """
-        if edge_node_connectivity is None:
+        if edge_node_connectivity is not None:
             node_connectivity = edge_node_connectivity
-            compression_type = ("point topology from edges",)
-        elif edge_node_connectivity is None:
+            compression_type = "point topology from edges"
+        elif face_node_connectivity is not None:
             node_connectivity = face_node_connectivity
-            compression_type = ("point topology from faces",)
+            compression_type = "point topology from faces"
         else:
             node_connectivity = None
             compression_type = None
@@ -82,7 +83,7 @@ class PointTopologyArray(MeshArray):
             shape = (nan, nan)
 
         super().__init__(
-            compressed_array=node_connectivity,
+            connectivity=node_connectivity,
             shape=shape,
             compressed_dimensions={0: (0,), 1: (1,)},
             compression_type=compression_type,

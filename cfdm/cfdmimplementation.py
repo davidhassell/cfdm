@@ -31,6 +31,7 @@ from .data import (
     Data,
     GatheredArray,
     NetCDFArray,
+    PointTopologyArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
@@ -2239,6 +2240,25 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("List")
         return cls()
 
+    def initialise_PointTopologyArray(self, **kwargs):
+        """Return a point topology array.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the point topology array.
+                which are passed to `PointTopologyArray.__init__`.
+
+        :Returns:
+
+            `PointTopologyArray`
+
+        """
+        cls = self.get_class("PointTopologyArray")
+        return cls(**kwargs)
+
     def initialise_TiePointIndex(self):
         """Return an index variable.
 
@@ -2405,9 +2425,7 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedContiguousArray")
         return cls(
             compressed_array=compressed_array,
-            #            ndim=ndim,
             shape=shape,
-            #            size=size,
             count_variable=count_variable,
         )
 
@@ -2484,9 +2502,7 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("RaggedIndexedContiguousArray")
         return cls(
             compressed_array=compressed_array,
-            #            ndim=ndim,
             shape=shape,
-            #            size=size,
             count_variable=count_variable,
             index_variable=index_variable,
         )
@@ -3691,6 +3707,7 @@ _implementation = CFDMImplementation(
     BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
     NetCDFArray=NetCDFArray,
+    PointTopologyArray=PointTopologyArray,
     RaggedContiguousArray=RaggedContiguousArray,
     RaggedIndexedArray=RaggedIndexedArray,
     RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
@@ -3733,6 +3750,7 @@ def implementation():
      'Data': <class 'cfdm.data.data.Data'>,
      'GatheredArray': <class 'cfdm.data.gatheredarray.GatheredArray'>,
      'NetCDFArray': <class 'cfdm.data.netcdfarray.NetCDFArray'>,
+     'PointTopologyArray': <class 'cfdm.data.pointtopologyarray.PointTopologyArray'>,
      'RaggedContiguousArray': <class 'cfdm.data.raggedcontiguousarray.RaggedContiguousArray'>,
      'RaggedIndexedArray': <class 'cfdm.data.raggedindexedarray.RaggedIndexedArray'>,
      'RaggedIndexedContiguousArray': <class 'cfdm.data.raggedindexedcontiguousarray.RaggedIndexedContiguousArray'>,
