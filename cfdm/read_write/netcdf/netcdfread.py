@@ -275,7 +275,6 @@ class NetCDFRead(IORead):
 
         """
         return {
-            "edge_edge_connectivity": "node",
             "face_face_connectivity": "edge",
         }
 
@@ -3912,6 +3911,7 @@ class NetCDFRead(IORead):
                 ncvar = self.implementation.nc_get_variable(cell_connectivity)
                 ncvar_to_key[ncvar] = key
 
+        if ugrid:
             # Set the mesh identifier
             self.implementation.set_mesh_id(f, mesh["mesh_id"])
 
@@ -8650,7 +8650,8 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                The mesh description.
+                The mesh description, as stored in
+                ``self.read_vars['mesh']``.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8724,7 +8725,8 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                The mesh description.
+                The mesh description, as stored in
+                ``self.read_vars['mesh']``.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8846,7 +8848,8 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                The mesh description.
+                The mesh description, as stored in
+                ``self.read_vars['mesh']``.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -8933,7 +8936,8 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                The mesh description.
+                The mesh description, as stored in
+                ``self.read_vars['mesh']``.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -9039,6 +9043,8 @@ class NetCDFRead(IORead):
     def _ugrid_create_cell_connectivity(self, parent_ncvar, f, mesh, location):
         """Create a cell connectivity construct.
 
+        Only "face_face_connectivty" is supported.
+
         .. versionadded:: (cfdm) UGRIDVER
 
         :Parameters:
@@ -9050,7 +9056,8 @@ class NetCDFRead(IORead):
                 The parent field construct.
 
             mesh: `dict`
-                The mesh description.
+                The mesh description, as stored in
+                ``self.read_vars['mesh']``.
 
             location: `str`
                 The location of the cells in the mesh topology. One of
@@ -9059,11 +9066,11 @@ class NetCDFRead(IORead):
         :Returns:
 
             `CellConnectivity` or `None`
-                The cell connectivity construct, or `None` if could
+                The cell connectivity construct, or `None` if it could
                 not be created.
 
         """
-        if location == "node":
+        if location != "face":
             return
 
         attributes = mesh["mesh_attributes"]

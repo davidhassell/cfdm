@@ -84,8 +84,6 @@ class DomainTopology(
 
     **NetCDF interface**
 
-    {{netCDF variable}}
-
     The netCDF variable name of the UGRID mesh topology variable may
     be accessed with the `nc_set_variable`, `nc_get_variable`,
     `nc_del_variable`, and `nc_has_variable` methods.

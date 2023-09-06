@@ -50,7 +50,7 @@ class CellConnectivityArray(MeshArray):
                 "edge_edge_connectivty" or "face_face_connectivty"
                 variable.
 
-            {{start_index: `int`}}
+            {{start_index: `int`, optional}}
 
             {{init source: optional}}
 

@@ -5225,7 +5225,7 @@ def _make_subsampled_2(filename):
 
 
 def _make_ugrid_1(filename):
-    """Create UGRID file."""
+    """Create a UGRID file with a 2-d mesh topology."""
     n = netCDF4.Dataset(filename, "w")
 
     n.Conventions = f"CF-{VN} UGRID-1.0"
@@ -5242,9 +5242,9 @@ def _make_ugrid_1(filename):
     Mesh2.topology_dimension = 2
     Mesh2.node_coordinates = "Mesh2_node_x Mesh2_node_y"
     Mesh2.face_node_connectivity = "Mesh2_face_nodes"
-    Mesh2.face_dimension = "nMesh2_face"
+    Mesh2.face_dimension = "nMesh2_face" # TODOUGRID
     Mesh2.edge_node_connectivity = "Mesh2_edge_nodes"
-    Mesh2.edge_dimension = "nMesh2_edge"
+    Mesh2.edge_dimension = "nMesh2_edge" # TODOUGRID
     Mesh2.edge_coordinates = "Mesh2_edge_x Mesh2_edge_y"
     Mesh2.face_coordinates = "Mesh2_face_x Mesh2_face_y"
     Mesh2.face_edge_connectivity = "Mesh2_face_edges"
@@ -5329,12 +5329,12 @@ def _make_ugrid_1(filename):
     # Non-mesh coordiantes
     t = n.createVariable("time", "f8", ("time",))
     t.standard_name = "time"
-    t.units = "seconds since 2016-01-01 15:00:00"
+    t.units = "seconds since 2016-01-01 00:00:00"
     t.bounds = "time_bounds"
-    t[...] = [36000, 72000]
+    t[...] = [43200, 129600]
 
     t_bounds = n.createVariable("time_bounds", "f8", ("time", "Two"))
-    t_bounds[...] = [[36000, 36000], [72000, 72000]]
+    t_bounds[...] = [[0, 86400], [86400, 172800]]
 
     # Data variables
     ta = n.createVariable("ta", "f4", ("time", "nMesh2_face"))
@@ -5342,6 +5342,7 @@ def _make_ugrid_1(filename):
     ta.units = "K"
     ta.mesh = "Mesh2"
     ta.location = "face"
+    ta.coordinates = "Mesh2_face_x Mesh2_face_y"
     ta[...] = [[282.96, 282.69, 283.21], [281.53, 280.99, 281.23]]
 
     v = n.createVariable("v", "f4", ("time", "nMesh2_edge"))
@@ -5349,6 +5350,7 @@ def _make_ugrid_1(filename):
     v.units = "ms-1"
     v.mesh = "Mesh2"
     v.location = "edge"
+    v.coordinates = "Mesh2_edge_x Mesh2_edge_y"
     v[...] = [
         [10.2, 10.63, 8.74, 9.05, 8.15, 10.89, 8.44, 10.66, 8.93],
         [9.66, 10.74, 9.24, 10.58, 9.79, 10.27, 10.58, 11.68, 11.22],
@@ -5359,6 +5361,7 @@ def _make_ugrid_1(filename):
     pa.units = "hPa"
     pa.mesh = "Mesh2"
     pa.location = "node"
+    pa.coordinates = "Mesh2_node_x Mesh2_node_y"
     pa[...] = [
         [999.67, 1006.45, 999.85, 1006.55, 1006.14, 1005.68, 999.48],
         [

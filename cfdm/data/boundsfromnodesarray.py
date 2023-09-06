@@ -56,7 +56,7 @@ class BoundsFromNodesArray(MeshArray):
                 each mesh node, as found in a UGRID "node_coordinates"
                 variable.
 
-            {{start_index: `int`}}
+            {{start_index: `int`, optional}}
 
             {{init source: optional}}
 

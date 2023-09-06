@@ -56,11 +56,11 @@ class PointTopologyArray(MeshArray):
                 A 2-d integer array of indices that corresponds to a
                 UGRID "face_node_connectivity" variable.
 
-            shape
+            shape: `tuple`, optional
                 The shape of the point cell domain topology array. If
                 the shape is unknown (beacuse the connectivity array
                 has not been read yet) then set to `None`, which will
-                result in a shape of ``(math.nan, math.nan)``.
+                result in a shape of ``(nan, nan)``.
 
             {{start_index: `int`, optional}}
 

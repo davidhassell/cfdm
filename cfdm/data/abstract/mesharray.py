@@ -89,14 +89,14 @@ class MeshArray(CompressedArray):
         .. versionadded:: (cfdm) UGRIDVER
 
         """
-        from math import nan
+        from math import isnan, nan
 
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
         # ------------------------------------------------------------
         # Initialise the un-sliced uncompressed array
         shape = self.shape
-        known_shape = nan not in shape
+        known_shape = not any(map(isnan, shape))
         if known_shape:
             u = np.ma.empty(self.shape, dtype=self.dtype)
 
@@ -290,7 +290,8 @@ class MeshArray(CompressedArray):
                 u_shapes.append((size,))
                 u_indices.append((slice(None),))
             else:
-                # Note: c can not be (nan,) when d is not in dims
+                # Note: c can not be (nan,) when d is not a compressed
+                #       dimension
                 locations.append([i for i in range(len(c))])
                 u_shapes.append(c)
 

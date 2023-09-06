@@ -3190,8 +3190,8 @@ class CFDMImplementation(Implementation):
 
         :Parameters:
 
-            parent: `Field`
-                The field construct on which to set the mesh id
+            parent: construct
+                The construct on which to set the mesh id
 
             mesh_id:
                 The mesh identifier.

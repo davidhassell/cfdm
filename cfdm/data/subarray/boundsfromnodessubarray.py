@@ -163,7 +163,7 @@ class BoundsFromNodesSubarray(MeshSubarray):
         .. versionadded:: (cfdm) UGRIDVER
 
         """
-        return self.nodes_coordinates.dtype
+        return self.node_coordinates.dtype
 
     @property
     def node_coordinates(self):
