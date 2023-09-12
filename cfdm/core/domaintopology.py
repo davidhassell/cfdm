@@ -23,7 +23,7 @@ class DomainTopology(abstract.Topology):
             connecting two boundary vertices.
     * Face: A face is two-dimensional and corresponds to a surface
             enclosed by a set of edges.
-
+    
     Each type of cell implies a restricted topology for which only
     some kinds of mesh are allowed. For point cells, every node
     corresponds to exactly one cell; and two cells have a topological
@@ -33,7 +33,7 @@ class DomainTopology(abstract.Topology):
     multiple cells; every link in the mesh connects two cell boundary
     vertices; and two cells have a topological relationship if and
     only if they share at least one node.
-
+    
     A domain topology construct contains an array defining the mesh,
     and properties to describe it. There must be a property indicating
     the spatial dimensionality of the cells. The array values comprise
@@ -59,19 +59,6 @@ class DomainTopology(abstract.Topology):
     definitive and must be used in preference to the topology implied
     by inspection of any other constructs, which is not guaranteed to
     be the same.
-
-    In CF-netCDF a domain topology construct can only be provided for
-    a UGRID mesh topology variable. The information in the construct
-    array is supplied by the UGRID "edge_nodes_connectivity" variable
-    (for edge cells) or "face_nodes_connectivity" variable (for face
-    cells). The topology for node cells may be provided by any of
-    these three UGRID variables. The integer indices contained in the
-    UGRID variable may be used as the mesh node identities, although
-    the CF data model attaches no significance to the values other
-    than the fact that some values are the same as others. The spatial
-    dimensionality property is provided by the "location" attribute of
-    a variable that references the UGRID mesh topology variable,
-    i.e. a data variable or a UGRID location index set variable.
 
     See CF Appendix I "The CF Data Model".
 

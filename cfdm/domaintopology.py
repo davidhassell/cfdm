@@ -30,7 +30,7 @@ class DomainTopology(
             connecting two boundary vertices.
     * Face: A face is two-dimensional and corresponds to a surface
             enclosed by a set of edges.
-
+    
     Each type of cell implies a restricted topology for which only
     some kinds of mesh are allowed. For point cells, every node
     corresponds to exactly one cell; and two cells have a topological
@@ -40,7 +40,7 @@ class DomainTopology(
     multiple cells; every link in the mesh connects two cell boundary
     vertices; and two cells have a topological relationship if and
     only if they share at least one node.
-
+    
     A domain topology construct contains an array defining the mesh,
     and properties to describe it. There must be a property indicating
     the spatial dimensionality of the cells. The array values comprise
@@ -79,6 +79,28 @@ class DomainTopology(
     dimensionality property is provided by the "location" attribute of
     a variable that references the UGRID mesh topology variable,
     i.e. a data variable or a UGRID location index set variable.
+
+    A single UGRID mesh topology defines multiple domain constructs
+    and defines how they relate to each other. For instance, when
+    "face_node_connectivity" and "edge_node_connectivity" variables
+    are both present there are three implied domain constructs - one
+    each for face, edge and point cells - all of which have the same
+    mesh and so are explicitly linked (e.g. it is known which edge
+    cells define each face cell). The CF data model has no mechanism
+    for explicitly recording such relationships between multiple
+    domain constructs, however whether or not two domains have the
+    same mesh may be reliably deternined by inspection, thereby
+    allowing the creation of netCDF datasets containing UGRID mesh
+    topology variables.
+
+    The restrictions on the type of mesh that may be used with a given
+    cell spatial dimensionality excludes some meshes which can be
+    described by an undirected graph, but is consistent with UGRID
+    encoding within CF-netCDF. UGRID also describes meshes for
+    three-dimensional volume cells that correspond to a volume
+    enclosed by a set of faces, but how the nodes relate to volume
+    boundary vertices is undefined and so volume cells are currently
+    omitted from the CF data model.
 
     See CF Appendix I "The CF Data Model".
 
