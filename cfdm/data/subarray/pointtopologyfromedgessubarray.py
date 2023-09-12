@@ -14,9 +14,10 @@ class PointTopologyFromEdgesSubarray(PointTopology, MeshSubarray):
     """
 
     def _connected_nodes(self, node, node_connectivity, masked):
-        """Return nodes that are joined to *node* by edges.
+        """Return the nodes that are joined to *node* by edges.
 
-        The input *node* is also included in the returned array.
+        The input *node* is included at the start of the returned
+        list.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -36,9 +37,19 @@ class PointTopologyFromEdgesSubarray(PointTopology, MeshSubarray):
 
             `list`
                 All nodes that are joined to *node*, including *node*
-                itself.
+                itself at the start.
 
         """
-        return np.unique(
-            node_connectivity[np.where(node_connectivity == node)[0]]
-        ).tolist()
+        nodes = sorted(
+            set(
+                node_connectivity[np.where(node_connectivity == node)[0]]
+                .flatten()
+                .tolist()
+            )
+        )
+
+        # Move 'node' to the front of the list
+        nodes.remove(node)
+        nodes.insert(0, node)
+
+        return nodes

@@ -9,8 +9,8 @@ class BoundsFromNodesSubarray(MeshSubarray):
     A subarray describes a unique part of the uncompressed array.
 
     The UGRID node coordinates contain the locations of the nodes of
-    the domain topology. In UGRID, the bounds of edge, face and volume
-    cells may be defined by the these locations in conjunction with a
+    the domain topology. In UGRID, the bounds of edge or face cells
+    may be defined by the these locations in conjunction with a
     mapping from from each cell boundary vertex to its corresponding
     coordinate value.
 
@@ -27,7 +27,8 @@ class BoundsFromNodesSubarray(MeshSubarray):
         shape=None,
         compressed_dimensions=None,
         node_coordinates=None,
-        start_index=0,
+        start_index=None,
+        cell_dimension=None,
         source=None,
         copy=True,
         context_manager=None,
@@ -40,10 +41,9 @@ class BoundsFromNodesSubarray(MeshSubarray):
                 A 2-d integer array that contains indices that map
                 each cell boundary vertex to its corresponding
                 position in the 1-d *node_coordinates* array, as found
-                in a UGRID "edge_node_connectivty",
-                "face_node_connectivty", or "volume_node_connectivty"
-                variable. This array contains the mapping for all
-                subarrays.
+                in a UGRID "edge_node_connectivty" or
+                "face_node_connectivty" variable. This array contains
+                the mapping for all subarrays.
 
             indices: `tuple` of `slice`
                 The indices of *data* that define this subarray.
@@ -62,7 +62,9 @@ class BoundsFromNodesSubarray(MeshSubarray):
                 variable. This array contains the node coordinates for
                 all subarrays.
 
-            {{start_index: `int`}}
+            {{init start_index: `int`}}
+
+            {{init cell_dimension: `int`}}
 
             {{init source: optional}}
 
@@ -70,8 +72,8 @@ class BoundsFromNodesSubarray(MeshSubarray):
 
             context_manager: function, optional
                 A context manager that provides a runtime context for
-                the conversion of data defined by *data* to a `numpy`
-                array.
+                the conversion of *data* and *node_coordinates* to
+                `numpy` arrays.
 
         """
         super().__init__(
@@ -80,6 +82,7 @@ class BoundsFromNodesSubarray(MeshSubarray):
             shape=shape,
             compressed_dimensions=compressed_dimensions,
             start_index=start_index,
+            cell_dimension=cell_dimension,
             source=source,
             copy=copy,
             context_manager=context_manager,
@@ -110,6 +113,7 @@ class BoundsFromNodesSubarray(MeshSubarray):
 
         """
         node_connectivity = self._select_data(check_mask=True)
+
         if np.ma.isMA(node_connectivity):
             node_indices = node_connectivity.compressed()
             u = np.ma.masked_all(self.shape, dtype=self.dtype)

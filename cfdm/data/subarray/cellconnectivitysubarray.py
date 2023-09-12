@@ -10,8 +10,8 @@ class CellConnectivitySubarray(MeshSubarray):
     A subarray describes a unique part of the uncompressed array.
 
     A UGRID connectivity variable contains indices which map each cell
-    to its neighbours, as found in a UGRID "edge_edge_connectivty",
-    "face_face_connectivty", or "volume_volume_connectivty" variable.
+    to its neighbours, as found in a UGRID "face_face_connectivty"
+    variable.
 
     .. versionadded:: (cfdm) UGRIDVER
 
@@ -56,7 +56,7 @@ class CellConnectivitySubarray(MeshSubarray):
         if indices is not Ellipsis:
             u = u[indices]
 
-        # Make sure the values are zero-based
+        # Make sure that the values are zero-based
         if start_index:
             u -= 1
 

@@ -381,10 +381,14 @@ _docstring_substitution_definitions = {
                 data. Compressed array dimensions that are not
                 compressed must be omitted from the mapping.""",
     # init start_index
-    "{{start_index: `int`, optional}}": """start_index: `int`, optional
+    "{{init start_index: `int`}}": """start_index: `int`
                 The base of the indices provided by the integer index
                 array. Must be ``0`` or ``1`` for zero- or one-based
                 indices respectively.""",
+    # init cell_dimension
+    "{{init cell_dimension: `int`}}": """cell_dimension: `int`
+                The position of the *data* dimension that indexes the
+                cells, either ``0`` or ``1``.""",
     # ----------------------------------------------------------------
     # Method description susbstitutions (4 levels of indentataion)
     # ----------------------------------------------------------------

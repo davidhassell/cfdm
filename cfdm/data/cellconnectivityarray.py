@@ -6,8 +6,8 @@ class CellConnectivityArray(MeshArray):
     """A connectivity array derived from a UGRID connectivity variable.
 
     A UGRID connectivity variable contains indices which map each cell
-    to its neighbours, as found in a UGRID "edge_edge_connectivty",
-    "face_face_connectivty", or "volume_volume_connectivty" variable.
+    to its neighbours, as found in a UGRID "face_face_connectivty" or
+    "volume_volume_connectivty" variable.
 
     The connectivity array has one more column than the corresponding
     UGRID variable. The extra column, in the first position, contains
@@ -37,6 +37,7 @@ class CellConnectivityArray(MeshArray):
         self,
         cell_connectivity=None,
         start_index=None,
+        cell_dimension=None,
         source=None,
         copy=True,
     ):
@@ -47,10 +48,12 @@ class CellConnectivityArray(MeshArray):
             cell_connectivity: array_like
                 A 2-d integer array that contains indices which map
                 each cell to its neighbours, as found in a UGRID
-                "edge_edge_connectivty" or "face_face_connectivty"
-                variable.
+                "face_face_connectivty", or
+                "volume_volume_connectivty" variable.
 
-            {{start_index: `int`, optional}}
+            {{init start_index: `int`}}
+
+            {{init cell_dimension: `int`}}
 
             {{init source: optional}}
 
@@ -61,6 +64,9 @@ class CellConnectivityArray(MeshArray):
             shape = None
         else:
             shape = cell_connectivity.shape
+            if cell_dimension == 1:
+                shape = shape[::-1]
+
             shape = (shape[0], shape[1] + 1)
 
         super().__init__(
@@ -68,6 +74,7 @@ class CellConnectivityArray(MeshArray):
             shape=shape,
             compressed_dimensions={1: (1,)},
             start_index=start_index,
+            cell_dimension=cell_dimension,
             compression_type="cell connectivity",
             source=source,
             copy=copy,

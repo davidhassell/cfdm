@@ -16,7 +16,8 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
     def _connected_nodes(self, node, node_connectivity, masked):
         """Return nodes that are joined to *node* by face edges.
 
-        The input *node* is included in the returned array.
+        The input *node* is included at the start of the returned
+        list.
 
         .. versionadded:: (cfdm) UGRIDVER
 
@@ -26,7 +27,7 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
                 A node identifier.
 
             node_connectivity: `numpy.ndarray`
-                A "face_node_connectivity" array.
+                A UGRID "face_node_connectivity" array.
 
             masked: `bool`
                 Whether or not *node_connectivity* has masked
@@ -36,20 +37,21 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
 
             `list`
                 All nodes that are joined to *node*, including *node*
-                itself.
+                itself at the start.
 
         """
-        # Find face that contain this node:
         if masked:
             where = np.ma.where
         else:
             where = np.where
 
+        # Find the faces that contain this node:
         faces = where(node_connectivity == node)[0]
 
         nodes = []
         nodes_extend = nodes.extend
 
+        # For each face, find which two of its nodes neighbour 'node'.
         for face_nodes in node_connectivity[faces]:
             if masked:
                 face_nodes = face_nodes.compressed()
@@ -65,5 +67,8 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
             )
 
         nodes = list(set(nodes))
-        nodes.append(node)
+
+        # Insert 'node' at the front of the list
+        nodes.insert(0, node)
+
         return nodes

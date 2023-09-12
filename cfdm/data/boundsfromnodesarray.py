@@ -6,8 +6,8 @@ class BoundsFromNodesArray(MeshArray):
     """An array of cell bounds defined by UGRID node coordinates.
 
     The UGRID node coordinates contain the locations of the nodes of
-    the domain topology. In UGRID, the bounds of edge, face and volume
-    cells may be defined by the these locations in conjunction with a
+    the domain topology. In UGRID, the bounds of edge or face cells
+    may be defined by the these locations in conjunction with a
     mapping from from each cell boundary vertex to its corresponding
     coordinate value.
 
@@ -32,6 +32,7 @@ class BoundsFromNodesArray(MeshArray):
         node_connectivity=None,
         shape=None,
         start_index=None,
+        cell_dimension=None,
         node_coordinates=None,
         source=None,
         copy=True,
@@ -44,19 +45,20 @@ class BoundsFromNodesArray(MeshArray):
                 A 2-d integer array that contains indices which map
                 each cell boundary vertex to its corresponding
                 position in the 1-d *node_coordinates* array, as found
-                in a UGRID "edge _node_connectivty",
-                "face_node_connectivty", or "volume_node_connectivty"
-                variable.
+                in a UGRID "edge _node_connectivty" or
+                "face_node_connectivty" variable.
 
             shape: `tuple`
                 The shape of the bounds array.
+
+            {{init start_index: `int`}}
+
+            {{init cell_dimension: `int`}}
 
             node_coordinates: array_like
                 A 1-d array that contains a coordinate location for
                 each mesh node, as found in a UGRID "node_coordinates"
                 variable.
-
-            {{start_index: `int`, optional}}
 
             {{init source: optional}}
 
@@ -70,6 +72,7 @@ class BoundsFromNodesArray(MeshArray):
             connectivity=node_connectivity,
             shape=shape,
             start_index=start_index,
+            cell_dimension=cell_dimension,
             compressed_dimensions={1: (1,)},
             compression_type="bounds from nodes",
             source=source,
@@ -78,9 +81,7 @@ class BoundsFromNodesArray(MeshArray):
 
         if source is not None:
             try:
-                node_coordinates = source._get_component(
-                    "node_coordinates", None
-                )
+                node_coordinates = source.get_node_coordinates(None)
             except AttributeError:
                 node_coordinates = None
 

@@ -65,6 +65,26 @@ class CellConnectivityTest(unittest.TestCase):
         c = self.c
         self.assertEqual(c.ndim, 1)
 
+    def test_CellConnectivity_connectivity(self):
+        """Test the 'connectivity' methods of CellConnectivity."""
+        c = self.c.copy()
+        self.assertTrue(c.has_connectivity())
+        self.assertEqual(c.get_connectivity(), "edge")
+        self.assertEqual(c.del_connectivity(), "edge")
+        self.assertFalse(c.has_connectivity())
+        self.assertIsNone(c.get_connectivity(None))
+        self.assertIsNone(c.del_connectivity(None))
+
+        with self.assertRaises(ValueError):
+            c.get_connectivity()
+
+        with self.assertRaises(ValueError):
+            c.del_connectivity()
+
+        self.assertIsNone(c.set_connectivity("edge"))
+        self.assertTrue(c.has_connectivity())
+        self.assertEqual(c.get_connectivity(), "edge")
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

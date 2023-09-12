@@ -33,6 +33,7 @@ class MeshArray(CompressedArray):
         compressed_dimensions=None,
         compression_type=None,
         start_index=None,
+        cell_dimension=None,
         source=None,
         copy=True,
     ):
@@ -43,14 +44,16 @@ class MeshArray(CompressedArray):
             connectivity: array_like
                 A 2-d integer array of indices that corresponds to a
                 UGRID "edge_node_connectivity",
-                "face_node_connectivity", "edge_edge_connectivty",
-                "face_face_connectivty", or variable.
+                "face_node_connectivity", or
+                "face_face_connectivty" variable.
 
             shape
                 The shape of the CF data model view of the
                 connectivity array.
 
-            {{start_index: `int`}}
+            {{int start_index: `int`}}
+
+            {{init cell_dimension: `int`}}
 
             compression_type: `str`, optional
                 The type of compression.
@@ -75,8 +78,16 @@ class MeshArray(CompressedArray):
             except AttributeError:
                 start_index = None
 
+            try:
+                cell_dimension = source.get_cell_dimension(None)
+            except AttributeError:
+                cell_dimension = None
+
         if start_index is not None:
             self._set_component("start_index", start_index, copy=False)
+
+        if cell_dimension is not None:
+            self._set_component("cell_dimension", cell_dimension, copy=False)
 
     def __getitem__(self, indices):
         """Return a subspace of the uncompressed data.
@@ -89,7 +100,7 @@ class MeshArray(CompressedArray):
         .. versionadded:: (cfdm) UGRIDVER
 
         """
-        from math import isnan, nan
+        from math import isnan
 
         # ------------------------------------------------------------
         # Method: Uncompress the entire array and then subspace it
@@ -106,6 +117,7 @@ class MeshArray(CompressedArray):
 
         conformed_data = self.conformed_data()
         start_index = self.get_start_index()
+        cell_dimension = self.get_cell_dimension()
 
         for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
             subarray = Subarray(
@@ -113,6 +125,7 @@ class MeshArray(CompressedArray):
                 shape=u_shape,
                 compressed_dimensions=compressed_dimensions,
                 start_index=start_index,
+                cell_dimension=cell_dimension,
                 **conformed_data,
             )
             if known_shape:
@@ -139,6 +152,30 @@ class MeshArray(CompressedArray):
 
         """
         return self._get_compressed_Array().dtype
+
+    def get_cell_dimension(self, default=ValueError()):
+        """Return the position of the cell dimension.
+
+        In UGRID, this is provided by one of the the "edge_dimension",
+        "face_dimension" or "volume_dimension" variables.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no cell dimension position.
+
+                {{default Exception}}
+
+        :Returns:
+
+            `int`
+                The position of the cell dimension.
+
+        """
+        return self._get_component("cell_dimension", default)
 
     def get_start_index(self, default=ValueError()):
         """Return the start index.

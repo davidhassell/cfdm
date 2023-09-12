@@ -979,8 +979,8 @@ class NetCDFRead(IORead):
         for vn in ("1.6", "1.7", "1.8", "1.9", "1.10", "1.11"):
             g["CF>=" + vn] = g["file_version"] >= g["version"][vn]
 
+        # From CF-1.11 we can assume UGRID-1.0
         if g["CF>=1.11"] and g["UGRID_version"] is None:
-            # From CF-1.11 we can assume UGRID-1.0
             g["UGRID_version"] = "1.0"
 
         # ------------------------------------------------------------
@@ -3875,7 +3875,6 @@ class NetCDFRead(IORead):
                     f"{domain_topology.__class__.__name__} with data shape "
                     f"{self.implementation.get_data_shape(domain_topology)}"
                 )  # pragma: no cover
-
                 key = self.implementation.set_domain_topology(
                     f,
                     domain_topology,
@@ -8492,14 +8491,17 @@ class NetCDFRead(IORead):
         if not self._ugrid_check_mesh_topology(mesh_ncvar):
             return
 
+        do_not_create_field = g["do_not_create_field"]
+
         node_coordinates = self._split_string_by_white_space(
             None, attributes["node_coordinates"], variables=True
         )
+        for value in node_coordinates:
+            do_not_create_field.add(value)
 
         # Do not attempt to create a field or domain construct from a
         # mesh topology variable, nor mesh topology connectivity
         # variables.
-        do_not_create_field = g["do_not_create_field"]
         do_not_create_field.add(mesh_ncvar)
         for attr, value in attributes.items():
             if attr in (
@@ -8700,7 +8702,12 @@ class NetCDFRead(IORead):
             )
             return
         else:
-            ncdim = ncdim[0]
+            if len(ncdim) == 1:
+                i = 0
+            else:
+                i = self._ugrid_cell_dimension(location, ncvar, mesh)
+
+            ncdim = ncdim[i]
 
         mesh["ncdim"][location] = ncdim
         return ncdim
@@ -8779,8 +8786,9 @@ class NetCDFRead(IORead):
                 if location != "node" and not self.implementation.has_bounds(
                     aux
                 ):
-                    # These auxiliary edge/face coordinates don't have
-                    # bounds => create bounds from the mesh nodes.
+                    # These auxiliary [edge|face] coordinates don't
+                    # have bounds => create bounds from the mesh
+                    # nodes.
                     aux = self._ugrid_create_bounds_from_nodes(
                         parent_ncvar,
                         node_ncvar,
@@ -8796,10 +8804,10 @@ class NetCDFRead(IORead):
                 auxs.append(aux)
 
         elif nodes_ncvar:
-            # Create auxiliary coordinate constructs that are derived
-            # from an [edge|face|volume]_node_connectivity
-            # variable. These will only contain bounds, with no
-            # coordinate values.
+            # There are no cell coordinates, so create auxiliary
+            # coordinate constructs that are derived from an
+            # [edge|face|volume]_node_connectivity variable. These
+            # will contain only bounds, with no coordinate values.
             for node_ncvar in nodes_ncvar:
                 aux = self._ugrid_create_bounds_from_nodes(
                     parent_ncvar,
@@ -8894,13 +8902,21 @@ class NetCDFRead(IORead):
         start_index = g["variable_attributes"][connectivity_ncvar].get(
             "start_index", 0
         )
+        cell_dimension = self._ugrid_cell_dimension(
+            location, connectivity_ncvar, mesh
+        )
+
+        shape = node_connectivity.shape
+        if cell_dimension == 1:
+            shape = shape[::-1]
 
         # Create and set the bounds data
         array = self.implementation.initialise_BoundsFromNodesArray(
             node_connectivity=node_connectivity,
-            shape=node_connectivity.shape,
+            shape=shape,
             node_coordinates=node_coordinates,
             start_index=start_index,
+            cell_dimension=cell_dimension,
             copy=False,
         )
         bounds_data = self._create_Data(
@@ -8960,17 +8976,15 @@ class NetCDFRead(IORead):
         if location == "node":
             cell = "point"
             connectivity_attr = None
-            for connectivity_attr in (
-                "edge_node_connectivity",
-                "face_node_connectivity",
-                "volume_node_connectivity",
-            ):
+            for loc in ("edge", "face", "volume"):
+                connectivity_attr = f"{loc}_node_connectivity"
                 if connectivity_attr in attributes:
                     break
         else:
             # location in ("edge", "face", "volume")
             cell = location
             connectivity_attr = f"{location}_node_connectivity"
+            loc = location
 
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._ugrid_check_connectivity_variable(
@@ -8988,6 +9002,9 @@ class NetCDFRead(IORead):
             connectivity_ncvar
         ].copy()
         start_index = properties.pop("start_index", 0)
+        cell_dimension = self._ugrid_cell_dimension(
+            loc, connectivity_ncvar, mesh
+        )
 
         # Create data
         if cell == "point":
@@ -9001,6 +9018,7 @@ class NetCDFRead(IORead):
             array = self.implementation.initialise_PointTopologyArray(
                 shape=(n_nodes, nan),
                 start_index=start_index,
+                cell_dimension=cell_dimension,
                 copy=False,
                 **{connectivity_attr: indices},
             )
@@ -9015,6 +9033,8 @@ class NetCDFRead(IORead):
             data = self._create_data(
                 connectivity_ncvar, compression_index=True
             )
+            if cell_dimension == 1:
+                data = data.transpose()
 
         # Initialise the domain topology variable
         domain_topology = self.implementation.initialise_DomainTopology(
@@ -9095,6 +9115,9 @@ class NetCDFRead(IORead):
         # CF properties
         properties = self.read_vars["variable_attributes"][connectivity_ncvar]
         start_index = properties.pop("start_index", 0)
+        cell_dimension = self._ugrid_cell_dimension(
+            location, connectivity_ncvar, mesh
+        )
 
         # Connectivity data
         indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
@@ -9102,6 +9125,7 @@ class NetCDFRead(IORead):
         array = self.implementation.initialise_CellConnectivityArray(
             cell_connectivity=indices,
             start_index=start_index,
+            cell_dimension=cell_dimension,
             copy=False,
         )
         data = self._create_Data(
@@ -9134,6 +9158,44 @@ class NetCDFRead(IORead):
 
         mesh["cell_connectivity"][connectivity_attr] = connectivity
         return connectivity
+
+    def _ugrid_cell_dimension(self, location, connectivity_ncvar, mesh):
+        """The connectivity variable dimension the indexes the cells.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        :Parameters:
+
+            location: `str`
+                The type of the connectivity variable, one of
+                ``'node'``, ``'edge'``, ``'face'``, ``'volume'``.
+
+            connectivity_ncvar: `str`
+                The netCDF variable name of the UGRID connectivity
+                variable.
+
+            mesh: `dict`
+                The mesh description, as stored in
+                ``self.read_vars['mesh']``.
+
+        :Returns:
+
+            `int`
+                The position of the dimension of the connectivity
+                variable that indexes the cells. Either ``0`` or
+                ``1``.
+
+        """
+        ncdim = mesh["mesh_attributes"].get(f"{location}_dimension")
+        if ncdim is None:
+            return 0
+
+        try:
+            cell_dim = self._ncdimensions(connectivity_ncvar).index(ncdim)
+        except IndexError:
+            cell_dim = 0
+
+        return cell_dim
 
     def _ugrid_check_mesh_topology(self, mesh_ncvar):
         """Check a UGRID mesh topology variable.

@@ -2,7 +2,10 @@ from .numpyarray import NumpyArray
 
 
 class SparseArray(NumpyArray):
-    """An underlying `scipy` sparse array.
+    """An underlying sparse array.
+
+    The sparse array is assumed to have the same API as `scipy` sparse
+    arrays.
 
     .. versionadded:: (cfdm) UGRIDVER
 

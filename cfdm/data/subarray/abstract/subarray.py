@@ -60,8 +60,7 @@ class Subarray(Array):
 
             context_manager: function, optional
                 A context manager that provides a runtime context for
-                the conversion of data defined by *data* to a `numpy`
-                array.
+                the conversion of *data* to a `numpy` array.
 
         """
         super().__init__(source=source, copy=copy)
@@ -196,7 +195,9 @@ class Subarray(Array):
         if data is None:
             data = self.data
 
-        return self._asanyarray(data[self.indices], check_mask=check_mask)
+        return self._asanyarray(
+            data, indices=self.indices, check_mask=check_mask
+        )
 
     @property
     def data(self):

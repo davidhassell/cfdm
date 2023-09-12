@@ -59,6 +59,26 @@ class DomainTopologyTest(unittest.TestCase):
         d = self.d
         self.assertEqual(d.ndim, 1)
 
+    def test_DomainTopology_cell(self):
+        """Test the 'cell' methods of DomainTopology."""
+        d = self.d.copy()
+        self.assertTrue(d.has_cell())
+        self.assertEqual(d.get_cell(), "face")
+        self.assertEqual(d.del_cell(), "face")
+        self.assertFalse(d.has_cell())
+        self.assertIsNone(d.get_cell(None))
+        self.assertIsNone(d.del_cell(None))
+
+        with self.assertRaises(ValueError):
+            d.get_cell()
+
+        with self.assertRaises(ValueError):
+            d.set_cell("bad value")
+
+        self.assertIsNone(d.set_cell("face"))
+        self.assertTrue(d.has_cell())
+        self.assertEqual(d.get_cell(), "face")
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

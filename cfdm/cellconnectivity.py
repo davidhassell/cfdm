@@ -320,15 +320,14 @@ class CellConnectivity(
         :Returns:
 
             `{{class}}` or `None`
-                The normailised cell connectivity construct, or `None`
+                The normalised cell connectivity construct, or `None`
                 if the operation was in-place.
 
         **Examples*
 
         >>> data = {{package}}.Data(
         ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]]
-        ... )
-        >>> data.where(cf.eq(-99), cf.masked, inplace=True)
+        ... ).masked_values(-99)
         >>> c = {{package}}.{{class}}(cell='point', data=data)
         >>> print(c.array)
         [[4 1 10 125]

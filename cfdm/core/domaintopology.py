@@ -23,7 +23,7 @@ class DomainTopology(abstract.Topology):
             connecting two boundary vertices.
     * Face: A face is two-dimensional and corresponds to a surface
             enclosed by a set of edges.
-    
+
     Each type of cell implies a restricted topology for which only
     some kinds of mesh are allowed. For point cells, every node
     corresponds to exactly one cell; and two cells have a topological
@@ -33,7 +33,7 @@ class DomainTopology(abstract.Topology):
     multiple cells; every link in the mesh connects two cell boundary
     vertices; and two cells have a topological relationship if and
     only if they share at least one node.
-    
+
     A domain topology construct contains an array defining the mesh,
     and properties to describe it. There must be a property indicating
     the spatial dimensionality of the cells. The array values comprise

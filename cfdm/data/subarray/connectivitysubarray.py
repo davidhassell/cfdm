@@ -56,10 +56,7 @@ class ConnectivitySubarray(Subarray):
 
             {{init copy: `bool`, optional}}
 
-            context_manager: function, optional
-                A context manager that provides a runtime context for
-                the conversion of data defined by *data* to a `numpy`
-                array.
+            {{init context_manager: function, optional}}
 
         """
         super().__init__(

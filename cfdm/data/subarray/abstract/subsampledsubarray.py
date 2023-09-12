@@ -108,9 +108,8 @@ class SubsampledSubarray(Subarray):
 
             context_manager: function, optional
                 A context manager that provides a runtime context for
-                the conversion of data defined by *data*,
-                *dependent_tie_points*, and *parameters* to `numpy`
-                arrays.
+                the conversion of *data*, *dependent_tie_points*, and
+                *parameters* to `numpy` arrays.
 
         """
         super().__init__(

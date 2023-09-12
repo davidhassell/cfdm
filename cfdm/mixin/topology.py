@@ -52,7 +52,8 @@ class Topology:
         # Get the original cell ids
         ids = data[:, 0]
 
-        # Replace the original cell ids with negative numbers
+        # Replace the original (now positive) cell ids with negative
+        # numbers
         #
         # PERFORMANCE WARNING: This loop could be slow
         place = np.place

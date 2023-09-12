@@ -6,6 +6,8 @@ from ....functions import integer_dtype
 class PointTopology:
     """Mixin class for point topology array compressed by UGRID.
 
+    Subclasses must also inherit from `MeshSubarray`.
+
     .. versionadded:: (cfdm) UGRIDVER
 
     """
@@ -18,12 +20,13 @@ class PointTopology:
         .. versionadded:: (cfdm) UGRIDVER
 
         """
-        from math import isnan, nan
+        from math import isnan
 
         from scipy.sparse import csr_array
 
         start_index = self.start_index
         node_connectivity = self._select_data(check_mask=False)
+
         masked = np.ma.isMA(node_connectivity)
 
         largest_node_id = node_connectivity.max()
@@ -49,12 +52,9 @@ class PointTopology:
         # WARNING: This loop is a potential performance bottleneck
         for node in np.unique(node_connectivity).tolist():
             # Find the collection of all nodes that are joined to this
-            # node via links in the mesh, including this node itself.
+            # node via links in the mesh, including this node itself
+            # (which will be at the start of the list).
             nodes = self._connected_nodes(node, node_connectivity, masked)
-
-            # Move 'node' to the front of the list
-            nodes.remove(node)
-            nodes.insert(0, node)
 
             n_nodes = len(nodes)
             p += n_nodes

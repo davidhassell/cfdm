@@ -41,6 +41,7 @@ class PointTopologyArray(MeshArray):
         face_node_connectivity=None,
         shape=None,
         start_index=None,
+        cell_dimension=None,
         source=None,
         copy=True,
     ):
@@ -62,7 +63,9 @@ class PointTopologyArray(MeshArray):
                 has not been read yet) then set to `None`, which will
                 result in a shape of ``(nan, nan)``.
 
-            {{start_index: `int`, optional}}
+            {{init start_index: `int`}}
+
+            {{init cell_dimension: `int`}}
 
             {{init source: optional}}
 
@@ -72,6 +75,11 @@ class PointTopologyArray(MeshArray):
         if edge_node_connectivity is not None:
             node_connectivity = edge_node_connectivity
             compression_type = "point topology from edges"
+            if face_node_connectivity is not None:
+                raise ValueError(
+                    "Can't set both the 'edge_node_connectivity' and "
+                    "'face_node_connectivity' parameters"
+                )
         elif face_node_connectivity is not None:
             node_connectivity = face_node_connectivity
             compression_type = "point topology from faces"
@@ -88,6 +96,7 @@ class PointTopologyArray(MeshArray):
             compressed_dimensions={0: (0,), 1: (1,)},
             compression_type=compression_type,
             start_index=start_index,
+            cell_dimension=cell_dimension,
             source=source,
             copy=copy,
         )
