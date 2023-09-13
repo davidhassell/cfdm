@@ -1535,62 +1535,63 @@ class Constructs(mixin.Container, core.Constructs):
                 ==========================  ==========================
                 Keyword                     Value
                 ==========================  ==========================
-                ``filter_by_axis`` --- ---- A sequence as expected by
+                ``filter_by_axis``          A sequence as expected by
                                             the *axes* parameter of
                                             `filter_by_axis`
 
-                ``filter_by_cell`` ---------A sequence as expected by
+                ``filter_by_cell``          A sequence as expected by
                                             the *cells* parameter of
                                             `filter_by_cell`
 
-                ``filter_by_connectivity``- A sequence as expected by
+                ``filter_by_connectivity``  A sequence as expected by
                                             the *connectivity*
                                             parameter of
                                             `filter_by_connectivities`
 
-                ``filter_by_data``--------- Any value is allowed which
+                ``filter_by_data``          Any value is allowed which
                                             will be ignored, as
                                             `filter_by_data` does not
                                             have any positional
                                             arguments.
-                ``filter_by_identity`` ---- A sequence as expected by
+
+                ``filter_by_identity``      A sequence as expected by
                                             the *identities* parameter
                                             of `filter_by_identity`
 
-                ``filter_by_key``---------- A sequence as expected by
+                ``filter_by_key``           A sequence as expected by
                                             the *keys* parameter of
                                             `filter_by_key`
 
-                ``filter_by_measure`` ----- A sequence as expected by
+                ``filter_by_measure``       A sequence as expected by
                                             the *measures* parameter
                                             of `filter_by_measure`
 
-                ``filter_by_method`` ------ A sequence as expected by
+                ``filter_by_method``        A sequence as expected by
                                             the *methods* parameter of
                                             `filter_by_method`
 
-                ``filter_by_naxes``-------- A sequence as expected by
+                ``filter_by_naxes``         A sequence as expected by
                                             the *naxes* parameter of
                                             `filter_by_naxes`
 
-                ``filter_by_ncdim`` -q----- A sequence as expected by
+                ``filter_by_ncdim``         A sequence as expected by
                                             the *ncdims* parameter of
                                             `filter_by_ncdim`
 
-                ``filter_by_ncvar`` ------- A sequence as expected by
+                ``filter_by_ncvar``         A sequence as expected by
                                             the *ncvars* parameter of
                                             `filter_by_ncvar`
 
-                ``filter_by_property``----- A dictionary as expected
+                ``filter_by_property``      A dictionary as expected
                                             by the *properties*
                                             parameter of
                                             `filter_by_property`
 
-                ``filter_by_size`` -------- A sequence as expected by
+                ``filter_by_size``          A sequence as expected by
                                             the *sizes* parameter of
                                             `filter_by_size`
 
-                ``filter_by_type`` ---------A sequence as expected by
+                ``filter_by_type``          A sequence as expected by
                                             the *types* parameter of
                                             `filter_by_type`
                 ==========================  ==========================
@@ -1663,7 +1664,7 @@ class Constructs(mixin.Container, core.Constructs):
 
         Used by `_filter_by_measure`, `_filter_by_method`,
         `_filter_by_cell`, and `_filter_by_connectivity` to filter by
-        measure, method, cell and connectivity components,
+        "measure", "method", "cell" and "connectivity" components,
         respectively.
 
         .. versionadded:: (cfdm) UGRIDVER
@@ -2445,38 +2446,6 @@ class Constructs(mixin.Container, core.Constructs):
         .. versionadded:: (cfdm) 1.8.9.0
 
         """
-        #        out, pop = self._filter_preprocess(
-        #            arg, filter_applied={"filter_by_measure": measures}, todict=todict
-        #        )
-        #
-        #        construct_type = self._construct_type
-        #        if not measures:
-        #            for cid in tuple(out):
-        #                if construct_type[cid] != "cell_measure":
-        #                    pop(cid)
-        #
-        #            return out
-        #
-        #        for cid, construct in tuple(out.items()):
-        #            if construct_type[cid] != "cell_measure":
-        #                pop(cid)
-        #                continue
-        #
-        #            value1 = construct.get_measure(None)
-        #
-        #            ok = False
-        #            if value1 is not None:
-        #                for value0 in measures:
-        #                    ok = self._matching_values(
-        #                        value0, None, value1, basic=True
-        #                    )
-        #                    if ok:
-        #                        break
-        #
-        #            if not ok:
-        #                pop(cid)
-        #
-        #        return out
         return self._component_filter(
             arg,
             measures,
@@ -2572,38 +2541,6 @@ class Constructs(mixin.Container, core.Constructs):
         .. versionadded:: (cfdm) 1.8.9.0
 
         """
-        #        out, pop = self._filter_preprocess(
-        #            arg, filter_applied={"filter_by_method": methods}, todict=todict
-        #        )
-        #
-        #        construct_type = self._construct_type
-        #        if not methods:
-        #            for cid in tuple(out.keys()):
-        #                if construct_type[cid] != "cell_method":
-        #                    pop(cid)
-        #
-        #            return out
-        #
-        #        for cid, construct in tuple(out.items()):
-        #            if construct_type[cid] != "cell_method":
-        #                pop(cid)
-        #                continue
-        #
-        #            value1 = construct.get_method(None)
-        #
-        #            ok = False
-        #            if value1 is not None:
-        #                for value0 in methods:
-        #                    ok = self._matching_values(
-        #                        value0, None, value1, basic=True
-        #                    )
-        #                    if ok:
-        #                        break
-        #
-        #            if not ok:
-        #                pop(cid)
-        #
-        #        return out
         return self._component_filter(
             arg,
             methods,

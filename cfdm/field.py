@@ -1652,7 +1652,7 @@ class Field(
         return out
 
     def del_mesh_id(self, default=ValueError()):
-        """Remove the mesh topology identifier.
+        """Remove the UGRID mesh topology identifier.
 
         Different field constructs with the same mesh topology
         identifier may be assumed to have domains with a shared UGRID
@@ -1934,7 +1934,7 @@ class Field(
         return out
 
     def get_mesh_id(self, default=ValueError()):
-        """Return the mesh topology identifier.
+        """Return the UGRID mesh topology identifier.
 
         Different field constructs with the same mesh topology
         identifier may be assumed to have domains with a shared UGRID
@@ -1977,7 +1977,7 @@ class Field(
         return self._get_component("mesh_id", default=default)
 
     def has_mesh_id(self):
-        """Whether the mesh topology identifier has been set.
+        """Whether the UGRID mesh topology identifier has been set.
 
         Different field constructs with the same mesh topology
         identifier may be assumed to have domains with a shared UGRID
@@ -2473,7 +2473,7 @@ class Field(
         return f
 
     def set_mesh_id(self, mesh_id):
-        """Set a mesh topology identifier.
+        """Set a UGRID mesh topology identifier.
 
         Different field constructs with the same mesh topology
         identifier may be assumed to have domains with a shared UGRID

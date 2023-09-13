@@ -69,6 +69,10 @@ class CellConnectivityArray(MeshArray):
 
             shape = (shape[0], shape[1] + 1)
 
+        # Note: Setting compressed_dimensions={1: (1,)} means that
+        #       only one subarray will ever span the trailing
+        #       dimension of the 'cell_connectivity' array, but the
+        #       leading dimension may be chunked.
         super().__init__(
             connectivity=cell_connectivity,
             shape=shape,

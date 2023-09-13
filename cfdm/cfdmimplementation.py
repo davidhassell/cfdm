@@ -2362,26 +2362,6 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("NodeCountProperties")
         return cls()
 
-    #    def initialise_NodeConnectivityArray(self, **kwargs):
-    #        """Return a node connectivity array.
-    #
-    #        .. versionadded:: (cfdm) UGRIDVER
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Parameters for intialising the node connectivity
-    #                array, which are passed to
-    #                `NodeConnectivityArray.__init__`.
-    #
-    #        :Returns:
-    #
-    #            `NodeConnectivityArray`
-    #
-    #        """
-    #        cls = self.get_class("NodeConnectivityArray")
-    #        return cls(**kwargs)
-
     def initialise_PartNodeCount(self):
         """Return a part node count properties variable.
 

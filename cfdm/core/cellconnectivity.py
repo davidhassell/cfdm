@@ -18,11 +18,11 @@ class CellConnectivity(abstract.Topology):
     connectivity, and properties to describe the data. There must be a
     property indicating the condition by which the connectivity is
     derived from the domain topology. The array spans the domain axis
-    construct with the addition of a ragged dimension that indexes a
-    unique identity for the cell as well as the identities of all
-    other cells to which it is connected. The cell identity must be
-    recorded in the first element of the ragged dimension, otherwise
-    the order is arbitrary. Note that the connectivity array for point
+    construct with the addition of a ragged dimension. For each cell,
+    the first element along the ragged dimension contains the unique
+    identity of the cell, and the following elements contain in
+    arbitrary order the identities of all the other cells to which the
+    cell is connected. Note that the connectivity array for point
     cells is, by definition, equivalent to the array of the domain
     topology construct.
 

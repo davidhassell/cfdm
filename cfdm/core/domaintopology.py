@@ -43,17 +43,18 @@ class DomainTopology(abstract.Topology):
     also has a ragged dimension, whose function depends on the spatial
     dimensionality of the cells.
 
-    For point cells, the array's ragged dimension values are composed
-    of the node identity of each cell in the first element, followed
-    in arbitrary order by the identity of each node to which it is
-    connected by a mesh link.
+    For each point cell, the first element along the ragged dimension
+    contains the node identity of the cell, and the following elements
+    contain in arbitrary order the identities of all the cells to
+    which it is connected by a mesh link.
 
-    For edge and face cells, the array's ragged dimension values are
-    the node identities of the boundary vertices of each cell, in the
-    same order that the boundary vertices are stored by the auxiliary
-    coordinate constructs. Each boundary vertex except the last is
-    connected by a mesh link to the next vertex along the ragged
-    dimension, and the last vertex is connected to the first.
+    For each edge or face cell, the elements along the ragged
+    dimension contain the node identities of the boundary vertices of
+    the cell, in the same order that the boundary vertices are stored
+    by the auxiliary coordinate constructs. Each boundary vertex
+    except the last is connected by a mesh link to the next vertex
+    along the ragged dimension, and the last vertex is connected to
+    the first.
 
     When a domain topology construct is present it is considered to be
     definitive and must be used in preference to the topology implied

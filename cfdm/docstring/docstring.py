@@ -54,6 +54,19 @@ _docstring_substitution_definitions = {
     `nc_get_geometry_variable`, `nc_geometry_variable_groups`,
     `nc_clear_variable_groups`, and `nc_set_geometry_variable_groups`
     methods.""",
+    # netCDF UGRID node coordinate
+    "{{netCDF UGRID node coordinate}}": """The netCDF UGRID node coordinate variable name may be accessed
+    with the `nc_set_node_coordinate_variable`,
+    `nc_get_node_coordinate_variable`,
+    `nc_del_node_coordinate_variable`, and
+    `nc_has_node_coordinate_variable` methods.""",
+    # netCDF UGRID node coordinate group
+    "{{netCDF UGRID node coordinate group}}": """The netCDF UGRID node coordinate variable group structure may be
+    accessed with the `nc_set_node_coordinate_variable`,
+    `nc_get_node_coordinate_variable`,
+    `nc_variable_node_coordinate_groups`,
+    `nc_clear_node_coordinate_variable_groups`, and
+    `nc_set_node_coordinate_variable_groups` methods.""",
     # ----------------------------------------------------------------
     # Method description substitutions (2 levels of indentation)
     # ----------------------------------------------------------------

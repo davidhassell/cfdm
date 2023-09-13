@@ -127,15 +127,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 Not used. Present to facilitate subclassing.
 
         """
-        #        if dtype is not None:
-        #            if isinstance(array, abstract.Array):
-        #                array = array.array
-        #            elif not isinstance(array, np.ndarray):
-        #                array = np.asanyarray(array)
-        #
-        #            array = array.astype(dtype)
-        #            array = NumpyArray(array)
-
         if dtype is not None:
             if isinstance(array, abstract.Array):
                 try:
@@ -862,11 +853,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         >>> d._set_Array(a)
 
         """
-        #        if not isinstance(array, abstract.Array):
-        #            if not isinstance(array, np.ndarray):
-        #                array = np.asanyarray(array)
-        #
-        #            array = NumpyArray(array)
         if not isinstance(array, abstract.Array):
             if not isinstance(array, np.ndarray):
                 if issparse(array):

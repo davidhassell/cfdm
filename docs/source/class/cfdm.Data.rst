@@ -19,6 +19,7 @@ Inspection
    :template: attribute.rst
 
    ~cfdm.Data.array
+   ~cfdm.Data.sparse_array
    ~cfdm.Data.dtype
    ~cfdm.Data.ndim
    ~cfdm.Data.shape

@@ -1,5 +1,3 @@
-from math import nan
-
 from .abstract import MeshArray
 from .subarray import (
     PointTopologyFromEdgesSubarray,
@@ -88,8 +86,13 @@ class PointTopologyArray(MeshArray):
             compression_type = None
 
         if shape is None:
+            from math import nan
+
             shape = (nan, nan)
 
+        # Note: Setting compressed_dimensions={0: (0,), 1: (1,)} means
+        #       that only one subarray will ever span each of the two
+        #       dimensions of the 'node_connectivity' array.
         super().__init__(
             connectivity=node_connectivity,
             shape=shape,

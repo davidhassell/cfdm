@@ -68,6 +68,10 @@ class BoundsFromNodesArray(MeshArray):
         if shape is None and node_connectivity is not None:
             shape = node_connectivity.shape
 
+        # Note: Setting compressed_dimensions={1: (1,)} means that
+        #       only one subarray will ever span the trailing
+        #       dimension of the 'node_connectivity' array, but the
+        #       leading dimension may be chunked.
         super().__init__(
             connectivity=node_connectivity,
             shape=shape,
