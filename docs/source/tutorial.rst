@@ -130,7 +130,8 @@ shell parameter expansions are applied to it.
 The following file types can be read:
 
 * All formats of netCDF3 and netCDF4 files can be read, containing
-  datasets for versions of CF up to and including CF-|version|.
+  datasets for all versions of CF up to CF-|version|, including
+  :ref:`UGRID <UGRID-mesh-topolgies>` datasets.
 
 ..
 
@@ -2052,6 +2053,15 @@ defined in the CF conventions.
 
 ----
 
+.. _UGRID-mesh-topolgies:
+		
+**UGRID mesh topolgies**
+------------------------
+
+TODOUGRID
+
+----
+
 .. _Domain-ancillaries:
 		
 **Domain ancillaries**
@@ -3667,8 +3677,8 @@ either technique.
    :caption: *Two ways to add additional conventions to the
              "Conventions" netCDF global attribute.*
 
-   >>> f_file.set_property('Conventions', 'UGRID1.0')
-   >>> cfdm.write(f, 'f_file.nc', Conventions='UGRID1.0')   
+   >>> f_file.set_property('Conventions', 'UGRID-1.0')
+   >>> cfdm.write(f, 'f_file.nc', Conventions='UGRID-1.0')   
 
    
 .. _Scalar-coordinate-variables:
