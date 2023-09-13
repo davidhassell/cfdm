@@ -43,7 +43,6 @@ class CellConnectivity(
     UGRID mesh topology variable. The construct array is supplied
     either indirectly by any of the UGRID variables that are used to
     define a domain topology construct, or directly by the UGRID
-    "edge_edge_connectivity" variable (for edge cells) or
     "face_face_connectivity" variable (for face cells). In the direct
     case, the integer indices contained in the UGRID variable may be
     used as the cell identities, although the CF data model attaches
@@ -297,8 +296,7 @@ class CellConnectivity(
         """Normalise the data values.
 
         Normalised data is in a form that is suitable for creating a
-        CF-netCDF UGRID "edge_edge_connectivity" or
-        "face_face_connectivity" variable.
+        CF-netCDF UGRID "face_face_connectivity" variable.
 
         Normalisation does not change the logical content of the
         data. It converts the data so that the set of unique values

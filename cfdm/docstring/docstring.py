@@ -59,9 +59,9 @@ _docstring_substitution_definitions = {
     with the `nc_set_node_coordinate_variable`,
     `nc_get_node_coordinate_variable`,
     `nc_del_node_coordinate_variable`, and
-    `nc_has_node_coordinate_variable` methods.""",
-    # netCDF UGRID node coordinate group
-    "{{netCDF UGRID node coordinate group}}": """The netCDF UGRID node coordinate variable group structure may be
+    `nc_has_node_coordinate_variable` methods.
+
+    The netCDF UGRID node coordinate variable group structure may be
     accessed with the `nc_set_node_coordinate_variable`,
     `nc_get_node_coordinate_variable`,
     `nc_variable_node_coordinate_groups`,

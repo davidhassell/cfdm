@@ -112,21 +112,16 @@ class MeshArray(CompressedArray):
             u = np.ma.empty(self.shape, dtype=self.dtype)
 
         Subarray = self.get_Subarray()
-
-        compressed_dimensions = self.compressed_dimensions()
-
-        conformed_data = self.conformed_data()
-        start_index = self.get_start_index()
-        cell_dimension = self.get_cell_dimension()
+        subarray_kwargs = {
+            **self.conformed_data(),
+            **self.subarray_parameters(),
+        }
 
         for u_indices, u_shape, c_indices, _ in zip(*self.subarrays()):
             subarray = Subarray(
                 indices=c_indices,
                 shape=u_shape,
-                compressed_dimensions=compressed_dimensions,
-                start_index=start_index,
-                cell_dimension=cell_dimension,
-                **conformed_data,
+                **subarray_kwargs,
             )
             if known_shape:
                 u[u_indices] = subarray[...]
@@ -198,6 +193,24 @@ class MeshArray(CompressedArray):
 
         """
         return self._get_component("start_index", default)
+
+    def subarray_parameters(self):
+        """Non-data parameters required by the `Subarray` class.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        :Returns:
+
+            `dict`
+                The parameters, with keys ``'compressed_dimensions'``,
+                ``'start_index'``, and ``'cell_dimension'``.
+
+        """
+        return {
+            **super().subarray_parameters(),
+            "start_index": self.get_start_index(),
+            "cell_dimension": self.get_cell_dimension(),
+        }
 
     def subarray_shapes(self, shapes):
         """Create the subarray shapes along each uncompressed dimension.

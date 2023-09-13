@@ -40,8 +40,6 @@ class AuxiliaryCoordinate(
 
     {{netCDF UGRID node coordinate}}
 
-    {{netCDF UGRID node coordinate group}}
-
     .. versionadded:: (cfdm) 1.7.0
 
     """

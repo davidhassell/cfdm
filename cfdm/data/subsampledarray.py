@@ -384,27 +384,21 @@ class SubsampledArray(CompressedArray):
         u = np.ma.masked_all(self.shape, dtype=self.dtype)
 
         Subarray = self.get_Subarray()
-
-        compressed_dimensions = self.compressed_dimensions()
-
-        conformed_data = self.conformed_data()
-        tie_points = conformed_data["data"]
-        parameters = conformed_data["parameters"]
-        dependent_tie_points = conformed_data["dependent_tie_points"]
+        subarray_kwargs = {
+            **self.conformed_data(),
+            **self.subarray_parameters(),
+        }
 
         # Interpolate the tie points for each interpolation subarea
         for u_indices, u_shape, c_indices, subarea_indices, first, _ in zip(
             *self.subarrays()
         ):
             subarray = Subarray(
-                data=tie_points,
                 indices=c_indices,
                 shape=u_shape,
-                compressed_dimensions=compressed_dimensions,
                 first=first,
                 subarea_indices=subarea_indices,
-                parameters=parameters,
-                dependent_tie_points=dependent_tie_points,
+                **subarray_kwargs,
             )
             u[u_indices] = subarray[...]
 
