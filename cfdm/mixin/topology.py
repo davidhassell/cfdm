@@ -72,7 +72,7 @@ class Topology:
             data[:, 1:].sort(axis=1, endwith=True)
 
             # Discard columns that are all missing data
-            count = data.count(axis=0)[0]
+            count = data.count(axis=0)
             if not count.min():
                 index = np.where(count)[0]
                 data = data[:, index[0] : index[-1] + 1]
