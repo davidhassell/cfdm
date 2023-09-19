@@ -174,43 +174,6 @@ class DomainTopology(abstract.Topology):
         """
         return self._del_component("cell", default=default)
 
-    def has_cell(self):
-        """Whether the cell type has been set.
-
-        {{cell type}}
-
-        .. versionadded:: (cfdm) UGRIDVER
-
-        .. seealso:: `del_cell`, `get_cell`, `set_cell`
-
-        :Returns:
-
-            `bool`
-                `True` if the cell type has been set, otherwise
-                `False`.
-
-        **Examples**
-
-        >>> d = {{package}}.{{class}}()
-        >>> d.has_cell()
-        False
-        >>> d.set_cell('face')
-        >>> d.has_cell()
-        True
-        >>> d.get_cell()
-        'face'
-        >>> d.del_cell()
-        'face'
-        >>> d.get_cell()
-        Traceback (most recent call last):
-            ...
-        ValueError: {{class}} has no 'cell' component
-        >>> print(d.get_cell(None))
-        None
-
-        """
-        return self._has_component("cell")
-
     def get_cell(self, default=ValueError()):
         """Return the cell type.
 
@@ -253,6 +216,43 @@ class DomainTopology(abstract.Topology):
 
         """
         return self._get_component("cell", default=default)
+
+    def has_cell(self):
+        """Whether the cell type has been set.
+
+        {{cell type}}
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        .. seealso:: `del_cell`, `get_cell`, `set_cell`
+
+        :Returns:
+
+            `bool`
+                `True` if the cell type has been set, otherwise
+                `False`.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}()
+        >>> d.has_cell()
+        False
+        >>> d.set_cell('face')
+        >>> d.has_cell()
+        True
+        >>> d.get_cell()
+        'face'
+        >>> d.del_cell()
+        'face'
+        >>> d.get_cell()
+        Traceback (most recent call last):
+            ...
+        ValueError: {{class}} has no 'cell' component
+        >>> print(d.get_cell(None))
+        None
+
+        """
+        return self._has_component("cell")
 
     def set_cell(self, cell):
         """Set the cell type type.
