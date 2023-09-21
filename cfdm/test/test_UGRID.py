@@ -60,7 +60,7 @@ class UGRIDTest(unittest.TestCase):
     def test_read_UGRID(self):
         """Test reading of UGRID files."""
         f1 = cfdm.read(self.filename1)
-        print (repr(f1))
+        print(repr(f1))
         self.assertEqual(len(f1), 3)
         for g in f1:
             self.assertEqual(len(g.domain_topologies()), 1)
