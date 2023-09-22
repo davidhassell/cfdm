@@ -2058,10 +2058,10 @@ defined in the CF conventions.
 
 ----
 
-.. _UGRID-mesh-topolgies:
+.. _UGRID-mesh-topologies:
 		
-**UGRID mesh topolgies**
-------------------------
+**UGRID mesh topologies**
+-------------------------
 
 A UGRID mesh topology defines the geospatial topology of cells
 arranged in two or three dimensions in real space but indexed by a
@@ -2069,8 +2069,8 @@ single dimension. It explicitly describes the topological
 relationships between cells, i.e. spatial relationships which do not
 depend on the cell locations, via a mesh of connected nodes. See the
 `domain topology construct`_ and `cell connectivity construct`_
-descriptions in the CF data model for more details, including on how
-the mesh relates to the cells of the domain.
+descriptions in the CF data model (from CF-1.11) for more details,
+including on how the mesh relates to the cells of the domain.
 
 .. code-block:: python
    :caption: *Inspect a dataset containing a UGRID mesh topology.*
