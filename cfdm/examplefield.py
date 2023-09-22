@@ -17,9 +17,9 @@ def example_field(n, _implementation=_implementation):
             Select the example field construct to return, one of:
 
             ======  ==================================================
-            *n*     Field constuct description
+            *n*     Field construct description
             ======  ==================================================
-            ``0``   Cell method and dimension coordinate metdata
+            ``0``   Cell method and dimension coordinate metadata
                     constructs.
 
             ``1``   Cell method, dimension coordinate, auxiliary
@@ -5159,9 +5159,9 @@ def example_fields(*n, _func=example_field):
             combination of:
 
             ======  ==================================================
-            *n*     Field constuct description
+            *n*     Field construct description
             ======  ==================================================
-            ``0``   Cell method and dimension coordinate metdata
+            ``0``   Cell method and dimension coordinate metadata
                     constructs.
 
             ``1``   Cell method, dimension coordinate, auxiliary
@@ -5269,9 +5269,9 @@ def example_domain(n, _func=example_field):
             Select the example domain construct to return, one of:
 
             ======  ==================================================
-            *n*     Field constuct description
+            *n*     Domain construct description
             ======  ==================================================
-            ``0``   Dimension coordinate metdata constructs.
+            ``0``   Dimension coordinate metadata constructs.
 
             ``1``   Dimension coordinate, auxiliary coordinate, cell
                     measure, coordinate reference, domain ancillary

@@ -2007,7 +2007,7 @@ class Constructs(mixin.Container, core.Constructs):
         Constructs:
         {'domaintopology0': <{{repr}}DomainTopology: cell:face>}
 
-        Select domain topology costructs that have a cell type of any
+        Select domain topology constructs that have a cell type of any
         value:
 
         >>> print(c.filter_by_cell())
@@ -2089,7 +2089,7 @@ class Constructs(mixin.Container, core.Constructs):
         {'cellconnectivity0': <{{repr}}CellConnectivity: connectivity:edge(13824) >,
          'cellconnectivity1': <{{repr}}CellConnectivity: connectivity:node(13824) >}
 
-        Select cell connectivity constructs that have a cnnnectivity
+        Select cell connectivity constructs that have a connectivity
         type that starts with "n":
 
         >>> print(c.filter_by_connectivity(re.compile('^n')))

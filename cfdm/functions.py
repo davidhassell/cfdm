@@ -1600,12 +1600,12 @@ def integer_dtype(n):
     :Parameters:
 
         n: integer
-           The integer for which a data tpe is required.
+           The integer for which a data type is required.
 
     :Returns:
 
         `numpy.dtype`
-          ``numpy.dtype('int32')` if *n* is representable by a 32-bit
+          ``numpy.dtype('int32')`` if *n* is representable by a 32-bit
            integer, otherwise ``numpy.dtype(int)``.
 
     **Examples**

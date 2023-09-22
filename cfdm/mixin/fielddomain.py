@@ -599,7 +599,7 @@ class FieldDomain:
                 Additionally, the values are matched against construct
                 identifiers, with or without the ``'key%'`` prefix.
 
-                If no values are provided then all domain toplogy
+                If no values are provided then all domain topology
                 constructs are selected.
 
                 {{value match}}
@@ -613,6 +613,7 @@ class FieldDomain:
             default: optional
                 Return the value of the *default* parameter if there
                 is no unique construct.
+
                 {{default Exception}}
 
             {{filter_kwargs: optional}}
