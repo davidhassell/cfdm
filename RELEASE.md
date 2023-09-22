@@ -91,6 +91,7 @@
 
      ```console
      $ cd docs
+     $ rm -fr build
      $ make spelling build
      ```
 
