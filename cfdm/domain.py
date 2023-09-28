@@ -255,22 +255,13 @@ class Domain(
             string.append(f"Domain ancils   : {x}")
 
         # Domain topologies
-        # x = [
-        #    _print_item(self, cid, v, construct_data_axes[cid])
-        #    for cid, v in sorted(self.domain_topologies(todict=True).items())
-        # ]
-        # if x:
-        #    x = "\n                : ".join(x)
-        #    string.append(f"Topologies      : {x}")
-
-        # Domain topology
         x = [
             _print_item(self, cid, v, construct_data_axes[cid])
             for cid, v in sorted(self.domain_topologies(todict=True).items())
         ]
         if x:
             x = "\n                : ".join(x)
-            string.append(f"Domain Topology : {x}")
+            string.append(f"Topologies      : {x}")
 
         # Cell connectivities
         x = [
