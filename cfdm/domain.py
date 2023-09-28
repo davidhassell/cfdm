@@ -270,7 +270,7 @@ class Domain(
         ]
         if x:
             x = "\n                : ".join(x)
-            string.append(f"Cell connects   : {x}")
+            string.append(f"Connectivities  : {x}")
 
         return "\n".join(string)
 
