@@ -37,6 +37,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         copy=True,
         dtype=None,
         mask=None,
+        mask_value=None,
         _use_array=True,
         **kwargs,
     ):
@@ -119,6 +120,12 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 This mask will applied in addition to any mask already
                 defined by the *array* parameter.
 
+            mask_value: scalar array_like
+                Mask *array* where it is equal to *mask_value*, using
+                numerically tolerant floating point equality.
+
+                .. versionadded:: (cfdm) UGRIDVER
+
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
@@ -140,7 +147,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             else:
                 array = np.asanyarray(array).astype(dtype)
 
-        if mask is not None:
+        if mask is not None or mask_value is not None:
             if isinstance(array, abstract.Array):
                 array = array.array
             elif not isinstance(array, np.ndarray):
@@ -149,7 +156,11 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 else:
                     array = np.asanyarray(array)
 
-            array = np.ma.array(array, mask=mask)
+            if mask is not None:
+                array = np.ma.array(array, mask=mask)
+            else:
+                array = np.ma.masked_values(array, mask_value)
+
             array = NumpyArray(array)
 
         super().__init__(

@@ -781,6 +781,12 @@ class DataTest(unittest.TestCase):
         self.assertIsNone(d.masked_values(1.1, inplace=True))
         self.assertTrue(d.equals(e))
 
+        array = np.array([[1, 1.1, 2, 1.1, 3]])
+        d = cfdm.Data(array, mask_value=1.1)
+        da = e.array
+        self.assertTrue(np.isclose(da, a).all())
+        self.assertTrue((da.mask == a.mask).all())
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

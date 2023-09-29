@@ -1230,8 +1230,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="kg m-2 day-1",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         f.set_data(data, axes=("domainaxis0", "domainaxis1"))
 
         # auxiliary_coordinate
@@ -1283,8 +1283,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="days since 1970-01-01 00:00:00",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         b = Bounds()
         data = Data(
@@ -1336,8 +1336,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="days since 1970-01-01 00:00:00",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         b.set_data(data)
         c.set_bounds(b)
         f.set_construct(
@@ -1799,8 +1799,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="K",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         f.set_data(data, axes=("domainaxis0", "domainaxis1", "domainaxis2"))
 
         # auxiliary_coordinate
@@ -1902,8 +1902,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="days since 1970-01-01 00:00:00",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         f.set_construct(
             c,
@@ -2253,8 +2253,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="km",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         f.set_construct(
             c,
@@ -2377,8 +2377,8 @@ def example_field(n, _implementation=_implementation):
                 ],
             ],
             dtype="i4",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         f.set_construct(
             c,
@@ -4146,8 +4146,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="degrees_north",
             dtype="f8",
+            mask_value=-99,
         )
-        d.masked_values(-99, inplace=True)
         b.set_data(d)
         b.nc_set_variable("y")
         c.set_bounds(b)
@@ -4155,8 +4155,8 @@ def example_field(n, _implementation=_implementation):
         d = Data(
             [[0, 1, 0], [0, -99, -99]],
             dtype="i4",
+            mask_value=-99,
         )
-        d.masked_values(-99, inplace=True)
         i.set_data(d)
         i.nc_set_variable("interior_ring")
         c.set_interior_ring(i)
@@ -4206,8 +4206,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="degrees_east",
             dtype="f8",
+            mask_value=-99,
         )
-        d.masked_values(-99, inplace=True)
         b.set_data(d)
         b.nc_set_variable("x")
         c.set_bounds(b)
@@ -4215,8 +4215,8 @@ def example_field(n, _implementation=_implementation):
         d = Data(
             [[0, 1, 0], [0, -99, -99]],
             dtype="i4",
+            mask_value=-99,
         )
-        d.masked_values(-99, inplace=True)
         i.set_data(d)
         i.nc_set_variable("interior_ring")
         c.set_interior_ring(i)
@@ -4266,8 +4266,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="m",
             dtype="f8",
+            mask_value=-99,
         )
-        d.masked_values(-99, inplace=True)
         b.set_data(d)
         b.nc_set_variable("z")
         c.set_bounds(b)
@@ -4275,8 +4275,8 @@ def example_field(n, _implementation=_implementation):
         d = Data(
             [[0, 1, 0], [0, -99, -99]],
             dtype="i4",
+            mask_value=-99,
         )
-        d.masked_values(-99, inplace=True)
         i.set_data(d)
         i.nc_set_variable("interior_ring")
         c.set_interior_ring(i)
@@ -4719,8 +4719,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="degrees_east",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         b.set_data(data)
         c.set_bounds(b)
         f.set_construct(
@@ -4745,8 +4745,8 @@ def example_field(n, _implementation=_implementation):
             ],
             units="degrees_north",
             dtype="f8",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         b.set_data(data)
         c.set_bounds(b)
         f.set_construct(
@@ -4760,8 +4760,8 @@ def example_field(n, _implementation=_implementation):
         data = Data(
             [[2, 3, 1, 0], [4, 5, 3, 2], [1, 3, 6, -99]],
             dtype="i4",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         c.set_cell("face")
         f.set_construct(
@@ -4779,8 +4779,8 @@ def example_field(n, _implementation=_implementation):
                 [2, 0, -99, -99, -99],
             ],
             dtype="i4",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         c.set_connectivity("edge")
         f.set_construct(
@@ -4977,8 +4977,8 @@ def example_field(n, _implementation=_implementation):
                 [8, 7, 5, 2, 1, -99],
             ],
             dtype="i4",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         c.set_connectivity("node")
         f.set_construct(
@@ -5119,8 +5119,8 @@ def example_field(n, _implementation=_implementation):
                 [6, 3, 1, -99, -99],
             ],
             dtype="i4",
+            mask_value=-99,
         )
-        data.masked_values(-99, inplace=True)
         c.set_data(data)
         c.set_cell("point")
         f.set_construct(
