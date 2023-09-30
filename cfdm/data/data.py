@@ -158,7 +158,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
             if mask is not None:
                 array = np.ma.array(array, mask=mask)
-            else:
+
+            if mask_value is not None
                 array = np.ma.masked_values(array, mask_value)
 
             array = NumpyArray(array)
