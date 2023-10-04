@@ -995,7 +995,6 @@ class PropertiesData(Properties):
 
         """
         v = _inplace_enabled_define_and_cleanup(self)
-
         data = v.get_data(None, _units=False, _fill_value=False)
         if data is not None:
             data.transpose(axes, inplace=True)

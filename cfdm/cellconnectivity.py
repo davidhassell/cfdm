@@ -4,9 +4,9 @@ from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 class CellConnectivity(
     mixin.NetCDFVariable,
+    mixin.Topology,
     mixin.PropertiesData,
     mixin.Files,
-    mixin.Topology,
     core.CellConnectivity,
 ):
     """A cell connectivity construct of the CF data model.

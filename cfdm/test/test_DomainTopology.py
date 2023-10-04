@@ -79,6 +79,17 @@ class DomainTopologyTest(unittest.TestCase):
         self.assertTrue(d.has_cell())
         self.assertEqual(d.get_cell(), "face")
 
+    def test_DomainTopology_transpose(self):
+        """Test the 'transpose' method of DomainTopology."""
+        d = self.d.copy()
+        e = d.transpose()
+        self.assertTrue(d.equals(e))
+        self.assertIsNone(d.transpose(inplace=True))
+
+        for axes in ([1], [1, 0], [3]):
+            with self.assertRaises(ValueError):
+                d.transpose(axes)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

@@ -4,9 +4,9 @@ from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 class DomainTopology(
     mixin.NetCDFVariable,
+    mixin.Topology,
     mixin.PropertiesData,
     mixin.Files,
-    mixin.Topology,
     core.DomainTopology,
 ):
     """A domain topology construct of the CF data model.

@@ -1,3 +1,6 @@
+from ..decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
+
+
 class Topology:
     """Mixin class for topology-related constructs.
 
@@ -84,3 +87,47 @@ class Topology:
             data += ids.size
 
         return data
+
+    @_inplace_enabled(default=False)
+    def transpose(self, axes=None, inplace=False):
+        """Permute the axes of the data array.
+
+        In this context, the data only has one axis, the first
+        one. The second data dimension can not be moved and may not be
+        specified. Therefore, the `transpose` method never changes the
+        data.
+
+        .. versionadded:: UGRIDVER
+
+        .. seealso:: `insert_dimension`, `squeeze`
+
+        :Parameters:
+
+            axes: (sequence of) `int`, optional
+                The new axis order. By default the order is reversed.
+
+                {{axes int examples}}
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                The new construct with permuted data axes. If the
+                operation was in-place then `None` is returned.
+
+        """
+        if axes is None:
+            iaxes = list(range(self.ndim - 1, -1, -1))
+        else:
+            iaxes = self._parse_axes(axes)
+
+        if iaxes != [0]:
+            raise ValueError(
+                f"Can't transpose {self.__class__.__name__} with axes "
+                f"of {axes!r}. Axes must be equivalent to [0]"
+            )
+
+        c = _inplace_enabled_define_and_cleanup(self)
+        super(Topology, c).transpose(iaxes + [-1], inplace=True)
+        return c

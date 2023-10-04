@@ -85,6 +85,17 @@ class CellConnectivityTest(unittest.TestCase):
         self.assertTrue(c.has_connectivity())
         self.assertEqual(c.get_connectivity(), "edge")
 
+    def test_CellConnectivity_transpose(self):
+        """Test the 'transpose' method of CellConnectivity."""
+        c = self.c.copy()
+        d = c.transpose()
+        self.assertTrue(c.equals(d))
+        self.assertIsNone(c.transpose(inplace=True))
+
+        for axes in ([1], [1, 0], [3]):
+            with self.assertRaises(ValueError):
+                c.transpose(axes)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
