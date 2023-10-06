@@ -9718,7 +9718,7 @@ class NetCDFRead(IORead):
                     mesh_ncvar,
                     message=(
                         "edge_node_connectivity attribute",
-                        "is missing ssss",
+                        "is missing",
                     ),
                 )
                 ok = False
