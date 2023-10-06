@@ -9675,13 +9675,51 @@ class NetCDFRead(IORead):
                 message=("location attribute", "is missing"),
             )
             ok = False
-        elif location in ("node", "edge"):
+        elif location == "node":
+            edge_node_ncvar = mesh_attributes.get("edge_node_connectivity")
+            face_node_ncvar = mesh_attributes.get("face_node_connectivity")
+            if edge_node_ncvar is None and face_node_ncvar is None:
+                self._add_message(
+                    parent_ncvar,
+                    mesh_ncvar,
+                    message=(
+                        "Both edge_node_connectivity and "
+                        "face_node_connectivity attributes",
+                        "are missing",
+                    ),
+                )
+                ok = False
+            else:
+                for ncvar, name in zip(
+                    (edge_node_ncvar, face_node_ncvar), ("edge", "face")
+                ):
+                    if (
+                        ncvar is not None
+                        and ncvar not in g["internal_variables"]
+                    ):
+                        ncvar, message = self._missing_variable(
+                            mesh_ncvar,
+                            f"{name.capitalize()} node connectivity variable",
+                        )
+                        self._add_message(
+                            parent_ncvar,
+                            mesh_ncvar,
+                            message=message,
+                            attribute={
+                                f"{ncvar}:{name}_node_connectivity": ncvar
+                            },
+                        )
+                        ok = False
+        elif location == "edge":
             ncvar = mesh_attributes.get("edge_node_connectivity")
             if ncvar is None:
                 self._add_message(
                     parent_ncvar,
                     mesh_ncvar,
-                    message=("edge_node_connectivity attribute", "is missing"),
+                    message=(
+                        "edge_node_connectivity attribute",
+                        "is missing ssss",
+                    ),
                 )
                 ok = False
             elif ncvar not in g["internal_variables"]:
