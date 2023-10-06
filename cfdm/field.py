@@ -2418,6 +2418,7 @@ class Field(
                 "auxiliary_coordinate",
                 "cell_measure",
                 "domain_topology",
+                "cell_connectivity",
                 todict=True,
             ).items():
                 axes = constructs_data_axes.get(ccid)

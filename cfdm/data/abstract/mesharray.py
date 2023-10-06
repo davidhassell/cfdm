@@ -126,9 +126,9 @@ class MeshArray(CompressedArray):
             if known_shape:
                 u[u_indices] = subarray[...]
             else:
-                # When the shape is unknown, there must be (and we are
-                # assuming that there is) only one pass through this
-                # loop.
+                # When the shape is unknown, there must be (and so we
+                # are assuming that there is) only one pass through
+                # this loop.
                 u = subarray[...]
 
         if not known_shape:

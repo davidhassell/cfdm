@@ -51,7 +51,8 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
         nodes = []
         nodes_extend = nodes.extend
 
-        # For each face, find which two of its nodes neighbour 'node'.
+        # For each face, find which two of its nodes are neighbours to
+        # 'node'.
         for face_nodes in node_connectivity[faces]:
             if masked:
                 face_nodes = face_nodes.compressed()
