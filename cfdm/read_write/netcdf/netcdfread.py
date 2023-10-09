@@ -7,8 +7,10 @@ import subprocess
 import tempfile
 from ast import literal_eval
 from copy import deepcopy
+from dataclasses import dataclass, field
 from functools import reduce
 from math import nan
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -27,6 +29,50 @@ logger = logging.getLogger(__name__)
 _cached_temporary_files = {}
 
 _flattener_separator = netcdf_flattener._Flattener._Flattener__new_separator
+
+
+@dataclass()
+class Mesh:
+    """A UGRID mesh defintion.
+
+    .. versionadded:: UGRIDVER
+
+    """
+
+    # The netCDF name of the mesh topology variable. E.g. 'Mesh2d'
+    mesh_ncvar: Any = None
+    # The attributes of the netCDF mesh topology variable.
+    # E.g. {'cf_role': 'mesh_topology'}
+    mesh_attributes: dict = field(default_factory=dict)
+    # The netCDF variable names of the node coordinates.
+    # E.g. ['node_lat', 'node_lon']
+    node_coordinates: list = field(default_factory=list)
+    # The netCDF name of the location index set variable.
+    # E.g. 'Mesh1_set'
+    location_index_set_ncvar: Any = None
+    # The attributes of the location index set variable.
+    # E.g. {'location': 'node'}
+    location_index_set_attributes: dict = field(default_factory=dict)
+    # The location of the location index set. E.g. 'edge'
+    location: Any = None
+    # The zero-based indices of the location index set.
+    # E.g. <CF Data(1243): >
+    index_set: Any = None
+    # Domain topology construct for each location.
+    # E.g. {'face': <CF DomainTopology(1243, 4) >}
+    domain_topology: dict = field(default_factory=dict)
+    # Cell connectivity constructs for each location.
+    # E.g. {'face': <CF CellConnectivity(1243, 4) >}
+    cell_connectivity: dict = field(default_factory=dict)
+    # Auxiliary coordinate constructs for each location.
+    # E.g. {'face': [<CF AxuxiliaryCoordinate(1243) >,
+    #                <CF AxuxiliaryCoordinate(1243) >]}
+    auxiliary_coordinates: dict = field(default_factory=dict)
+    # The netCDF dimension spanned by the mesh cells for each
+    # location. E.g. {'face': 'nFaces', 'edge': 'nEdges'}
+    ncdim: dict = field(default_factory=dict)
+    # A unique identifier for the mesh. E.g. 'df10184d806ef1a10f5035e'
+    mesh_id: Any = None
 
 
 class NetCDFRead(IORead):
@@ -3428,7 +3474,7 @@ class NetCDFRead(IORead):
                 )
                 if ok:
                     mesh = g["mesh"][location_index_set_ncvar]
-                    location = mesh["location"]
+                    location = mesh.location
 
             if not ok:
                 # There's something wrong with the UGRID encoding. Set
@@ -3912,7 +3958,7 @@ class NetCDFRead(IORead):
 
         if ugrid:
             # Set the mesh identifier
-            self.implementation.set_mesh_id(f, mesh["mesh_id"])
+            self.implementation.set_mesh_id(f, mesh.mesh_id)
 
         # ------------------------------------------------------------
         # Add coordinate reference constructs from formula_terms
@@ -8481,13 +8527,6 @@ class NetCDFRead(IORead):
 
         """
         g = self.read_vars
-
-        #        g["dataset_compliance"].setdefault(mesh_ncvar, {})
-        #        g["dataset_compliance"][mesh_ncvar][
-        #            "CF version"
-        #        ] = self.implementation.get_cf_version()
-        #        g["dataset_compliance"][mesh_ncvar].setdefault("non-compliance", {})
-
         if not self._ugrid_check_mesh_topology(mesh_ncvar):
             return
 
@@ -8517,41 +8556,12 @@ class NetCDFRead(IORead):
             ):
                 do_not_create_field.add(value)
 
-        g["mesh"][mesh_ncvar] = {
-            # The netCDF name of the mesh topology variable
-            "mesh_ncvar": mesh_ncvar,
-            # The netCDF name of the location index set variable
-            # (which will be None if there isn't one)
-            "mesh_attributes": attributes,
-            # The netCDF variable names of the node coordinates
-            "node_coordinates": node_coordinates,
-            # The attributes of the location index set variable
-            # (which will be None if there is no location index set)
-            "location_index_set_ncvar": None,
-            # The attributes of the location index set variable (which
-            # will be None if there is no location index set)
-            "location_index_set_attributes": None,
-            # The location of the location index set (which will be
-            # None if there is no location index set)
-            "location": None,
-            # The zero-based indices of the location index set (which
-            # will be None if there is no location index set)
-            "index_set": None,
-            # Domain topology construct for each location
-            "domain_topology": {},
-            # Cell connectivity constructs for each location
-            "cell_connectivity": {},
-            # Auxiliary coordinate constructs for each location
-            "auxiliary_coordinates": {},
-            # The netCDF dimension spanned by the mesh cells for each
-            # location
-            "ncdim": {},
-            # A unique identifier for the mesh. This is should be
-            # copied to every field/domain construct based on this
-            # mesh, so that after reading it can be ascertained which
-            # domains belong to the same mesh.
-            "mesh_id": uuid4().hex,
-        }
+        g["mesh"][mesh_ncvar] = Mesh(
+            mesh_ncvar=mesh_ncvar,
+            mesh_attributes=attributes,
+            node_coordinates=node_coordinates,
+            mesh_id=uuid4().hex,
+        )
 
     def _ugrid_parse_location_index_set(self, parent_attributes):
         """Parse a UGRID location index set variable.
@@ -8599,36 +8609,15 @@ class NetCDFRead(IORead):
         # location index set variable
         g["do_not_create_field"].add(location_index_set_ncvar)
 
-        g["mesh"][location_index_set_ncvar] = {
-            # The netCDF name of the mesh topology variable
-            "mesh_ncvar": mesh_ncvar,
-            # The attributes of the netCDF mesh topology variable
-            "mesh_attributes": attributes,
-            # The netCDF variable names of the node coordinates
-            "node_coordinates": None,
-            # The netCDF name of the location index set variable
-            "location_index_set_ncvar": location_index_set_ncvar,
-            # The attributes of the location index set variable
-            "location_index_set_attributes": location_index_set_attributes,
-            # The location of the location index set
-            "location": location,
-            # The zero-based indices of the location index set
-            "index_set": index_set,
-            # Domain topology construct for the location
-            "domain_topology": {},
-            # Cell connectivity constructs for the location
-            "cell_connectivity": {},
-            # Auxiliary coordinate constructs for each location
-            "auxiliary_coordinates": {},
-            # The netCDF dimension spanned by the mesh cells for the
-            # location
-            "ncdim": {},
-            # A unique identifier for the mesh. This is should be
-            # copied to every field/domain construct based on this
-            # mesh, so that after reading it can be ascertained which
-            # domains belong to the same mesh.
-            "mesh_id": uuid4().hex,
-        }
+        g["mesh"][location_index_set_ncvar] = Mesh(
+            mesh_ncvar=mesh_ncvar,
+            mesh_attributes=attributes,
+            location_index_set_ncvar=location_index_set_ncvar,
+            location_index_set_attributes=location_index_set_attributes,
+            location=location,
+            index_set=index_set,
+            mesh_id=uuid4().hex,
+        )
 
     def _ugrid_get_dimension(self, parent_ncvar, f, mesh, location):
         """Find the netCDF name of the UGRID mesh topology dimension.
@@ -8651,7 +8640,7 @@ class NetCDFRead(IORead):
             f: `Field`
                 The parent field construct.
 
-            mesh: `dict`
+            mesh: `Mesh`
                 The mesh description, as stored in
                 ``self.read_vars['mesh']``.
 
@@ -8666,24 +8655,24 @@ class NetCDFRead(IORead):
                 or `None` if one could not be found.
 
         """
-        ncdim = mesh["ncdim"].get(location)
+        ncdim = mesh.ncdim.get(location)
         if ncdim is not None:
             # The netCDF dimension has already been determined
             return ncdim
 
-        ncvar = mesh["location_index_set_ncvar"]
+        ncvar = mesh.location_index_set_ncvar
         if ncvar is None:
             # The mesh is not a location index set
             if location == "node":
-                ncvar = mesh["node_coordinates"][0]
+                ncvar = mesh.node_coordinates[0]
             else:
-                ncvar = mesh["mesh_attributes"].get(
+                ncvar = mesh.mesh_attributes.get(
                     f"{location}_node_connectivity"
                 )
                 if ncvar is None:
                     self._add_message(
                         parent_ncvar,
-                        mesh["mesh_ncvar"],
+                        mesh.mesh_ncvar,
                         message=(
                             f"Mesh {location}_node_connectivity attribute",
                             "is missing",
@@ -8695,9 +8684,9 @@ class NetCDFRead(IORead):
         if ncdim is None:
             self._add_message(
                 parent_ncvar,
-                mesh["mesh_ncvar"],
+                mesh.mesh_ncvar,
                 message=(
-                    f"Mesh {mesh['mesh_ncvar']}" "spans incorrect dimensions"
+                    f"Mesh {mesh.mesh_ncvar}" "spans incorrect dimensions"
                 ),
             )
             return
@@ -8709,7 +8698,7 @@ class NetCDFRead(IORead):
 
             ncdim = ncdim[i]
 
-        mesh["ncdim"][location] = ncdim
+        mesh.ncdim[location] = ncdim
         return ncdim
 
     def _ugrid_create_auxiliary_coordinates(
@@ -8731,7 +8720,7 @@ class NetCDFRead(IORead):
             f: `Field`
                 The parent field construct.
 
-            mesh: `dict`
+            mesh: `Mesh`
                 The mesh description, as stored in
                 ``self.read_vars['mesh']``.
 
@@ -8746,18 +8735,18 @@ class NetCDFRead(IORead):
                 cells.
 
         """
-        auxs = mesh["auxiliary_coordinates"].get(location)
+        auxs = mesh.auxiliary_coordinates.get(location)
         if auxs is not None:
             # Return copies of existing auxiliary coordinate
             # constructs
             return [aux.copy() for aux in auxs]
 
         # Still here? Then create new auxiliary coordinate constructs
-        mesh_attributes = mesh["mesh_attributes"]
+        mesh_attributes = mesh.mesh_attributes
 
         # Get the netCDF variable names of the node
         # coordinates. E.g. ("Mesh2_node_x", "Mesh2_node_y")
-        nodes_ncvar = mesh["node_coordinates"]
+        nodes_ncvar = mesh.node_coordinates
 
         # Get the netCDF variable names of the cell
         # coordinates. E.g. ("Mesh1_face_x", "Mesh1_face_y"), or None
@@ -8822,12 +8811,12 @@ class NetCDFRead(IORead):
                 auxs.append(aux)
 
         # Apply a location index set
-        index_set = mesh["index_set"]
+        index_set = mesh.index_set
         if index_set is not None:
             # Apply a location index set
             auxs = [aux[index_set] for aux in auxs]
 
-        mesh["auxiliary_coordinates"][location] = auxs
+        mesh.auxiliary_coordinates[location] = auxs
         return auxs
 
     def _ugrid_create_bounds_from_nodes(
@@ -8855,7 +8844,7 @@ class NetCDFRead(IORead):
             f: `Field`
                 The parent field construct.
 
-            mesh: `dict`
+            mesh: `Mesh`
                 The mesh description, as stored in
                 ``self.read_vars['mesh']``.
 
@@ -8890,7 +8879,7 @@ class NetCDFRead(IORead):
             self._set_default_FillValue(bounds, node_ncvar)
 
         connectivity_attr = f"{location}_node_connectivity"
-        connectivity_ncvar = mesh["mesh_attributes"][connectivity_attr]
+        connectivity_ncvar = mesh.mesh_attributes[connectivity_attr]
         node_connectivity = self._create_data(
             connectivity_ncvar,
             uncompress_override=True,
@@ -8951,7 +8940,7 @@ class NetCDFRead(IORead):
             f: `Field`
                 The parent field construct.
 
-            mesh: `dict`
+            mesh: `Mesh`
                 The mesh description, as stored in
                 ``self.read_vars['mesh']``.
 
@@ -8966,12 +8955,12 @@ class NetCDFRead(IORead):
                 not be created.
 
         """
-        domain_topology = mesh["domain_topology"].get(location)
+        domain_topology = mesh.domain_topology.get(location)
         if domain_topology is not None:
             # Return a copy of an existing domain topology construct
             return domain_topology.copy()
 
-        attributes = mesh["mesh_attributes"]
+        attributes = mesh.mesh_attributes
 
         if location == "node":
             cell = "point"
@@ -8989,7 +8978,7 @@ class NetCDFRead(IORead):
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._ugrid_check_connectivity_variable(
             parent_ncvar,
-            mesh["mesh_ncvar"],
+            mesh.mesh_ncvar,
             connectivity_ncvar,
             connectivity_attr,
         ):
@@ -9013,7 +9002,7 @@ class NetCDFRead(IORead):
             ] = "Maps every point to its connected points"
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
             n_nodes = self.read_vars["internal_dimension_sizes"][
-                mesh["ncdim"][location]
+                mesh.ncdim[location]
             ]
             array = self.implementation.initialise_PointTopologyArray(
                 shape=(n_nodes, nan),
@@ -9052,12 +9041,12 @@ class NetCDFRead(IORead):
             domain_topology, self.read_vars["filename"]
         )
 
-        index_set = mesh["index_set"]
+        index_set = mesh.index_set
         if index_set is not None:
             # Apply a location index set
             domain_topology = domain_topology[index_set]
 
-        mesh["domain_topology"][location] = domain_topology
+        mesh.domain_topology[location] = domain_topology
         return domain_topology
 
     def _ugrid_create_cell_connectivity(self, parent_ncvar, f, mesh, location):
@@ -9075,7 +9064,7 @@ class NetCDFRead(IORead):
             f: `Field`
                 The parent field construct.
 
-            mesh: `dict`
+            mesh: `Mesh`
                 The mesh description, as stored in
                 ``self.read_vars['mesh']``.
 
@@ -9093,10 +9082,10 @@ class NetCDFRead(IORead):
         if location != "face":
             return
 
-        attributes = mesh["mesh_attributes"]
+        attributes = mesh.mesh_attributes
 
         connectivity_attr = f"{location}_{location}_connectivity"
-        connectivity = mesh["cell_connectivity"].get(connectivity_attr)
+        connectivity = mesh.cell_connectivity.get(connectivity_attr)
         if connectivity is not None:
             # Return a copy of an existing cell connectivity construct
             return connectivity.copy()
@@ -9106,7 +9095,7 @@ class NetCDFRead(IORead):
         connectivity_ncvar = attributes.get(connectivity_attr)
         if not self._ugrid_check_connectivity_variable(
             parent_ncvar,
-            mesh["mesh_ncvar"],
+            mesh.mesh_ncvar,
             connectivity_ncvar,
             connectivity_attr,
         ):
@@ -9151,12 +9140,12 @@ class NetCDFRead(IORead):
             connectivity, self.read_vars["filename"]
         )
 
-        index_set = mesh["index_set"]
+        index_set = mesh.index_set
         if index_set is not None:
             # Apply a location index set
             connectivity = connectivity[index_set]
 
-        mesh["cell_connectivity"][connectivity_attr] = connectivity
+        mesh.cell_connectivity[connectivity_attr] = connectivity
         return connectivity
 
     def _ugrid_cell_dimension(self, location, connectivity_ncvar, mesh):
@@ -9174,7 +9163,7 @@ class NetCDFRead(IORead):
                 The netCDF variable name of the UGRID connectivity
                 variable.
 
-            mesh: `dict`
+            mesh: `Mesh`
                 The mesh description, as stored in
                 ``self.read_vars['mesh']``.
 
@@ -9186,7 +9175,7 @@ class NetCDFRead(IORead):
                 ``1``.
 
         """
-        ncdim = mesh["mesh_attributes"].get(f"{location}_dimension")
+        ncdim = mesh.mesh_attributes.get(f"{location}_dimension")
         if ncdim is None:
             return 0
 
@@ -9665,7 +9654,8 @@ class NetCDFRead(IORead):
             )
             return False
 
-        mesh_attributes = g["mesh"][mesh_ncvar]["mesh_attributes"]
+        #        mesh_attributes = g["mesh"][mesh_ncvar]["mesh_attributes"]
+        mesh_attributes = g["mesh"][mesh_ncvar].mesh_attributes
 
         location = parent_attributes.get("location")
         if location is None:

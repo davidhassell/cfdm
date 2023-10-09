@@ -146,7 +146,8 @@ class Field(
             except AttributeError:
                 pass
             else:
-                self.set_mesh_id(mesh_id)
+                if mesh_id is not None:
+                    self.set_mesh_id(mesh_id)
 
         self._initialise_netcdf(source)
         self._initialise_original_filenames(source)
