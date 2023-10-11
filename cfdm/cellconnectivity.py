@@ -292,7 +292,9 @@ class CellConnectivity(
         return super().identities(generator=generator, **kwargs)
 
     @_inplace_enabled(default=False)
-    def normalise(self, start_index=0, inplace=False):
+    def normalise(
+        self, start_index=0, remove_empty_columns=False, inplace=False
+    ):
         """Normalise the data values.
 
         Normalised data is in a form that is suitable for creating a
@@ -312,6 +314,10 @@ class CellConnectivity(
                 The start index for the data values in the normalised
                 data. Must be ``0`` (the default) or ``1`` for zero-
                 or one-based indices respectively.
+
+            remove_empty_columns: `bool`, optional
+                If True then remove any array columns that are
+                entirely missing data. By default these are retained.
 
             {{inplace: `bool`, optional}}
 
@@ -346,6 +352,8 @@ class CellConnectivity(
 
         d = _inplace_enabled_define_and_cleanup(self)
         data = d.array
-        data = self._normalise_cell_ids(data, start_index)
+        data = self._normalise_cell_ids(
+            data, start_index, remove_empty_columns
+        )
         d.set_data(data, copy=False)
         return d
