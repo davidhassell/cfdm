@@ -94,38 +94,112 @@ class DomainTopologyTest(unittest.TestCase):
 
     def test_DomainTopology_normalise(self):
         """Test the 'normalise' method of DomainTopology."""
+        # Face cells
         data = cfdm.Data(
             [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]],
-            mask_value=-99
+            mask_value=-99,
         )
-        n = np.ma.array([[0 ,2 ,3, 1],
-                      [2 ,4 ,0, -99],
-                      [7 ,8 ,6, 5]])
+        d = cfdm.DomainTopology(cell="face", data=data)
+
+        n = np.ma.array([[0, 2, 3, 1], [2, 4, 0, -99], [7, 8, 6, 5]])
         n[1, -1] = np.ma.masked
-        
-        d = cfdm.DomainTopology(cell='face', data=data)
         d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
         self.assertTrue((d0.mask == n.mask).all())
         self.assertTrue((d0 == n).all())
-        d1 = d.normalise(start_index = 1).array
+        d1 = d.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
         self.assertTrue((d1.mask == n.mask).all())
         self.assertTrue((d1 == n + 1).all())
 
-        self.assertIsNone(d.normalise(inplace=True))
-        print (d.array)
-        d0 = d.normalise().array
+        e = d.copy()
+        self.assertIsNone(e.normalise(inplace=True))
+        d0 = e.normalise().array
+        self.assertEqual(d0.shape, n.shape)
         self.assertTrue((d0.mask == n.mask).all())
         self.assertTrue((d0 == n).all())
 
+        d.data[:, -1] = np.ma.masked
+        n = np.ma.array([[0, 1, 2, -99], [1, 3, 0, -99], [5, 6, 4, -99]])
+        n[:, -1] = np.ma.masked
+
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        n = n[:, :-1]
+        d0 = d.normalise(remove_empty_columns=True).array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        # Point cells
         data = cfdm.Data(
             [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]],
-            mask_value=-99
+            mask_value=-99,
         )
-        n = np.ma.array([[0 ,1 ,2],
-                        [1 ,0 ,-99],
-                        [2 ,0 ,-99]])
-        n[[1,2], -1] = np.ma.masked
-        
+        d = cfdm.DomainTopology(cell="point", data=data)
+
+        n = np.ma.array([[0, 1, 2, -99], [1, 0, -99, -99], [2, 0, -99, -99]])
+        n = np.ma.where(n == -99, np.ma.masked, n)
+
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = d.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
+
+        e = d.copy()
+        self.assertIsNone(e.normalise(inplace=True))
+        d0 = e.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = e.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
+
+        self.assertIsNone(e.normalise(start_index=1, inplace=True))
+        d0 = e.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = e.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
+
+        d.data[:, -1] = np.ma.masked
+        n = np.ma.array([[0, 1, -99, -99], [1, 0, -99, -99], [2, 0, -99, -99]])
+        n = np.ma.where(n == -99, np.ma.masked, n)
+
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        d.data[:, 1:] = np.ma.masked
+        n = np.ma.array(
+            [[0, -99, -99, -99], [1, -99, -99, -99], [2, -99, -99, -99]]
+        )
+        n = np.ma.where(n == -99, np.ma.masked, n)
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        n = np.ma.array([[0], [1], [2]])
+        d0 = d.normalise(remove_empty_columns=True).array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
     cfdm.environment()

@@ -343,84 +343,90 @@ class DomainTopology(
         return super().identities(generator=generator, **kwargs)
 
     @_inplace_enabled(default=False)
-    def normalise(self, start_index=0, inplace=False):
+    def normalise(
+        self, start_index=0, remove_empty_columns=False, inplace=False
+    ):
         """Normalise the data values.
 
-                Normalised data is in a form that is suitable for creating a
-                CF-netCDF UGRID "edge_node_connectivity" or
-                "face_node_connectivity" variable.
+        Normalised data is in a form that is suitable for creating a
+        CF-netCDF UGRID "edge_node_connectivity" or
+        "face_node_connectivity" variable.
 
-                Normalisation does not change the logical content of the
-                data. It converts the data so that the set of unique values
-                comprises all of the integers in the range ``[0, N-1]`` (if
-                the *start_index* parameter is ``0``), or ``[1, N]`` (if
-                *start_index* is ``1``), where ``N`` is the number of mesh
-                nodes.
+        Normalisation does not change the logical content of the
+        data. It converts the data so that the set of unique values
+        comprises all of the integers in the range ``[0, N-1]`` (if
+        the *start_index* parameter is ``0``), or ``[1, N]`` (if
+        *start_index* is ``1``), where ``N`` is the number of mesh
+        nodes.
 
-                .. versionadded:: (cfdm) UGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
-                :Parameters:
+        :Parameters:
 
-                    start_index: `int`, optional
-                        The start index for the data values in the normalised
-                        data. Must be ``0`` (the default) or ``1`` for zero-
-                        or one-based indices respectively.
+            start_index: `int`, optional
+                The start index for the data values in the normalised
+                data. Must be ``0`` (the default) or ``1`` for zero-
+                or one-based indices respectively.
 
-                    {{inplace: `bool`, optional}}
+            remove_empty_columns: `bool`, optional
+                If True then remove any array columns that are
+                entirely missing data. By default these are retained.
 
-                :Returns:
+            {{inplace: `bool`, optional}}
 
-                    `{{class}}` or `None`
-                        The normalised domain topology construct, or `None` if
-                        the operation was in-place.
+        :Returns:
 
-                **Examples*
+            `{{class}}` or `None`
+                The normalised domain topology construct, or `None` if
+                the operation was in-place.
 
-                Face cells (similarly for edge cells):
+        **Examples*
 
-                >>> data = {{package}}.Data(
-                ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]],
-                ...   mask_value=-99
-                ... )
-                >>> d = {{package}}.{{class}}(cell='face', data=data)
-                >>> print(d.array)
-                [[1 4 5 2]
-                 [4 10 1 --]
-                 [122 123 106 105]]
-                >>> d0 = d.normalise()
-                >>> print(c.array)
-                [[0 2 3 1]
-                 [2 4 0 --]
-                 [7 8 6 5]]
-                >>> (d0.array == d.normalise().array).all()
-                True
-                >>> d1 = d.normalise(start_index=1)
-                >>> print(d1.array)
-                [[1 3 4 2]
-                 [3 5 1 --]
-                 [8 9 7 6]]
-                >>> (d1.array == d0.array + 1).all()
-                True
+        Face cells (similarly for edge cells):
 
-                Point cells:
+        >>> data = {{package}}.Data(
+        ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]],
+        ...   mask_value=-99
+        ... )
+        >>> d = {{package}}.{{class}}(cell='face', data=data)
+        >>> print(d.array)
+        [[1 4 5 2]
+         [4 10 1 --]
+         [122 123 106 105]]
+        >>> d0 = d.normalise()
+        >>> print(c.array)
+        [[0 2 3 1]
+         [2 4 0 --]
+         [7 8 6 5]]
+        >>> (d0.array == d.normalise().array).all()
+        True
+        >>> d1 = d.normalise(start_index=1)
+        >>> print(d1.array)
+        [[1 3 4 2]
+         [3 5 1 --]
+         [8 9 7 6]]
+        >>> (d1.array == d0.array + 1).all()
+        True
 
-                >>> data = {{package}}.Data(
-                ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]],
-                ...   mask_value=-99
-                ... )
-                >>> d = {{package}}.{{class}}(cell='point', data=data)
-                >>> print(d.array)
-                [[4 1 10 125]
-                 [1 4 -- --]
-                 [125 4 -- --]]
-                >>> print(d.normalise().array)
-                [[0 1 2]
-                 [1 0 --]
-                 [2 0 --]]
-                >>> print(d.normalise(start_index=1).array)
-                [[1 2 3]
-                 [2 1 --]
-                 [3 1 --]]
+        Point cells:
+
+        >>> data = {{package}}.Data(
+        ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]],
+        ...   mask_value=-99
+        ... )
+        >>> d = {{package}}.{{class}}(cell='point', data=data)
+        >>> print(d.array)
+        [[4 1 10 125]
+         [1 4 -- --]
+         [125 4 -- --]]
+        >>> print(d.normalise().array)
+        [[0 1 2]
+         [1 0 --]
+         [2 0 --]]
+        >>> print(d.normalise(start_index=1).array)
+        [[1 2 3]
+         [2 1 --]
+         [3 1 --]]
 
         """
         import numpy as np
@@ -444,11 +450,17 @@ class DomainTopology(
             n, b = np.where(~mask)
             data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
 
+            if remove_empty_columns:
+                # Discard columns that are all missing data
+                data = self._remove_empty_columns(data)
+
             if start_index:
                 data += 1
         elif cell == "point":
             # Normalise cell ids for point cells
-            data = self._normalise_cell_ids(data, start_index)
+            data = self._normalise_cell_ids(
+                data, start_index, remove_empty_columns
+            )
         else:
             raise ValueError(f"Can't normalise: Unknown cell type {cell!r}")
 
