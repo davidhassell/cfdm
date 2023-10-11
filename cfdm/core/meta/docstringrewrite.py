@@ -610,7 +610,7 @@ class DocstringRewriteMeta(type):
 
             config: `dict`
 
-        """
+        """                
         if class_docstring is not None:
             doc = class_docstring
         else:

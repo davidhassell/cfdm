@@ -62,6 +62,10 @@ class Container(metaclass=DocstringRewriteMeta):
         """
         return self.copy()
 
+    def __docstring_substitution_set__(self):
+        """Defines docstring substitutions for a class and subclasses."""
+        return set()
+
     def __docstring_substitutions__(self):
         """Defines docstring substitutions for a class and subclasses.
 
@@ -86,7 +90,14 @@ class Container(metaclass=DocstringRewriteMeta):
     def __docstring_package_depth__(self):
         """Returns the package depth for {{package}} substitutions.
 
-        See `_docstring_package_depth` for details.
+        .. versionaddedd:: (cfdm) 1.8.7.0
+
+        :Returns:
+
+            `int`
+                The first N ``.`` (dot) separated fields of the
+                class's `__module__` attribute that replace the
+                special ``{{package}}`` docstring substitution.
 
         """
         return 1

@@ -50,3 +50,14 @@ class Bounds(abstract.PropertiesData):
             copy=copy,
             _use_data=_use_data,
         )
+
+
+    def __docstring_substitution_set__(self):
+        """TODOMETA"""
+        return super().__docstring_substitution_set__().union(
+            ("{{init properties: `dict`, optional}}",
+             "{{init data: data_like, optional}}",
+             "{{init source: optional}}",
+             "{{init copy: `bool`, optional}}")
+        )
+    
