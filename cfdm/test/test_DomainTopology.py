@@ -2,6 +2,8 @@ import datetime
 import faulthandler
 import unittest
 
+import numpy as np
+
 faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
@@ -90,7 +92,40 @@ class DomainTopologyTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 d.transpose(axes)
 
+    def test_DomainTopology_normalise(self):
+        """Test the 'normalise' method of DomainTopology."""
+        data = cfdm.Data(
+            [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]],
+            mask_value=-99
+        )
+        n = np.ma.array([[0 ,2 ,3, 1],
+                      [2 ,4 ,0, -99],
+                      [7 ,8 ,6, 5]])
+        n[1, -1] = np.ma.masked
+        
+        d = cfdm.DomainTopology(cell='face', data=data)
+        d0 = d.normalise().array
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = d.normalise(start_index = 1).array
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
 
+        self.assertIsNone(d.normalise(inplace=True))
+        print (d.array)
+        d0 = d.normalise().array
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        data = cfdm.Data(
+            [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]],
+            mask_value=-99
+        )
+        n = np.ma.array([[0 ,1 ,2],
+                        [1 ,0 ,-99],
+                        [2 ,0 ,-99]])
+        n[[1,2], -1] = np.ma.masked
+        
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
     cfdm.environment()

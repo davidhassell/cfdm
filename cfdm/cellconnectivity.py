@@ -34,10 +34,10 @@ class CellConnectivity(
     topology construct.
 
     When cell connectivity constructs are present they are considered
-    to be definitive and must be used in preference to the
-    connectivities implied by inspection of any other constructs,
-    apart from the domain topology construct, which are not guaranteed
-    to be the same.
+    to define the connectivity of the cells. Exactly the same
+    connectivity information could be derived from the domain topology
+    construct. Connectivity information inferred from inspection of
+    any other constructs is not guaranteed to be the same.
 
     In CF-netCDF a cell topology construct can only be provided by a
     UGRID mesh topology variable. The construct array is supplied

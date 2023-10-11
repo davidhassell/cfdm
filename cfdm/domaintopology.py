@@ -371,16 +371,17 @@ class DomainTopology(
                 :Returns:
 
                     `{{class}}` or `None`
-        x                The normalised domain topology construct, or `None` if
+                        The normalised domain topology construct, or `None` if
                         the operation was in-place.
 
                 **Examples*
 
-                Face cells (similarly for edge and volume cells):
+                Face cells (similarly for edge cells):
 
                 >>> data = {{package}}.Data(
-                ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]]
-                ... ).masked_values(-99)
+                ...   [[1, 4, 5, 2], [4, 10, 1, -99], [122, 123, 106, 105]],
+                ...   mask_value=-99
+                ... )
                 >>> d = {{package}}.{{class}}(cell='face', data=data)
                 >>> print(d.array)
                 [[1 4 5 2]
@@ -404,8 +405,9 @@ class DomainTopology(
                 Point cells:
 
                 >>> data = {{package}}.Data(
-                ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]]
-                ... ).masked_values(-99)
+                ...   [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]],
+                ...   mask_value=-99
+                ... )
                 >>> d = {{package}}.{{class}}(cell='point', data=data)
                 >>> print(d.array)
                 [[4 1 10 125]
@@ -436,17 +438,19 @@ class DomainTopology(
         d = _inplace_enabled_define_and_cleanup(self)
         data = d.array
 
-        if cell == "point":
-            # Normalise cell ids for point cells
-            data = self._normalise_cell_ids(data, start_index)
-        else:
-            # Normalise node ids for edge, face or volume cells.
+        if cell in ("edge", "face"):
+            # Normalise node ids for edge or face cells.
             mask = np.ma.getmaskarray(data)
             n, b = np.where(~mask)
             data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
 
             if start_index:
                 data += 1
+        elif cell == "point":
+            # Normalise cell ids for point cells
+            data = self._normalise_cell_ids(data, start_index)
+        else:
+            raise ValueError(f"Can't normalise: Unknown cell type {cell!r}")
 
         d.set_data(data, copy=False)
         return d
