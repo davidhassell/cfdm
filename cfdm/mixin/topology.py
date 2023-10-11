@@ -130,7 +130,7 @@ class Topology:
         It is assumed that any such columns will be a the end of the
         dimension.
 
-        .. versionadded:: UGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `_normalise_cell_ids`, `normalise`
 
@@ -164,7 +164,7 @@ class Topology:
         specified. Therefore, the `transpose` method never changes the
         data.
 
-        .. versionadded:: UGRIDVER
+        .. versionadded:: (cfdm) UGRIDVER
 
         .. seealso:: `insert_dimension`, `squeeze`
 

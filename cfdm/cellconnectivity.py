@@ -351,9 +351,8 @@ class CellConnectivity(
             raise ValueError("The 'start_index' parameter must be 0 or 1")
 
         d = _inplace_enabled_define_and_cleanup(self)
-        data = d.array
         data = self._normalise_cell_ids(
-            data, start_index, remove_empty_columns
+            d.array, start_index, remove_empty_columns
         )
         d.set_data(data, copy=False)
         return d

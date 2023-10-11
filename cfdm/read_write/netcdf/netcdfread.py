@@ -35,7 +35,7 @@ _flattener_separator = netcdf_flattener._Flattener._Flattener__new_separator
 class Mesh:
     """A UGRID mesh defintion.
 
-    .. versionadded:: UGRIDVER
+    .. versionadded:: (cfdm) UGRIDVER
 
     """
 
@@ -56,17 +56,17 @@ class Mesh:
     # The location of the location index set. E.g. 'edge'
     location: Any = None
     # The zero-based indices of the location index set.
-    # E.g. <CF Data(1243): >
+    # E.g. <CF Data(13243): >
     index_set: Any = None
     # Domain topology construct for each location.
-    # E.g. {'face': <CF DomainTopology(1243, 4) >}
+    # E.g. {'face': <CF DomainTopology(13243, 4) >}
     domain_topology: dict = field(default_factory=dict)
     # Cell connectivity constructs for each location.
-    # E.g. {'face': <CF CellConnectivity(1243, 4) >}
+    # E.g. {'face': <CF CellConnectivity(13243, 4) >}
     cell_connectivity: dict = field(default_factory=dict)
     # Auxiliary coordinate constructs for each location.
-    # E.g. {'face': [<CF AxuxiliaryCoordinate(1243) >,
-    #                <CF AxuxiliaryCoordinate(1243) >]}
+    # E.g. {'face': [<CF AxuxiliaryCoordinate(13243) >,
+    #                <CF AxuxiliaryCoordinate(13243) >]}
     auxiliary_coordinates: dict = field(default_factory=dict)
     # The netCDF dimension spanned by the mesh cells for each
     # location. E.g. {'face': 'nFaces', 'edge': 'nEdges'}

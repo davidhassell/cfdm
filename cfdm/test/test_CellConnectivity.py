@@ -2,6 +2,8 @@ import datetime
 import faulthandler
 import unittest
 
+import numpy as np
+
 faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
@@ -95,6 +97,72 @@ class CellConnectivityTest(unittest.TestCase):
         for axes in ([1], [1, 0], [3]):
             with self.assertRaises(ValueError):
                 c.transpose(axes)
+
+    def test_CellConnectivity_normalise(self):
+        """Test the 'normalise' method of CellConnectivity."""
+        data = cfdm.Data(
+            [[4, 1, 10, 125], [1, 4, -99, -99], [125, 4, -99, -99]],
+            mask_value=-99,
+        )
+        d = cfdm.CellConnectivity(connectivity="edge", data=data)
+
+        n = np.ma.array([[0, 1, 2, -99], [1, 0, -99, -99], [2, 0, -99, -99]])
+        n = np.ma.where(n == -99, np.ma.masked, n)
+
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = d.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
+
+        e = d.copy()
+        self.assertIsNone(e.normalise(inplace=True))
+        d0 = e.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = e.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
+
+        self.assertIsNone(e.normalise(start_index=1, inplace=True))
+        d0 = e.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+        d1 = e.normalise(start_index=1).array
+        self.assertEqual(d1.shape, n.shape)
+        self.assertTrue((d1.mask == n.mask).all())
+        self.assertTrue((d1 == n + 1).all())
+
+        d.data[:, -1] = np.ma.masked
+        n = np.ma.array([[0, 1, -99, -99], [1, 0, -99, -99], [2, 0, -99, -99]])
+        n = np.ma.where(n == -99, np.ma.masked, n)
+
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        d.data[:, 1:] = np.ma.masked
+        n = np.ma.array(
+            [[0, -99, -99, -99], [1, -99, -99, -99], [2, -99, -99, -99]]
+        )
+        n = np.ma.where(n == -99, np.ma.masked, n)
+        d0 = d.normalise().array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
+
+        n = np.ma.array([[0], [1], [2]])
+        d0 = d.normalise(remove_empty_columns=True).array
+        self.assertEqual(d0.shape, n.shape)
+        self.assertTrue((d0.mask == n.mask).all())
+        self.assertTrue((d0 == n).all())
 
 
 if __name__ == "__main__":
