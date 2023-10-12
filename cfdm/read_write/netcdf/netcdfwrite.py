@@ -4009,6 +4009,16 @@ class NetCDFWrite(IOWrite):
                 extra["geometry"] = gc_ncvar
 
         # ------------------------------------------------------------
+        # UGRID mesh topology container (CF>=1.11)
+        # ------------------------------------------------------------
+        if g["output_version"] >= g["CF-1.11"]:
+            # TODOUGRID
+            mesh, location = self._create_mesh_topology(f)
+            if mesh:
+                extra["mesh"] = mesh['mesh_ncvar']
+                extra["location"] = location
+
+        # ------------------------------------------------------------
         # Create a new CF-netCDF data/domain variable
         # ------------------------------------------------------------
         # Omit any global attributes from the variable
@@ -5187,6 +5197,14 @@ class NetCDFWrite(IOWrite):
             self._write_field_or_domain(f)
 
         # ------------------------------------------------------------
+        # Write UGRID mesh topology containers (CF >= 1.11)
+        # ------------------------------------------------------------
+        if g["output_version"] >= g["CF-1.11"] and g["mesh"]:
+            for ncvar, mesh in g["mesh"].items():
+                self._write_mesh_topology(ncvar, mesh)
+
+
+        # ------------------------------------------------------------
         # Write all of the buffered data to disk
         # ------------------------------------------------------------
         # For append mode, it is cleaner code-wise to close the file
@@ -5292,3 +5310,202 @@ class NetCDFWrite(IOWrite):
 
         """
         pass
+
+    def _create_mesh_topology(self, field):
+        """TODOUGRID Create a geometry container variable in the netCDF file.
+
+        .. versionadded:: (cfdm) UGRIDWRITEVER
+
+        :Parameters:
+
+            field: `Field`
+                TODOUGRID
+
+        :Returns:
+
+            `dict`, `str`
+                TODOUGRID A representation off the CF-netCDF geometry container
+                variable for field construct. If there is no geometry
+                container then the dictionary is empty.
+
+        """
+        domain_topologies = self.implementation.get_domain_topologies(field)
+        if not domain_topologies:
+            return {}, ""
+
+        if len(domain_topologies) > 1:
+            raise ValueError(
+                f"Can't write {field!r} with multiple "
+                "domain topology constructs"
+            )
+
+        _,        domain_topology =  domain_topologies.popitem()
+        cell = self.get_cell(domain_topology )
+        if cell is None:
+            raise ValueError(
+                f"Can't write {field!r} TODOUGRID")
+
+        location = cell
+        if cell == "point":
+            location = "node"
+
+        # Create node coordinates
+        #
+        # If node coordiantes have already been written for a mesh
+        #   (_already_in_file), check the nodes to see if this domain
+        #   topology is for the same mesh
+        #
+        # nx.add_cycle(f, [5, 6, 4]) (loop)
+        # e = nx.Graph()
+        # e.add_edges_from(...)
+        # nx.utils.misc.graphs_equal(f,e)
+
+
+
+        g = self.write_vars
+        gc = {}
+        for key, coord in self.implementation.get_auxiliary_coordinates(
+            field
+        ).items():
+            geometry_type = self.implementation.get_geometry(coord, None)
+            if geometry_type not in self.cf_geometry_types():
+                # No geometry bounds for this auxiliary coordinate
+                continue
+
+            nodes = self.implementation.get_bounds(coord)
+            if nodes is None:
+                # No geometry nodes for this auxiliary coordinate
+                continue
+
+            # assuming 1-d coord ...
+            geometry_dimension = g["key_to_ncdims"][key][0]
+
+            geometry_id = (geometry_dimension, geometry_type)
+            gc.setdefault(geometry_id, {"geometry_type": geometry_type})
+
+            # Nodes
+            nodes_ncvar = g["seen"][id(nodes)]["ncvar"]
+            gc[geometry_id].setdefault("node_coordinates", []).append(
+                nodes_ncvar
+            )
+
+            # Coordinates
+            try:
+                coord_ncvar = g["seen"][id(coord)]["ncvar"]
+            except KeyError:
+                # There is no netCDF auxiliary coordinate variable
+                pass
+            else:
+                gc[geometry_id].setdefault("coordinates", []).append(
+                    coord_ncvar
+                )
+
+            # Grid mapping
+            grid_mappings = [
+                g["seen"][id(cr)]["ncvar"]
+                # TODO replace field.coordinate_references with
+                # self.implemenetation call
+                for cr in field.coordinate_references().values()
+                if (
+                    cr.coordinate_conversion.get_parameter(
+                        "grid_mapping_name", None
+                    )
+                    is not None
+                    and key in cr.coordinates()
+                )
+            ]
+            gc[geometry_id].setdefault("grid_mapping", []).extend(
+                grid_mappings
+            )
+
+            # Node count
+            try:
+                ncvar = g["geometry_encoding"][nodes_ncvar]["node_count"]
+            except KeyError:
+                # There is no node count variable
+                pass
+            else:
+                gc[geometry_id].setdefault("node_count", []).append(ncvar)
+
+            # Part node count
+            try:
+                ncvar = g["geometry_encoding"][nodes_ncvar]["part_node_count"]
+            except KeyError:
+                # There is no part node count variable
+                pass
+            else:
+                gc[geometry_id].setdefault("part_node_count", []).append(ncvar)
+
+            # Interior ring
+            try:
+                ncvar = g["geometry_encoding"][nodes_ncvar]["interior_ring"]
+            except KeyError:
+                # There is no interior ring variable
+                pass
+            else:
+                gc[geometry_id].setdefault("interior_ring", []).append(ncvar)
+
+        if not gc:
+            # This field has no geometries
+            return {}
+
+        for x in gc.values():
+            # Node coordinates
+            if "node_coordinates" in x:
+                x["node_coordinates"] = " ".join(sorted(x["node_coordinates"]))
+
+            # Coordinates
+            if "coordinates" in x:
+                x["coordinates"] = " ".join(sorted(x["coordinates"]))
+
+            # Grid mapping
+            grid_mappings = set(x.get("grid_mapping", ()))
+            if len(grid_mappings) == 1:
+                x["grid_mapping"] = grid_mappings.pop()
+            elif len(grid_mappings) > 1:
+                raise ValueError(
+                    f"Can't write {field!r}: Geometry container has multiple "
+                    f"grid mapping variables: {x['grid_mapping']!r}"
+                )
+
+            # Node count
+            nc = set(x.get("node_count", ()))
+            if len(nc) == 1:
+                x["node_count"] = nc.pop()
+            elif len(nc) > 1:
+                raise ValueError(
+                    f"Can't write {field!r}: Geometry container has multiple "
+                    f"node count variables: {x['node_count']!r}"
+                )
+
+            # Part node count
+            pnc = set(x.get("part_node_count", ()))
+            if len(pnc) == 1:
+                x["part_node_count"] = pnc.pop()
+            elif len(pnc) > 1:
+                raise ValueError(
+                    f"Can't write {field!r}: Geometry container has multiple "
+                    f"part node count variables: {x['part_node_count']!r}"
+                )
+
+            # Interior ring
+            ir = set(x.get("interior_ring", ()))
+            if len(ir) == 1:
+                x["interior_ring"] = ir.pop()
+            elif len(ir) > 1:
+                raise ValueError(
+                    f"Can't write {field!r}: Geometry container has multiple "
+                    f"interior ring variables: {x['interior_ring']!r}"
+                )
+
+        if len(gc) > 1:
+            raise ValueError(
+                f"Can't write {field!r}: Multiple geometry containers: "
+                f"{list(gc.values())!r}"
+            )
+
+        _, geometry_container = gc.popitem()
+
+        g["geometry_dimensions"].add(geometry_dimension)
+
+        return geometry_container
