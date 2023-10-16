@@ -99,6 +99,7 @@ class UGRIDTest(unittest.TestCase):
                 self.assertEqual(
                     g.cell_connectivity().get_connectivity(), "edge"
                 )
+
         # Check that all fields have the same mesh id
         mesh_ids2 = set(g.get_mesh_id() for g in f2)
         self.assertEqual(len(mesh_ids2), 1)
@@ -157,6 +158,32 @@ class UGRIDTest(unittest.TestCase):
             ).all()
         )
         self.assertTrue(cell_connectivity1.equals(face2.cell_connectivity()))
+
+    def test_read_UGRID_domain(self):
+        """Test reading of UGRID files into domains."""
+        d1 = cfdm.read(self.filename1, domain=True)
+
+        self.assertEqual(len(d1), 3)
+        for g in d1:
+            self.assertIsInstance(g, cfdm.Domain)
+            self.assertEqual(len(g.domain_topologies()), 1)
+            self.assertEqual(len(g.auxiliary_coordinates()), 2)
+            self.assertEqual(len(g.dimension_coordinates()), 0)
+
+            cell = g.domain_topology().get_cell()
+            if cell in ("edge", "face"):
+                for aux in g.auxiliary_coordinates().values():
+                    self.assertTrue(aux.has_data())
+
+            if cell == "face":
+                self.assertEqual(len(g.cell_connectivities()), 1)
+                self.assertEqual(
+                    g.cell_connectivity().get_connectivity(), "edge"
+                )
+
+        # Check that all domains have the same mesh id
+        mesh_ids1 = set(g.get_mesh_id() for g in d1)
+        self.assertEqual(len(mesh_ids1), 1)
 
 
 if __name__ == "__main__":

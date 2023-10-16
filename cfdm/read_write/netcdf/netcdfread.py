@@ -2002,8 +2002,8 @@ class NetCDFRead(IORead):
         :Parameters:
 
             netcdf_external_variables: `str`
-                The un-parsed netCDF external_variables attribute in the
-                parent file.
+                The un-parsed netCDF external_variables attribute in
+                the parent file.
 
                 *Parmaeter example:*
                   ``external_variables='areacello'``
@@ -2011,6 +2011,9 @@ class NetCDFRead(IORead):
         :Returns:
 
             `None`
+                The following are updated in-place:
+                ``read_vars["external_variables"]``,
+                ``read_vars["datasets"]``
 
         """
         attribute = {"external_variables": netcdf_external_variables}
@@ -2032,6 +2035,7 @@ class NetCDFRead(IORead):
             "variable_group_attributes",
             "variable_basename",
             "variables",
+            "mesh",
         )
 
         found = []
@@ -2119,12 +2123,15 @@ class NetCDFRead(IORead):
                     # Update the read parameters so that this external
                     # variable looks like it is an internal variable
                     for key in keys:
+                        print(key, ncvar)
                         self.read_vars[key][ncvar] = external_read_vars[key][
                             ncvar
                         ]
 
                     # Remove this ncvar from the set of external variables
                     external_variables.remove(ncvar)
+
+        print(11111, external_read_vars["variable_attributes"].keys())
 
     def _parse_compression_gathered(self, ncvar, compress):
         """Parse a list variable for compressing arrays by gathering."""
@@ -2800,8 +2807,8 @@ class NetCDFRead(IORead):
         :Returns:
 
             `list`
-                The external variable names, less those which are also netCDF
-                variables in the file.
+                The external variable names, less those which are also
+                netCDF variables in the file.
 
         """
         g = self.read_vars
@@ -9062,6 +9069,8 @@ class NetCDFRead(IORead):
 
         connectivity_ncvar = attributes.get(connectivity_attr)
         if connectivity_ncvar is None:
+            # Can't crate a domain topology construct without an
+            # approrpriate connectivity attribute
             return
 
         if not self._ugrid_check_connectivity_variable(
@@ -9734,7 +9743,10 @@ class NetCDFRead(IORead):
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
-                message=("mesh attribute", "is not a mesh topology variable"),
+                message=(
+                    "mesh attribute",
+                    "ppp1 is not a mesh topology variable",
+                ),
                 attribute={f"{parent_ncvar}:mesh": mesh_ncvar},
             )
             return False
@@ -9750,108 +9762,7 @@ class NetCDFRead(IORead):
                 message=("location attribute", "is missing"),
             )
             ok = False
-        elif location == "node":
-            edge_node_ncvar = mesh_attributes.get("edge_node_connectivity")
-            face_node_ncvar = mesh_attributes.get("face_node_connectivity")
-            if edge_node_ncvar is None and face_node_ncvar is None:
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=(
-                        "Both edge_node_connectivity and "
-                        "face_node_connectivity attributes",
-                        "are missing",
-                    ),
-                )
-                ok = False
-            else:
-                for ncvar, name in zip(
-                    (edge_node_ncvar, face_node_ncvar), ("edge", "face")
-                ):
-                    if (
-                        ncvar is not None
-                        and ncvar not in g["internal_variables"]
-                    ):
-                        ncvar, message = self._missing_variable(
-                            mesh_ncvar,
-                            f"{name.capitalize()} node connectivity variable",
-                        )
-                        self._add_message(
-                            parent_ncvar,
-                            mesh_ncvar,
-                            message=message,
-                            attribute={
-                                f"{ncvar}:{name}_node_connectivity": ncvar
-                            },
-                        )
-                        ok = False
-        elif location == "edge":
-            ncvar = mesh_attributes.get("edge_node_connectivity")
-            if ncvar is None:
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=(
-                        "edge_node_connectivity attribute",
-                        "is missing",
-                    ),
-                )
-                ok = False
-            elif ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    mesh_ncvar, "Edge node connectivity variable"
-                )
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=message,
-                    attribute={f"{ncvar}:edge_node_connectivity": ncvar},
-                )
-                ok = False
-        elif location == "face":
-            ncvar = mesh_attributes.get("face_node_connectivity")
-            if ncvar is None:
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=("face_node_connectivity attribute", "is missing"),
-                )
-                ok = False
-            elif ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    mesh_ncvar, "Face node connectivity variable"
-                )
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=message,
-                    attribute={f"{ncvar}:face_node_connectivity": ncvar},
-                )
-                ok = False
-        elif location == "volume":
-            ncvar = mesh_attributes.get("volume_node_connectivity")
-            if ncvar is None:
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=(
-                        "volume_node_connectivity attribute",
-                        "is missing",
-                    ),
-                )
-                ok = False
-            elif ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    mesh_ncvar, "Volume node connectivity variable"
-                )
-                self._add_message(
-                    parent_ncvar,
-                    ncvar,
-                    message=message,
-                    attribute={f"{ncvar}:volume_node_connectivity": ncvar},
-                )
-                ok = False
-        else:
+        elif location not in ("node", "edge", "face", "volume"):
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
@@ -9859,30 +9770,150 @@ class NetCDFRead(IORead):
                 attribute={f"{parent_ncvar}:location": location},
             )
             ok = False
-
-        cell_coordinate_ncvars = mesh_attributes.get(f"{location}_coordinates")
-        if cell_coordinate_ncvars is not None:
-            cell_coordinate_ncvar = self._split_string_by_white_space(
-                None, cell_coordinate_ncvars, variables=True
-            )[0]
-            parent_ncdims = self._ncdimensions(parent_ncvar)
-            cell_ncdims = self._ncdimensions(cell_coordinate_ncvar)
-            if not set(cell_ncdims).issubset(parent_ncdims):
-                self._add_message(
-                    parent_ncvar,
-                    mesh_ncvar,
-                    message=(
-                        f"UGRID mesh {location} coordinates",
-                        "span incorrect dimensions",
-                    ),
-                    attribute={
-                        f"mesh:{location}_coordinates": mesh_attributes[
-                            f"{location}_coordinates"
-                        ]
-                    },
-                    dimensions=g["variable_dimensions"][cell_coordinate_ncvar],
-                )
-                ok = False
+        elif location not in g["mesh"][mesh_ncvar].domain_topologies:
+            self._add_message(
+                parent_ncvar,
+                mesh_ncvar,
+                message=(
+                    "Both TODOUGRID  edge_node_connectivity and "
+                    "face_node_connectivity attributes",
+                    "are missing",
+                ),
+            )
+            ok = False
+            # edge_node_ncvar = mesh_attributes.get("edge_node_connectivity")
+            # face_node_ncvar = mesh_attributes.get("face_node_connectivity")
+            # if edge_node_ncvar is None and face_node_ncvar is None:
+            #    self._add_message(
+            #        parent_ncvar,
+            #        mesh_ncvar,
+            #        message=(
+            #            "Both edge_node_connectivity and "
+            #            "face_node_connectivity attributes",
+            #            "are missing",
+            #        ),
+            #    )
+            #    ok = False
+            # else:
+            #    for ncvar, name in zip(
+            #        (edge_node_ncvar, face_node_ncvar), ("edge", "face")
+            #    ):
+            #        if (
+            #            ncvar is not None
+            #            and ncvar not in g["internal_variables"]
+            #        ):
+            #            print (g["variable_filename"])
+            #            ncvar, message = self._missing_variable(
+            #                mesh_ncvar,
+            #                f"{name.capitalize()} node connectivity variable ppp1",
+            #            )
+            #            self._add_message(
+            #                parent_ncvar,
+            #                mesh_ncvar,
+            #                message=message,
+            #                attribute={
+            #                    f"{ncvar}:{name}_node_connectivity": ncvar
+            #                },
+            #            )
+            #            ok = False
+        #        elif location == "edge":
+        #            ncvar = mesh_attributes.get("edge_node_connectivity")
+        #            if ncvar is None:
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    mesh_ncvar,
+        #                    message=(
+        #                        "edge_node_connectivity attribute",
+        #                        "is missing",
+        #                    ),
+        #                )
+        #                ok = False
+        #            elif ncvar not in g["internal_variables"]:
+        #                ncvar, message = self._missing_variable(
+        #                    mesh_ncvar, "Edge node connectivity variable"
+        #                )
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    mesh_ncvar,
+        #                    message=message,
+        #                    attribute={f"{ncvar}:edge_node_connectivity": ncvar},
+        #                )
+        #                ok = False
+        #        elif location == "face":
+        #            ncvar = mesh_attributes.get("face_node_connectivity")
+        #            if ncvar is None:
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    mesh_ncvar,
+        #                    message=("face_node_connectivity attribute", "is missing"),
+        #                )
+        #                ok = False
+        #            elif ncvar not in g["internal_variables"]:
+        #                ncvar, message = self._missing_variable(
+        #                    mesh_ncvar, "Face node connectivity variable"
+        #                )
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    mesh_ncvar,
+        #                    message=message,
+        #                    attribute={f"{ncvar}:face_node_connectivity": ncvar},
+        #                )
+        #                ok = False
+        #        elif location == "volume":
+        #            ncvar = mesh_attributes.get("volume_node_connectivity")
+        #            if ncvar is None:
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    mesh_ncvar,
+        #                    message=(
+        #                        "volume_node_connectivity attribute",
+        #                        "is missing",
+        #                    ),
+        #                )
+        #                ok = False
+        #            elif ncvar not in g["internal_variables"]:
+        #                ncvar, message = self._missing_variable(
+        #                    mesh_ncvar, "Volume node connectivity variable"
+        #                )
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    ncvar,
+        #                    message=message,
+        #                    attribute={f"{ncvar}:volume_node_connectivity": ncvar},
+        #                )
+        #                ok = False
+        #        else:
+        #            self._add_message(
+        #                parent_ncvar,
+        #                parent_ncvar,
+        #                message=("location attribute", "has invalid value"),
+        #                attribute={f"{parent_ncvar}:location": location},
+        #            )
+        #            ok = False
+        #
+        #        cell_coordinate_ncvars = mesh_attributes.get(f"{location}_coordinates")
+        #        if cell_coordinate_ncvars is not None:
+        #            cell_coordinate_ncvar = self._split_string_by_white_space(
+        #                None, cell_coordinate_ncvars, variables=True
+        #            )[0]
+        #            parent_ncdims = self._ncdimensions(parent_ncvar)
+        #            cell_ncdims = self._ncdimensions(cell_coordinate_ncvar)
+        #            if not set(cell_ncdims).issubset(parent_ncdims):
+        #                self._add_message(
+        #                    parent_ncvar,
+        #                    mesh_ncvar,
+        #                    message=(
+        #                        f"UGRID mesh {location} coordinates",
+        #                        "span incorrect dimensions",
+        #                    ),
+        #                    attribute={
+        #                        f"mesh:{location}_coordinates": mesh_attributes[
+        #                            f"{location}_coordinates"
+        #                        ]
+        #                    },
+        #                    dimensions=g["variable_dimensions"][cell_coordinate_ncvar],
+        #                )
+        #                ok = False
 
         self._include_component_report(parent_ncvar, mesh_ncvar)
         return ok

@@ -192,9 +192,10 @@ class Field(
         axis_names = self._unique_domain_axis_identities()
 
         # Data
-        string.append(
-            f"Data            : {self._one_line_description(axis_names)}"
-        )
+        if self.has_data():
+            string.append(
+                f"Data            : {self._one_line_description(axis_names)}"
+            )
 
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
