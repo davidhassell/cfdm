@@ -103,6 +103,15 @@ class Domain(
             _use_data=_use_data,
         )
 
+        if source is not None:
+            try:
+                mesh_id = source.get_mesh_id(None)
+            except AttributeError:
+                pass
+            else:
+                if mesh_id is not None:
+                    self.set_mesh_id(mesh_id)
+
         self._initialise_netcdf(source)
         self._initialise_original_filenames(source)
 

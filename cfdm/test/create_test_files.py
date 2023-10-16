@@ -5375,7 +5375,7 @@ def _make_ugrid_2(filename):
     """Create a UGRID file with a 2-d mesh topology."""
     n = netCDF4.Dataset(filename, "w")
 
-    n.Conventions = f"CF-{VN} UGRID-1.0"
+    n.Conventions = f"CF-{VN}"
 
     n.createDimension("time", 2)
     n.createDimension("nMesh2_node", 7)
