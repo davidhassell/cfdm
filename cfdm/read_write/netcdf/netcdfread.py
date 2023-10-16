@@ -8575,7 +8575,7 @@ class NetCDFRead(IORead):
         :Parameters:
 
             parent_attributes: `dict`
-                The attributes of netCDF variable that include
+                The attributes of a netCDF variable that include
                 "location_index_set" attribute.
 
         :Returns:
