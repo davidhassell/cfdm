@@ -67,12 +67,10 @@ class UGRIDTest(unittest.TestCase):
             self.assertEqual(len(g.auxiliary_coordinates()), 2)
             self.assertEqual(len(g.dimension_coordinates()), 1)
 
-            cell = g.domain_topology().get_cell()
-            if cell in ("edge", "face"):
-                for aux in g.auxiliary_coordinates().values():
-                    self.assertTrue(aux.has_data())
+            for aux in g.auxiliary_coordinates().values():
+                self.assertTrue(aux.has_data())
 
-            if cell == "face":
+            if g.domain_topology().get_cell() == "face":
                 self.assertEqual(len(g.cell_connectivities()), 1)
                 self.assertEqual(
                     g.cell_connectivity().get_connectivity(), "edge"
@@ -170,12 +168,10 @@ class UGRIDTest(unittest.TestCase):
             self.assertEqual(len(g.auxiliary_coordinates()), 2)
             self.assertEqual(len(g.dimension_coordinates()), 0)
 
-            cell = g.domain_topology().get_cell()
-            if cell in ("edge", "face"):
-                for aux in g.auxiliary_coordinates().values():
-                    self.assertTrue(aux.has_data())
+            for aux in g.auxiliary_coordinates().values():
+                self.assertTrue(aux.has_data())
 
-            if cell == "face":
+            if g.domain_topology().get_cell() == "face":
                 self.assertEqual(len(g.cell_connectivities()), 1)
                 self.assertEqual(
                     g.cell_connectivity().get_connectivity(), "edge"
