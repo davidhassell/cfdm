@@ -983,6 +983,24 @@ class CFDMImplementation(Implementation):
         """
         return field.domain_axes(todict=True)[axis].get_size()
 
+    def get_domain_topologies(self, parent):
+        """Return all domain topologies of a field or domain.
+
+        .. versionadded:: UGRIDVER
+
+        :Parameters:
+
+            parent: `Field` or `Domain`
+
+        :Returns:
+
+            `dict`
+                The domain topology constructs, keyed by their
+                identifiers.
+
+        """
+        return parent.domain_topologies(todict=True)
+
     def get_sample_dimension_position(self, construct):
         """Returns the position of the compressed data sample dimension.
 
@@ -3575,6 +3593,27 @@ class CFDMImplementation(Implementation):
 
         """
         return construct.has_bounds()
+
+    def has_data(self, construct):
+        """Whether or not a construct has data.
+
+        .. versionadded:: UGRIDVER
+
+        :Parameters:
+
+            construct:
+                The construct to inspect.
+
+        :Returns:
+
+            `bool`
+                Whether or not *construct* has data.
+
+        """
+        try:
+            return construct.has_data()
+        except AttributeError:
+            return False
 
     def has_datum(self, coordinate_reference):
         """Return True if a coordinate reference has a datum.

@@ -2147,10 +2147,8 @@ class NetCDFWrite(IOWrite):
             create = True
 
         if create:
-            if (
-                not self.implementation.get_properties(coord)
-                and self.implementation.get_data(coord, default=None) is None
-            ):
+            has_data = self.implementation.has_data(coord)
+            if not has_data and not self.implementation.get_properties(coord):
                 # No coordinates, but possibly bounds
                 self._write_bounds(
                     f, coord, key, ncdimensions, coord_ncvar=None
@@ -2169,7 +2167,7 @@ class NetCDFWrite(IOWrite):
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
                 # Create a new auxiliary coordinate variable, if it has data
-                if self.implementation.get_data(coord, None) is not None:
+                if has_data:
                     self._write_netcdf_variable(
                         ncvar,
                         ncdimensions,
@@ -3263,11 +3261,6 @@ class NetCDFWrite(IOWrite):
         # Check if the field or domain has a domain topology construct
         # (CF>=1.11)
         ugrid = self.implementation.has_domain_topology(f)
-        if ugrid:
-            raise NotImplementedError(
-                "Can't yet create UGRID cf-netCDF files. "
-                "This feature is coming soon ..."
-            )
 
         field_coordinates = self.implementation.get_coordinates(f)
 
@@ -4015,7 +4008,7 @@ class NetCDFWrite(IOWrite):
             # TODOUGRID
             mesh, location = self._create_mesh_topology(f)
             if mesh:
-                extra["mesh"] = mesh['mesh_ncvar']
+                extra["mesh"] = mesh["mesh_ncvar"]
                 extra["location"] = location
 
         # ------------------------------------------------------------
@@ -4842,6 +4835,8 @@ class NetCDFWrite(IOWrite):
             "post_dry_run": False,
             # Do not write the data of the named construct types.
             "omit_data": omit_data,
+            # TODOUGRID
+            "mesh": {},
         }
 
         if mode not in ("w", "a", "r+"):
@@ -5018,7 +5013,7 @@ class NetCDFWrite(IOWrite):
         # ------------------------------------------------------------
         # Set possible versions
         # ------------------------------------------------------------
-        for version in ("1.6", "1.7", "1.8", "1.9", "1.10"):
+        for version in ("1.6", "1.7", "1.8", "1.9", "1.10", "1.11"):
             g["CF-" + version] = Version(version)
 
         if extra_write_vars:
@@ -5203,7 +5198,6 @@ class NetCDFWrite(IOWrite):
             for ncvar, mesh in g["mesh"].items():
                 self._write_mesh_topology(ncvar, mesh)
 
-
         # ------------------------------------------------------------
         # Write all of the buffered data to disk
         # ------------------------------------------------------------
@@ -5312,7 +5306,8 @@ class NetCDFWrite(IOWrite):
         pass
 
     def _create_mesh_topology(self, field):
-        """TODOUGRID Create a geometry container variable in the netCDF file.
+        """TODOUGRID Create a geometry container variable in the netCDF
+        file.
 
         .. versionadded:: (cfdm) UGRIDWRITEVER
 
@@ -5333,17 +5328,21 @@ class NetCDFWrite(IOWrite):
         if not domain_topologies:
             return {}, ""
 
+        raise NotImplementedError(
+            "Can't yet create UGRID cf-netCDF files. "
+            "This feature is coming soon ..."
+        )
+
         if len(domain_topologies) > 1:
             raise ValueError(
                 f"Can't write {field!r} with multiple "
                 "domain topology constructs"
             )
 
-        _,        domain_topology =  domain_topologies.popitem()
-        cell = self.get_cell(domain_topology )
+        _, domain_topology = domain_topologies.popitem()
+        cell = self.get_cell(domain_topology)
         if cell is None:
-            raise ValueError(
-                f"Can't write {field!r} TODOUGRID")
+            raise ValueError(f"Can't write {field!r} TODOUGRID")
 
         location = cell
         if cell == "point":
@@ -5359,8 +5358,6 @@ class NetCDFWrite(IOWrite):
         # e = nx.Graph()
         # e.add_edges_from(...)
         # nx.utils.misc.graphs_equal(f,e)
-
-
 
         g = self.write_vars
         gc = {}
