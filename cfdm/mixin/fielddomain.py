@@ -1046,7 +1046,7 @@ class FieldDomain:
         >>> f.del_construct('time')
         Traceback (most recent call last):
             ...
-        ValueError: Can't remove non-existent construct 'ti
+        ValueError: Can't find unique construct to remove
         >>> f.del_construct('time', default='No time')
         'No time'
         >>> f.del_construct('dimensioncoordinate1')

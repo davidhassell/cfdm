@@ -3,6 +3,8 @@ Version 1.11.0.0
 
 **2023-??-??**
 
+* Python 3.7 support removed
+  (https://github.com/NCAS-CMS/cfdm/issues/274)
 * Implemented the reading and manipulation of UGRID mesh topologies
   for CF-1.11 (https://github.com/NCAS-CMS/cfdm/issues/TODOUGRID)
 * New methods: `cfdm.Field.cell_connectivity`,

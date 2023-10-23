@@ -68,7 +68,7 @@ class Mesh:
     # E.g. {'face': [<CF AxuxiliaryCoordinate(13243) >,
     #                <CF AxuxiliaryCoordinate(13243) >]}
     auxiliary_coordinates: dict = field(default_factory=dict)
-    # The netCDF dimension spanned by the mesh cells for each
+    # The netCDF dimension spanned by the cells for each
     # location. E.g. {'node': 'nNodes', 'edge': 'nEdges'}
     ncdim: dict = field(default_factory=dict)
     # A unique identifier for the mesh. E.g. 'df10184d806ef1a10f5035e'
@@ -316,7 +316,7 @@ class NetCDFRead(IORead):
 
             `dict`
                A mapping of netCDF UGRID mesh topology variable
-               attributes to cell connectivity construct
+               attributes to allowed cell connectivity construct
                "connectivity" types.
 
         """
@@ -906,9 +906,12 @@ class NetCDFRead(IORead):
             "domain_ncdimensions": {},
             "domain": bool(domain),
             # --------------------------------------------------------
-            # UGRID mesh topologies (CF>=1.11)
+            # UGRID mesh topologies
             # --------------------------------------------------------
+            # The UGRID version. May be set by the "Conventions"
+            # attributes, or for CF>=1.11 defaults to to '1.0'.
             "UGRID_version": None,
+            # Store each mesh topology
             "mesh": {},
             # --------------------------------------------------------
             # Compression by coordinate subsampling (CF>=1.9)
@@ -1589,7 +1592,7 @@ class NetCDFRead(IORead):
                 )
 
         # ------------------------------------------------------------
-        # Parse UGRID mesh topologies (CF>=1.11)
+        # Parse UGRID mesh topologies
         # ------------------------------------------------------------
         if g["UGRID_version"] is not None:
             for ncvar, attributes in variable_attributes.items():
@@ -1604,7 +1607,7 @@ class NetCDFRead(IORead):
                     self._ugrid_parse_location_index_set(attributes)
 
             if is_log_level_debug(logger):
-                logger.debug("    UGRID:\n" f"       {g['mesh']}")
+                logger.debug("    UGRID meshes:\n" f"       {g['mesh']}")
 
         if _scan_only:
             return self.read_vars
@@ -3183,7 +3186,8 @@ class NetCDFRead(IORead):
             .. versionadded:: (cfdm) 1.9.0.0
 
         location: `str`, otpional
-            TODOUGRID
+            The location of cells on a UGRID mesh topology. Ignored
+            unless *domain* is True.
 
             .. versionadded:: (cfdm) UGRIDVER
 
@@ -3195,12 +3199,20 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         field = not domain
+
+        # Whether or not we're attempting to a create a domain
+        # construct from a URGID mesh topology variable
+        mesh_topology = domain and field_ncvar in g["mesh"]
+        if mesh_topology and location is None:
+            raise ValueError(
+                "Must set 'location' to create a domain construct from "
+                "a URGID mesh topology variable"
+            )
+
         if field:
             construct_type = "Field"
         else:
             construct_type = "Domain"
-
-        mesh_topology = domain and field_ncvar in g["mesh"]
 
         # Reset the dimensions of a domain variable
         g["domain_ncdimensions"] = {}
@@ -3373,7 +3385,7 @@ class NetCDFRead(IORead):
             ):
                 # ----------------------------------------------------
                 # This netCDF variable (which is not a UGRID mesh
-                # topology or location index set variable) is not
+                # topology nor a location index set variable) is not
                 # scalar, or does not have a 'dimensions'
                 # attribute. Therefore it is not a domain variable and
                 # is to be ignored. CF>=1.9 (Introduced at v1.9.0.0)
@@ -3510,16 +3522,16 @@ class NetCDFRead(IORead):
 
         # ------------------------------------------------------------
         # Add auxiliary coordinate constructs derived from UGRID
-        # (CF>=1.11).
         #
         # It is important to do this prior to creating auxiliary
         # coordinates from the "coordinates" attribute.
         # ------------------------------------------------------------
         ugrid = g["UGRID_version"] is not None
         if ugrid:
-            if domain and mesh_topology and location:
-                # We are creating a domain construct from a UGRID mesh
-                # topology variable
+            if mesh_topology:
+                # We are creating a UGRID domain construct, for which
+                # 'location' has already been set as a keyword
+                # parameter.
                 mesh = g["mesh"][field_ncvar]
                 mesh_ncvar = mesh.mesh_ncvar
                 location_index_set_ncvar = mesh.location_index_set_ncvar
@@ -3546,8 +3558,8 @@ class NetCDFRead(IORead):
                 )
                 ncdim_to_axis[ncdim] = axis
             else:
-                # We are creating a domain construct *not* from a
-                # UGRID mesh topology variable, or a field construct
+                # We are creating a field construct or a non-UGRID
+                # domain construct
                 mesh_ncvar = self.implementation.get_property(f, "mesh")
                 location_index_set_ncvar = self.implementation.get_property(
                     f, "location_index_set"
@@ -3588,7 +3600,7 @@ class NetCDFRead(IORead):
                     ugrid = False
 
             if ugrid:
-                # The UGRID specification is OK, so get the
+                # The UGRID specification is OK, so get the auxiliary
                 # coordinates.
                 if location == "volume":
                     raise NotImplementedError(
@@ -3609,10 +3621,10 @@ class NetCDFRead(IORead):
                 self.implementation.del_properties(f, attrs)
 
                 # Find the discrete axis for the mesh topology
-                ugrid_ncdim = mesh.ncdim[location]
+                ugrid_ncdim = mesh.ncdim.get(location)
                 if ugrid_ncdim is None:
                     # We couldn't find the UGRID discrete axis, so
-                    # there's something wrong with the UGRID
+                    # there must be something wrong with the UGRID
                     # encoding. Set 'ugrid' to False so that no
                     # further UGRID related stuff occurs.
                     ugrid = False
@@ -4012,7 +4024,6 @@ class NetCDFRead(IORead):
 
         # ------------------------------------------------------------
         # Add a domain topology construct derived from UGRID
-        # (CF>=1.11)
         # ------------------------------------------------------------
         if ugrid:
             domain_topology = mesh.domain_topologies.get(location)
@@ -4035,7 +4046,6 @@ class NetCDFRead(IORead):
 
         # ------------------------------------------------------------
         # Add a cell connectivity construct derived from UGRID
-        # (CF>=1.11)
         # ------------------------------------------------------------
         if ugrid:
             for cell_connectivity in mesh.cell_connectivities.get(
@@ -9065,7 +9075,7 @@ class NetCDFRead(IORead):
 
         connectivity_ncvar = attributes.get(connectivity_attr)
         if connectivity_ncvar is None:
-            # Can't crate a domain topology construct without an
+            # Can't create a domain topology construct without an
             # approrpriate connectivity attribute
             return
 
@@ -9255,7 +9265,7 @@ class NetCDFRead(IORead):
                 variable.
 
             mesh: `Mesh`
-                TODOUGRID
+                The UGRID mesh defintion.
 
         :Returns:
 
@@ -9768,10 +9778,10 @@ class NetCDFRead(IORead):
                 parent_ncvar,
                 mesh_ncvar,
                 message=(
-                    "Both TODOUGRID  edge_node_connectivity and "
-                    "face_node_connectivity attributes",
-                    "are missing",
+                    "Couldn't create domain topology construct",
+                    "from UGRID mesh topology variable",
                 ),
+                attribute={f"{parent_ncvar}:mesh": mesh_ncvar},
             )
             ok = False
 
