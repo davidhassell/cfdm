@@ -251,6 +251,27 @@ class CFDMImplementation(Implementation):
         """
         return data.insert_dimension(position=position)
 
+    def del_properties(self, construct, props):
+        """Remove a property from a construct.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        :Parameters:
+
+            construct: construct
+
+            props: (sequence of) `str`
+
+            default: optional
+
+        :Returns:
+
+            `dict`
+                The deleted properties, if any
+
+        """
+        return construct.del_properties(props)
+
     def del_property(self, construct, prop, default):
         """Remove a property from a construct.
 

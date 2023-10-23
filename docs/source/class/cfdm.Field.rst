@@ -169,10 +169,6 @@ Domain
    :template: method.rst
 
    ~cfdm.Field.get_domain
-   ~cfdm.Field.del_mesh_id
-   ~cfdm.Field.get_mesh_id
-   ~cfdm.Field.has_mesh_id
-   ~cfdm.Field.set_mesh_id
 
 .. rubric:: Attributes
    

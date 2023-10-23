@@ -573,6 +573,49 @@ class FieldDomain:
             **filter_kwargs,
         )
 
+    def del_mesh_id(self, default=ValueError()):
+        """Remove the UGRID mesh topology identifier.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                mesh topology identifier has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+                The removed mesh topology identifier.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._del_component("mesh_id", default=default)
+
     def domain_topology(
         self,
         *identity,
@@ -1003,7 +1046,7 @@ class FieldDomain:
         >>> f.del_construct('time')
         Traceback (most recent call last):
             ...
-        ValueError: Can't remove non-existent construct 'ti
+        ValueError: Can't find unique construct to remove
         >>> f.del_construct('time', default='No time')
         'No time'
         >>> f.del_construct('dimensioncoordinate1')
@@ -2130,6 +2173,49 @@ class FieldDomain:
 
         return True
 
+    def get_mesh_id(self, default=ValueError()):
+        """Return the UGRID mesh topology identifier.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                mesh topology identifier has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+                The value of the mesh topology identifier.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._get_component("mesh_id", default=default)
+
     def has_construct(self, *identity, **filter_kwargs):
         """Whether a unique metadata construct exists.
 
@@ -2211,6 +2297,83 @@ class FieldDomain:
                 return True
 
         return False
+
+    def has_mesh_id(self):
+        """Whether the UGRID mesh topology identifier has been set.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        .. seealso:: `del_mesh_id`, `has_mesh_id`, `set_mesh_id`
+
+        :Returns:
+
+            `bool`
+                True if the mesh topology identifier has been set,
+                otherwise False.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._has_component("mesh_id")
+
+    def set_mesh_id(self, mesh_id):
+        """Set a UGRID mesh topology identifier.
+
+        Different field constructs with the same mesh topology
+        identifier may be assumed to have domains with a shared UGRID
+        mesh topology.
+
+        .. versionadded:: (cfdm) UGRIDVER
+
+        .. seealso:: `del_mesh_id`, `get_mesh_id`, `has_mesh_id`
+
+        :Parameters:
+
+            mesh_id: `str`
+                The value for the mesh topology identifier.
+
+        :Returns:
+
+             `None`
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_mesh_id('df71b85a99894af094411e7cd21c5d68')
+        >>> c.has_mesh_id()
+        True
+        >>> c.get_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.del_mesh_id()
+        'df71b85a99894af094411e7cd21c5d68'
+        >>> c.has_mesh_id()
+        False
+        >>> print(c.del_mesh_id(None))
+        None
+        >>> print(c.get_mesh_id(None))
+        None
+
+        """
+        return self._set_component("mesh_id", mesh_id, copy=False)
 
 
 #    def ugrid_components(

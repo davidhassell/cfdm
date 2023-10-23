@@ -13,7 +13,7 @@ datasets and the inspection of CF data model constructs.
 
 __date__ = "2023-??-??"
 __cf_version__ = "1.11"
-__version__ = "1.11.0.0"
+__version__ = "1.11.0.0b1"
 
 from packaging import __version__ as _packaging_ver
 from packaging import __file__ as _packaging_file
@@ -36,7 +36,7 @@ except ImportError as error1:
     raise ImportError(_error0 + str(error1))
 
 # Check the version of python
-_minimum_vn = "3.7.0"
+_minimum_vn = "3.8.0"
 if Version(platform.python_version()) < Version(_minimum_vn):
     raise ValueError(
         f"Bad python version: cfdm.core requires python>={_minimum_vn}. "
