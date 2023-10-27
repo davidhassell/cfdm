@@ -2116,7 +2116,7 @@ class NetCDFWrite(IOWrite):
                 The list of netCDF auxiliary coordinate names updated in
                 place.
 
-        """
+        """            
         g = self.write_vars
 
         ncvar = None
@@ -3225,6 +3225,9 @@ class NetCDFWrite(IOWrite):
         #
         g["part_ncdim"] = None
 
+        #
+        g["ugrid"] = {}
+
         # Initialise the list of the field/domain's auxiliary/scalar
         # coordinates
         coordinates = []
@@ -3258,10 +3261,19 @@ class NetCDFWrite(IOWrite):
             ).get("grid_mapping_name", False)
         ]
 
-        # Check if the field or domain has a domain topology construct
-        # (CF>=1.11)
+        # Check if the field or domain needs a UGRID mesh (CF>=1.11)
         ugrid = self.implementation.has_domain_topology(f)
+        if len(ugrid) > 1:
+            raise ValueError(
+                "Can't write a field or domain that has multiple "
+                "domain topology constructs"
+            )
 
+        if ugrid:
+            key,  domain_topology = tuple(ugrid.items())
+            g["ugrid"]["axis"] = self.implementation.get_construct_data_axes(f, key)[0]
+            g["ugrid"]["domain_topology"] = domain_topology 
+            
         field_coordinates = self.implementation.get_coordinates(f)
 
         owning_coordinates = []
