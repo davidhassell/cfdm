@@ -341,6 +341,34 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         else:
             return array.astype(dtype[0], copy=False)
 
+    def __bool__(self):
+        """Truth value testing and the built-in operation `bool`
+
+        x.__bool__() <==> bool(x)
+
+        **Performance**
+
+        `__bool__` causes all delayed operations to be computed.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        **Examples**
+
+        >>> bool({{package}}.{{class}}(1.5))
+        True
+        >>> bool({{package}}.{{class}}([[False]]))
+        False
+
+        """
+        size = self.size
+        if size != 1:
+            raise ValueError(
+                f"The truth value of a {self.__class__.__name__} with {size} "
+                "elements is ambiguous. Use d.any() or d.all()"
+            )
+
+        return bool(self.to_dask_array())
+
     def __len__(self):
         """The built-in function `len`
 
@@ -348,9 +376,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         .. versionadded:: (cfdm) 1.10.0.0
 
+        **Performance**
+
+        If the shape of the data is unknown then it is calculated
+        immediately by executing all delayed operations.
+
         **Examples**
 
-        >>>
         >>> len({{package}}.{{class}}([1, 2, 3]))
         3
         >>> len({{package}}.{{class}}([[1, 2, 3]]))
@@ -358,14 +390,17 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         >>> len({{package}}.{{class}}([[1, 2, 3], [4, 5, 6]]))
         2
         >>> len({{package}}.{{class}}(1))
-        TypeError: len() of scalar <{{repr}}Data(): 1>
+        Traceback (most recent call last):
+            ...
+        TypeError: len() of unsized object
 
         """
-        shape = self.shape
-        if shape:
-            return shape[0]
+        dx = self.to_dask_array()
+        if math.isnan(dx.size):
+            logger.debug("Computing data len: Performance may be degraded")
+            dx.compute_chunk_sizes()
 
-        raise TypeError(f"len() of scalar {self!r}")
+        return len(dx)
 
     def __repr__(self):
         """Called by the `repr` built-in function.
@@ -478,21 +513,53 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         """
         indices = self._parse_indices(indices)
+        
+        new = self.copy(array=False)
+        
+        dx = self.to_dask_array()
+        
+        # Apply 'orthogonal indexing': indices that are 1-d arrays
+        # or lists subspace along each dimension
+        # independently. This behaviour is similar to Fortran, but
+        # different to dask.
+        axes_with_list_indices = [
+            i
+            for i, x in enumerate(indices)
+            if isinstance(x, list) or getattr(x, "shape", False)
+        ]
+        n_axes_with_list_indices = len(axes_with_list_indices)
+        
+        if n_axes_with_list_indices < 2:
+            # At most one axis has a list/1-d array index so do a
+            # normal dask subspace
+            dx = dx[tuple(indices)]
+        else:
+            # At least two axes have list/1-d array indices so we
+            # can't do a normal dask subspace
 
-        array = self._get_Array(None)
-        if array is None:
-            raise ValueError("No array!!")
+            # Subspace axes which have list/1-d array indices
+            for axis in axes_with_list_indices:
+                dx = da.take(dx, indices[axis], axis=axis)
 
-        array = array[tuple(indices)]
+            if n_axes_with_list_indices < len(indices):
+                # Subspace axes which don't have list/1-d array
+                # indices. (Do this after subspacing axes which do
+                # have list/1-d array indices, in case
+                # __keepdims_indexing__ is False.)
+                slice_indices = [
+                    slice(None) if i in axes_with_list_indices else x
+                    for i, x in enumerate(indices)
+                ]
+                dx = dx[tuple(slice_indices)]
+                
+        new._set_dask(dx)
+        
+        if new.shape != self.shape:
+            # Delete hdf5 chunksizes when the shape has changed.
+            new.nc_clear_hdf5_chunksizes()
 
-        out = self.copy(array=False)
-        out._set_Array(array, copy=False)
+        return new
 
-        if out.shape != self.shape:
-            # Delete hdf5 chunksizes
-            out.nc_clear_hdf5_chunksizes()
-
-        return out
 
     def __and__(self, other):
         """The binary bitwise operation ``&``
@@ -515,63 +582,142 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         x.__int__() <==> int(x)
 
+        **Performance**
+
+        `__int__` causes all delayed operations to be executed, unless
+        the dask array size is already known to be greater than 1.
+
         """
         if self.size != 1:
             raise TypeError(
-                "only length-1 arrays can be converted to "
-                f"Python scalars. Got {self}"
+                "only length-1 arrays can be converted to a "
+                f"Python integer. Got {self!r}"
             )
 
-        return int(self.array)
+        return int(self.to_dask_array())
 
     def __iter__(self):
         """Called when an iterator is required.
 
         x.__iter__() <==> iter(x)
 
+        **Performance**
+
+        If the shape of the data is unknown then it is calculated
+        immediately by executing all delayed operations.
+
         **Examples**
 
         >>> d = {{package}}.{{class}}([1, 2, 3], 'metres')
         >>> for e in d:
-        ...    print(repr(e))
+        ...     print(repr(e))
         ...
-        1
-        2
-        3
+        <{{repr}}Data(1): [1] metres>
+        <{{repr}}Data(1): [2] metres>
+        <{{repr}}Data(1): [3] metres>
 
-        >>> d = {{package}}.{{class}}([[1, 2], [4, 5]], 'metres')
-        >>> for e in d:
-        ...    print(repr(e))
-        ...
-        <{{repr}}Data(2): [1, 2] metres>
-        <{{repr}}Data(2): [4, 5] metres>
-
-        >>> d = {{package}}.{{class}}(34, 'metres')
+        >>> d = {{package}}.{{class}}([[1, 2], [3, 4]], 'metres')
         >>> for e in d:
         ...     print(repr(e))
+        ...
+        <{{repr}}Data: [1, 2] metres>
+        <{{repr}}Data: [3, 4] metres>
+
+        >>> d = {{package}}.{{class}}(99, 'metres')
+        >>> for e in d:
+        ...     print(repr(e))
+        ...
         Traceback (most recent call last):
             ...
-        TypeError: Iteration over 0-d Data
+        TypeError: iteration over a 0-d Data
 
         """
-        ndim = self.ndim
+        try:
+            n = len(self)
+        except TypeError:
+            raise TypeError(f"iteration over a 0-d {self.__class__.__name__}")
 
-        if not ndim:
-            raise TypeError(f"Iteration over 0-d {self.__class__.__name__}")
-
-        if ndim == 1:
-            i = iter(self.array)
-            while 1:
-                try:
-                    yield next(i)
-                except StopIteration:
-                    return
-        else:
-            # ndim > 1
-            for n in range(self.shape[0]):
-                out = self[n, ...]
-                out.squeeze(0, inplace=True)
+        if self.__keepdims_indexing__:
+            for i in range(n):
+                out = self[i]
+                out.reshape(out.shape[1:], inplace=True)
                 yield out
+        else:
+            for i in range(n):
+                yield self[i]
+
+    @property
+    def __keepdims_indexing__(self):
+        """Flag to indicate whether dimensions indexed with integers are
+        kept.
+
+        If set to True (the default) then providing a single integer
+        as a single-axis index does *not* reduce the number of array
+        dimensions by 1. This behaviour is different to `numpy`.
+
+        If set to False then providing a single integer as a
+        single-axis index reduces the number of array dimensions by
+        1. This behaviour is the same as `numpy`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `__orthogonal_indexing__`, `__getitem__`,
+                     `__setitem__`
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}([[1, 2, 3], [4, 5, 6]])
+        >>> d.__keepdims_indexing__
+        True
+        >>> e = d[0]
+        >>> e.shape
+        (1, 3)
+        >>> print(e.array)
+        [[1 2 3]]
+
+        >>> d.__keepdims_indexing__
+        True
+        >>> e = d[:, 1]
+        >>> e.shape
+        (2, 1)
+        >>> print(e.array)
+        [[2]
+         [5]]
+
+        >>> d.__keepdims_indexing__
+        True
+        >>> e = d[0, 1]
+        >>> e.shape
+        (1, 1)
+        >>> print(e.array)
+        [[2]]
+
+        >>> d.__keepdims_indexing__ = False
+        >>> e = d[0]
+        >>> e.shape
+        (3,)
+        >>> print(e.array)
+        [1 2 3]
+
+        >>> d.__keepdims_indexing__
+        False
+        >>> e = d[:, 1]
+        >>> e.shape
+        (2,)
+        >>> print(e.array)
+        [2 5]
+
+        >>> d.__keepdims_indexing__
+        False
+        >>> e = d[0, 1]
+        >>> e.shape
+        ()
+        >>> print(e.array)
+        2
+
+        """
+        # TODODASK: custom
+        return self._custom.get("__keepdims_indexing__", True)
 
     def __setitem__(self, indices, value):
         """Assign to data elements defined by indices.
@@ -610,7 +756,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             `None`
 
         **Examples**
-
 
         >>> d = {{package}}.{{class}}(numpy.arange(100, 190).reshape(1, 10, 9))
         >>> d.shape
@@ -783,14 +928,23 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         if inplace:
             d = self
         else:
-            d = self.copy(array=False)
+            d = self.copy()
 
-        array = np.asanyarray(getattr(self.array, method)(other))
+        # Ensure other is an independent Data object
+        if not isinstance(other, self.__class__):
+           if other is None:
+                # Can't sensibly initialise a Data object from a bare
+                # `None` (issue #281)
+                other = np.array(None, dtype=object)
 
-        d._set_Array(array, copy=False)
+            other = self.asdata(other)
 
+        dx0 = d.to_dask_array()
+        dx1 = other.to_dask_array()
+        result = getattr(dx0, method)(dx1)
+        d._set_dask(result)
         return d
-
+           
     def _del_dask(self, default=ValueError(), clear=_ALL):
         """Remove the dask array.
 
@@ -1419,6 +1573,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         **Examples**
 
+        >>> d = {{package}}.{{class}}([1, 2], 'm')
         >>> d.data is d
         True
 
@@ -1544,8 +1699,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
     def dtype(self):
         """The `numpy` data-type of the data.
 
-        Always returned as a `numpy` data-type instance, but may be set
-        as any object that converts to a `numpy` data-type.
+        Always returned as a `numpy` data-type instance, but may be
+        set as any object that converts to a `numpy` data-type.
 
         **Examples**
 
@@ -1608,10 +1763,10 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                   underlying `dask` array, and also set the value of
                   the `hardmask` attribute.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         .. seealso:: `harden_mask`, `soften_mask`, `to_dask_array`,
                      `__setitem__`
-
-        .. versionadded:: (cfdm) NEXTVERSION
 
         **Examples**
 
@@ -1737,7 +1892,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         :Returns:
 
-            `Data`
+            `{{class}}`
                 Whether or any data array elements evaluate to True.
 
         **Examples**
@@ -1972,6 +2127,75 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         ]
         d._set_dask(dx)
         return d
+
+    @classmethod
+    def asdata(cls, d, dtype=None, copy=False):
+        """Convert the input to a `Data` object.
+
+        If the input *d* has the Data interface (i.e. it has a
+        `__data__` method), then the output of this method is used as
+        the returned `Data` object. Otherwise, `Data(d)` is returned.
+
+        .. versionadded (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            d: data-like
+                Input data in any form that can be converted to a
+                `{{class}}` object. This includes `{{class}}` and
+                `Field` objects, and objects with the `{{class}}`
+                interface, `numpy` arrays and any object which may be
+                converted to a `numpy` array.
+
+           dtype: data-type, optional
+                By default, the data-type is inferred from the input data.
+
+           copy: `bool`, optional
+                If True and *d* has the `{{class}}` interface, then a
+                copy of `d.__data__()` is returned.
+
+        :Returns:
+
+            `{{class}}`
+                `{{class}}` interpretation of *d*. No copy is
+                performed on the input if it is already a `{{class}}`
+                object with matching data type and *copy* is False.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}([1, 2])
+        >>> {{package}}.{{class}}.asdata(d) is d
+        True
+        >>> d.asdata(d) is d
+        True
+
+        >>> {{package}}.{{class}}.asdata([1, 2])
+        <{{repr}}Data: [1, 2]>
+
+        >>> {{package}}.{{class}}.asdata(numpy.array([1, 2]))
+        <{{repr}}Data: [1, 2]>
+
+        """
+        data = getattr(d, "__data__", None)
+        if data is None:
+            # d does not have a Data interface
+            data = cls(d)
+            if dtype is not None:
+                data.dtype = dtype
+
+            return data
+
+        # d does have a Data interface
+        data = data()
+        if copy:
+            data = data.copy()
+            if dtype is not None and np.dtype(dtype) != data.dtype:
+                data.dtype = dtype
+        elif dtype is not None and np.dtype(dtype) != data.dtype:
+            data = data.copy()
+            data.dtype = dtype
+
+        return data
 
     def compute(self):  # noqa: F811
         """A view of the computed data.
