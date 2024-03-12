@@ -150,6 +150,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 Not used. Present to facilitate subclassing.
 
         """
+        self._initialise_netcdf(source)
+        self._initialise_original_filenames(source)
 
         if source is None and isinstance(array, self.__class__):
             source = array
@@ -177,7 +179,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             else:
                 self._del_dask(None)
 
-            # Set the mask hardness
             self.hardmask = getattr(source, "hardmask", _DEFAULT_HARDMASK)
 
             return
@@ -222,12 +223,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             except AttributeError:
                 pass
 
-        try:
-            array.get_filenames()
-        except AttributeError:
-            pass
-        else:
+        if self._is_abstract_Array_subclass(array):
+            # Save the input array in case it's useful later. For
+            # compressed input arrays this will contain extra
+            # information, such as a count or index variable.
             self._set_Array(array)
+            # Data files are candidates for active storage reductions
+            self._set_active_storage(True)
 
         # Cast the input data as a dask array
         kwargs = init_options.get("from_array", {})
@@ -259,51 +261,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 raise ValueError("Can't mask sparse array")
 
             self.masked_values(mask_value, inplace=True)
-        # ---------------------------------------
-
-        if dtype is not None:
-            if isinstance(array, abstract.Array):
-                try:
-                    array = SparseArray(array.sparse_array.astype(dtype))
-                except AttributeError:
-                    array = NumpyArray(array.array.astype(dtype))
-            elif isinstance(array, np.ndarray):
-                array = array.astype(dtype)
-            elif issparse(array):
-                array = array.astype(dtype)
-            else:
-                array = np.asanyarray(array).astype(dtype)
-
-        if mask is not None or mask_value is not None:
-            if isinstance(array, abstract.Array):
-                array = array.array
-            elif not isinstance(array, np.ndarray):
-                if issparse(array):
-                    array = array.toarray()
-                else:
-                    array = np.asanyarray(array)
-
-            if mask is not None:
-                array = np.ma.array(array, mask=mask)
-
-            if mask_value is not None:
-                array = np.ma.masked_values(array, mask_value)
-
-            array = NumpyArray(array)
-
-        super().__init__(
-            array=array,
-            units=units,
-            calendar=calendar,
-            fill_value=fill_value,
-            source=source,
-            copy=copy,
-            _use_array=_use_array,
-        )
-
-        # Initialise the netCDF components
-        self._initialise_netcdf(source)
-        self._initialise_original_filenames(source)
 
     def __array__(self, *dtype):
         """The numpy array interface.
@@ -716,8 +673,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         2
 
         """
-        # TODODASK: custom
-        return self._custom.get("__keepdims_indexing__", True)
+        return self._get_component("__keepdims_indexing__", True)
 
     def __setitem__(self, indices, value):
         """Assign to data elements defined by indices.
@@ -769,17 +725,17 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         """
         indices = self._parse_indices(indices)
 
-        array = self.array
+        # Missing values could be affected, so make sure that the mask
+        # hardness has been applied.
+        dx = self.to_dask_array(apply_mask_hardness=True)
 
-        if value is cfdm_masked or np.ma.isMA(value):
-            # The data is not masked but the assignment is masking
-            # elements, so turn the non-masked array into a masked
-            # one.
-            array = array.view(np.ma.MaskedArray)
+        # Do the assignment
+        self._set_subspace(dx, indices, value)
 
-        self._set_subspace(array, indices, np.asanyarray(value))
-
-        self._set_Array(array, copy=False)
+        # Remove elements made invalid by updating the `dask` array
+        # in-place
+        self._clear_after_dask_update(_ALL)
+        return
 
     def __str__(self):
         """Called by the `str` built-in function.
@@ -989,15 +945,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         RuntimeError: No dask array
 
         """
-        try:
-            # TODODASK: custom
-            out = self._custom.pop("dask")
-        except KeyError:
+        self._clear_after_dask_update(clear)
+        out = self.del_component("dask", None)
+        if out is None:            
             return self._default(
                 default, f"{self.__class__.__name__!r} has no dask array"
             )
 
-        self._clear_after_dask_update(clear)
         return out
 
     def _item(self, index):
@@ -1285,8 +1239,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         if copy:
             array = array.copy()
 
-        # TODODASK: custom
-        self._custom["dask"] = array
+        self._set_component("dask", array, copy=False)
         self._clear_after_dask_update(clear)
 
     @classmethod
@@ -1787,8 +1740,11 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         [-1 -1 -1]
 
         """
-        # TODODASK: custom
-        return self._custom.get("hardmask", _DEFAULT_HARDMASK)
+        return self._get_component("hardmask", _DEFAULT_HARDMASK)
+
+    @hardmask.setter
+    def hardmask(self, value):
+        self._set_component("hardmask", bool(value))
 
     @property
     def mask(self):
@@ -1822,16 +1778,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
          [False False False False]]
 
         """
-        out = self.copy(array=False)
-
+        d = self.copy(array=False)
         dx = self.to_dask_array()
         dx = da.ma.getmaskarray(dx)
-        out._set_dask(dx)
-        # TODODASK: attention
-        out.override_units(_units_None, inplace=True)
-        out.hardmask = _DEFAULT_HARDMASK
-
-        return out
+        d._set_dask(dx)
+        d.override_units(None, inplace=True)
+        d.hardmask = _DEFAULT_HARDMASK
+        return d
 
     @property
     def sparse_array(self):
@@ -1931,9 +1884,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         dx = self.to_dask_array()
         dx = da.any(dx, axis=axis, keepdims=keepdims, split_every=split_every)
         d._set_dask(dx)
+        d.override_units(None, inplace=True)
         d.hardmask = _DEFAULT_HARDMASK
-        # TODODASK: attention
-        d.override_units(_units_None, inplace=True)
         return d
 
     @_inplace_enabled(default=False)
@@ -3933,6 +3885,51 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         return d
 
     @_inplace_enabled(default=False)
+    def override_units(self, units, inplace=False):
+        """Override the data array units.
+
+        Not to be confused with setting `set_units` TODODASK
+        which are equivalent to the original units. This is different
+        because in this case the new units need not be equivalent to the
+        original ones and the data array elements will not be changed to
+        reflect the new units.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `set_calendar`, `set_units`
+
+        :Parameters:
+
+            units: `str` or `None`
+                The new units for the data array.
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                The new data, or `None` if the operation was in-place.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}(1012.0, 'hPa')
+        >>> d.get_units()
+        'hPa'
+        >>> e = d.override_units('km')
+        >>> e.get_units()
+        'km'
+
+        """
+        d = _inplace_enabled_define_and_cleanup(self)
+        if units is None:
+            d.del_units(None)
+        else:
+            d.set_units(units)
+
+        d.del_calendar(None)
+        return d
+
+    @_inplace_enabled(default=False)
     def persist(self, inplace=False):
         """Persist the underlying dask array into memory.
 
@@ -4055,18 +4052,19 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         dask.array<cf_soften_mask, shape=(4,), dtype=int64, chunksize=(4,), chunktype=numpy.ndarray>
 
         """
-        # TODODASK: custom
-        if apply_mask_hardness and "dask" in self._custom:
+        out = self._get_component("dask", None)
+        if out is None:
+            raise ValueError(f"{self.__class__.__name__} object has no data")
+
+        if apply_mask_hardness:
             if self.hardmask:
                 self.harden_mask()
             else:
                 self.soften_mask()
 
-        try:
-            # TODODASK: custom
-            return self._custom["dask"]
-        except KeyError:
-            raise ValueError(f"{self.__class__.__name__} object has no data")
+            out = self._get_component("dask")
+
+        return out
 
     @_inplace_enabled(default=False)
     def to_memory(self, inplace=False):
@@ -4102,9 +4100,16 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
     @_inplace_enabled(default=False)
     def uncompress(self, inplace=False):
-        """Uncompress the underlying array.
+        """Uncompress the data.
 
-        Only affects data that is compressed by convention.
+        Only affects data that is compressed by convention, i.e.
+
+          * Ragged arrays for discrete sampling geometries (DSG) and
+            simple geometry cell definitions.
+
+          * Compression by gathering.
+
+          * Compression by coordinate subsampling.
 
         Data that is already uncompressed is returned
         unchanged. Whether the data is compressed or not does not
@@ -4129,18 +4134,15 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         >>> d.get_compression_type()
         'ragged contiguous'
-        >>> d.source()
-        <RaggedContiguousArray(4, 9): >
-        >>> d.uncompress(inplace=True)
+        >>> d.uncompress()
         >>> d.get_compression_type()
         ''
-        >>> d.source()
-        <NumpyArray(4, 9): >
 
         """
+        # CF-PYTHON: can inherit
         d = _inplace_enabled_define_and_cleanup(self)
         if d.get_compression_type():
-            d._set_Array(d.array, copy=False)
+            d._del_Array(None)
 
         return d
 
