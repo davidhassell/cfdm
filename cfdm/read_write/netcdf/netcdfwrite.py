@@ -3393,6 +3393,15 @@ class NetCDFWrite(IOWrite):
                             f = self.implementation.field_insert_dimension(
                                 f, position=0, axis=axis
                             )
+
+                            # Hack for Bryan: Update the HDF5 chunking
+                            # strategy
+                            chunksizes = f.data.nc_hdf5_chunksizes()
+                            if isinstance(chunksizes, tuple):
+                                chunksizes = list(chunksizes)
+                                chunksizes.insert(position, 1)
+                                f.data.nc_set_hdf5_chunksizes(chunksizes)
+                                
                     else:
                         # Scalar coordinate variables are being
                         # allowed; and there are NO auxiliary
