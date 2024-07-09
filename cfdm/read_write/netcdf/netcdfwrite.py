@@ -3399,7 +3399,7 @@ class NetCDFWrite(IOWrite):
                             chunksizes = f.data.nc_hdf5_chunksizes()
                             if isinstance(chunksizes, tuple):
                                 chunksizes = list(chunksizes)
-                                chunksizes.insert(position, 1)
+                                chunksizes.insert(0, 1)
                                 f.data.nc_set_hdf5_chunksizes(chunksizes)
                                 
                     else:
