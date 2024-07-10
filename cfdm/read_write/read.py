@@ -276,7 +276,7 @@ def read(
 
             .. versionadded:: (cfdm) 1.9.0.0
 
-        netcdf_eninge: `None` or `str`, optional
+        netcdf_backend: `None` or `str`, optional
             Specify which library to use for opening and reading
             netCDF files. By default, or if `None`, then the first one
             of `netCDF4` and `h5netcdf` to successfully open the file
