@@ -17,6 +17,7 @@ def read(
     warn_valid=False,
     mask=True,
     domain=False,
+        attribute_override=None,
     _implementation=_implementation,
 ):
     """Read field or domain constructs from a dataset.
@@ -262,6 +263,11 @@ def read(
 
             .. versionadded:: (cfdm) 1.9.0.0
 
+        attribute_override: `str` or `None`, optional
+            TODOFIX
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
         _implementation: (subclass of) `CFDMImplementation`, optional
             Define the CF data model implementation that provides the
             returned field constructs.
@@ -334,6 +340,7 @@ def read(
                 warn_valid=warn_valid,
                 mask=mask,
                 domain=domain,
+                attribute_override=attribute_override,
                 extra_read_vars=None,
             )
         except MaskError:
