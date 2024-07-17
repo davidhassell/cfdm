@@ -784,7 +784,7 @@ class NetCDFRead(IORead):
         warnings=True,
         warn_valid=False,
         domain=False,
-        attribute_override=None
+        attribute_override=None,
     ):
         """Reads a netCDF dataset from file or OPenDAP URL.
 
@@ -981,6 +981,14 @@ class NetCDFRead(IORead):
         g["extra"] = extra
 
         filename = os.path.expanduser(os.path.expandvars(filename))
+        cdl = False
+        if self.is_cdl_file(filename):
+            # Create a temporary netCDF file from input CDL
+            cdl = True
+            cdl_filename = filename
+            print (cdl_filename)
+            filename = self.cdl_to_netcdf(filename)
+            print (filename)
 
         if self.is_dir(filename):
             raise IOError(f"Can't read directory {filename}")
@@ -1017,6 +1025,44 @@ class NetCDFRead(IORead):
                     global_attributes[attr] = value
             except UnicodeDecodeError:
                 pass
+
+        # ------------------------------------------------------------
+        # Override global attributes
+        # ------------------------------------------------------------
+        if attribute_override:
+            global_mode = attribute_override.get("global")
+            if global_mode is not None:
+                try:
+                    override_filename = attribute_override.get("filename")
+                except AttributeError:
+                    raise ValueError("TODOFIX")
+    
+                if override_filename is None:
+                    raise ValueError("TODOFIX")
+    
+                read_vars = self.read_vars.copy()
+                override_read_vars = self.read(
+                    override_filename, _scan_only=True, verbose=verbose
+                )
+                # Reset self.read_vars
+                self.read_vars = read_vars
+    
+                logger.info(
+                    f"Overriding netCDF global attributes ({global_mode!r} "
+                    f"mode) with those in {attribute_override}"
+                )  # pragma: no cover
+
+                new_attrs = override_read_vars["global_attributes"]
+                if global_mode == "merge":
+                    global_attributes.update(new_attrs)
+                elif global_mode == "replace":
+                    global_attributes = new_attrs
+                elif global_mode == "delete":
+                    global_attributes = dict(
+                        global_attributes.items() - new_attrs.items()
+                    )
+                else:
+                    raise ValueError("TODOFIX")
 
         g["global_attributes"] = global_attributes
         if is_log_level_debug(logger):
@@ -1245,6 +1291,62 @@ class NetCDFRead(IORead):
                 except UnicodeDecodeError:
                     pass
 
+#            # ------------------------------------------------------------
+#            # Override variable attributes
+#            # ------------------------------------------------------------
+#            if attribute_override:
+#                variable_mode = attribute_override.get("variable")
+#                if variable_mode is not None:
+#                    if  override_read_vars is None:
+#                        try:
+#                            override_filename = attribute_override.get("filename")
+#                        except AttributeError:
+#                            raise ValueError("TODOFIX")
+#        
+#                        if override_filename is None:
+#                            raise ValueError("TODOFIX")
+#                        
+#                        read_vars = self.read_vars.copy()
+#                        override_read_vars = self.read(
+#                            override_filename, _scan_only=True, verbose=verbose
+#                        )
+#                        # Reset self.read_vars
+#                        self.read_vars = read_vars
+#        
+#                    merge = variable_mode == "merge"
+#                    replace = variable_mode == "replace"
+#                    delete = variable_mode == "delete"
+#    
+#                    updated_variables = []
+#                    override_attributes = override_read_vars["variable_attributes"]
+#                    for ncvar in variable_attributes:
+#                        print (ncvar)
+#                        new_var_attrs = override_attributes.get(ncvar)
+#                        if new_var_attrs is None:
+#                            continue
+#    
+#                        print ('here', new_var_attrs)
+#    
+#                        if merge:
+#                            variable_attributes[ncvar].update(new_var_attrs)
+#                        elif replace:
+#                            variable_attributes[ncvar] = new_var_attrs
+#                        elif delete:
+#                            variable_attributes[ncvar] = dict(
+#                                variable_attributes[ncvar].items() - new_var_attrs.items()
+#                            )
+#                        else:
+#                            raise ValueError("TODOFIX")
+#                        print (variable_attributes)
+#                        updated_variables.append(ncvar)
+#    
+#                    logger.info(
+#                        f"    Overriding attributes ({variable_mode!r} mode) "
+#                        f"with those in {override_filename} for the following "
+#                        f"netCDF variables: {', '.join(updated_variables)}"
+#                    )  # pragma: no cover
+#
+#            # ppp
             variable_dimensions[ncvar] = tuple(variable.dimensions)
             variable_dataset[ncvar] = nc
             variable_filename[ncvar] = g["filename"]
@@ -1630,64 +1732,6 @@ class NetCDFRead(IORead):
                     netcdf_external_variables
                 )
 
-        # TODOFIX
-        if attribute_override:
-            override_filename = attribute_override.get('filename')
-            if override_filename is None:
-                raise ValueError("TODOFIX")
-            
-            read_vars = self.read_vars.copy()
-            override_read_vars = self.read(
-                override_filename, _scan_only=True, verbose=verbose
-            )
-            # Reset self.read_vars
-            self.read_vars = read_vars
-
-            variable_mode = attribute_override.get('variable', 'merge')
-            global_mode = attribute_override.get('global', 'merge')
-            
-            # Override global attributes
-            if global_mode is not None:
-                logger.info(
-                    f"Overriding netCDF global attributes ({global_mode!r} "
-                    f"mode) with those in {attribute_override}"
-                ) # pragma: no cover
-
-                new_attrs = override_read_vars['global_attributes']
-                if global_mode == "merge":
-                    g['global_attributes'].update(new_attrs)
-                elif global_mode == "replace":
-                    g['global_attributes'] = new_attrs
-                else:
-                    raise ValueError("TODOFIX")
-          
-            # Override variable attributes
-            merge = variable_mode == "merge"
-            replace = variable_mode == "replace"
-            if not (merge or replace):
-                 raise ValueError("TODOFIX")
-          
-            variables = []
-            attributes =  read_vars["variable_attributes"]
-            override_attributes = override_read_vars["variable_attributes"]
-            for ncvar in attributes:
-                new_attrs =  override_attributes.get(ncvar)
-                if new_attrs is None:
-                    continue
-
-                if merge:
-                    attributes[ncvar].update(new_attrs)
-                elif replace:
-                    attributes[ncvar] = new_attrs
-                    
-                variables.append(ncvar)
-
-            logger.info(
-                f"Overriding attributes ({variable_mode!r} mode) with those "
-                f"in {attribute_override} for the following netCDF variables:"
-                f"  {'\n  '.join(variables)}"
-            ) # pragma: no cover
-                       
         # ------------------------------------------------------------
         # Create a field/domain from every netCDF variable (apart from
         # special variables that have already been identified as such)

@@ -17,7 +17,7 @@ def read(
     warn_valid=False,
     mask=True,
     domain=False,
-        attribute_override=None,
+    attribute_override=None,
     _implementation=_implementation,
 ):
     """Read field or domain constructs from a dataset.
