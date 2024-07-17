@@ -647,13 +647,15 @@ class NetCDFRead(IORead):
             `h5netcdf.File`
 
         """
+        print("HERE")
         return h5netcdf.File(
             filename,
             "r",
+            backend="pyfive",
             decode_vlen_strings=True,
-            rdcc_nbytes=16777216,
-            rdcc_w0=0.75,
-            rdcc_nslots=4133,
+            #            rdcc_nbytes=16777216,
+            #            rdcc_w0=0.75,
+            #            rdcc_nslots=4133,
         )
 
     @classmethod
