@@ -647,7 +647,7 @@ class NetCDFRead(IORead):
             `h5netcdf.File`
 
         """
-        print("HERE")
+        print("cf.read: h5netcdf with pyfive backend")
         return h5netcdf.File(
             filename,
             "r",

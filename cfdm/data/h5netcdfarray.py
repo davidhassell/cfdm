@@ -288,6 +288,11 @@ class H5netcdfArray(NetCDFFileMixin, FileArrayMixin, abstract.Array):
                 within the file.
 
         """
+        print("H5netcdf.open: h5netcdf with pyfive backend")
         return super().open(
-            h5netcdf.File, mode="r", decode_vlen_strings=True, **kwargs
+            h5netcdf.File,
+            mode="r",
+            backend="pyfive",
+            decode_vlen_strings=True,
+            **kwargs
         )
