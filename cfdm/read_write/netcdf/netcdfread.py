@@ -521,11 +521,13 @@ class NetCDFRead(IORead):
             if file_system is None:
                 # An S3 file system with these options does not exist,
                 # so create one.
+                print(storage_options)
                 file_system = S3FileSystem(**storage_options)
                 file_systems[fs_key] = file_system
 
             # Reset 'filename' to an s3fs.File object that can be
             # passed to the netCDF backend
+            print (u.path[1:])
             filename = file_system.open(u.path[1:], "rb")
             g["s3fs_File_objects"].append(filename)
 
