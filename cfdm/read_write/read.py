@@ -1,5 +1,3 @@
-import os
-
 from numpy.ma.core import MaskError
 
 from ..cfdmimplementation import implementation
@@ -16,18 +14,22 @@ def read(
     warnings=False,
     warn_valid=False,
     mask=True,
+    unpack=True,
     domain=False,
     attribute_override=None,
+    netcdf_backend=None,
+    storage_options=None,
     _implementation=_implementation,
 ):
     """Read field or domain constructs from a dataset.
 
-    The dataset may be a netCDF file on disk or on an OPeNDAP server,
-    or a CDL file on disk (see below).
+    The following file formats are supported: netCDF and CDL.
+
+    NetCDF files may be on local disk, on an OPeNDAP server, or in an
+    S3 object store.
 
     The returned constructs are sorted by the netCDF variable names of
     their corresponding data or domain variables.
-
 
     **CDL files**
 
@@ -230,16 +232,26 @@ def read(
             If True (the default) then mask by convention the data of
             field and metadata constructs.
 
-            The masking by convention of a netCDF array depends on the
-            values of any of the netCDF variable attributes
-            ``_FillValue``, ``missing_value``, ``valid_min``,
-            ``valid_max`` and ``valid_range``.
+            A netCDF array is masked depending on the values of any of
+            the netCDF attributes ``_FillValue``, ``missing_value``,
+            ``_Unsigned``, ``valid_min``, ``valid_max``, and
+            ``valid_range``.
 
             See
             https://ncas-cms.github.io/cfdm/tutorial.html#data-mask
             for details.
 
             .. versionadded:: (cfdm) 1.8.2
+
+        unpack: `bool`
+            If True, the default, then unpack arrays by convention
+            when the data is read from disk.
+
+            Unpacking is determined by netCDF conventions for the
+            following variable attributes: ``add_offset``,
+            ``scale_factor``, and ``_Unsigned``.
+
+            .. versionadded:: (cfdm) NEXTVERSION
 
         domain: `bool`, optional
             If True then return only the domain constructs that are
@@ -263,8 +275,138 @@ def read(
 
             .. versionadded:: (cfdm) 1.9.0.0
 
-        attribute_override: `str` or `None`, optional
-            TODOFIX
+        netcdf_eninge: `None` or `str`, optional
+            Specify which library to use for opening and reading
+            netCDF files. By default, or if `None`, then the first one
+            of `netCDF4` and `h5netcdf` to successfully open the
+            netCDF file is used. Setting *netcdf_backend* to one of
+            ``'netCDF4'`` and ``'h5netcdf'`` will force the use of
+            that library.
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        storage_options: `dict` or `None`, optional
+            Pass parameters to the backend file system driver, such as
+            username, password, server, port, etc. How the storage
+            options are interpreted depends on the location of the
+            file:
+
+            * **Local File System**: Storage options are ignored for
+              local files.
+
+            * **HTTP(S)**: Storage options are ignored for files
+              available across the network via OPeNDAP.
+
+            * **S3-compatible services**: The backend used is `s3fs`,
+              and the storage options are used to initialise an
+              `s3fs.S3FileSystem` file system object. By default, or
+              if `None`, then *storage_options* is taken as ``{}``.
+
+              If the ``'endpoint_url'`` key is not in
+              *storage_options*, nor in a dictionary defined by the
+              ``'client_kwargs'`` key (both of which are the case when
+              *storage_options* is `None`), then one will be
+              automatically inserted for accessing an S3 file. For
+              instance, with a file name of
+              ``'s3://store/data/file.nc'``, an ``'endpoint_url'`` key
+              with value ``'https://store'`` would be created. To
+              disable this, set the ``'endpoint_url'`` key to `None`.
+
+              *Parameter example:*
+                For a file name of ``'s3://store/data/file.nc'``, the
+                following are equivalent: ``None``, ``{}``,
+                ``{'endpoint_url': 'https://store'}``, and
+                ``{'client_kwargs': {'endpoint_url':
+                'https://store'}}``
+
+              *Parameter example:*
+                ``{'key': 'scaleway-api-key...', 'secret':
+                'scaleway-secretkey...', 'endpoint_url':
+                'https://s3.fr-par.scw.cloud', 'client_kwargs':
+                {'region_name': 'fr-par'}}``
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        attribute_override: `None` or (sequence of) `dict`, optional
+
+            Modify variable and/or global attributes in the input file
+            prior to the contents being parsed. This allows errors in
+            the input file encoding to be fixed on the fly. For
+            instance, if a CF-netCDF data variable is missing a
+            ``coordinates`` attribute, then the *attribute_override*
+            parameter could be used to provide it, allowing the
+            correct Field construct to be returned. If the
+            ``coordinates`` attribute was not provided in this way
+            then the correct Field construct could still be created
+            from the returned values, but such operations can
+            sometimes be complicated.
+                
+            If *attribute_override* is `None`, the default, then no
+            attributes in the input file are modified.
+
+            When *attribute_override* is a `dict` then it provides a
+            netCDF or CDL override file, with the ``'filename'`` key,
+            which defines the attribute overrides. The attribute
+            overrides may be taken from the override file's global
+            attributes and/or any of its variables with the same name
+            and dimension names (inclduing any group structure) as
+            variables in the input file.
+
+            Three methods of attribute override are possible:
+
+            * merge: Retain attributes from the input file and add
+                     attributes from the override file. When the same
+                     attribute appears in both the input and override
+                     files, the value from the override file is
+                     used.
+
+            * replace: Remove attributes from the override file and
+                       then add attributes from the override file.
+
+            * delete: Remove attributes from the input file that are
+                      also in the override file, regardless of their
+                      values.
+
+            To enable global attribute overrides, provide a
+            ``'global'`` key whose value is ``'merge'``, ``'replace'``
+            or ``'delete'``, depending on which method of override is
+            required.
+
+            To enable variable attribute overrides, provide a
+            ``'variable'`` key. If its value is one of ``'merge'``,
+            ``'replace'`` or ``'delete'`` then all variables in the
+            input file that have a namesake in the override file will
+            be updated with the given method, with other input file
+            variables remaining unchanged. Alternatively, the value
+            may be a `dict` that allows different input file variables
+            to be updated with different methods.
+
+            *Example:*
+              ``attribute_override={'filename': 'fix.cdl', 'global':
+              'merge'}``
+             
+            *Example:*
+              ``attribute_override={'filename': 'fix.cdl', 'variable':
+              'merge'}``
+             
+            *Example:*
+              ``attribute_override={'filename': 'fix.cdl', 'global':
+              'replace', 'variable': 'merge'}``
+             
+            *Example:*
+              Merge attributes for variable ``/forecast/tas``; delete
+              attributes for variables ``y_bounds`` and ``x_bounds``;
+              and leave all other variables' attributes and global
+              attributes unchanged: ``attribute_override={'filename':
+              'fix.cdl', 'variable': {'replace': '/forecast/tas',
+              'delete': ['y_bounds', 'x_bounds']}}``
+             
+            Attribute updates from multiple override files may be
+            specified if *attribute_override* is a sequence of
+            `dict`. In this case the updates are implemented in the
+            order given. Updates from the first override file are made
+            to the input file, and updates from subsequent override
+            files are applied on top of any previous updates.
 
             .. versionadded:: (cfdm) NEXTVERSION
 
@@ -308,62 +450,36 @@ def read(
     elif isinstance(extra, str):
         extra = (extra,)
 
-    filename = os.path.expanduser(os.path.expandvars(filename))
-
-    if netcdf.is_dir(filename):
-        raise IOError(f"Can't read directory {filename}")
-
-    if not netcdf.is_file(filename):
-        raise IOError(f"Can't read non-existent file {filename}")
-
     # ----------------------------------------------------------------
     # Read the file into field/domain contructs
     # ----------------------------------------------------------------
-    cdl = False
-    if netcdf.is_cdl_file(filename):
-        # Create a temporary netCDF file from input CDL
-        cdl = True
-        cdl_filename = filename
-        filename = netcdf.cdl_to_netcdf(filename)
-
-    if netcdf.is_netcdf_file(filename):
-        # See https://github.com/NCAS-CMS/cfdm/issues/128 for context on the
-        # try/except here, which acts as a temporary fix pending decisions on
-        # the best way to handle CDL with only header or coordinate info.
-        try:
-            fields = netcdf.read(
-                filename,
-                external=external,
-                extra=extra,
-                verbose=verbose,
-                warnings=warnings,
-                warn_valid=warn_valid,
-                mask=mask,
-                domain=domain,
-                attribute_override=attribute_override,
-                extra_read_vars=None,
-            )
-        except MaskError:
-            # Some data required for field interpretation is missing,
-            # manifesting downstream as a NumPy MaskError.
-            if cdl:
-                raise ValueError(
-                    "Unable to convert CDL without data to field construct(s) "
-                    "because there is insufficient information provided by "
-                    "the header and/or coordinates alone in this case."
-                )
-            else:
-                raise ValueError(
-                    "Unable to convert netCDF to field construct(s) because "
-                    "there is missing data."
-                )
-    elif cdl:
-        raise IOError(
-            f"Can't determine format of file {filename} "
-            f"generated from CDL file {cdl_filename}"
+    # See https://github.com/NCAS-CMS/cfdm/issues/128 for context on
+    # the try/except here, which acts as a temporary fix pending
+    # decisions on the best way to handle CDL with only header or
+    # coordinate info.
+    try:
+        fields = netcdf.read(
+            filename,
+            external=external,
+            extra=extra,
+            verbose=verbose,
+            warnings=warnings,
+            warn_valid=warn_valid,
+            mask=mask,
+            unpack=unpack,
+            domain=domain,
+            storage_options=storage_options,
+            netcdf_backend=netcdf_backend,
+            attribute_override=attribute_override,
+            extra_read_vars=None,
         )
-    else:
-        raise IOError(f"Can't determine format of file {filename}")
+    except MaskError:
+        # Some data required for field interpretation is missing,
+        # manifesting downstream as a NumPy MaskError.
+        raise ValueError(
+            "Unable to interpret {filename} because its structure "
+            "requires a variable data array that is not present"
+        )
 
     # ----------------------------------------------------------------
     # Return the field or domain constructs
