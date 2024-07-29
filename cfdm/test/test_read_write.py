@@ -1012,6 +1012,143 @@ class read_writeTest(unittest.TestCase):
         )
         cfdm.write(f, tmpfile)
 
+    def test_read_attribute_override(self):
+        """Test the `attribute_override` keyword to `cfdm.read`"""
+        # Set up suitable test netCDF file
+        f = cfdm.example_field(1)
+        f.set_properties(
+            {
+                "variable_attribute_1": "value 1",
+                "variable_attribute_2": "value 2",
+            }
+        )
+        f.nc_set_variable_groups(["forecast", "model"])
+        cfdm.write(
+            f,
+            tmpfile,
+            file_descriptors={
+                "global_attribute_1": "value 1",
+                "global_attribute_2": "value 2",
+            },
+        )
+        f = cfdm.read(tmpfile)[0]
+        self.assertEqual(
+            f.properties(),
+            {
+                "Conventions": "CF-1.11",
+                "global_attribute_1": "value 1",
+                "global_attribute_2": "value 2",
+                "project": "research",
+                "standard_name": "air_temperature",
+                "units": "K",
+                "variable_attribute_1": "value 1",
+                "variable_attribute_2": "value 2",
+            },
+        )
+
+        # Pre-defined CDL override file
+        override_file = "attribute_override.cdl"
+
+        f = cfdm.read(
+            tmpfile,
+            attribute_override={
+                "filename": override_file,
+                "global": "replace",
+                "variable": "replace",
+            },
+        )[0]
+        self.assertEqual(
+            f.properties(),
+            {
+                "Conventions": "CF-1.11",
+                "new_global_attribute": "new value",
+                "global_attribute_2": "new value 2",
+                "standard_name": "air_temperature",
+                "new_variable_attribute_2": "new value",
+                "variable_attribute_2": "new value 2",
+            },
+        )
+
+        f = cfdm.read(
+            tmpfile,
+            attribute_override={
+                "filename": override_file,
+                "global": "merge",
+                "variable": "merge",
+            },
+        )[0]
+        self.assertEqual(
+            f.properties(),
+            {
+                "Conventions": "CF-1.11",
+                "global_attribute_1": "value 1",
+                "global_attribute_2": "new value 2",
+                "new_global_attribute": "new value",
+                "project": "research",
+                "standard_name": "air_temperature",
+                "units": "K",
+                "variable_attribute_1": "value 1",
+                "variable_attribute_2": "new value 2",
+                "new_variable_attribute_2": "new value",
+            },
+        )
+
+        f = cfdm.read(
+            tmpfile,
+            attribute_override={
+                "filename": override_file,
+                "global": "delete",
+            },
+        )[0]
+        self.assertEqual(
+            f.properties(),
+            {
+                "global_attribute_1": "value 1",
+                "project": "research",
+                "standard_name": "air_temperature",
+                "units": "K",
+                "variable_attribute_1": "value 1",
+                "variable_attribute_2": "value 2",
+            },
+        )
+
+        f = cfdm.read(
+            tmpfile,
+            attribute_override={
+                "filename": override_file,
+                "variable": {"delete": "/forecast/model/ta"},
+            },
+        )[0]
+        self.assertEqual(
+            f.properties(),
+            {
+                "Conventions": "CF-1.11",
+                "global_attribute_1": "value 1",
+                "global_attribute_2": "value 2",
+                "project": "research",
+                "units": "K",
+                "variable_attribute_1": "value 1",
+            },
+        )
+
+        f = cfdm.read(
+            tmpfile,
+            attribute_override={
+                "filename": override_file,
+                "variable": {"merge": "cell_measure"},
+            },
+        )[0]
+        self.assertEqual(f.cell_measure().properties(), {"units": "km2"})
+
+        f = cfdm.read(
+            tmpfile,
+            attribute_override={
+                "filename": override_file,
+                "variable": {"merge": "cell_measure_NEW"},
+            },
+        )[0]
+        self.assertEqual(f.cell_measure().properties(), {"units": "km2"})
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

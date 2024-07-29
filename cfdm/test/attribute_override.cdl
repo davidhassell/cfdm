@@ -1,0 +1,30 @@
+netcdf attribute_override {
+dimensions:
+	atmosphere_hybrid_height_coordinate = 1 ;
+	bounds2 = 2 ;
+	y = 10 ;
+	x = 9 ;
+variables:
+	float surface_altitude(y, x) ;
+		surface_altitude:units = "m" ;
+		surface_altitude:standard_name = "surface_altitude" ;
+	double cell_measure_NEW(x, y) ;
+		cell_measure_NEW:units = "km2" ;
+		cell_measure_NEW:new_attribute = "new value" ;
+
+// global attributes:
+		:Conventions = "CF-1.11" ;
+		:new_global_attribute = "new value" ;
+		:global_attribute_2 = "new value 2" ;
+
+group: forecast {
+
+  group: model {
+    variables:
+	double ta(atmosphere_hybrid_height_coordinate, y, x) ;
+		ta:standard_name = "air_temperature" ;
+		ta:new_variable_attribute_2 = "new value" ;
+		ta:variable_attribute_2 = "new value 2" ;
+    } // group model
+  } // group forecast
+}

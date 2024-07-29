@@ -692,10 +692,10 @@ class NetCDFRead(IORead):
                 "Command '['ncgen', '-knc4', '-o'"
             ) and msg.endswith("returned non-zero exit status 1."):
                 raise OSError(
-                    f"CDL file {filename} cannot be converted to netCDF."
+                    f"CDL file {filename} cannot be converted to netCDF"
                 )
             else:
-                raise
+                raise error
 
         return tmpfile
 
@@ -1235,17 +1235,17 @@ class NetCDFRead(IORead):
                 # it later for variable attribute overrides
                 override["read_vars"] = override_read_vars
 
-                mode = override.get("global")
-                if mode is not None:
+                method = override.get("global")
+                if method is not None:
                     self._override_attributes(
                         global_attributes,
                         override_read_vars["global_attributes"],
-                        mode,
-                        False,
+                        method=method,
+                        variable=False,
                     )
-                    logger.warn(
-                        "    Overriding netCDF global attributes in "
-                        f"{mode!r} mode with those from file "
+                    logger.warning(
+                        f"    Overriding netCDF global attributes with "
+                        f"method {method!r} from override file "
                         f"{override['filename']}"
                     )  # pragma: no cover
         else:
@@ -1533,24 +1533,28 @@ class NetCDFRead(IORead):
             override_dimensions = override_read_vars["variable_dimensions"]
             override_attributes = override_read_vars["variable_attributes"]
 
-            modes = override.get("variable", {})
-            if isinstance(modes, str):
-                # Replace a variable mode string (e.g. "merge") with a
+            methods = override.get("variable", {})
+            if isinstance(methods, str):
+                # Replace a variable method string (e.g. "merge") with a
                 # dictionary that names all variables in the override
                 # file.
                 #
                 # E.g "merge" -> {"merge": ['x', 'y', '/group/tas']})
-                modes = {modes: override_attributes.keys()}
+                methods = {methods: override_attributes.keys()}
 
-            for mode, ncvars in modes.items():
+            for method, ncvars in methods.items():
                 if isinstance(ncvars, str):
-                    # Convert a variable name string to a sequence
+                    # Convert a single variable name to a sequence
                     ncvars = (ncvars,)
 
                 updated_variables = []
                 for ncvar in ncvars:
-                    if ncvar not in variable_attributes:
-                        # No corresponding variable in the main file
+                    if (
+                        ncvar not in variable_attributes
+                        or ncvar not in override_attributes
+                    ):
+                        # No matching variable in the main and
+                        # override files
                         continue
 
                     if (
@@ -1563,17 +1567,25 @@ class NetCDFRead(IORead):
                     self._override_attributes(
                         variable_attributes[ncvar],
                         override_attributes[ncvar],
-                        mode,
-                        True,
+                        method=method,
+                        variable=True,
                     )
                     updated_variables.append(ncvar)
 
-                logger.warn(
-                    f"    Overriding netCDF attributes in {mode!r} mode "
-                    f"with those from file {override['filename']} for the "
-                    "following variables:\n"
-                    f"        {'\n        '.join(updated_variables)}"
-                )  # pragma: no cover
+                if updated_variables:
+                    logger.warning(
+                        f"    Overriding netCDF attributes with method "
+                        f"{method!r} from override file "
+                        f"{override['filename']} "
+                        "for the following variables:\n"
+                        f"        {'\n        '.join(updated_variables)}"
+                    )  # pragma: no cover
+                else:
+                    logger.warning(
+                        f"    No netCDF variable attributes overridden with "
+                        f"method {method!r} from override file "
+                        f"{override['filename']}"
+                    )  # pragma: no cover
 
         # The netCDF attributes for each variable
         #
@@ -10432,7 +10444,9 @@ class NetCDFRead(IORead):
 
         return storage_options
 
-    def _override_attributes(self, old_attrs, new_attrs, mode, variable):
+    def _override_attributes(
+        self, old_attrs, new_attrs, method=None, variable=False
+    ):
         """Update variable or global attributes.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -10445,30 +10459,31 @@ class NetCDFRead(IORead):
             new_attrs: `dict`
                 The attributes from which the updates are defined.
 
-            mode: `str`
-                The update mode.
+            method: `str`
+                The update method.
 
             variable: `bool`
                 If True then variable attributes are being updated. If
-                False then global attributes are being updated.
+                False then global attributes are being updated. (Only
+                used for error reporting.)
 
         :Returns:
 
             `None`
 
         """
-        if mode == "merge":
+        if method == "merge":
             old_attrs.update(new_attrs)
-        elif mode == "replace":
+        elif method == "replace":
             old_attrs.clear()
             old_attrs.update(new_attrs)
-        elif mode == "delete":
+        elif method == "delete":
             new = {k: v for k, v in old_attrs.items() if k not in new_attrs}
             old_attrs.clear()
             old_attrs.update(new)
         else:
             raise ValueError(
                 f"Invalid {'variable' if variable else 'global'} "
-                f"attribute override mode: {mode!r}. "
+                f"attribute override method: {method!r}. "
                 "Expected one of 'merge', 'replace', 'delete'"
             )

@@ -275,7 +275,121 @@ def read(
 
             .. versionadded:: (cfdm) 1.9.0.0
 
-        netcdf_eninge: `None` or `str`, optional
+        attribute_override: `None` or (sequence of) `dict`, optional
+            Virtually modify variable and/or global attributes in the
+            input file prior to the contents being parsed.
+
+            This allows errors in the input file encoding to be fixed
+            virtually, i.e. the input file itself is unchanged but is
+            viewed as if it had been rewritten with the errors
+            corrected. For instance, if a CF-netCDF data variable is
+            missing a ``coordinates`` attribute, then the
+            *attribute_override* parameter could be used to provide
+            it, allowing the correct Field construct to be
+            returned. If the ``coordinates`` attribute was not
+            provided in this way then the correct Field construct
+            could still be created from the returned values, but such
+            operations can sometimes be complicated.
+
+            If *attribute_override* is `None` (the default) or an
+            empty `dict` or sequence, then no attributes in the input
+            file are modified.
+
+            When *attribute_override* is a `dict` then it provides,
+            with the ``'filename'`` key, a netCDF or CDL override file
+            which defines the attribute overrides. Global attributes
+            in the input file may only be modified by override file
+            global attributes. Attributes of a variable in the input
+            file may only be modified by the attributes of an override
+            file variable that has the same name, dimension names, and
+            group structure. Note that:
+
+            * Data arrays in an override file are always ignored. This
+              means, for instance, that a CDL override file initially
+              created with ``ncdump -h`` may by used.
+
+            * Special performance-related virtual attributes for
+              netCDF4, displayed with ``ncdump -s``, are ignored in
+              the override file, and are never updated in the input
+              file. These include ``_ChunkSizes``, ``_DeflateLevel``,
+              ``_Endianness``, ``_Filter``, ``_Fletcher32``,
+              ``_Format``, ``_NetCDF4``, ``_NoFill``, ``_Shuffle``,
+              and ``_Storage``.
+
+            There are three methods of attribute override:
+
+            =============  ===========================================
+            Method         Description
+            =============  ===========================================
+            ``'merge'``    Retain all attributes from the input file
+                           and add all attributes from the override
+                           file. When the same attribute appears in
+                           both the input and override files, the
+                           value from the override file is used.
+
+            ``'replace'``  Remove all attributes from the input file
+                           and then add all attributes from the
+                           override file.
+
+            ``'delete'``   Remove any attribute from the input file
+                           that also appears in the override file,
+                           regardless of its value in either file.
+            =============  ===========================================
+
+            **Global attributes**
+
+            To enable global attribute overrides, provide a
+            ``'global'`` dictionary key whose value is one of the
+            attribute override methods.
+
+            **Variable attributes**
+
+            To enable variable attribute overrides, provide a
+            ``'variable'`` dictionary key. If its value is one of the
+            attribute override methods then all variables in the input
+            file that have a corresponding variable in the override
+            file will be updated with the given method, with all other
+            input file variables remaining unchanged. Alternatively,
+            the value may be a `dict` that allows different input file
+            variables to be updated with different methods.
+
+            *Example:*
+              Merge global attributes, leaving all variable attributes
+              unchanged: ``attribute_override={'filename': 'fix.cdl',
+              'global': 'merge'}``
+
+            *Example:*
+              Merge attributes of all corresponding variables, leaving
+              all other variable attributes and global attributes
+              unchanged: correspond unchanged:
+              ``attribute_override={'filename': 'fix.cdl', 'variable':
+              'merge'}``
+
+            *Example:*
+              Replace global attributes and merge attributes of all
+              corresponding variable attributes, leaving all other
+              variable attributes unchanged:
+              ``attribute_override={'filename': 'fix.cdl', 'global':
+              'replace', 'variable': 'merge'}``
+
+            *Example:*
+              Merge attributes for variable ``/forecast/tas``; delete
+              attributes for variables ``y_bounds`` and ``x_bounds``;
+              and leave all other variables' attributes and global
+              attributes unchanged: ``attribute_override={'filename':
+              'fix.cdl', 'variable': {'replace': '/forecast/tas',
+              'delete': ['y_bounds', 'x_bounds']}}``
+
+            Attribute updates from multiple override files may be
+            specified if *attribute_override* is a sequence of
+            `dict`. In this case the updates are implemented in the
+            order given: Updates from the first override file are made
+            to the input file, and then updates from subsequent
+            override files are applied on top of any previous updates.
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        netcdf_engine: `None` or `str`, optional
             Specify which library to use for opening and reading
             netCDF files. By default, or if `None`, then the first one
             of `netCDF4` and `h5netcdf` to successfully open the
@@ -324,89 +438,6 @@ def read(
                 'scaleway-secretkey...', 'endpoint_url':
                 'https://s3.fr-par.scw.cloud', 'client_kwargs':
                 {'region_name': 'fr-par'}}``
-
-            .. versionadded:: (cfdm) NEXTVERSION
-
-        attribute_override: `None` or (sequence of) `dict`, optional
-
-            Modify variable and/or global attributes in the input file
-            prior to the contents being parsed. This allows errors in
-            the input file encoding to be fixed on the fly. For
-            instance, if a CF-netCDF data variable is missing a
-            ``coordinates`` attribute, then the *attribute_override*
-            parameter could be used to provide it, allowing the
-            correct Field construct to be returned. If the
-            ``coordinates`` attribute was not provided in this way
-            then the correct Field construct could still be created
-            from the returned values, but such operations can
-            sometimes be complicated.
-                
-            If *attribute_override* is `None`, the default, then no
-            attributes in the input file are modified.
-
-            When *attribute_override* is a `dict` then it provides a
-            netCDF or CDL override file, with the ``'filename'`` key,
-            which defines the attribute overrides. The attribute
-            overrides may be taken from the override file's global
-            attributes and/or any of its variables with the same name
-            and dimension names (inclduing any group structure) as
-            variables in the input file.
-
-            Three methods of attribute override are possible:
-
-            * merge: Retain attributes from the input file and add
-                     attributes from the override file. When the same
-                     attribute appears in both the input and override
-                     files, the value from the override file is
-                     used.
-
-            * replace: Remove attributes from the override file and
-                       then add attributes from the override file.
-
-            * delete: Remove attributes from the input file that are
-                      also in the override file, regardless of their
-                      values.
-
-            To enable global attribute overrides, provide a
-            ``'global'`` key whose value is ``'merge'``, ``'replace'``
-            or ``'delete'``, depending on which method of override is
-            required.
-
-            To enable variable attribute overrides, provide a
-            ``'variable'`` key. If its value is one of ``'merge'``,
-            ``'replace'`` or ``'delete'`` then all variables in the
-            input file that have a namesake in the override file will
-            be updated with the given method, with other input file
-            variables remaining unchanged. Alternatively, the value
-            may be a `dict` that allows different input file variables
-            to be updated with different methods.
-
-            *Example:*
-              ``attribute_override={'filename': 'fix.cdl', 'global':
-              'merge'}``
-             
-            *Example:*
-              ``attribute_override={'filename': 'fix.cdl', 'variable':
-              'merge'}``
-             
-            *Example:*
-              ``attribute_override={'filename': 'fix.cdl', 'global':
-              'replace', 'variable': 'merge'}``
-             
-            *Example:*
-              Merge attributes for variable ``/forecast/tas``; delete
-              attributes for variables ``y_bounds`` and ``x_bounds``;
-              and leave all other variables' attributes and global
-              attributes unchanged: ``attribute_override={'filename':
-              'fix.cdl', 'variable': {'replace': '/forecast/tas',
-              'delete': ['y_bounds', 'x_bounds']}}``
-             
-            Attribute updates from multiple override files may be
-            specified if *attribute_override* is a sequence of
-            `dict`. In this case the updates are implemented in the
-            order given. Updates from the first override file are made
-            to the input file, and updates from subsequent override
-            files are applied on top of any previous updates.
 
             .. versionadded:: (cfdm) NEXTVERSION
 
