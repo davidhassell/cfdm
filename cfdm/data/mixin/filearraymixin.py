@@ -19,6 +19,7 @@ class FileArrayMixin:
 
     """
 
+<<<<<<< HEAD
     def __repr__(self):
         """Called by the `repr` built-in function.
 
@@ -26,6 +27,20 @@ class FileArrayMixin:
 
         """
         return f"<{self.__class__.__name__}{self.shape}: {self}>"
+=======
+    def __dask_tokenize__(self):
+        """Return a value fully representative of the object.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
+        return (
+            self.__class__,
+            self.shape,
+            self.get_filenames(),
+            self.get_addresses(),
+        )
+>>>>>>> 6c0c0751020d9fcbdf448222cf414da4f8e0c00d
 
     def __str__(self):
         """Called by the `str` built-in function.
@@ -40,6 +55,20 @@ class FileArrayMixin:
             addresses = addresses[0]
 
         return f"{filenames}, {addresses}"
+
+    @property
+    def _dask_meta(self):
+        """The metadata for the containing dask array.
+
+        This is the kind of array that will result from slicing the
+        file array.
+
+        .. versionadded::(cfdm) NEXTVERSION
+
+        .. seealso:: `dask.array.from_array`
+
+        """
+        return np.array((), dtype=self.dtype)
 
     @property
     def dtype(self):
