@@ -594,7 +594,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 f"Python integer. Got {self!r}"
             )
 
-        return int(self.to_dask_array())
+        return int(self.array[(0,) * self.ndim])
 
     def __iter__(self):
         """Called when an iterator is required.
@@ -2914,61 +2914,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         return parsed_indices
 
-    @_inplace_enabled(default=False)
-    def masked_values(self, value, rtol=None, atol=None, inplace=False):
-        """Mask using floating point equality.
-
-        Masks the data where elements are approximately equal to the
-        given value. For integer types, exact equality is used.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        .. seealso:: `mask`
-
-        :Parameters:
-
-            value: number
-                Masking value.
-
-            {{rtol: number, optional}}
-
-            {{atol: number, optional}}
-
-            {{inplace: `bool`, optional}}
-
-        :Returns:
-
-            `{{class}}` or `None`
-                The result of masking the data where approximately
-                equal to *value*, or `None` if the operation was
-                in-place.
-
-        **Examples**
-
-        >>> d = {{package}}.{{class}}([1, 1.1, 2, 1.1, 3])
-        >>> e = d.masked_values(1.1)
-        >>> print(e.array)
-        [1.0 -- 2.0 -- 3.0]
-
-        """
-        d = _inplace_enabled_define_and_cleanup(self)
-
-        if rtol is None:
-            rtol = self._rtol
-        else:
-            rtol = float(rtol)
-
-        if atol is None:
-            atol = self._atol
-        else:
-            atol = float(atol)
-
-        dx = d.to_dask_array()
-        dx = da.ma.masked_values(dx, value, rtol=rtol, atol=atol)
-        d._set_dask(dx)
-        return d
-
-    def maximum(self, axes=None):
+    def maximum(self, axes=None, squeeze=False,
+        split_every=None):
         """Return the maximum of an array or the maximum along axes.
 
         Missing data array elements are omitted from the calculation.
@@ -2984,6 +2931,18 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 maximum over all axes is returned.
 
                 {{axes int examples}}
+
+            squeeze: `bool`, optional
+                If this is set to False, the default, the axes which
+                are reduced are left in the result as dimensions with
+                size one. With this option, the result will broadcast
+                correctly against the original data.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{split_every: `int` or `dict`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -3029,18 +2988,19 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             raise ValueError(f"Can't find maximum of data: {error}")
 
         d = self.copy(array=False)
-
         dx = self.to_dask_array()
-        dx = da.max(dx, axis=axes, keepdims=True, split_every=split_every)
+        dx = da.max(dx, axis=axes, keepdims=not squeeze,
+                    split_every=split_every)
         d._set_dask(dx)
 
+        # TODODASK
         if d.shape != self.shape:
             # Delete hdf5 chunksizes
             d.nc_clear_hdf5_chunksizes()
 
         return d
 
-    def minimum(self, axes=None):
+    def minimum(self, axes=None, split_every=None):
         """Return the minimum of an array or minimum along axes.
 
         Missing data array elements are omitted from the calculation.
@@ -3056,6 +3016,10 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 minimum over all axes is returned.
 
                 {{axes int examples}}
+
+            {{split_every: `int` or `dict`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -3106,6 +3070,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         dx = da.min(dx, axis=axes, keepdims=True, split_every=split_every)
         d._set_dask(dx)
 
+        # TODODASK
         if d.shape != self.shape:
             # Delete hdf5 chunksizes
             d.nc_clear_hdf5_chunksizes()
@@ -3224,7 +3189,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         return d
 
-    def sum(self, axes=None):
+    def sum(self, axes=None, squeeze=False):
         """Return the sum of an array or the sum along axes.
 
         Missing data array elements are omitted from the calculation.
@@ -3238,6 +3203,14 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 sum over all axes is returned.
 
                 {{axes int examples}}
+
+            squeeze: `bool`, optional
+                If this is set to False, the default, the axes which
+                are reduced are left in the result as dimensions with
+                size one. With this option, the result will broadcast
+                correctly against the original data.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -3267,9 +3240,10 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         d = self.copy(array=False)
 
         dx = self.to_dask_array()
-        dx = da.sum(dx, axis=axes, keepdims=True, split_every=split_every)
+        dx = da.sum(dx, axis=axes, keepdims=not squeeze, split_every=split_every)
         d._set_dask(dx)
 
+        # TODODASK
         if d.shape != self.shape:
             # Delete hdf5 chunksizes
             d.nc_clear_hdf5_chunksizes()
