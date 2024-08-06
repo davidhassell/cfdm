@@ -53,11 +53,16 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         units=None,
         calendar=None,
         fill_value=None,
+        hardmask=_DEFAULT_HARDMASK,
+        chunks=_DEFAULT_CHUNKS,
+        dt=False,
         source=None,
         copy=True,
         dtype=None,
         mask=None,
         mask_value=None,
+        to_memory=False,
+        init_options=None,
         _use_array=True,
         **kwargs,
     ):
@@ -172,16 +177,23 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             super().__init__(
                 source=source, _use_array=_use_array and array is not None
             )
-
             if _use_array:
+                # REVIEW: getitem: `__init__`: set 'asanyarray'
                 try:
-                    array = source.to_dask_array()
+                    array = source.to_dask_array(asanyarray=False)
                 except (AttributeError, TypeError):
-                    pass
+                    try:
+                        array = source.to_dask_array()
+                    except (AttributeError, TypeError):
+                        pass
+                    else:
+                        self._set_dask(array, copy=copy, clear=_NONE)
                 else:
-                    self._set_dask(array, copy=copy, clear=_NONE)
+                    self._set_dask(
+                        array, copy=copy, clear=_NONE, asanyarray=None
+                    )
             else:
-                self._del_dask(None)
+                self._del_dask(None, clear=_NONE)
 
             self.hardmask = getattr(source, "hardmask", _DEFAULT_HARDMASK)
 
@@ -189,11 +201,13 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         super().__init__(
             array=array,
-            units=units,
-            calendar=calendar,
             fill_value=fill_value,
             _use_array=False,
         )
+
+        # Set the units
+        units = Units(units, calendar=calendar)
+        self._Units = units
 
         # Set the mask hardness
         self.hardmask = hardmask
@@ -204,10 +218,29 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         sparse_array = issparse(array)
 
+
+
+        
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+        
         if not _use_array:
             return
 
         # Still here? Then create a dask array and store it.
+
 
         # Find out if the input data is compressed by convention
         try:
@@ -221,6 +254,8 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 "for compressed input arrays"
             )
 
+        # Bring the compressed data into memory without
+        # decompressing it
         if to_memory:
             try:
                 array = array.to_memory()
@@ -232,8 +267,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             # compressed input arrays this will contain extra
             # information, such as a count or index variable.
             self._set_Array(array)
-            # Data files are candidates for active storage reductions
-            self._set_active_storage(True)
 
         # Cast the input data as a dask array
         kwargs = init_options.get("from_array", {})
@@ -243,10 +276,49 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 "options. Use the 'chunks' parameter instead."
             )
 
+
+        
+        is_dask = is_dask_collection(array)
+        
+
+        
+
+        # Set whether or not to call `np.asanyarray` on chunks to
+        # convert them to numpy arrays.
+        if is_dask:
+            # We don't know what's in the dask array, so we should
+            # assume that it might need converting to a numpy array.
+            self._set_component("__asanyarray__", True)
+        else:
+            # Use the array's __asanyarray__ value, if it has one.
+            self._set_component("__asanyarray__", bool(
+                getattr(array, "__asanyarray__", False)
+            ))
+
         dx = to_dask(array, chunks, **kwargs)
 
+        # Find out if we have an array of date-time objects
+        if units.isreftime:
+            dt = True
+
+        first_value = None
+        if not dt and dx.dtype.kind == "O":
+            kwargs = init_options.get("first_non_missing_value", {})
+            first_value = first_non_missing_value(dx, **kwargs)
+
+            if first_value is not None:
+                dt = hasattr(first_value, "timetuple")
+
+        # Convert string or object date-times to floating point
+        # reference times
+        if dt and dx.dtype.kind in "USO":
+            dx, units = convert_to_reftime(dx, units, first_value)
+            # Reset the units
+            self._Units = units
+
+
         # Store the dask array
-        self._set_dask(dx, clear=_NONE)
+        self._set_dask(dx, clear=_NONE, asanyarray=None)
 
         # Override the data type
         if dtype is not None:
@@ -607,6 +679,26 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             for i in range(n):
                 yield self[i]
 
+    # REVIEW: getitem: `__asanyarray__`: new property `__asanyarray__`
+    @property
+    def __asanyarray__(self):
+        """Whether the chunks need conversion to a `numpy` array.
+
+        .. versionadded:: NEXTVERSION
+
+        :Returns:
+
+            `bool`
+                If True then at compute time add a final operation
+                (not in-place) to the Dask graph that converts a
+                chunk's array object to a `numpy` array if the array
+                object has an `__asanyarray__` attribute that is
+                `True`, or else does nothing. If False then do not add
+                this operation.
+
+        """
+        return self._get_component("__asanyarray__", True)
+
     @property
     def __keepdims_indexing__(self):
         """Flag to indicate whether dimensions indexed with integers are
@@ -904,59 +996,6 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         result = getattr(dx0, method)(dx1)
         d._set_dask(result)
         return d
-           
-    def _del_dask(self, default=ValueError(), clear=_ALL):
-        """Remove the dask array.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        .. seealso:: `to_dask_array`, `_clear_after_dask_update`,
-                     `_set_dask`
-
-        :Parameters:
-
-            default: optional
-                Return the value of the *default* parameter if the
-                dask array axes has not been set. If set to an
-                `Exception` instance then it will be raised instead.
-
-            clear: `int`, optional
-                Specify which components should be removed. By default
-                *clear* is the ``_ALL`` integer-valued constant, which
-                results in all components being removed. See
-                `_clear_after_dask_update` for details. If there is
-                no dask array then no components are removed,
-                regardless of the value of *clear*.
-
-        :Returns:
-
-            `dask.array.Array`
-                The removed dask array.
-
-        **Examples**
-
-        >>> d = {{package}}.{{class}}([1, 2, 3])
-        >>> dx = d._del_dask()
-        >>> d._del_dask("No dask array")
-        'No dask array'
-        >>> d._del_dask()
-        Traceback (most recent call last):
-            ...
-        ValueError: 'Data' has no dask array
-        >>> d._del_dask(RuntimeError('No dask array'))
-        Traceback (most recent call last):
-            ...
-        RuntimeError: No dask array
-
-        """
-        self._clear_after_dask_update(clear)
-        out = self.del_component("dask", None)
-        if out is None:            
-            return self._default(
-                default, f"{self.__class__.__name__!r} has no dask array"
-            )
-
-        return out
 
     def _item(self, index):
         """Return an element of the data as a scalar.
@@ -1192,18 +1231,120 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         """
         self._set_Array(array, copy=copy)
+        
+    def _cfa_del_write(self):
+        """Set the CFA write status of the data to `False`.
 
-    def _set_dask(self, array, copy=False, clear=_ALL):
-        """Set the dask array.
+        .. versionadded:: 3.15.0
+
+        .. seealso:: `cfa_get_write`, `_cfa_set_write`
+
+        :Returns:
+
+            `bool`
+                The CFA status prior to deletion.
+
+        """
+        return self._del_component("cfa_write", False)
+
+    def _cfa_set_term(self, value):
+        """Set the CFA aggregation instruction term status.
+
+        .. versionadded:: 3.15.0
+
+        .. seealso:: `cfa_get_term`, `cfa_set_term`
+
+        :Parameters:
+
+            status: `bool`
+                The new CFA aggregation instruction term status.
+
+        :Returns:
+
+            `None`
+
+        """
+        if not value:
+            return self._del_component("cfa_term", None
+
+        self._set_component("cfa_term", bool(value))
+
+    def _clear_after_dask_update(self, clear=_ALL):
+        """Remove components invalidated by updating the `dask` array.
+
+        Removes or modifies components that can't be guaranteed to be
+        consistent with an updated `dask` array. See the *clear*
+        parameter for details.
 
         .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `_del_Array`, `_del_cached_elements`,
+                     `_cfa_del_write`, `_set_dask`
+
+        :Parameters:
+
+            clear: `int`, optional
+                Specify which components should be removed. Which
+                components are removed is determined by sequentially
+                combining *clear* with the ``_ARRAY``, ``_CACHE`` and
+                ``_CFA`` integer-valued contants, using the bitwise
+                AND operator:
+
+                * If ``clear & _ARRAY`` is non-zero then a source
+                  array is deleted.
+
+                * If ``clear & _CACHE`` is non-zero then cached
+                  element values are deleted.
+
+                * If ``clear & _CFA`` is non-zero then the CFA write
+                  status is set to `False`.
+
+                By default *clear* is the ``_ALL`` integer-valued
+                constant, which results in all components being
+                removed.
+
+                If *clear* is the ``_NONE`` integer-valued constant
+                then no components are removed.
+
+                To retain a component and remove all others, use
+                ``_ALL`` with the bitwise OR operator. For instance,
+                if *clear* is ``_ALL ^ _CACHE`` then the cached
+                element values will be kept but all other components
+                will be removed.
+
+                .. versionadded:: 3.15.0
+
+        :Returns:
+
+            `None`
+
+        """
+        if not clear:
+            return
+
+        if clear & _ARRAY:
+            # Delete a source array
+            self._del_Array(None)
+
+        if clear & _CACHE:
+            # Delete cached element values
+            self._del_cached_elements()
+
+        if clear & _CFA:
+            # Set the CFA write status to False
+            self._cfa_del_write()
+
+    def _set_dask(self, dx, copy=False, clear=_ALL, asanyarray=False):
+        """Set the dask array.
+
+        .. versionadded:: 3.14.0
 
         .. seealso:: `to_dask_array`, `_clear_after_dask_update`,
                      `_del_dask`
 
         :Parameters:
 
-            array: `dask.array.Array`
+            dx: `dask.array.Array`
                 The array to be inserted.
 
             copy: `bool`, optional
@@ -1215,6 +1356,12 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
                 *clear* is the ``_ALL`` integer-valued constant, which
                 results in all components being removed. See
                 `_clear_after_dask_update` for details.
+
+            asanyarray: `bool` or `None`, optional
+                If `None` then do nothing. Otherwise set
+                `__asanyarray__` to the Boolean value of *asanyarray*.
+
+                .. versionadded:: NEXTVERSION
 
         :Returns:
 
@@ -1241,10 +1388,68 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             )
 
         if copy:
-            array = array.copy()
+            dx = dx.copy()
 
-        self._set_component("dask", array, copy=False)
+            
+        self._set_component("dask", dx, copy=False)
+
+        if asanyarray is not None:
+            self._set_component("__asanyarray__", bool(asanyarray))
+
         self._clear_after_dask_update(clear)
+
+    def _del_dask(self, default=ValueError(), clear=_ALL):
+        """Remove the dask array.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `to_dask_array`, `_clear_after_dask_update`,
+                     `_set_dask`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the
+                dask array axes has not been set. If set to an
+                `Exception` instance then it will be raised instead.
+
+            clear: `int`, optional
+                Specify which components should be removed. By default
+                *clear* is the ``_ALL`` integer-valued constant, which
+                results in all components being removed. See
+                `_clear_after_dask_update` for details. If there is
+                no dask array then no components are removed,
+                regardless of the value of *clear*.
+
+        :Returns:
+
+            `dask.array.Array`
+                The removed dask array.
+
+        **Examples**
+
+        >>> d = {{package}}.{{class}}([1, 2, 3])
+        >>> dx = d._del_dask()
+        >>> d._del_dask("No dask array")
+        'No dask array'
+        >>> d._del_dask()
+        Traceback (most recent call last):
+            ...
+        ValueError: 'Data' has no dask array
+        >>> d._del_dask(RuntimeError('No dask array'))
+        Traceback (most recent call last):
+            ...
+        RuntimeError: No dask array
+
+        """
+        out = self.del_component("dask", None)
+        if out is None:            
+            return self._default(
+                default, f"{self.__class__.__name__!r} has no dask array"
+            )
+
+        self._clear_after_dask_update(clear)
+        return out
 
     @classmethod
     def _set_subspace(cls, array, indices, value, orthogonal_indexing=True):
@@ -4132,6 +4337,80 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
             out = self._get_component("dask")
 
         return out
+    
+    def to_dask_array(self, apply_mask_hardness=False, asanyarray=None):
+        """Convert the data to a `dask` array.
+
+        .. warning:: By default, the mask hardness of the returned
+                     dask array might not be the same as that
+                     specified by the `hardmask` attribute.
+
+                     This could cause problems if a subsequent
+                     operation on the returned dask array involves the
+                     un-masking of masked values (such as by indexed
+                     assignment).
+
+                     To guarantee that the mask hardness of the
+                     returned dask array is correct, set the
+                     *apply_mask_hardness* parameter to True.
+
+        .. versionadded:: 3.14.0
+
+        :Parameters:
+
+            apply_mask_hardness: `bool`, optional
+                If True then force the mask hardness of the returned
+                array to be that given by the `hardmask` attribute.
+
+            {{asanyarray: `bool` or `None`, optional}}
+
+                .. versionadded:: NEXTVERSION
+
+        :Returns:
+
+            `dask.array.Array`
+                The dask array contained within the `Data` instance.
+
+        **Examples**
+
+        >>> d = cf.Data([1, 2, 3, 4], 'm')
+        >>> dx = d.to_dask_array()
+        >>> dx
+        >>> dask.array<array, shape=(4,), dtype=int64, chunksize=(4,), chunktype=numpy.ndarray>
+        >>> dask.array.asanyarray(d) is dx
+        True
+
+        >>> d.to_dask_array(apply_mask_hardness=True)
+        dask.array<cf_harden_mask, shape=(4,), dtype=int64, chunksize=(4,), chunktype=numpy.ndarray>
+
+        >>> d = cf.Data([1, 2, 3, 4], 'm', hardmask=False)
+        >>> d.to_dask_array(apply_mask_hardness=True)
+        dask.array<cf_soften_mask, shape=(4,), dtype=int64, chunksize=(4,), chunktype=numpy.ndarray>
+
+        """
+        dx = self._get_component("dask", None)
+        if dx is None:
+            raise ValueError(f"{self.__class__.__name__} object has no data")
+
+        if apply_mask_hardness:
+            if self.hardmask:
+                self.harden_mask()
+            else:
+                self.soften_mask()
+
+            dx = self._get_component("dask")
+            # Note: The mask hardness functions have their own calls
+            #       to 'cf_asanyarray', so we can don't need worry about
+            #       setting another one.
+        else:
+            if asanyarray is None:
+                asanyarray = self.__asanyarray__
+
+            if asanyarray:
+                # Add a new cf_asanyarray layer to the output graph
+                dx = dx.map_blocks(cf_asanyarray, dtype=dx.dtype)
+
+        return dx
 
     @_inplace_enabled(default=False)
     def to_memory(self, inplace=False):
