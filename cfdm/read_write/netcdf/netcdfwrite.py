@@ -3397,11 +3397,10 @@ class NetCDFWrite(IOWrite):
                             # Hack for Bryan: Update the HDF5 chunking
                             # strategy
                             chunksizes = f.data.nc_hdf5_chunksizes()
-                            if isinstance(chunksizes, tuple):
+                            if chunksizes:
                                 chunksizes = list(chunksizes)
                                 chunksizes.insert(0, 1)
                                 f.data.nc_set_hdf5_chunksizes(chunksizes)
-                                
                     else:
                         # Scalar coordinate variables are being
                         # allowed; and there are NO auxiliary
