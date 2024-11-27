@@ -25,6 +25,7 @@ Inspection
    ~cfdm.DomainAncillary.dump
    ~cfdm.DomainAncillary.identity  
    ~cfdm.DomainAncillary.identities
+   ~cfdm.DomainAncillary.file_directories
 
 .. rubric:: Attributes
    
@@ -72,6 +73,7 @@ Data
    ~cfdm.DomainAncillary.insert_dimension
    ~cfdm.DomainAncillary.squeeze
    ~cfdm.DomainAncillary.transpose
+   ~cfdm.DomainAncillary.persist
    
 .. rubric:: Attributes
    
@@ -166,6 +168,8 @@ Miscellaneous
    ~cfdm.DomainAncillary.get_filenames
    ~cfdm.DomainAncillary.get_original_filenames
    ~cfdm.DomainAncillary.to_memory
+   ~cfdm.DomainAncillary.concatenate
+   ~cfdm.DomainAncillary.replace_directory
 
 NetCDF
 ------

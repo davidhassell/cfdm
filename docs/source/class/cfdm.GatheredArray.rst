@@ -25,6 +25,9 @@ Inspection
    ~cfdm.GatheredArray.get_compressed_dimension
    ~cfdm.GatheredArray.get_compression_type
    ~cfdm.GatheredArray.get_list
+   ~cfdm.GatheredArray.get_attributes
+   ~cfdm.GatheredArray.get_filename
+   ~cfdm.GatheredArray.source
    
 .. rubric:: Attributes
 
@@ -53,6 +56,16 @@ Units
    ~cfdm.GatheredArray.get_calendar
    ~cfdm.GatheredArray.get_units
 
+.. rubric:: Attributes
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../attribute/
+   :template: attribute.rst
+
+   ~cfdm.GatheredArray.Units
+
+
 Miscellaneous
 -------------
 
@@ -72,9 +85,8 @@ Miscellaneous
    ~cfdm.GatheredArray.subarrays
    ~cfdm.GatheredArray.get_Subarray
    ~cfdm.GatheredArray.conformed_data
-   ~cfdm.GatheredArray.get_filename
-   ~cfdm.GatheredArray.get_filenames
-
+   ~cfdm.GatheredArray.to_dask_array
+   
 Special
 -------
 

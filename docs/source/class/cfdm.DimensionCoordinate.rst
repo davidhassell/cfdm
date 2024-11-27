@@ -25,6 +25,8 @@ Inspection
    ~cfdm.DimensionCoordinate.dump
    ~cfdm.DimensionCoordinate.identity  
    ~cfdm.DimensionCoordinate.identities
+   ~cfdm.DimensionCoordinate.file_directories
+   ~cfdm.DimensionCoordinate.get_filenames
 
 .. rubric:: Attributes
    
@@ -178,9 +180,11 @@ Miscellaneous
    ~cfdm.DimensionCoordinate.creation_commands
    ~cfdm.DimensionCoordinate.equals
    ~cfdm.DimensionCoordinate.uncompress
-   ~cfdm.DimensionCoordinate.get_filenames
    ~cfdm.DimensionCoordinate.get_original_filenames
    ~cfdm.DimensionCoordinate.to_memory
+   ~cfdm.DimensionCoordinate.replace_directory
+   ~cfdm.DimensionCoordinate.concatenate
+   ~cfdm.DimensionCoordinate.persist
 
 NetCDF
 ------

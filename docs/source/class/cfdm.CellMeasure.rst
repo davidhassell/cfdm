@@ -25,6 +25,9 @@ Inspection
    ~cfdm.CellMeasure.dump
    ~cfdm.CellMeasure.identity
    ~cfdm.CellMeasure.identities
+   ~cfdm.CellMeasure.get_filenames
+   ~cfdm.CellMeasure.file_directories
+   ~cfdm.CellMeasure.replace_directory
 
 .. rubric:: Attributes
    
@@ -108,9 +111,10 @@ Miscellaneous
    ~cfdm.CellMeasure.equals
    ~cfdm.CellMeasure.has_bounds
    ~cfdm.CellMeasure.uncompress
-   ~cfdm.CellMeasure.get_filenames
    ~cfdm.CellMeasure.get_original_filenames
    ~cfdm.CellMeasure.to_memory
+   ~cfdm.CellMeasure.concatenate
+   ~cfdm.CellMeasure.persist
 
 NetCDF
 ------

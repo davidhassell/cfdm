@@ -24,6 +24,9 @@ Inspection
    ~cfdm.Data.ndim
    ~cfdm.Data.shape
    ~cfdm.Data.size
+   ~cfdm.Data.nbytes
+   ~cfdm.Data.Units
+   ~cfdm.Data.fill_value
    
 Units
 -----
@@ -59,6 +62,7 @@ Date-time support
    :template: attribute.rst
 
    ~cfdm.Data.datetime_array
+   ~cfdm.Data.dtarray
    ~cfdm.Data.datetime_as_string
 
 Data creation routines
@@ -95,7 +99,17 @@ Changing data shape
    :template: method.rst
 
    ~cfdm.Data.flatten
+   ~cfdm.Data.reshape
 
+Joining data
+^^^^^^^^^^^^
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+
+   ~cfdm.Data.concatenate
 
 Transpose-like operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -152,6 +166,7 @@ Truth value testing
    :toctree: ../method/
    :template: method.rst
 
+   ~cfdm.Data.all
    ~cfdm.Data.any
 
 Comparison
@@ -173,12 +188,15 @@ Mask support
    :template: method.rst
 
    ~cfdm.Data.apply_masking
+   ~cfdm.Data.pad_missing
    ~cfdm.Data.filled
    ~cfdm.Data.masked_values
    ~cfdm.Data.del_fill_value
    ~cfdm.Data.get_fill_value
    ~cfdm.Data.has_fill_value
    ~cfdm.Data.set_fill_value
+   ~cfdm.Data.harden_mask
+   ~cfdm.Data.soften_mask
    
 .. rubric:: Attributes
 
@@ -188,6 +206,17 @@ Mask support
    :template: attribute.rst
 
    ~cfdm.Data.mask
+   ~cfdm.Data.hardmask
+
+Input and output
+----------------
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+
+   ~cfdm.Data.tolist
 
 Mathematical functions
 ----------------------
@@ -217,6 +246,16 @@ Making proper sets
 Sorting, searching, and counting
 --------------------------------
 
+Searching
+^^^^^^^^^
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+
+   ~cfdm.Data.masked_where
+	      
 Statistics
 ----------
 
@@ -243,6 +282,37 @@ Sums
 
    ~cfdm.Data.sum
 
+Dask
+----
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+
+   ~cfdm.Data.to_dask_array
+   ~cfdm.Data.compute
+   ~cfdm.Data.persist
+   ~cfdm.Data.cull_graph
+   ~cfdm.Data.dask_compressed_array
+   ~cfdm.Data.rechunk
+   ~cfdm.Data.todict
+   ~cfdm.Data.chunk_indices
+   ~cfdm.Data.chunk_positions
+   
+.. rubric:: Attributes
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../attribute/
+   :template: attribute.rst
+
+   ~cfdm.Data.chunks
+   ~cfdm.Data.chunksize
+   ~cfdm.Data.npartitions
+   ~cfdm.Data.numblocks
+   
+   
 Compression by convention
 -------------------------
    
@@ -306,7 +376,27 @@ Performance
    ~cfdm.Data.nc_hdf5_chunksizes
    ~cfdm.Data.nc_set_hdf5_chunksizes
    ~cfdm.Data.to_memory
- 
+
+CF-netCDF aggregation
+---------------------
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+	 
+   ~cfdm.Data.file_directories
+   ~cfdm.Data.replace_directory
+   ~cfdm.Data.replace_filenames
+   ~cfdm.Data.nc_del_aggregated_data
+   ~cfdm.Data.nc_del_aggregation_write_status
+   ~cfdm.Data.nc_get_aggregated_data
+   ~cfdm.Data.nc_get_aggregation_fragment_type
+   ~cfdm.Data.nc_get_aggregation_write_status
+   ~cfdm.Data.nc_has_aggregated_data
+   ~cfdm.Data.nc_set_aggregated_data
+   ~cfdm.Data.nc_set_aggregation_write_status   
+   
 Special
 -------
 

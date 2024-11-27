@@ -27,7 +27,7 @@ Inspection
    ~cfdm.Domain.dump
    ~cfdm.Domain.identity  
    ~cfdm.Domain.identities
-
+ 
 .. rubric:: Attributes
    
 .. autosummary::
@@ -128,6 +128,7 @@ Miscellaneous
    ~cfdm.Domain.has_geometry
    ~cfdm.Domain.get_original_filenames
    ~cfdm.Domain.uncompress
+   ~cfdm.Domain.persist
 
 NetCDF
 ------

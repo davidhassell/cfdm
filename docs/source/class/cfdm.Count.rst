@@ -23,6 +23,7 @@ Inspection
    ~cfdm.Count.dump
    ~cfdm.Count.identity  
    ~cfdm.Count.identities
+   ~cfdm.Count.file_directories
   
 Properties
 ----------
@@ -61,6 +62,7 @@ Data
    ~cfdm.Count.insert_dimension
    ~cfdm.Count.squeeze
    ~cfdm.Count.transpose
+   ~cfdm.Count.persist
    
 .. rubric:: Attributes
    
@@ -95,6 +97,9 @@ Miscellaneous
    ~cfdm.Count.has_bounds
    ~cfdm.Count.uncompress
    ~cfdm.Count.to_memory
+   ~cfdm.Count.concatenate
+   ~cfdm.Count.replace_directory
+
 
 NetCDF
 ------
@@ -114,6 +119,9 @@ NetCDF
    ~cfdm.Count.nc_get_dimension
    ~cfdm.Count.nc_has_dimension
    ~cfdm.Count.nc_set_dimension
+   ~cfdm.Count.nc_clear_hdf5_chunksizes
+   ~cfdm.Count.nc_hdf5_chunksizes
+   ~cfdm.Count.nc_set_hdf5_chunksizes
 
 Groups
 ^^^^^^

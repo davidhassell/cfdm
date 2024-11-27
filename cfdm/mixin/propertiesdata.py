@@ -21,7 +21,12 @@ class PropertiesData(Properties):
     """
 
     def __new__(cls, *args, **kwargs):
-        """Store component classes."""
+        """Store component classes.
+
+        Child classes should consider redefining these component
+        classes.
+
+        """
         instance = super().__new__(cls)
         instance._Data = Data
         return instance

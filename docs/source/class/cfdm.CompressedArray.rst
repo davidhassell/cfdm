@@ -13,6 +13,16 @@ cfdm.CompressedArray
 Inspection
 ----------
 
+.. rubric:: Methods
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../method/
+   :template: method.rst
+      
+   ~cfdm.CompressedArray.get_attributes
+   ~cfdm.CompressedArray.get_filenames
+ 
 .. rubric:: Attributes
 
 .. autosummary::
@@ -26,7 +36,6 @@ Inspection
    ~cfdm.CompressedArray.ndim
    ~cfdm.CompressedArray.shape
    ~cfdm.CompressedArray.size
- 
 Units
 -----
 
@@ -40,6 +49,15 @@ Units
    ~cfdm.CompressedArray.get_calendar
    ~cfdm.CompressedArray.get_units
    
+.. rubric:: Attributes
+
+.. autosummary::
+   :nosignatures:
+   :toctree: ../attribute/
+   :template: attribute.rst
+
+   ~cfdm.CompressedArray.Units
+
 Compression
 -----------
 
@@ -74,7 +92,6 @@ Miscellaneous
    ~cfdm.CompressedArray.get_subspace
    ~cfdm.CompressedArray.source
    ~cfdm.CompressedArray.to_memory
-   ~cfdm.CompressedArray.get_filenames
 
 Special
 -------

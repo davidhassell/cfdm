@@ -82,6 +82,36 @@ class Data(abstract.Container):
             {{init copy: `bool`, optional}}
 
         """
+        setdefault = {
+            'array':None,
+            'units':None,
+            'calendar':None,
+            'fill_value':None}
+        
+        component_defaults = locals()
+        for kwarg in ('source', 'copy', '_use_array', '_custom_deep_copy'):
+            component_defaults.pop(kwarg)        
+            
+        self._component_defaults = component_defaults
+      
+        super().__init__(source=source, copy=copy)
+        if source is not None:
+            return 
+
+        component_defaults = {k, v for k, v in component_defaults
+                              if k in setdefault and v != setdefault[k]
+        
+        kwargs = locals()
+        for  kwarg in ('source', 'copy', '_use_array', '_custom_deep_copy'):
+            kwargs.pop(kwarg)
+
+        for kwarg, value  in component_defaults.items():
+            
+            self._set_component("kwarg", value , copy=copy)
+                
+            
+        
+        
         if source is None:
             try:
                 source = array.__data__()

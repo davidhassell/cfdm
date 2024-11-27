@@ -61,6 +61,7 @@ Data
    ~cfdm.List.insert_dimension
    ~cfdm.List.squeeze
    ~cfdm.List.transpose
+   ~cfdm.List.persist
    
 .. rubric:: Attributes
    
@@ -88,6 +89,7 @@ Miscellaneous
    :template: method.rst
 
    ~cfdm.List.copy
+   ~cfdm.List.concatenate
    ~cfdm.List.creation_commands
    ~cfdm.List.equals
    ~cfdm.List.get_filenames
@@ -95,6 +97,8 @@ Miscellaneous
    ~cfdm.List.has_bounds
    ~cfdm.List.uncompress
    ~cfdm.List.to_memory
+   ~cfdm.List.file_directories
+   ~cfdm.List.replace_directory
 
 NetCDF
 ------
@@ -110,6 +114,9 @@ NetCDF
    ~cfdm.List.nc_get_variable
    ~cfdm.List.nc_has_variable
    ~cfdm.List.nc_set_variable 
+   ~cfdm.List.nc_clear_hdf5_chunksizes
+   ~cfdm.List.nc_hdf5_chunksizes
+   ~cfdm.List.nc_set_hdf5_chunksizes
 
 Groups
 ^^^^^^

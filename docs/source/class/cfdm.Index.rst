@@ -23,7 +23,9 @@ Inspection
    ~cfdm.Index.dump
    ~cfdm.Index.identity  
    ~cfdm.Index.identities
-  
+   ~cfdm.Index.file_directories
+   ~cfdm.Index.get_filenames
+   
 Properties
 ----------
 
@@ -61,6 +63,7 @@ Data
    ~cfdm.Index.insert_dimension
    ~cfdm.Index.squeeze
    ~cfdm.Index.transpose
+   ~cfdm.Index.persist
 
 .. rubric:: Attributes
    
@@ -90,11 +93,12 @@ Miscellaneous
    ~cfdm.Index.copy
    ~cfdm.Index.creation_commands
    ~cfdm.Index.equals
-   ~cfdm.Index.get_filenames
    ~cfdm.Index.get_original_filenames
    ~cfdm.Index.has_bounds
    ~cfdm.Index.uncompress
    ~cfdm.Index.to_memory
+   ~cfdm.Index.concatenate
+   ~cfdm.Index.replace_directory
 
 NetCDF
 ------
@@ -114,6 +118,9 @@ NetCDF
    ~cfdm.Index.nc_get_dimension
    ~cfdm.Index.nc_has_dimension
    ~cfdm.Index.nc_set_dimension
+   ~cfdm.Index.nc_clear_hdf5_chunksizes
+   ~cfdm.Index.nc_hdf5_chunksizes
+   ~cfdm.Index.nc_set_hdf5_chunksizes
 
 Groups
 ^^^^^^   

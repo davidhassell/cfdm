@@ -24,18 +24,31 @@ class Properties(Container):
             {{init copy: `bool`, optional}}
 
         """
+        component_defaults = {'properties': {}}
+        self._component_defaults = component_defaults
+      
         super().__init__(source=source, copy=copy)
-
         if source is not None:
-            try:
-                properties = source.properties()
-            except AttributeError:
-                properties = None
+            return 
 
-        self._set_component("properties", {}, copy=False)
+        if properties is None:
+            properties = component_defaults['properties']
 
-        if properties is not None:
-            self.set_properties(properties, copy=copy)
+        self._set_component("properties", {}, copy=copy)
+        
+#
+#        super().__init__(source=source, copy=copy)
+#
+#        if source is not None:
+#            try:
+#                properties = source.properties()
+#            except AttributeError:
+#                properties = None
+#
+#        self._set_component("properties", {}, copy=False)
+#
+#        if properties is not None:
+#            self.set_properties(properties, copy=copy)
 
     # ----------------------------------------------------------------
     # Methods
@@ -415,8 +428,6 @@ class Properties(Container):
         """
         if copy:
             properties = deepcopy(properties)
-        #        else:
-        #            properties = properties.copy()
 
         self._get_component("properties").update(properties)
 

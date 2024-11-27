@@ -25,6 +25,8 @@ Inspection
    ~cfdm.AuxiliaryCoordinate.dump
    ~cfdm.AuxiliaryCoordinate.identity
    ~cfdm.AuxiliaryCoordinate.identities
+   ~cfdm.AuxiliaryCoordinate.file_directories
+   ~cfdm.AuxiliaryCoordinate.get_filenames
 
 .. rubric:: Attributes
    
@@ -178,9 +180,11 @@ Miscellaneous
    ~cfdm.AuxiliaryCoordinate.creation_commands
    ~cfdm.AuxiliaryCoordinate.equals
    ~cfdm.AuxiliaryCoordinate.uncompress
-   ~cfdm.AuxiliaryCoordinate.get_filenames
    ~cfdm.AuxiliaryCoordinate.get_original_filenames
    ~cfdm.AuxiliaryCoordinate.to_memory
+   ~cfdm.AuxiliaryCoordinate.concatenate
+   ~cfdm.AuxiliaryCoordinate.persist
+   ~cfdm.AuxiliaryCoordinate.replace_directory
 
 NetCDF
 ------

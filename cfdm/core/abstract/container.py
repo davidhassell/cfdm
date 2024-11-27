@@ -20,7 +20,7 @@ class Container(metaclass=DocstringRewriteMeta):
 
     """
 
-    def __init__(self, source=None, copy=True):
+    def __init__(self, source=None, copy=True, **kwargs):
         """**Initialiation**
 
         :Parameters:
@@ -30,21 +30,60 @@ class Container(metaclass=DocstringRewriteMeta):
             {{init copy: `bool`, optional}}
 
         """
-        self._components = {}
+        defaults = {
+            k, v for
+            zip(self.__init__.co_varnames, self.__init__.__defaults__)
+        }
 
-        if source is not None:
-            # WARNING: The 'custom' dictionary is only shallow copied
-            #          from source
-            try:
-                custom = source._get_component("custom", {})
-            except AttributeError:
-                custom = {}
-            else:
-                custom = custom.copy()
+        
+        
+        
+        self._component_defaults['custom'] = {}
+        
+        nosets = {k, v for k, v in component_defaults
+                  if k in setdefault and v != setdefault[k]
+        
+        if source is None:
+            components = self.component_defaults
         else:
-            custom = {}
+            _components = getattr(source, "_components", {}).copy()
+            deepcopy_keys = components.get('deepcopy', ())
 
-        self._set_component("custom", custom, copy=False)
+            components = {}
+            for key, default in self._component_defaults.items():
+                try:
+                    value = _components[key]
+                except KeyError:
+                    components[key] = default
+                else:
+                    if copy:
+                        if key in deepcopy_keys:
+                            components[key] = deepcopy(value)
+                        else:
+                            c = getattr(value, 'copy', None)
+                            if c is not None and callable(c):
+                                components[key] = c()
+         
+        self._components = components
+
+        del self._component_defaults    
+              
+        #self._components = {}
+        #
+        #if source is not None:
+        #    # WARNING: The 'custom' dictionary is only shallow copied
+        #    #          from source
+        #    try:
+        #        custom = source._get_component("custom", {})
+        #    except AttributeError:
+        #        custom = {}
+        #    else:
+        #        custom = custom.copy()
+        #else:
+        #    custom = {}
+        #
+        #
+        #self._set_component("custom", custom, copy=False)
 
     def __deepcopy__(self, memo):
         """Called by the `copy.deepcopy` function.

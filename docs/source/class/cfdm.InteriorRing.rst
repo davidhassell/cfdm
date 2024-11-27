@@ -61,6 +61,7 @@ Data
    ~cfdm.InteriorRing.insert_dimension
    ~cfdm.InteriorRing.squeeze
    ~cfdm.InteriorRing.transpose
+   ~cfdm.InteriorRing.persist
 
 .. rubric:: Attributes
    
@@ -95,6 +96,9 @@ Miscellaneous
    ~cfdm.InteriorRing.get_filenames
    ~cfdm.InteriorRing.get_original_filenames
    ~cfdm.InteriorRing.to_memory
+   ~cfdm.InteriorRing.concatenate
+   ~cfdm.InteriorRing.file_directories
+   ~cfdm.InteriorRing.replace_directory
 
 NetCDF
 ------
@@ -114,7 +118,10 @@ NetCDF
    ~cfdm.InteriorRing.nc_get_dimension
    ~cfdm.InteriorRing.nc_has_dimension
    ~cfdm.InteriorRing.nc_set_dimension
-   
+   ~cfdm.InteriorRing.nc_clear_hdf5_chunksizes
+   ~cfdm.InteriorRing.nc_hdf5_chunksizes
+   ~cfdm.InteriorRing.nc_set_hdf5_chunksizes
+
 Groups
 ^^^^^^
 
