@@ -1102,7 +1102,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__eq__")
+        return self._binary_operation(other, "__eq__")
 
     def __ne__(self, other):
         """The rich comparison operator ``!=``
@@ -1112,7 +1112,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__ne__")
+        return self._binary_operation(other, "__ne__")
 
     def __ge__(self, other):
         """The rich comparison operator ``>=``
@@ -1122,7 +1122,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__ge__")
+        return self._binary_operation(other, "__ge__")
 
     def __gt__(self, other):
         """The rich comparison operator ``>``
@@ -1132,7 +1132,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__gt__")
+        return self._binary_operation(other, "__gt__")
 
     def __le__(self, other):
         """The rich comparison operator ``<=``
@@ -1142,7 +1142,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__le__")
+        return self._binary_operation(other, "__le__")
 
     def __lt__(self, other):
         """The rich comparison operator ``<``
@@ -1152,7 +1152,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__lt__")
+        return self._binary_operation(other, "__lt__")
 
     def __and__(self, other):
         """The binary bitwise operation ``&``
@@ -1162,7 +1162,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__and__")
+        return self._binary_operation(other, "__and__")
 
     def __iand__(self, other):
         """The augmented bitwise assignment ``&=``
@@ -1172,7 +1172,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__iand__")
+        return self._binary_operation(other, "__iand__")
 
     def __rand__(self, other):
         """The binary bitwise operation ``&`` with reflected operands.
@@ -1182,7 +1182,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__rand__")
+        return self._binary_operation(other, "__rand__")
 
     def __or__(self, other):
         """The binary bitwise operation ``|``
@@ -1192,7 +1192,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__or__")
+        return self._binary_operation(other, "__or__")
 
     def __ior__(self, other):
         """The augmented bitwise assignment ``|=``
@@ -1202,7 +1202,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__ior__")
+        return self._binary_operation(other, "__ior__")
 
     def __ror__(self, other):
         """The binary bitwise operation ``|`` with reflected operands.
@@ -1212,7 +1212,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__ror__")
+        return self._binary_operation(other, "__ror__")
 
     def __xor__(self, other):
         """The binary bitwise operation ``^``
@@ -1222,7 +1222,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__xor__")
+        return self._binary_operation(other, "__xor__")
 
     def __ixor__(self, other):
         """The augmented bitwise assignment ``^=``
@@ -1232,7 +1232,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, other, "__ixor__")
+        return self._binary_operation(other, "__ixor__")
 
     def __rxor__(self, other):
         """The binary bitwise operation ``^`` with reflected operands.
@@ -1240,7 +1240,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         x.__rxor__(y) <==> y^x
 
         """
-        return self._binary_operation(self, other, "__rxor__")
+        return self._binary_operation(other, "__rxor__")
 
     def __lshift__(self, y):
         """The binary bitwise operation ``<<``
@@ -1250,7 +1250,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, y, "__lshift__")
+        return self._binary_operation(y, "__lshift__")
 
     def __ilshift__(self, y):
         """The augmented bitwise assignment ``<<=``
@@ -1258,7 +1258,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         x.__ilshift__(y) <==> x<<=y
 
         """
-        return self._binary_operation(self, y, "__ilshift__")
+        return self._binary_operation(y, "__ilshift__")
 
     def __rlshift__(self, y):
         """The binary bitwise operation ``<<`` with reflected operands.
@@ -1268,7 +1268,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, y, "__rlshift__")
+        return self._binary_operation(y, "__rlshift__")
 
     def __rshift__(self, y):
         """The binary bitwise operation ``>>``
@@ -1276,7 +1276,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         x.__lshift__(y) <==> x>>y
 
         """
-        return self._binary_operation(self, y, "__rshift__")
+        return self._binary_operation(y, "__rshift__")
 
     def __irshift__(self, y):
         """The augmented bitwise assignment ``>>=``
@@ -1286,7 +1286,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, y, "__irshift__")
+        return self._binary_operation(y, "__irshift__")
 
     def __rrshift__(self, y):
         """The binary bitwise operation ``>>`` with reflected operands.
@@ -1296,7 +1296,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self._binary_operation(self, y, "__rrshift__")
+        return self._binary_operation(y, "__rrshift__")
 
     def __abs__(self):
         """The unary arithmetic operation ``abs``
@@ -1544,8 +1544,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
     def _axes(self, value):
         self._set_component("axes", tuple(value), copy=False)
 
-    @classmethod
-    def _binary_operation(cls, data, other, method):
+    def _binary_operation(self, other, method):
         """Binary arithmetic and comparison operations.
 
         It is called by the binary (i.e. two operands) arithmetic and
@@ -1593,19 +1592,20 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         # Ensure other is an independent Data object, for example
         # so that combination with downstream cf.Query objects works.
         # ------------------------------------------------------------
-        if not isinstance(other, cls):
+        if not isinstance(other, self.__class__):
             if other is None:
                 # Can't sensibly initialise a Data object from `None`
                 other = np.array(None, dtype=object)
 
-            other = cls(other)
+            other = self.asdata(other)
 
         # Cast as dask arrays
-        dx0 = data.to_dask_array()
+        dx0 = self.to_dask_array()
         dx1 = other.to_dask_array()
 
-        original_shape = data.shape
-        original_ndim = data.ndim
+        original_shape = self.shape
+        original_ndim = self.ndim
+        original_chunksizes = self.nc_hdf5_chunksizes()
 
         if inplace:
             # Find non-in-place equivalent operator (remove 'i')
@@ -1623,7 +1623,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         if result is NotImplemented:
             raise TypeError(
-                f"Unsupported operands for {method}: {data!r} and {other!r}"
+                f"Unsupported operands for {method}: {self!r} and {other!r}"
             )
 
         # Set axes when other has more dimensions than self
@@ -1633,14 +1633,14 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
         else:
             diff = dx1.ndim - original_ndim
             if diff > 0:
-                axes = list(data._axes)
+                axes = list(self._axes)
                 for _ in range(diff):
                     axes.insert(0, new_axis_identifier(tuple(axes)))
 
         if inplace:
-            d = data
+            d = self
         else:
-            d = data.copy()
+            d = self.copy()
 
         d._set_dask(result, in_memory=True)
 
@@ -1649,7 +1649,7 @@ class Data(Container, NetCDFHDF5, Files, core.Data):
 
         # Update the HDF5 chunking strategy
         if (
-            isinstance(data.nc_hdf5_chunksizes(), tuple)
+            isinstance(original_chunksizes, tuple)
             and d.shape != original_shape
         ):
             d.nc_clear_hdf5_chunksizes()
