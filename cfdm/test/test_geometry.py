@@ -84,13 +84,14 @@ class GeometryTest(unittest.TestCase):
             self.assertTrue(coord.has_node_count(), "axis=" + axis)
             self.assertFalse(coord.has_part_node_count(), "axis=" + axis)
             self.assertFalse(coord.has_interior_ring(), "axis=" + axis)
+        tempfile = "tempfile.nc"
 
         cfdm.write(f, tempfile, Conventions="CF-" + VN, verbose=False)
 
         f2 = cfdm.read(tempfile, verbose=False)
         self.assertEqual(len(f2), 2, "f2 = " + repr(f2))
         for a, b in zip(f, f2):
-            self.assertTrue(a.equals(b, verbose=3))
+            self.assertTrue(a.equals(b))
 
         # Setting of node count properties
         coord = f[0].construct("axis=X")

@@ -30,8 +30,8 @@ from .pointtopologyarray import PointTopologyArray
 from .raggedcontiguousarray import RaggedContiguousArray
 from .raggedindexedarray import RaggedIndexedArray
 from .raggedindexedcontiguousarray import RaggedIndexedContiguousArray
+from .pyfivearray import PyfiveArray
 from .sparsearray import SparseArray
 from .subsampledarray import SubsampledArray
-from .variablearray import VariableArray
 
 from .data import Data

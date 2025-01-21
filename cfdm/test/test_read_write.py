@@ -1173,8 +1173,9 @@ class read_writeTest(unittest.TestCase):
         for d in (f.data.todict(), f.coordinate("longitude").data.todict()):
             on_disk = False
             for v in d.values():
-                if isinstance(v, cfdm.H5netcdfArray):
+                if isinstance(v, cfdm.PyfiveArray):
                     on_disk = True
+                    break
 
             self.assertTrue(on_disk)
 
@@ -1188,6 +1189,7 @@ class read_writeTest(unittest.TestCase):
                 for v in d.values():
                     if isinstance(v, np.ndarray):
                         in_memory = True
+                        break
 
                 self.assertTrue(in_memory)
 
@@ -1203,6 +1205,7 @@ class read_writeTest(unittest.TestCase):
                 for v in d.values():
                     if isinstance(v, np.ndarray):
                         in_memory = True
+                        break
 
                 if not i:
                     # Metadata

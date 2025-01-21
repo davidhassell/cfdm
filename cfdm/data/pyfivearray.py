@@ -1,13 +1,11 @@
 import h5netcdf
 
-import numpy as np
-
 from .abstract import FileArray
 from .mixin import IndexMixin
 from .netcdfindexer import netcdf_indexer
 
 
-class VariableArray(IndexMixin, FileArray):
+class PyfiveArray(IndexMixin, FileArray):
     """A netCDF array accessed with `TODOVAR`.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -64,6 +62,8 @@ class VariableArray(IndexMixin, FileArray):
 
         # Get the variable for subspacing
         variable = self.get_variable()
+
+        dataset = None
         if variable is None:
             # The variable has not been provided, so get it.
             dataset, address = self.open()
@@ -78,9 +78,6 @@ class VariableArray(IndexMixin, FileArray):
             # Cache the variable
             self._set_component("variable", variable, copy=False)
 
-            self.close(dataset0)
-            del dataset, dataset0
-
         # Get the data, applying masking and scaling as required.
         array = netcdf_indexer(
             variable,
@@ -93,7 +90,8 @@ class VariableArray(IndexMixin, FileArray):
         )
         array = array[index]
 
-        array = array.view(type=type(array))
+        if dataset is not None:
+            self.close(dataset0)
 
         return array
 
@@ -195,5 +193,9 @@ class VariableArray(IndexMixin, FileArray):
 
         """
         return super().open(
-            h5netcdf.File, mode="r", decode_vlen_strings=True, netcdf_backend='pyfive', **kwargs
+            h5netcdf.File,
+            mode="r",
+            decode_vlen_strings=True,
+            netcdf_backend="pyfive",
+            **kwargs
         )

@@ -2153,13 +2153,13 @@ class Data(Container, NetCDFAggregation, NetCDFHDF5, Files, core.Data):
             return
 
         # Parse the new elements
-        elements = elements.copy()        
+        elements = elements.copy()
         for i, x in elements.items():
             if np.ma.is_masked(x):
                 x = np.ma.masked
             else:
                 x = x.squeeze()
-            
+
             elements[i] = x
 
         cache = self._get_component("cached_elements", None)
@@ -2623,10 +2623,10 @@ class Data(Container, NetCDFAggregation, NetCDFHDF5, Files, core.Data):
 
         # TODOVAR - for memmap
         a = a.view(type=type(a))
-#        if np.ma.isMA(a):
-#            a = a.view(type=np.ma.MaskedArray)
-#        else:
-#            a = a.view(type=np.ndarray)
+        #        if np.ma.isMA(a):
+        #            a = a.view(type=np.ma.MaskedArray)
+        #        else:
+        #            a = a.view(type=np.ndarray)
 
         ndim = a.ndim
         shape = a.shape
@@ -4493,10 +4493,24 @@ class Data(Container, NetCDFAggregation, NetCDFHDF5, Files, core.Data):
         # Check that each instance has the same data type
         self_is_numeric = is_numeric_dtype(self_dx)
         other_is_numeric = is_numeric_dtype(other_dx)
+        dtype0 = self.dtype
+        dtype1 = other.dtype
         if (
             not ignore_data_type
             and (self_is_numeric or other_is_numeric)
-            and self.dtype != other.dtype
+            # Note: Testing `self.dtype != other.dtype` (as was done
+            #       in older versions) is not safe enough, because
+            #       different endianness can cause two dtypes to be
+            #       unequal via `!=`, whereas we're happy for them to
+            #       be considered the same (because endianness is an
+            #       encoding that does not affect the values of the
+            #       array). E.g. We want "<f8" and ">f8" to be
+            #       considered equal dtypes.
+            #
+            # TODONUMPY2: Maybe use np.isdtype instead of np.issubdtype ?
+            and not (
+                np.issubdtype(dtype0, dtype1) and np.issubdtype(dtype1, dtype0)
+            )
         ):
             logger.info(
                 f"{self.__class__.__name__}: Different data types: "

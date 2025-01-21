@@ -143,7 +143,7 @@ class ExternalVariableTest(unittest.TestCase):
         self.assertEqual(len(g), len(combined))
 
         for i in range(len(g)):
-            self.assertTrue(combined[i].equals(g[i], verbose=3))
+            self.assertTrue(combined[i].equals(g[i]))
 
         cell_measure = g[0].constructs("measure:area").value()
 
