@@ -5131,7 +5131,7 @@ class NetCDFRead(IORead):
 
         """
         datatype = self._dtype(self.read_vars["variables"][ncvar])
-        return datatype != str and datatype.kind in "SU"
+        return datatype is not str and datatype.kind in "SU"
 
     def _has_identity(self, construct, identity):
         """TODO.
@@ -6431,7 +6431,7 @@ class NetCDFRead(IORead):
             return None
 
         dtype = self._dtype(variable)
-        if dtype is str or dtype.kind == "O":
+        if dtype is str: # or dtype.kind == "O":
             # netCDF string types have a dtype of `str`, which needs
             # to be reset as a numpy.dtype, but we don't know what
             # without reading the data, so set it to None for now.
@@ -10910,11 +10910,16 @@ class NetCDFRead(IORead):
         """
         try:
             # h5netcdf, netCDF4
-            return var.dtype
+            dtype = var.dtype
         except AttributeError:
             # scipy.io.netcdf_file
             x = self._index(var, (slice(0, 1),) * len(var.shape))
-            return x.dtype
+            dtype =x.dtype
+
+        if dtype == object:
+            dtype = str
+
+        return dtype
 
     def _index(self, variable, index):
         """Return a global attribute from a dataset. TODOVAR.
@@ -11435,7 +11440,7 @@ class NetCDFRead(IORead):
         # Whether or not this is an array of strings
         dtype = self._dtype(variable)
         string = dtype == str
-        obj = not string and dtype.kind == "O"
+        obj = False # not string and dtype.kind == "O"
 
         # Whether or not this is an array of chars
         if (
