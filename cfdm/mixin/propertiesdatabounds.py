@@ -6,6 +6,7 @@ from ..decorators import (
     _inplace_enabled_define_and_cleanup,
     _manage_log_level_via_verbosity,
 )
+from ..functions import parse_indices
 from . import PropertiesData
 
 logger = logging.getLogger(__name__)
@@ -180,7 +181,7 @@ class PropertiesDataBounds(PropertiesData):
             data = self_bounds.get_data(None, _units=False, _fill_value=False)
             if data is not None:
                 # There is a bounds array
-                bounds_indices = list(data._parse_indices(indices))
+                bounds_indices = list(parse_indices(data.shape, indices))
 
                 if data.ndim <= 2:
                     index = bounds_indices[0]
@@ -1363,6 +1364,100 @@ class PropertiesDataBounds(PropertiesData):
             interior_ring.insert_dimension(position, inplace=True)
 
         return c
+
+    def nc_clear_hdf5_chunksizes(self, bounds=True, interior_ring=True):
+        """Clear the HDF5 chunking strategy for the data.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        .. seealso:: `nc_hdf5_chunksizes`, `nc_set_hdf5_chunksizes`,
+                     `{{package}}.read`, `{{package}}.write`
+
+        :Parameters:
+
+            bounds: `bool`, optional
+                If True, the default, then clear the HDF5 chunking
+                strategy from any bounds. If False then leave the
+                bounds chunking strategy unchanged.
+
+            interior_ring: `bool`
+                If True, the default, then clear the HDF5 chunking
+                strategy from a geometry interior ring variable. If
+                False then leave the geometry interior ring variable
+                chunking strategy unchanged.
+
+        :Returns:
+
+            `None` or `str` or `int` or `tuple` of `int`
+                The chunking strategy prior to being cleared, as would
+                be returned by `nc_hdf5_chunksizes`.
+
+        """
+        super().nc_clear_hdf5_chunksizes()
+
+        # Clear the bounds HDF5 chunks
+        if bounds:
+            bounds = self.get_bounds(None)
+            if bounds is not None:
+                bounds.nc_clear_hdf5_chunksizes()
+
+        # Clear the  interior_ring HDF5 chunks
+        if interior_ring:
+            interior_ring = self.get_interior_ring(None)
+            if interior_ring is not None:
+                interior_ring.nc_clear_hdf5_chunksizes()
+
+    def nc_set_hdf5_chunksizes(
+        self, chunksizes, bounds=True, interior_ring=True
+    ):
+        """Set the HDF5 chunking strategy.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        .. seealso:: `nc_hdf5_chunksizes`, `nc_clear_hdf5_chunksizes`,
+                     `{{package}}.read`, `{{package}}.write`
+
+        :Parameters:
+
+            {{hdf5 chunksizes}}
+                  Each dictionary key is an integer that specifies an
+                  axis by its position in the data array.
+
+            bounds: `bool`, optional
+                If True, the default, then apply the HDF5 chunking
+                strategy to the corresponding axes of any bounds. If
+                False then leave the bounds chunking strategy
+                unchanged.
+
+            interior_ring: `bool`
+                If True, the default, then apply the HDF5 chunking
+                strategy to the corresponding axis of a geometry
+                interior ring variable. If False then leave the
+                geometry interior ring variable chunking strategy
+                unchanged.
+
+        :Returns:
+
+            `None`
+
+        """
+        super().nc_set_hdf5_chunksizes(chunksizes)
+
+        c = self.nc_hdf5_chunksizes()
+        if isinstance(c, tuple):
+            c = {n: value for n, value in enumerate(c)}
+
+        # Set the bounds HDF5 chunks
+        if bounds:
+            bounds = self.get_bounds(None)
+            if bounds is not None:
+                bounds.nc_set_hdf5_chunksizes(c)
+
+        # Set the  interior_ring HDF5 chunks
+        if interior_ring:
+            interior_ring = self.get_interior_ring(None)
+            if interior_ring is not None:
+                interior_ring.nc_set_hdf5_chunksizes(c)
 
     def set_node_count(self, node_count, copy=True):
         """Set the node count variable for geometry bounds.

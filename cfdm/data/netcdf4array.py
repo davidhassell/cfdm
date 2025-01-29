@@ -1,11 +1,14 @@
 import netCDF4
 
 from . import abstract
-from .mixin import FileArrayMixin, NetCDFFileMixin
+from .locks import netcdf_lock
+from .mixin import FileArrayMixin, IndexMixin, NetCDFFileMixin
 from .netcdfindexer import netcdf_indexer
 
 
-class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
+class NetCDF4Array(
+    IndexMixin, NetCDFFileMixin, FileArrayMixin, abstract.Array
+):
     """A netCDF array accessed with `netCDF4`.
 
     .. versionadded:: (cfdm) 1.7.0
@@ -46,13 +49,14 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
 
             shape: `tuple`
                 The array dimension sizes in the netCDF file.
+
             {{init mask: `bool`, optional}}
 
                 .. versionadded:: (cfdm) 1.8.2
 
             {{init unpack: `bool`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.11.2.0
 
             {{init attributes: `dict` or `None`, optional}}
 
@@ -60,11 +64,11 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
                 attributes will be set from the netCDF variable during
                 the first `__getitem__` call.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.11.2.0
 
             {{init storage_options: `dict` or `None`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.11.2.0
 
             {{init source: optional}}
 
@@ -74,7 +78,7 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
 
                 .. versionadded:: (cfdm) 1.10.0.0
 
-            missing_values: Deprecated at version NEXTVERSION
+            missing_values: Deprecated at version 1.11.2.0
                 The missing value indicators defined by the netCDF
                 variable attributes. They may now be recorded via the
                 *attributes* parameter
@@ -89,11 +93,11 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
                 Use the *address* parameter instead.
 
             units: `str` or `None`, optional
-                Deprecated at version NEXTVERSION. Use the
+                Deprecated at version 1.11.2.0. Use the
                 *attributes* parameter instead.
 
             calendar: `str` or `None`, optional
-                Deprecated at version NEXTVERSION. Use the
+                Deprecated at version 1.11.2.0. Use the
                 *attributes* parameter instead.
 
         """
@@ -170,67 +174,6 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
         # By default, close the netCDF file after data array access
         self._set_component("close", True, copy=False)
 
-    def __getitem__(self, indices):
-        """Returns a subspace of the array as a numpy array.
-
-        x.__getitem__(indices) <==> x[indices]
-
-        The indices that define the subspace must be either `Ellipsis` or
-        a sequence that contains an index for each dimension. In the
-        latter case, each dimension's index must either be a `slice`
-        object or a sequence of two or more integers.
-
-        Indexing is similar to numpy indexing. The only difference to
-        numpy indexing (given the restrictions on the type of indices
-        allowed) is:
-
-          * When two or more dimension's indices are sequences of integers
-            then these indices work independently along each dimension
-            (similar to the way vector subscripts work in Fortran).
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        """
-        netcdf, address = self.open()
-        dataset = netcdf
-
-        groups, address = self.get_groups(address)
-        if groups:
-            # Traverse the group structure, if there is one (CF>=1.8).
-            netcdf = self._group(netcdf, groups)
-
-        if isinstance(address, str):
-            # Get the variable by netCDF name
-            variable = netcdf.variables[address]
-        else:
-            # Get the variable by netCDF integer ID
-            for variable in netcdf.variables.values():
-                if variable._varid == address:
-                    break
-
-        # Get the data, applying masking and scaling as required.
-        array = netcdf_indexer(
-            variable,
-            mask=self.get_mask(),
-            unpack=self.get_unpack(),
-            always_masked_array=False,
-            orthogonal_indexing=True,
-            copy=False,
-        )
-        array = array[indices]
-
-        # Set the attributes, if they haven't been set already.
-        self._set_attributes(variable)
-
-        self.close(dataset)
-        del netcdf, dataset
-
-        if not self.ndim:
-            # Hmm netCDF4 has a thing for making scalar size 1, 1d
-            array = array.squeeze()
-
-        return array
-
     def __repr__(self):
         """Called by the `repr` built-in function.
 
@@ -247,6 +190,92 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
         """
         return f"{self.get_filename(None)}, {self.get_address()}"
 
+    def __dask_tokenize__(self):
+        """Return a value fully representative of the object.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        """
+        return super().__dask_tokenize__() + (self.get_mask(),)
+
+    @property
+    def _lock(self):
+        """Return the lock used for netCDF file access.
+
+        Returns a lock object that prevents concurrent reads of netCDF
+        files, which are not currently supported by `netCDF4`.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        """
+        return netcdf_lock
+
+    def _get_array(self, index=None):
+        """Returns a subspace of the dataset variable.
+
+        The subspace is defined by the `index` attributes, and is
+        applied with `cfdm.netcdf_indexer`.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        .. seealso:: `__array__`, `index`
+
+        :Parameters:
+
+            {{index: `tuple` or `None`, optional}}
+
+        :Returns:
+
+            `numpy.ndarray`
+                The subspace.
+
+        """
+        if index is None:
+            index = self.index()
+
+        # Note: We need to lock because netCDF-C is about to access
+        #       the file.
+        with self._lock:
+            netcdf, address = self.open()
+            dataset = netcdf
+
+            groups, address = self.get_groups(address)
+            if groups:
+                # Traverse the group structure, if there is one (CF>=1.8).
+                netcdf = self._group(netcdf, groups)
+
+            if isinstance(address, str):
+                # Get the variable by netCDF name
+                variable = netcdf.variables[address]
+            else:
+                # Get the variable by netCDF integer ID
+                for variable in netcdf.variables.values():
+                    if variable._varid == address:
+                        break
+
+            # Get the data, applying masking and scaling as required.
+            array = netcdf_indexer(
+                variable,
+                mask=self.get_mask(),
+                unpack=self.get_unpack(),
+                always_masked_array=False,
+                orthogonal_indexing=True,
+                copy=False,
+            )
+            array = array[index]
+
+            # Set the attributes, if they haven't been set already.
+            self._set_attributes(variable)
+
+            self.close(dataset)
+            del netcdf, dataset
+
+        if not self.ndim:
+            # Hmm netCDF4 has a thing for making scalar size 1, 1d
+            array = array.squeeze()
+
+        return array
+
     def _set_attributes(self, var):
         """Set the netCDF variable attributes.
 
@@ -254,7 +283,7 @@ class NetCDF4Array(NetCDFFileMixin, FileArrayMixin, abstract.Array):
         they have not already been defined, either during `{{class}}`
         instantiation or by a previous call to `_set_attributes`.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.11.2.0
 
         :Parameters:
 

@@ -71,13 +71,6 @@ class PropertiesData(Properties):
         if data is not None:
             new.set_data(data[indices], copy=False)
 
-        if 0 in new.shape:
-            raise IndexError(
-                f"Indices {indices!r} result in a subspaced shape of "
-                f"{new.shape}, but can't create a subspace of "
-                f"{self.__class__.__name__} that has a size 0 axis"
-            )
-
         return new
 
     def __str__(self):
@@ -725,6 +718,70 @@ class PropertiesData(Properties):
             data.insert_dimension(position, inplace=True)
 
         return v
+
+    def nc_hdf5_chunksizes(self, todict=False):
+        """Get the HDF5 chunking strategy for the data.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        .. seealso:: `nc_clear_hdf5_chunksizes`,
+                     `nc_set_hdf5_chunksizes`, `{{package}}.read`,
+                     `{{package}}.write`
+
+        :Parameters:
+
+            {{hdf5 todict: `bool`, optional}}
+
+        :Returns:
+
+            {{Returns nc_hdf5_chunksizes}}
+
+        """
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            return data.nc_hdf5_chunksizes(todict=todict)
+
+    def nc_clear_hdf5_chunksizes(self):
+        """Clear the HDF5 chunking strategy for the data.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        .. seealso:: `nc_hdf5_chunksizes`, `nc_set_hdf5_chunksizes`,
+                     `{{package}}.read`, `{{package}}.write`
+
+        :Returns:
+
+            `None` or `str` or `int` or `tuple` of `int`
+                The chunking strategy prior to being cleared, as would
+                be returned by `nc_hdf5_chunksizes`.
+
+        """
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            return data.nc_clear_hdf5_chunksizes()
+
+    def nc_set_hdf5_chunksizes(self, chunksizes):
+        """Set the HDF5 chunking strategy.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        .. seealso:: `nc_hdf5_chunksizes`, `nc_clear_hdf5_chunksizes`,
+                     `{{package}}.read`, `{{package}}.write`
+
+        :Parameters:
+
+            {{hdf5 chunksizes}}
+                  Each dictionary key is an integer that specifies an
+                  axis by its position in the data array.
+
+        :Returns:
+
+            `None`
+
+        """
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            data.nc_set_hdf5_chunksizes(chunksizes)
 
     @_inplace_enabled(default=False)
     def squeeze(self, axes=None, inplace=False):

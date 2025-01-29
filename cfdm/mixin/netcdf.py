@@ -1,3 +1,7 @@
+from numbers import Integral
+
+from dask.utils import parse_bytes
+
 from ..core.functions import deepcopy
 
 
@@ -2476,90 +2480,107 @@ class NetCDFHDF5(NetCDF):
 
     """
 
-    def nc_hdf5_chunksizes(self):
-        """Return the HDF5 chunksizes for the data.
-
-        .. note:: Chunksizes are cleared from the output of methods that
-                  change the data shape.
-
-        .. note:: Chunksizes are ignored for netCDF3 files that do not use
-                  HDF5.
+    def nc_hdf5_chunksizes(self, todict=False):
+        """Get the HDF5 chunking strategy for the data.
 
         .. versionadded:: (cfdm) 1.7.2
 
-        .. seealso:: `nc_clear_hdf5_chunksizes`, `nc_set_hdf5_chunksizes`
-
-        :Returns:
-
-            `tuple`
-                The current chunksizes.
-
-        **Examples**
-
-        >>> d.shape
-        (1, 96, 73)
-        >>> d.nc_set_hdf5_chunksizes([1, 48, 73])
-        >>> d.nc_hdf5_chunksizes()
-        (1, 48, 73)
-        >>> d.nc_clear_hdf5_chunksizes()
-        (1, 48, 73)
-        >>> d.nc_hdf5_chunksizes()
-        ()
-
-        """
-        return self._get_component("netcdf").get("hdf5_chunksizes", ())
-
-    def nc_clear_hdf5_chunksizes(self):
-        """Clear the HDF5 chunksizes for the data.
-
-        .. note:: Chunksizes are cleared from the output of methods that
-                  change the data shape.
-
-        .. note:: Chunksizes are ignored for netCDF3 files that do not use
-                  HDF5.
-
-        .. versionadded:: (cfdm) 1.7.2
-
-        .. seealso:: `nc_hdf5_chunksizes`, `nc_set_hdf5_chunksizes`
-
-        :Returns:
-
-            `tuple`
-                The chunksizes defined prior to being cleared.
-
-        **Examples**
-
-        >>> d.shape
-        (1, 96, 73)
-        >>> d.nc_set_hdf5_chunksizes([1, 48, 73])
-        >>> d.nc_hdf5_chunksizes()
-        (1, 48, 73)
-        >>> d.nc_clear_hdf5_chunksizes()
-        (1, 48, 73)
-        >>> d.nc_hdf5_chunksizes()
-        ()
-
-        """
-        return self._get_component("netcdf").pop("hdf5_chunksizes", ())
-
-    def nc_set_hdf5_chunksizes(self, chunksizes):
-        """Set the HDF5 chunksizes for the data.
-
-        .. note:: Chunksizes are cleared from the output of methods that
-                  change the data shape.
-
-        .. note:: Chunksizes are ignored for netCDF3 files that do not use
-                  HDF5.
-
-        .. versionadded:: (cfdm) 1.7.2
-
-        .. seealso:: `nc_hdf5_chunksizes`, `nc_clear_hdf5_chunksizes`
+        .. seealso:: `nc_clear_hdf5_chunksizes`,
+                     `nc_set_hdf5_chunksizes`, `{{package}}.read`,
+                     `{{package}}.write`
 
         :Parameters:
 
-            chunksizes: sequence of `int`
-                The chunksizes for each dimension. Can be integers from 0
-                to the dimension size.
+            {{hdf5 todict: `bool`, optional}}
+
+                .. versionadded:: (cfdm) 1.11.2.0
+
+        :Returns:
+
+            {{Returns nc_hdf5_chunksizes}}
+
+        **Examples**
+
+        >>> d.shape
+        (1, 96, 73)
+        >>> d.nc_set_hdf5_chunksizes([1, 35, 73])
+        >>> d.nc_hdf5_chunksizes()
+        (1, 35, 73)
+        >>> d.nc_hdf5_chunksizes(todict=True)
+        {0: 1, 1: 35, 2: 73}
+        >>> d.nc_clear_hdf5_chunksizes()
+        (1, 35, 73)
+        >>> d.nc_hdf5_chunksizes()
+        None
+        >>> d.nc_set_hdf5_chunksizes('contiguous')
+        >>> d.nc_hdf5_chunksizes()
+        'contiguous'
+        >>> d.nc_set_hdf5_chunksizes('1 KiB')
+        >>> d.nc_hdf5_chunksizes()
+        1024
+        >>> d.nc_set_hdf5_chunksizes(None)
+        >>> d.nc_hdf5_chunksizes()
+        None
+
+        """
+        chunksizes = self._get_component("netcdf").get("hdf5_chunksizes")
+        if todict:
+            if not isinstance(chunksizes, tuple):
+                raise ValueError(
+                    "Can only set todict=True when the HDF5 chunking strategy "
+                    "comprises the maximum number of array elements in a "
+                    f"chunk along each data axis. Got: {chunksizes!r}"
+                )
+
+            chunksizes = {n: value for n, value in enumerate(chunksizes)}
+
+        return chunksizes
+
+    def nc_clear_hdf5_chunksizes(self):
+        """Clear the HDF5 chunking strategy for the data.
+
+        .. versionadded:: (cfdm) 1.7.2
+
+        .. seealso:: `nc_hdf5_chunksizes`, `nc_set_hdf5_chunksizes`,
+                     `{{package}}.read`, `{{package}}.write`
+
+        :Returns:
+
+            `None` or `str` or `int` or `tuple` of `int`
+                The chunking strategy prior to being cleared, as would
+                be returned by `nc_hdf5_chunksizes`.
+
+
+        **Examples**
+
+        >>> d.shape
+        (1, 96, 73)
+        >>> d.nc_set_hdf5_chunksizes([1, 35, 73])
+        >>> d.nc_clear_hdf5_chunksizes()
+        (1, 35, 73)
+        >>> d.nc_set_hdf5_chunksizes('1 KiB')
+        >>> d.nc_clear_hdf5_chunksizes()
+        1024
+        >>> d.nc_set_hdf5_chunksizes(None)
+        >>> print(d.nc_clear_hdf5_chunksizes())
+        None
+
+        """
+        return self._get_component("netcdf").pop("hdf5_chunksizes", None)
+
+    def nc_set_hdf5_chunksizes(self, chunksizes):
+        """Set the HDF5 chunking strategy for the data.
+
+        .. versionadded:: (cfdm) 1.7.2
+
+        .. seealso:: `nc_hdf5_chunksizes`, `nc_clear_hdf5_chunksizes`,
+                     `{{package}}.read`, `{{package}}.write`
+
+        :Parameters:
+
+            {{hdf5 chunksizes}}
+                  Each dictionary key is an integer that specifies an
+                  axis by its position in the data array.
 
         :Returns:
 
@@ -2569,33 +2590,98 @@ class NetCDFHDF5(NetCDF):
 
         >>> d.shape
         (1, 96, 73)
-        >>> d.nc_set_hdf5_chunksizes([1, 48, 73])
+        >>> d.nc_set_hdf5_chunksizes([1, 35, 73])
         >>> d.nc_hdf5_chunksizes()
-        (1, 48, 73)
+        (1, 35, 73)
         >>> d.nc_clear_hdf5_chunksizes()
-        (1, 48, 73)
+        (1, 35, 73)
         >>> d.nc_hdf5_chunksizes()
-        ()
+        None
+        >>> d.nc_set_hdf5_chunksizes('contiguous')
+        >>> d.nc_hdf5_chunksizes()
+        'contiguous'
+        >>> d.nc_set_hdf5_chunksizes('1 KiB')
+        >>> d.nc_hdf5_chunksizes()
+        1024
+        >>> d.nc_set_hdf5_chunksizes(None)
+        >>> d.nc_hdf5_chunksizes()
+        None
+        >>> d.nc_set_hdf5_chunksizes([9999, -1, None])
+        >>> d.nc_hdf5_chunksizes()
+        (1, 96, 73)
+        >>> d.nc_clear_hdf5_chunksizes()
+        (1, 96, 73)
+        >>> d.nc_set_hdf5_chunksizes({1: 24})
+        >>> d.nc_hdf5_chunksizes()
+        (1, 24, 73)
+        >>> d.nc_set_hdf5_chunksizes({0: None, 2: 50})
+        >>> d.nc_hdf5_chunksizes()
+        (1, 24, 50)
 
         """
-        try:
-            shape = self.shape
-        except AttributeError:
-            pass
-        else:
-            if len(chunksizes) != len(shape):
+        if chunksizes is None:
+            self.nc_clear_hdf5_chunksizes()
+            return
+
+        shape = self.shape
+
+        # Convert a dictionary to a sequence.
+        if isinstance(chunksizes, dict):
+            org_chunksizes = self.nc_hdf5_chunksizes()
+            if not isinstance(org_chunksizes, tuple):
+                org_chunksizes = shape
+
+            chunksizes = [
+                chunksizes.get(n, j) for n, j in enumerate(org_chunksizes)
+            ]
+
+        if chunksizes != "contiguous":
+            try:
+                chunksizes = parse_bytes(chunksizes)
+            except ValueError:
                 raise ValueError(
-                    "chunksizes must be a sequence with the same length "
-                    "as dimensions"
+                    f"Invalid chunksizes specification: {chunksizes!r}"
                 )
+            except AttributeError:
+                # If chunksizes is a sequence then an AttributeError
+                # will have been raised, rather than a ValueError.
+                try:
+                    chunksizes = tuple(chunksizes)
+                except TypeError:
+                    raise ValueError(
+                        f"Invalid chunksizes specification: {chunksizes!r}"
+                    )
 
-            for i, j in zip(chunksizes, shape):
-                if i < 0:
-                    raise ValueError("chunksize cannot be negative")
-                if i > j:
-                    raise ValueError("chunksize cannot exceed dimension size")
+                if len(chunksizes) != len(shape):
+                    raise ValueError(
+                        f"When chunksizes is a sequence {chunksizes!r} then "
+                        "it must have the same length as the number of "
+                        f"data dimensions ({len(shape)})"
+                    )
 
-        self._get_component("netcdf")["hdf5_chunksizes"] = tuple(chunksizes)
+                c = []
+                for n, (i, j) in enumerate(zip(chunksizes, shape)):
+                    if not (
+                        i is None
+                        or (isinstance(i, Integral) and (i > 0 or i == -1))
+                    ):
+                        raise ValueError(
+                            f"Chunksize for dimension position {n} must be "
+                            f"None, -1, or a positive integer. Got {i!r}"
+                        )
+
+                    if i is None or i == -1 or i > j:
+                        # Set the chunk size to the dimension size
+                        i = j
+                    else:
+                        # Make sure the chunk size is an integer
+                        i = int(i)
+
+                    c.append(i)
+
+                chunksizes = tuple(c)
+
+        self._get_component("netcdf")["hdf5_chunksizes"] = chunksizes
 
 
 class NetCDFUnlimitedDimension(NetCDF):
@@ -3577,18 +3663,6 @@ class NetCDFSubsampledDimension(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         """
         return self._nc_del("subsampled_dimension", default=default)
 
-    #        try:
-    #            return self._get_component("netcdf").pop("subsampled_dimension")
-    #        except KeyError:
-    #            if default is None:
-    #                return default
-    #
-    #            return self._default(
-    #                default,
-    #                f"{self.__class__.__name__} has no netCDF subsampled "
-    #                "dimension name",
-    #            )
-
     def nc_get_subsampled_dimension(self, default=ValueError()):
         """Return the netCDF subsampled dimension name.
 
@@ -3630,19 +3704,6 @@ class NetCDFSubsampledDimension(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         """
         return self._nc_get("subsampled_dimension", default=default)
 
-    #
-    #        try:
-    #            return self._get_component("netcdf")["subsampled_dimension"]
-    #        except KeyError:
-    #            if default is None:
-    #                return default
-    #
-    #            return self._default(
-    #                default,
-    #                f"{self.__class__.__name__} has no netCDF subsampled "
-    #                "dimension name",
-    #            )
-
     def nc_has_subsampled_dimension(self):
         """Whether the netCDF subsampled dimension name has been set.
 
@@ -3675,7 +3736,6 @@ class NetCDFSubsampledDimension(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
         None
 
         """
-        #        return "subsampled_dimension" in self._get_component("netcdf")
         return self._nc_has("subsampled_dimension")
 
     def nc_set_subsampled_dimension(self, value):
@@ -3720,28 +3780,6 @@ class NetCDFSubsampledDimension(NetCDF, NetCDFMixin, NetCDFGroupsMixin):
 
         """
         return self._nc_set("subsampled_dimension", value)
-
-    #        if not value or value == "/":
-    #            raise ValueError(
-    #                f"Invalid netCDF subsampled dimension name: {value!r}"
-    #            )
-    #
-    #        if "/" in value:
-    #            if not value.startswith("/"):
-    #                raise ValueError(
-    #                    "A netCDF subsampled dimension name with a group "
-    #                    f"structure must start with a '/'. Got {value!r}"
-    #                )
-    #
-    #            if value.count("/") == 1:
-    #                value = value[1:]
-    #            elif value.endswith("/"):
-    #                raise ValueError(
-    #                    "A netCDF subsampled dimension name with a group "
-    #                    f"structure can't end with a '/'. Got {value!r}"
-    #                )
-    #
-    #        self._get_component("netcdf")["subsampled_dimension"] = value
 
     def nc_subsampled_dimension_groups(self):
         """Return the netCDF subsampled dimension group hierarchy.

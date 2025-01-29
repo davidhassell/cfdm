@@ -1,10 +1,17 @@
-Version NEXTVERSION
--------------------
+Version 1.11.2.0
+----------------
 
-**2024-??-??**
+**2025-01-28**
 
+* Introduction of `dask` for all data manipulations
+  https://github.com/NCAS-CMS/cfdm/issues/317)
+* Fix bug that returned incorrect results when an invalid identifer is
+  provided to `cf.Field.cell_methods`
+  (https://github.com/NCAS-CMS/cfdm/issues/299)
 * Upgrades to allow cfdm to work with Python 3.12
   (https://github.com/NCAS-CMS/cfdm/issues/302)
+* Extension to the HDF5 chunks API
+  (https://github.com/NCAS-CMS/cfdm/issues/309)
 * New function `cfdm.netcdf_flattener` that replaces the import of
   `netcdf_flattener` (https://github.com/NCAS-CMS/cfdm/issues/286)
 * New function `cfdm.netcdf_indexer` that applies netCDF masking and
@@ -19,10 +26,11 @@ Version NEXTVERSION
   attribute (https://github.com/NCAS-CMS/cfdm/issues/303)
 * New class `cfdm.H5netcdfArray`
 * New class `cfdm.NetCDF4Array`
+* Changed dependency: ``numpy>=1.15,<2.0``
 * New dependency: ``h5netcdf>=1.3.0``
 * New dependency: ``h5py>=3.10.0``
 * New dependency: ``s3fs>=2024.6.0``
-* New dependency: ``dask>=2024.6.0``
+* New dependency: ``dask>=2024.6.0,<=2024.7.1``
 * Removed dependency: ``netcdf_flattener``
 
 ----
