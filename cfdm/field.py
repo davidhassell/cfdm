@@ -171,6 +171,7 @@ class Field(
             x = []
             for cm in cell_methods.values():
                 cm = cm.copy()
+                # Axis names
                 cm.set_axes(
                     tuple(
                         [
@@ -179,13 +180,31 @@ class Field(
                         ]
                     )
                 )
+                
+                # Coordinate construct names
+                coordinates=None
+                for qualifier in ("where", "over"):
+                    value = cm.get_qualifier(qualifier, None)
+                    if value is None:
+                        continue
+
+                    coordinates = self.coordinates(
+                        todict=True, cached=coordinates
+                    )
+                    for key, c in coordinates.items():
+                        if key == value:
+                            properties[prop] = self._print_item(
+                                key, c,  self.constructs.data_axes()[key],
+                                data=False
+                            )
+                    
                 x.append(str(cm))
 
             c = " ".join(x)
 
             string.append(f"Cell methods    : {c}")
 
-        def _print_item(self, key, variable, axes):
+        def _print_item(self, key, variable, axes, data=True):
             """Private function called by __str__."""
             # Field ancillary
             x = [variable.identity(default=key)]
@@ -205,7 +224,7 @@ class Field(
                 else:
                     x.append(" (external variable)")
 
-            if variable.has_data():
+            if data and variable.has_data():
                 x.append(f" = {variable.get_data()}")
 
             return "".join(x)

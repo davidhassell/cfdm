@@ -4020,7 +4020,7 @@ class NetCDFRead(IORead):
 
         # Map netCDF variable names to internal identifiers
         #
-        # For example: {'dimensioncoordinate1': 'time'}
+        # For example: {'time': 'dimensioncoordinate1'}
         ncvar_to_key = {}
 
         data_axes = []
@@ -5067,10 +5067,26 @@ class NetCDFRead(IORead):
                         )
                         for axis in axes
                     ]
-
+                    
                 # Replace names with domain axis keys
                 axes = [name_to_axis.get(axis, axis) for axis in axes]
 
+                for prop in ("where", "over"):
+                    d = properties.get(prop)
+                    if not isinstance(d, dict):
+                        continue
+                    
+                    ncvar = d['ncvar']
+                    if g["has_groups"]:
+                        # Replace a flattened variable name with an
+                        # absolute name
+                        ncvar = g["flattener_variables"].get(ncvar, ncvar)
+
+                    # Replace the variable name with a construct key
+                    key = ncvar_to_key.get(ncvar)
+                    if key is not None:
+                        properties[prop] = key                        
+                    
                 method = properties.pop("method", None)
 
                 cell_method = self._create_cell_method(
@@ -7259,6 +7275,8 @@ class NetCDFRead(IORead):
         if not cell_methods_string:
             return out
 
+        g = self.read_vars
+        
         # ------------------------------------------------------------
         # Split the cell_methods string into a list of strings ready
         # for parsing. For example:
@@ -7303,9 +7321,25 @@ class NetCDFRead(IORead):
 
             # Climatological statistics, and statistics which apply to
             # portions of cells
+            climatology = False
             while cell_methods[0] in ("within", "where", "over"):
                 attr = cell_methods.pop(0)
-                cm[attr] = cell_methods.pop(0)
+
+                if attr == "within":
+                    climatology = True
+                elif climatology and attr == "where":
+                    climatology = False
+                    
+                value = cell_methods.pop(0)
+                if (
+                        not climatology
+                        and attr in ("where", "over")
+                        and value in g["coordinates"][field_ncvar]
+                ):
+                    value = {'ncvar': value}
+
+                cm[attr] = value
+        
                 if not cell_methods:
                     break
 
