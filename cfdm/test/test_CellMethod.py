@@ -198,19 +198,19 @@ class CellMethodTest(unittest.TestCase):
         c4 = cms[4][1]
 
         # Check that the "where ... over ..." got converted to
-        # contructs keys before a climatology
+        # constructs keys before a climatology
         self.assertEqual(c0.get_qualifier("where"), key_x)
         self.assertEqual(c0.get_qualifier("over"), key_y)
 
         # Check that the "within ... over ... over ... " did not get
-        # converted to contruct keys, even though they had values of
+        # converted to construct keys, even though they had values of
         # netCDF coordinate variable names.
         self.assertEqual(c1.get_qualifier("within"), "ncvar_t")
         self.assertEqual(c2.get_qualifier("over"), "ncvar_x")
         self.assertEqual(c3.get_qualifier("over"), "ncvar_y")
 
         # Check that the "where ... over ..." got converted to
-        # contructs keys after a climatology
+        # constructs keys after a climatology
         self.assertEqual(c4.get_qualifier("where"), key_x)
         self.assertEqual(c4.get_qualifier("over"), key_y)
 

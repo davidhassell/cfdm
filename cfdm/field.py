@@ -140,32 +140,6 @@ class Field(
         .. versionadded:: (cfdm) 1.7.0
 
         """
-
-        def _print_item(self, key, variable, axes, data=True):
-            """Private function called by __str__."""
-            # Field ancillary
-            x = [variable.identity(default=key)]
-
-            if variable.has_data():
-                shape = [axis_names[axis] for axis in axes]
-                shape = str(tuple(shape)).replace("'", "")
-                shape = shape.replace(",)", ")")
-                x.append(shape)
-            elif (
-                hasattr(variable, "nc_get_external")
-                and variable.nc_get_external()
-            ):
-                ncvar = variable.nc_get_variable(None)
-                if ncvar is not None:
-                    x.append(f" (external variable: ncvar%{ncvar})")
-                else:
-                    x.append(" (external variable)")
-
-            if data and variable.has_data():
-                x.append(f" = {variable.get_data()}")
-
-            return "".join(x)
-
         title = f"Field: {self.identity('')}"
 
         # Append the netCDF variable name
@@ -197,6 +171,7 @@ class Field(
             x = []
             for cm in cell_methods.values():
                 cm = cm.copy()
+
                 # Axis names
                 cm.set_axes(
                     tuple(
@@ -219,12 +194,12 @@ class Field(
                     )
                     for key, c in coordinates.items():
                         if value == key:
-                            value = _print_item(
-                                self,
+                            value = self._print_construct(
                                 key,
                                 c,
                                 self.constructs.data_axes()[key],
-                                data=False,
+                                axis_names,
+                                append_data=False,
                             )
                             cm.set_qualifier(qualifier, value)
 
@@ -236,8 +211,10 @@ class Field(
 
         # Field ancillary variables
         x = [
-            _print_item(self, key, anc, self.constructs.data_axes()[key])
-            for key, anc in sorted(self.field_ancillaries(todict=True).items())
+            self._print_construct(
+                key, c, self.constructs.data_axes()[key], axis_names
+            )
+            for key, c in sorted(self.field_ancillaries(todict=True).items())
         ]
         if x:
             field_ancils = "\n                : ".join(x)
