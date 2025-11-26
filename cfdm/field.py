@@ -140,6 +140,32 @@ class Field(
         .. versionadded:: (cfdm) 1.7.0
 
         """
+
+        def _print_item(self, key, variable, axes, data=True):
+            """Private function called by __str__."""
+            # Field ancillary
+            x = [variable.identity(default=key)]
+
+            if variable.has_data():
+                shape = [axis_names[axis] for axis in axes]
+                shape = str(tuple(shape)).replace("'", "")
+                shape = shape.replace(",)", ")")
+                x.append(shape)
+            elif (
+                hasattr(variable, "nc_get_external")
+                and variable.nc_get_external()
+            ):
+                ncvar = variable.nc_get_variable(None)
+                if ncvar is not None:
+                    x.append(f" (external variable: ncvar%{ncvar})")
+                else:
+                    x.append(" (external variable)")
+
+            if data and variable.has_data():
+                x.append(f" = {variable.get_data()}")
+
+            return "".join(x)
+
         title = f"Field: {self.identity('')}"
 
         # Append the netCDF variable name
@@ -180,9 +206,9 @@ class Field(
                         ]
                     )
                 )
-                
+
                 # Coordinate construct names
-                coordinates=None
+                coordinates = None
                 for qualifier in ("where", "over"):
                     value = cm.get_qualifier(qualifier, None)
                     if value is None:
@@ -192,42 +218,21 @@ class Field(
                         todict=True, cached=coordinates
                     )
                     for key, c in coordinates.items():
-                        if key == value:
-                            properties[prop] = self._print_item(
-                                key, c,  self.constructs.data_axes()[key],
-                                data=False
+                        if value == key:
+                            value = _print_item(
+                                self,
+                                key,
+                                c,
+                                self.constructs.data_axes()[key],
+                                data=False,
                             )
-                    
+                            cm.set_qualifier(qualifier, value)
+
                 x.append(str(cm))
 
             c = " ".join(x)
 
             string.append(f"Cell methods    : {c}")
-
-        def _print_item(self, key, variable, axes, data=True):
-            """Private function called by __str__."""
-            # Field ancillary
-            x = [variable.identity(default=key)]
-
-            if variable.has_data():
-                shape = [axis_names[axis] for axis in axes]
-                shape = str(tuple(shape)).replace("'", "")
-                shape = shape.replace(",)", ")")
-                x.append(shape)
-            elif (
-                hasattr(variable, "nc_get_external")
-                and variable.nc_get_external()
-            ):
-                ncvar = variable.nc_get_variable(None)
-                if ncvar is not None:
-                    x.append(f" (external variable: ncvar%{ncvar})")
-                else:
-                    x.append(" (external variable)")
-
-            if data and variable.has_data():
-                x.append(f" = {variable.get_data()}")
-
-            return "".join(x)
 
         # Field ancillary variables
         x = [

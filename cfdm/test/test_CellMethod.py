@@ -1,11 +1,29 @@
 import datetime
 import faulthandler
 import os
+import tempfile
 import unittest
 
 faulthandler.enable()  # to debug seg faults and timeouts
 
 import cfdm
+
+# Set up temporary files
+n_tmpfiles = 1
+tmpfiles = [
+    tempfile.mkstemp("_test_CellMethod.nc", dir=os.getcwd())[1]
+    for i in range(n_tmpfiles)
+]
+[tmpfile] = tmpfiles
+
+
+def _remove_tmpfiles():
+    """Remove temporary files created during tests."""
+    for f in tmpfiles:
+        try:
+            os.remove(f)
+        except OSError:
+            pass
 
 
 class CellMethodTest(unittest.TestCase):
@@ -128,6 +146,73 @@ class CellMethodTest(unittest.TestCase):
         self.assertEqual(f.del_qualifier("within"), "years")
         self.assertIsNone(f.del_qualifier("within", None))
         self.assertEqual(f.qualifiers(), {})
+
+    def test_CellMethod_coordinates(self):
+        """Test CellMethod with coordinate-valued keys."""
+        f = cfdm.example_field(0)
+
+        key_t, t = f.coordinate("time", item=True)
+        key_x, x = f.coordinate("longitude", item=True)
+        key_y, y = f.coordinate("latitude", item=True)
+
+        t.nc_set_variable("ncvar_t")
+        x.nc_set_variable("ncvar_x")
+        y.nc_set_variable("ncvar_y")
+
+        # Set up some test cell methods
+        c0 = f.cell_method()
+        c0.set_qualifier("where", key_x)
+        c0.set_qualifier("over", key_y)
+
+        c1 = cfdm.CellMethod(
+            axes=("time",), method="mean", qualifiers={"within": "ncvar_t"}
+        )
+        c2 = cfdm.CellMethod(
+            axes=("time",), method="minimum", qualifiers={"over": "ncvar_x"}
+        )
+        c3 = cfdm.CellMethod(
+            axes=("time",), method="maximum", qualifiers={"over": "ncvar_y"}
+        )
+        c4 = c0
+
+        f.set_construct(c1)
+        f.set_construct(c2)
+        f.set_construct(c3)
+        f.set_construct(c4)
+
+        # Write them to disk and read them back in
+        cfdm.write(f, tmpfile)
+        g = cfdm.read(tmpfile)[0]
+
+        key_x = g.coordinate("longitude", key=True)
+        key_y = g.coordinate("latitude", key=True)
+
+        cms = g.cell_methods(todict=True)
+        self.assertEqual(len(cms), 5)
+
+        cms = tuple(cms.items())
+        c0 = cms[0][1]
+        c1 = cms[1][1]
+        c2 = cms[2][1]
+        c3 = cms[3][1]
+        c4 = cms[4][1]
+
+        # Check that the "where ... over ..." got converted to
+        # contructs keys before a climatology
+        self.assertEqual(c0.get_qualifier("where"), key_x)
+        self.assertEqual(c0.get_qualifier("over"), key_y)
+
+        # Check that the "within ... over ... over ... " did not get
+        # converted to contruct keys, even though they had values of
+        # netCDF coordinate variable names.
+        self.assertEqual(c1.get_qualifier("within"), "ncvar_t")
+        self.assertEqual(c2.get_qualifier("over"), "ncvar_x")
+        self.assertEqual(c3.get_qualifier("over"), "ncvar_y")
+
+        # Check that the "where ... over ..." got converted to
+        # contructs keys after a climatology
+        self.assertEqual(c4.get_qualifier("where"), key_x)
+        self.assertEqual(c4.get_qualifier("over"), key_y)
 
 
 if __name__ == "__main__":

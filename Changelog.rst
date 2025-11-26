@@ -2,6 +2,9 @@ Version NEXTVERSION
 
 **2026-01-??**
 
+* Handle the more general CF cell methods convention for statistics
+  applying to portions of cells
+  (https://github.com/NCAS-CMS/cfdm/issues/369)
 * Write Zarr v3 datasets with `cfdm.write`, and allow the reading of
   grouped Zarr v2 and v3 datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/354)

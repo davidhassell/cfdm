@@ -4474,6 +4474,23 @@ class NetCDFWrite(IOWrite):
                         )
                     ]
                     self.implementation.set_cell_method_axes(cm, axes)
+
+                    # Coordinate construct keys need converting to
+                    # netCDF variable names
+                    coordinates = None
+                    for qualifier in ("where", "over"):
+                        value = cm.get_qualifier(qualifier, None)
+                        if value is None:
+                            continue
+
+                        coordinates = f.coordinates(
+                            todict=True, cached=coordinates
+                        )
+                        for key, c in coordinates.items():
+                            if value == key:
+                                value = g["key_to_ncvar"][key]
+                                cm.set_qualifier(qualifier, value)
+
                     cell_methods_strings.append(
                         self.implementation.get_cell_method_string(cm)
                     )

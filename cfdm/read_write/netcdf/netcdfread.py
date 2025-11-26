@@ -5084,6 +5084,7 @@ class NetCDFRead(IORead):
             )
 
             for properties in cell_methods:
+                # Replace dimension names with domain axis keys
                 axes = properties.pop("axes")
 
                 if g["has_groups"]:
@@ -5094,16 +5095,20 @@ class NetCDFRead(IORead):
                         )
                         for axis in axes
                     ]
-                    
-                # Replace names with domain axis keys
+
                 axes = [name_to_axis.get(axis, axis) for axis in axes]
 
-                for prop in ("where", "over"):
-                    d = properties.get(prop)
+                # Replace coordinate variable names with coordinate
+                # construct axis keys
+                for qualifier in ("where", "over"):
+                    d = properties.get(qualifier)
                     if not isinstance(d, dict):
                         continue
-                    
-                    ncvar = d['ncvar']
+
+                    # 'd' is a dictionary, and therefore contains a
+                    # coordinate variable name. See
+                    # `_parse_cell_methods` for details.
+                    ncvar = d["ncvar"]
                     if g["has_groups"]:
                         # Replace a flattened variable name with an
                         # absolute name
@@ -5112,8 +5117,8 @@ class NetCDFRead(IORead):
                     # Replace the variable name with a construct key
                     key = ncvar_to_key.get(ncvar)
                     if key is not None:
-                        properties[prop] = key                        
-                    
+                        properties[qualifier] = key
+
                 method = properties.pop("method", None)
 
                 cell_method = self._create_cell_method(
@@ -5881,7 +5886,7 @@ class NetCDFRead(IORead):
         nc = g["nc"]
 
         g["bounds"][parent_ncvar] = {}
-        g["coordinates"][parent_ncvar] = []
+        g["coordinates"].setdefault(parent_ncvar, [])
 
         if ncvar is not None:
             properties = g["variable_attributes"][ncvar].copy()
@@ -7308,7 +7313,7 @@ class NetCDFRead(IORead):
             return out
 
         g = self.read_vars
-        
+
         # ------------------------------------------------------------
         # Split the cell_methods string into a list of strings ready
         # for parsing. For example:
@@ -7321,6 +7326,9 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         cell_methods = re.sub(r"\((?=[^\s])", "( ", cell_methods_string)
         cell_methods = re.sub(r"(?<=[^\s])\)", " )", cell_methods).split()
+
+        # Whether or not a cell method is part of a climatology
+        climatology = False
 
         while cell_methods:
             cm = {}
@@ -7353,25 +7361,27 @@ class NetCDFRead(IORead):
 
             # Climatological statistics, and statistics which apply to
             # portions of cells
-            climatology = False
             while cell_methods[0] in ("within", "where", "over"):
-                attr = cell_methods.pop(0)
-
-                if attr == "within":
-                    climatology = True
-                elif climatology and attr == "where":
-                    climatology = False
-                    
+                qualifier = cell_methods.pop(0)
                 value = cell_methods.pop(0)
-                if (
-                        not climatology
-                        and attr in ("where", "over")
-                        and value in g["coordinates"][field_ncvar]
-                ):
-                    value = {'ncvar': value}
 
-                cm[attr] = value
-        
+                if qualifier == "within":
+                    climatology = True
+                elif qualifier == "where":
+                    climatology = False
+
+                if (
+                    not climatology
+                    and qualifier in ("where", "over")
+                    and value in g["coordinates"][field_ncvar]
+                ):
+                    # 'value' is a variable name, so store it in a
+                    # dictionary. Elsewhere, this dictionary will get
+                    # converted to a coordinate construct key.
+                    value = {"ncvar": value}
+
+                cm[qualifier] = value
+
                 if not cell_methods:
                     break
 
