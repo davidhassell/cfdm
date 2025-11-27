@@ -1357,6 +1357,7 @@ class NetCDFRead(IORead):
             "dimension_coordinate": {},
             "domain_ancillary": {},
             "domain_ancillary_key": None,
+            "field_ancillary_key": None,
             "field_ancillary": {},
             "coordinates": {},
             "bounds": {},
@@ -3914,6 +3915,9 @@ class NetCDFRead(IORead):
         # Reset 'domain_ancillary_key'
         g["domain_ancillary_key"] = {}
 
+        # Reset 'field_ancillary_key'
+        g["field_ancillary_key"] = {}
+
         dimensions = g["variable_dimensions"][field_ncvar]
         g["dataset_compliance"].setdefault(field_ncvar, {})
         g["dataset_compliance"][field_ncvar][
@@ -5073,68 +5077,6 @@ class NetCDFRead(IORead):
                         g["referenced_external_variables"].add(ncvar)
 
         # ------------------------------------------------------------
-        # Add cell methods to the field
-        # ------------------------------------------------------------
-        if field and cell_methods_string is not None:
-            name_to_axis = ncdim_to_axis.copy()
-            name_to_axis.update(ncscalar_to_axis)
-
-            cell_methods = self._parse_cell_methods(
-                cell_methods_string, field_ncvar
-            )
-
-            for properties in cell_methods:
-                # Replace dimension names with domain axis keys
-                axes = properties.pop("axes")
-
-                if g["has_groups"]:
-                    # Replace flattened names with absolute names
-                    axes = [
-                        g["flattener_dimensions"].get(
-                            axis, g["flattener_variables"].get(axis, axis)
-                        )
-                        for axis in axes
-                    ]
-
-                axes = [name_to_axis.get(axis, axis) for axis in axes]
-
-                # Replace coordinate variable names with coordinate
-                # construct axis keys
-                for qualifier in ("where", "over"):
-                    d = properties.get(qualifier)
-                    if not isinstance(d, dict):
-                        continue
-
-                    # 'd' is a dictionary, and therefore contains a
-                    # coordinate variable name. See
-                    # `_parse_cell_methods` for details.
-                    ncvar = d["ncvar"]
-                    if g["has_groups"]:
-                        # Replace a flattened variable name with an
-                        # absolute name
-                        ncvar = g["flattener_variables"].get(ncvar, ncvar)
-
-                    # Replace the variable name with a construct key
-                    key = ncvar_to_key.get(ncvar)
-                    if key is not None:
-                        properties[qualifier] = key
-
-                method = properties.pop("method", None)
-
-                cell_method = self._create_cell_method(
-                    axes, method, properties
-                )
-
-                logger.detail(
-                    f"        [i] Inserting {method!r} "
-                    f"{cell_method.__class__.__name__}"
-                )  # pragma: no cover
-
-                self.implementation.set_cell_method(
-                    f, construct=cell_method, copy=False
-                )
-
-        # ------------------------------------------------------------
         # Add field ancillaries to the field
         # ------------------------------------------------------------
         if field:
@@ -5172,7 +5114,69 @@ class NetCDFRead(IORead):
                         )
                         self._reference(ncvar, field_ncvar)
 
+                        g["field_ancillary_key"][ncvar] = key
                         ncvar_to_key[ncvar] = key
+
+        # ------------------------------------------------------------
+        # Add cell methods to the field
+        # ------------------------------------------------------------
+        if field and cell_methods_string is not None:
+            name_to_axis = ncdim_to_axis.copy()
+            name_to_axis.update(ncscalar_to_axis)
+
+            cell_methods = self._parse_cell_methods(
+                cell_methods_string, field_ncvar
+            )
+
+            for properties in cell_methods:
+                # Replace dimension names with domain axis keys
+                axes = properties.pop("axes")
+
+                if g["has_groups"]:
+                    # Replace flattened names with absolute names
+                    axes = [
+                        g["flattener_dimensions"].get(
+                            axis, g["flattener_variables"].get(axis, axis)
+                        )
+                        for axis in axes
+                    ]
+
+                axes = [name_to_axis.get(axis, axis) for axis in axes]
+
+                # Replace variable names with construct keys
+                for qualifier in ("where", "over", "anomaly_wrt"):
+                    d = properties.get(qualifier)
+                    if not isinstance(d, dict):
+                        continue
+
+                    # 'd' is a dictionary, and therefore contains a
+                    # coordinate variable name. See
+                    # `_parse_cell_methods` for details.
+                    ncvar = d["ncvar"]
+                    if g["has_groups"]:
+                        # Replace a flattened variable name with an
+                        # absolute name
+                        ncvar = g["flattener_variables"].get(ncvar, ncvar)
+
+                    # Replace the variable name with a construct key
+                    key = ncvar_to_key.get(ncvar)
+                    if key is not None:
+                        properties[qualifier] = key
+
+                method = properties.pop("method", None)
+
+                cell_method = self._create_cell_method(
+                    axes, method, properties
+                )
+
+                logger.detail(
+                    f"        [i] Inserting {method!r} "
+                    f"{cell_method.__class__.__name__}"
+                )  # pragma: no cover
+
+                self.implementation.set_cell_method(
+                    f, construct=cell_method, copy=False
+                )
 
             # --------------------------------------------------------
             # Add extra field ancillary constructs defined by
@@ -7358,6 +7362,16 @@ class NetCDFRead(IORead):
             if not cell_methods:
                 out.append(cm)
                 break
+
+            qualifier = "anomaly_wrt"
+            if cm["method"] == qualifier:
+                value = cell_methods.pop(0)
+                if value in g["field_ancillary_key"]:
+                    cm[qualifier] = {"ncvar": value}
+
+                if not cell_methods:
+                    out.append(cm)
+                    break
 
             # Climatological statistics, and statistics which apply to
             # portions of cells

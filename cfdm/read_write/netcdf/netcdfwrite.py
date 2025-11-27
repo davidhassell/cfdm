@@ -71,7 +71,9 @@ class NetCDFWrite(IOWrite):
 
     def cf_cell_method_qualifiers(self):
         """Cell method qualifiers."""
-        return set(("within", "where", "over", "interval", "comment"))
+        return set(
+            ("within", "where", "over", "interval", "comment", "anomaly_wrt")
+        )
 
     def _createGroup(self, parent, group_name):
         """Creates a new dataset group object.
@@ -4475,21 +4477,30 @@ class NetCDFWrite(IOWrite):
                     ]
                     self.implementation.set_cell_method_axes(cm, axes)
 
+                    # Field ancillary construct keys need converting
+                    # to netCDF variable names
+                    qualifier = "anomaly_wrt"
+                    key = cm.get_qualifier(qualifier, None)
+                    if key is not None:
+                        field_ancillaries = f.field_ancillaries(todict=True)
+                        if key in field_ancillaries:
+                            value = g["key_to_ncvar"][key]
+                            cm.set_qualifier(qualifier, value)
+
                     # Coordinate construct keys need converting to
                     # netCDF variable names
                     coordinates = None
                     for qualifier in ("where", "over"):
-                        value = cm.get_qualifier(qualifier, None)
-                        if value is None:
+                        key = cm.get_qualifier(qualifier, None)
+                        if key is None:
                             continue
 
                         coordinates = f.coordinates(
                             todict=True, cached=coordinates
                         )
-                        for key, c in coordinates.items():
-                            if value == key:
-                                value = g["key_to_ncvar"][key]
-                                cm.set_qualifier(qualifier, value)
+                        if key in coordinates:
+                            value = g["key_to_ncvar"][key]
+                            cm.set_qualifier(qualifier, value)
 
                     cell_methods_strings.append(
                         self.implementation.get_cell_method_string(cm)

@@ -2,6 +2,8 @@ Version NEXTVERSION
 
 **2026-01-??**
 
+* Handle the more CF cell methods convention for anomalies
+  (https://github.com/NCAS-CMS/cfdm/issues/3??)
 * Handle the more general CF cell methods convention for statistics
   applying to portions of cells
   (https://github.com/NCAS-CMS/cfdm/issues/369)

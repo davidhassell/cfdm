@@ -182,26 +182,40 @@ class Field(
                     )
                 )
 
+                # Field ancillary construct names
+                qualifier = "anomaly_wrt"
+                key = cm.get_qualifier(qualifier, None)
+                if key is not None:
+                    field_ancillaries = self.field_ancillaries(todict=True)
+                    if key in field_ancillaries:
+                        value = self._print_construct(
+                            key,
+                            field_ancillaries[key],
+                            self.constructs.data_axes()[key],
+                            axis_names,
+                            append_data=False,
+                        )
+                        cm.set_qualifier(qualifier, value)
+
                 # Coordinate construct names
                 coordinates = None
                 for qualifier in ("where", "over"):
-                    value = cm.get_qualifier(qualifier, None)
-                    if value is None:
+                    key = cm.get_qualifier(qualifier, None)
+                    if key is None:
                         continue
 
                     coordinates = self.coordinates(
                         todict=True, cached=coordinates
                     )
-                    for key, c in coordinates.items():
-                        if value == key:
-                            value = self._print_construct(
-                                key,
-                                c,
-                                self.constructs.data_axes()[key],
-                                axis_names,
-                                append_data=False,
-                            )
-                            cm.set_qualifier(qualifier, value)
+                    if key in coordinates:
+                        value = self._print_construct(
+                            key,
+                            coordinates[key],
+                            self.constructs.data_axes()[key],
+                            axis_names,
+                            append_data=False,
+                        )
+                        cm.set_qualifier(qualifier, value)
 
                 x.append(str(cm))
 

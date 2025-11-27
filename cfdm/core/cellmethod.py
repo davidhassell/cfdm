@@ -23,7 +23,7 @@ class CellMethod(abstract.Container):
     """
 
     def __init__(
-        self, axes=None, method=None, qualifiers=None, source=None, copy=True
+            self, axes=None, method=None, qualifiers=None, parent='field', source=None, copy=True
     ):
         """**Initialisation**
 
@@ -106,11 +106,13 @@ class CellMethod(abstract.Container):
         if method is not None:
             method = self.set_method(method)
 
+        self.set_parent(parent)
+
         if qualifiers is None:
             qualifiers = {}
-
+            
         self._set_component("qualifiers", qualifiers, copy=copy)
-
+        
     # ----------------------------------------------------------------
     # Attributes
     # ----------------------------------------------------------------
@@ -346,6 +348,46 @@ class CellMethod(abstract.Container):
 
         """
         return self._get_component("method", default=default)
+
+    def get_parent(self, default=ValueError()):
+        """Return the method of the cell method.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `del_method`, `has_method`, `set_method`
+
+        :Parameters:
+
+            default: optional
+                Return the value of the *default* parameter if the method
+                has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+            `str`
+                The method.
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_method('minimum')
+        >>> c.has_method()
+        True
+        >>> c.get_method()
+        'minimum'
+        >>> c.del_method()
+        'minimum'
+        >>> c.has_method()
+        False
+        >>> c.get_method('NO METHOD')
+        'NO METHOD'
+        >>> c.del_method('NO METHOD')
+        'NO METHOD'
+
+        """
+        return self._get_component("parent", default=default)
 
     def get_qualifier(self, qualifier, default=ValueError()):
         """Return a qualifier of the cell method.
@@ -623,6 +665,42 @@ class CellMethod(abstract.Container):
 
         """
         return self._set_component("method", value, copy=False)
+
+    def set_parent(self, value):
+        """Set the method of the cell method.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `del_method`, `get_method`, `has_method`
+
+        :Parameters:
+
+            value: `str`
+                The value for the method.
+
+        :Returns:
+
+            `None`
+
+        **Examples**
+
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_method('minimum')
+        >>> c.has_method()
+        True
+        >>> c.get_method()
+        'minimum'
+        >>> c.del_method()
+        'minimum'
+        >>> c.has_method()
+        False
+        >>> c.get_method('NO METHOD')
+        'NO METHOD'
+        >>> c.del_method('NO METHOD')
+        'NO METHOD'
+
+        """
+        return self._set_component("parent", value, copy=False)
 
     def set_qualifier(self, qualifier, value):
         """Set a qualifier of the cell method.

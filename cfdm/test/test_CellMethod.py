@@ -214,6 +214,33 @@ class CellMethodTest(unittest.TestCase):
         self.assertEqual(c4.get_qualifier("where"), key_x)
         self.assertEqual(c4.get_qualifier("over"), key_y)
 
+    def test_CellMethod_field_ancillaries(self):
+        """Test CellMethod with field ancillary-valued keys."""
+        f = cfdm.example_field(1)
+
+        key_fa0 = f.field_ancillary(key=True)
+
+        # Set up a test cell method
+        c0 = cfdm.CellMethod(axes=("area",), method="anomaly_wrt")
+        c0.set_qualifier("anomaly_wrt", key_fa0)
+        f.set_construct(c0)
+
+        # Write to disk and read back in
+        cfdm.write(f, tmpfile)
+        g = cfdm.read(tmpfile)[0]
+
+        key_fa = f.field_ancillary(key=True)
+
+        cms = g.cell_methods(todict=True)
+        self.assertEqual(len(cms), len(f.cell_methods()))
+
+        cms = tuple(cms.items())
+        c = cms[-1][1]
+
+        # Check that the "anomaly_wrt" got converted to a
+        # constructs key, and is nota netCDF variable name
+        self.assertEqual(c.get_qualifier("anomaly_wrt"), key_fa)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

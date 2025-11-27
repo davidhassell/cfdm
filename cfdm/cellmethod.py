@@ -55,9 +55,22 @@ class CellMethod(mixin.Container, core.CellMethod):
         .. versionadded:: (cfdm) 1.7.0
 
         """
-        string = [f"{axis}:" for axis in self.get_axes(())]
+        string = []
+            
+        not_field = self.get_parent(None) != 'field':
+        if not_field:
+            string.append('[')
+            
+        string.append([f"{axis}:" for axis in self.get_axes(())])
 
-        string.append(self.get_method(""))
+        method = self.get_method(None)
+        if method is not None:
+            string.append(method)
+
+        # Get an anomaly name
+        q = self.get_qualifier("anomaly_wrt", None)
+        if q is not None:
+            string.append(q)
 
         for portion in ("within", "where", "over"):
             q = self.get_qualifier(portion, None)
@@ -83,6 +96,9 @@ class CellMethod(mixin.Container, core.CellMethod):
         elif comment is not None:
             string.append(f"({comment})")
 
+        if not_field:
+            string = [']']
+            
         return " ".join(string)
 
     def _identities_iter(self):
