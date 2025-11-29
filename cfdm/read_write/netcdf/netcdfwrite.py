@@ -2685,6 +2685,17 @@ class NetCDFWrite(IOWrite):
 
                 variable = g["dataset"].create_array(**zarr_kwargs)
 
+            case "ncdata":
+                dtype  = np.dtype(kwargs["datatype"])
+
+                variable = g["dataset"].NcVariable(
+                    name=ncvar,
+                    dimensions=kwargs.get("dimensions", ()),
+                    shape=kwargs.get("shape", ()),
+                    dtype=dtype,
+                    data=None, dtype=None, attributes=None, group=None 
+                )
+                
         g["nc"][ncvar] = variable
 
     def _write_grid_mapping(self, f, ref, multiple_grid_mappings):
@@ -3467,9 +3478,16 @@ class NetCDFWrite(IOWrite):
             # Dask
             from cfdm.data.locks import netcdf_lock as lock
 
-        da.store(
-            dx, g["nc"][ncvar], compute=True, return_stored=False, lock=lock
-        )
+        match g["backend"]:
+            case "ncdata":
+                pass
+
+            case _:
+                # All other backends
+                da.store(
+                    dx, g["nc"][ncvar], compute=True, return_stored=False,
+                    lock=lock
+                )
 
     def _filled_array(self, array, fill_value):
         """Replace masked values with a fill value.
