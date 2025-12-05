@@ -5144,7 +5144,7 @@ class NetCDFRead(IORead):
                 axes = [name_to_axis.get(axis, axis) for axis in axes]
 
                 # Replace variable names with construct keys
-                for qualifier in ("where", "over", "anomaly_wrt"):
+                for qualifier in ("where", "over", "norm"):
                     d = properties.get(qualifier)
                     if not isinstance(d, dict):
                         continue
@@ -7363,8 +7363,8 @@ class NetCDFRead(IORead):
                 out.append(cm)
                 break
 
-            qualifier = "anomaly_wrt"
-            if cm["method"] == qualifier:
+            if cm["method"] == "anomaly_wrt":
+                qualifier = "norm"
                 value = cell_methods.pop(0)
                 if value in g["field_ancillary_key"]:
                     cm[qualifier] = {"ncvar": value}

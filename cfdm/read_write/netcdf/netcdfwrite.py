@@ -72,7 +72,7 @@ class NetCDFWrite(IOWrite):
     def cf_cell_method_qualifiers(self):
         """Cell method qualifiers."""
         return set(
-            ("within", "where", "over", "interval", "comment", "anomaly_wrt")
+            ("within", "where", "over", "interval", "comment", "norm")
         )
 
     def _createGroup(self, parent, group_name):
@@ -4479,7 +4479,7 @@ class NetCDFWrite(IOWrite):
 
                     # Field ancillary construct keys need converting
                     # to netCDF variable names
-                    qualifier = "anomaly_wrt"
+                    qualifier = "norm"
                     key = cm.get_qualifier(qualifier, None)
                     if key is not None:
                         field_ancillaries = f.field_ancillaries(todict=True)

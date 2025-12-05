@@ -165,6 +165,9 @@ class Field(
                 f"Data            : {self._one_line_description(axis_names)}"
             )
 
+        # Initialise norm
+        norm = []
+        
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
         if cell_methods:
@@ -183,7 +186,7 @@ class Field(
                 )
 
                 # Field ancillary construct names
-                qualifier = "anomaly_wrt"
+                qualifier = "norm"
                 key = cm.get_qualifier(qualifier, None)
                 if key is not None:
                     field_ancillaries = self.field_ancillaries(todict=True)
@@ -217,8 +220,31 @@ class Field(
                         )
                         cm.set_qualifier(qualifier, value)
 
-                x.append(str(cm))
-
+                if cm.get_parent(None) == 'field_ancillary':
+                    # This cell method is describing a field ancillary
+                    # (acting as a norm variale). We pretend that the
+                    # parent is the field itself, though, so that
+                    # 'norm[...]' does not appear in the string
+                    # representation - we're controlling that here,
+                    # instead.
+                    cm.set_parent('field')
+                    norm.append(str(cm))
+                else:
+                    if norm:
+                        # This cell method is describing the field
+                        # itself, but the directly previous cell
+                        # methods were describing a field
+                        # ancillary. Mark those previous cell methods
+                        # as applying to a field ancillary.
+            
+                        norm = " ".join(norm)
+                        x.append(f"norm[{norm}]")
+                        # Reset norm, ready for another field
+                        # ancillary.
+                        norm = []
+                        
+                    x.append(str(cm))
+                    
             c = " ".join(x)
 
             string.append(f"Cell methods    : {c}")

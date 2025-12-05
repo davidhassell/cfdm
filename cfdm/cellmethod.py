@@ -56,21 +56,18 @@ class CellMethod(mixin.Container, core.CellMethod):
 
         """
         string = []
-            
-        not_field = self.get_parent(None) != 'field':
-        if not_field:
-            string.append('[')
-            
+
         string.append([f"{axis}:" for axis in self.get_axes(())])
 
         method = self.get_method(None)
         if method is not None:
             string.append(method)
 
-        # Get an anomaly name
-        q = self.get_qualifier("anomaly_wrt", None)
-        if q is not None:
-            string.append(q)
+        # Get a norm name
+        if method == 'anomaly_wrt':
+            q = self.get_qualifier("norm", None)
+            if q is not None:
+                string.append(q)
 
         for portion in ("within", "where", "over"):
             q = self.get_qualifier(portion, None)
@@ -96,10 +93,13 @@ class CellMethod(mixin.Container, core.CellMethod):
         elif comment is not None:
             string.append(f"({comment})")
 
-        if not_field:
-            string = [']']
-            
-        return " ".join(string)
+        out = " ".join(string)
+        
+        if self.get_parent(None) == 'field_ancillary':
+            # Mark this cell method as applying to a field ancillary
+            out = f"norm[{out}]"
+
+        return out
 
     def _identities_iter(self):
         """Return all possible identities.
