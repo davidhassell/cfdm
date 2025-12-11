@@ -165,17 +165,22 @@ class Field(
                 f"Data            : {self._one_line_description(axis_names)}"
             )
 
-        # Initialise norm
-        norm = []
-        
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
         if cell_methods:
+            coordinates = None
+            field_ancillaries = None
+            norm_cms = []
+            fa_key = None
+
             x = []
             for cm in cell_methods.values():
                 cm = cm.copy()
 
-                # Axis names
+                method = cm.get_method(None)
+                
+                # Replace a domain axis construct identifers with
+                # their identities
                 cm.set_axes(
                     tuple(
                         [
@@ -185,11 +190,15 @@ class Field(
                     )
                 )
 
-                # Field ancillary construct names
+                # Replace a field ancillary construct identifer with
+                # its identity
                 qualifier = "norm"
                 key = cm.get_qualifier(qualifier, None)
-                if key is not None:
-                    field_ancillaries = self.field_ancillaries(todict=True)
+                has_norm_qualifier = key is not None
+                if has_norm_qualifier and method == "anomaly_wrt":
+                    field_ancillaries = self.field_ancillaries(
+                        todict=True, cached=field_ancillaries
+                    )
                     if key in field_ancillaries:
                         value = self._print_construct(
                             key,
@@ -200,8 +209,8 @@ class Field(
                         )
                         cm.set_qualifier(qualifier, value)
 
-                # Coordinate construct names
-                coordinates = None
+                # Replace coordinate construct identifers with their
+                # identities
                 for qualifier in ("where", "over"):
                     key = cm.get_qualifier(qualifier, None)
                     if key is None:
@@ -220,31 +229,38 @@ class Field(
                         )
                         cm.set_qualifier(qualifier, value)
 
-                if cm.get_parent(None) == 'field_ancillary':
+                if has_norm_qualifier and method not in ("anomaly_wrt", None):
                     # This cell method is describing a field ancillary
-                    # (acting as a norm variale). We pretend that the
-                    # parent is the field itself, though, so that
-                    # 'norm[...]' does not appear in the string
-                    # representation - we're controlling that here,
-                    # instead.
-                    cm.set_parent('field')
-                    norm.append(str(cm))
+                    # that is acting as an anomaly norm variable =>
+                    # Pretend that its a cell method of the field
+                    # itself so that the string doesn't look like
+                    # '...[...]', because we're controlling that here
+                    # after all anomaly norm cell methods in this
+                    # batch have been processed.
+                    cm.del_qualifier("norm")
+                    norm_cms.append(str(cm))
                 else:
-                    if norm:
+                    if norm_cms:
                         # This cell method is describing the field
                         # itself, but the directly previous cell
-                        # methods were describing a field
-                        # ancillary. Mark those previous cell methods
-                        # as applying to a field ancillary.
-            
-                        norm = " ".join(norm)
+                        # methods were describing a field ancillary =>
+                        # Mark those previous cell methods as applying
+                        # to an anomaly norm variable, and add them to
+                        # the output list
+                        norm = " ".join(norm_cms)
                         x.append(f"norm[{norm}]")
-                        # Reset norm, ready for another field
+                        # Reset the list, ready for another field
                         # ancillary.
-                        norm = []
-                        
+                        norm_cms = []
+
+                    # Now add the current cell method to the output
+                    # list.
                     x.append(str(cm))
-                    
+
+            if norm_cms:
+                norm = " ".join(norm_cms)
+                x.append(f"norm[{norm}]")
+
             c = " ".join(x)
 
             string.append(f"Cell methods    : {c}")

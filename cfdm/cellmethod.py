@@ -48,31 +48,35 @@ class CellMethod(mixin.Container, core.CellMethod):
 
         Returns a CF-netCDF-like string of the cell method.
 
-        Note that if the intention is to use this string in a CF-netCDF
-        cell_methods attribute then, unless they are standard names, the
-        axes names will need to be modified to be netCDF dimension names.
+        .. note:: Domain axis, coordinate, and field ancillary
+                  contructs are specified by their construct
+                  identifiers (e.g. domainaxis2, auxiliarycooridnate1,
+                  and fieldancillary0 respectively). If the intention
+                  is to use this string as a CF-netCDF cell_methods
+                  attribute then these construct identifiers will need
+                  to be replaced with netCDF dimension or variable
+                  names.
 
         .. versionadded:: (cfdm) 1.7.0
 
         """
-        string = []
-
-        string.append([f"{axis}:" for axis in self.get_axes(())])
+        out = [f"{axis}:" for axis in self.get_axes(())]
 
         method = self.get_method(None)
         if method is not None:
-            string.append(method)
+            out.append(method)
 
-        # Get a norm name
-        if method == 'anomaly_wrt':
-            q = self.get_qualifier("norm", None)
-            if q is not None:
-                string.append(q)
+            # Get a field ancillary representing an anomaly norm
+            # variable
+            if method == "anomaly_wrt":
+                q = self.get_qualifier("norm", None)
+                if q is not None:
+                    out.append(q)
 
         for portion in ("within", "where", "over"):
             q = self.get_qualifier(portion, None)
             if q is not None:
-                string.extend((portion, q))
+                out.extend((portion, q))
 
         interval = self.get_qualifier("interval", ())
         comment = self.get_qualifier("comment", None)
@@ -88,16 +92,19 @@ class CellMethod(mixin.Container, core.CellMethod):
 
             x.append(")")
 
-            string.append("".join(x))
+            out.append("".join(x))
 
         elif comment is not None:
-            string.append(f"({comment})")
+            out.append(f"({comment})")
 
-        out = " ".join(string)
-        
-        if self.get_parent(None) == 'field_ancillary':
-            # Mark this cell method as applying to a field ancillary
-            out = f"norm[{out}]"
+        out = " ".join(out)
+
+        if method != "anomaly_wrt":
+            norm = self.get_qualifier("norm", None)
+            if norm is not None:
+                # Mark this cell method as applying to a field
+                # ancillary representing an anomaly norm variable
+                out = f"{norm}[{out}]"
 
         return out
 

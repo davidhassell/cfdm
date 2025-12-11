@@ -1,3 +1,4 @@
+import atexit
 import datetime
 import faulthandler
 import os
@@ -24,6 +25,9 @@ def _remove_tmpfiles():
             os.remove(f)
         except OSError:
             pass
+
+
+atexit.register(_remove_tmpfiles)
 
 
 class CellMethodTest(unittest.TestCase):
@@ -218,12 +222,17 @@ class CellMethodTest(unittest.TestCase):
         """Test CellMethod with field ancillary-valued keys."""
         f = cfdm.example_field(1)
 
-        key_fa0 = f.field_ancillary(key=True)
+        key = f.field_ancillary(key=True)
 
         # Set up a test cell method
         c0 = cfdm.CellMethod(axes=("area",), method="anomaly_wrt")
-        c0.set_qualifier("anomaly_wrt", key_fa0)
+        c0.set_qualifier("norm", key)
+
+        c1 = cfdm.CellMethod(axes=("time",), method="minimum")
+        c1.set_qualifier("norm", key)
+
         f.set_construct(c0)
+        f.set_construct(c1)
 
         # Write to disk and read back in
         cfdm.write(f, tmpfile)
@@ -233,13 +242,16 @@ class CellMethodTest(unittest.TestCase):
 
         cms = g.cell_methods(todict=True)
         self.assertEqual(len(cms), len(f.cell_methods()))
-
         cms = tuple(cms.items())
-        c = cms[-1][1]
 
-        # Check that the "anomaly_wrt" got converted to a
-        # constructs key, and is nota netCDF variable name
-        self.assertEqual(c.get_qualifier("anomaly_wrt"), key_fa)
+        # Check that the last penultimate cell method is
+        # "anomaly_wrt"
+        self.assertEqual(cms[-2][1].get_method(), "anomaly_wrt")
+
+        # Check that the last two cell methods have a "norm" of the
+        # field ancillary key
+        for i in (-2, -1):
+            self.assertEqual(cms[i][1].get_qualifier("norm"), key_fa)
 
 
 if __name__ == "__main__":

@@ -5119,15 +5119,19 @@ class NetCDFRead(IORead):
 
         # ------------------------------------------------------------
         # Add cell methods to the field
+        #
+        # We need to do this after adding coordinate and field
+        # ancillaries, because the cell methods may reference some of
+        # those.
         # ------------------------------------------------------------
         if field and cell_methods_string is not None:
             name_to_axis = ncdim_to_axis.copy()
             name_to_axis.update(ncscalar_to_axis)
 
             cell_methods = self._parse_cell_methods(
-                cell_methods_string, field_ncvar
+                cell_methods_string, field_ncvar, f=field
             )
-
+            
             for properties in cell_methods:
                 # Replace dimension names with domain axis keys
                 axes = properties.pop("axes")
@@ -5149,9 +5153,12 @@ class NetCDFRead(IORead):
                     if not isinstance(d, dict):
                         continue
 
-                    # 'd' is a dictionary, and therefore contains a
-                    # coordinate variable name. See
-                    # `_parse_cell_methods` for details.
+                    # 'd' is a dictionary that contains a netCDF
+                    # coordinate or ancillary variable name, which we
+                    # have to replace with a construct identifier
+                    # (such as 'auxiliarycoordinate1' or
+                    # `fieldancillary0'). See `_parse_cell_methods`
+                    # for details.
                     ncvar = d["ncvar"]
                     if g["has_groups"]:
                         # Replace a flattened variable name with an
@@ -7277,7 +7284,7 @@ class NetCDFRead(IORead):
 
         return field_ancillary
 
-    def _parse_cell_methods(self, cell_methods_string, field_ncvar=None):
+    def _parse_cell_methods(self, cell_methods_string, field_ncvar=None, f=None, ncvar=None, ncvar_type=None):
         """Parse a CF cell_methods string.
 
         .. versionadded:: (cfdm) 1.7.0
@@ -7303,6 +7310,9 @@ class NetCDFRead(IORead):
         """
         import re
 
+        if ncvar is None:
+            ncvar = field_ncvar
+        
         if field_ncvar:
             attribute = {field_ncvar + ":cell_methods": cell_methods_string}
 
@@ -7312,6 +7322,7 @@ class NetCDFRead(IORead):
         )
 
         out = []
+        norm_cms = []
 
         if not cell_methods_string:
             return out
@@ -7333,10 +7344,14 @@ class NetCDFRead(IORead):
 
         # Whether or not a cell method is part of a climatology
         climatology = False
-
+        
         while cell_methods:
+            if norm_cms:
+                out.extend(norm_cms)
+                norm_cms = []
+            
             cm = {}
-
+            
             axes = []
             while cell_methods:
                 if not cell_methods[0].endswith(":"):
@@ -7349,7 +7364,12 @@ class NetCDFRead(IORead):
                 axis = cell_methods.pop(0)[:-1]
 
                 axes.append(axis)
-
+                
+            if ncvar_type is not None:
+                # Record a qualifier that designates a non-field cell
+                # method
+                cm[ncvar_type] = {"ncvar": ncvar}
+                    
             cm["axes"] = axes
 
             if not cell_methods:
@@ -7363,12 +7383,36 @@ class NetCDFRead(IORead):
                 out.append(cm)
                 break
 
+            # Anomaly norm variable
             if cm["method"] == "anomaly_wrt":
                 qualifier = "norm"
                 value = cell_methods.pop(0)
                 if value in g["field_ancillary_key"]:
+                    # 'value' is a netCDF variable name, so store it
+                    # in a dictionary. Elsewhere, this dictionary will
+                    # get converted to a field ancillary construct
+                    # key.
                     cm[qualifier] = {"ncvar": value}
 
+                    # Parse the cell methods of the anomaly norm
+                    # variable and add them to the output list
+                    norm_cell_methods_string = (
+                        g["variable_attributes"][value].get('cell_methods')
+                    )
+                    if norm_cell_methods_string is not None:
+                        norm_cms =  self._parse_cell_methods(
+                                norm_cell_methods_string, field_ncvar,
+                                ncvar=value, ncvar_type='norm'
+                        )
+                        
+                        # Remove the cell_methods property from the
+                        # norm field ancillary
+                        if ncvar in g["field_ancillary_key"]:
+                            key = g["field_ancillary_key"][ncvar]
+                            f.field_ancillary(key).del_property(
+                                'cell_methods', None
+                            )                        
+                        
                 if not cell_methods:
                     out.append(cm)
                     break
@@ -7389,9 +7433,9 @@ class NetCDFRead(IORead):
                     and qualifier in ("where", "over")
                     and value in g["coordinates"][field_ncvar]
                 ):
-                    # 'value' is a variable name, so store it in a
-                    # dictionary. Elsewhere, this dictionary will get
-                    # converted to a coordinate construct key.
+                    # 'value' is a netCDF variable name, so store it
+                    # in a dictionary. Elsewhere, this dictionary will
+                    # get converted to a coordinate construct key.
                     value = {"ncvar": value}
 
                 cm[qualifier] = value
@@ -7429,7 +7473,7 @@ class NetCDFRead(IORead):
 
                             self._add_message(
                                 field_ncvar,
-                                field_ncvar,
+                                ncvar,
                                 message=incorrect_interval,
                             )
                             return []
@@ -7444,7 +7488,7 @@ class NetCDFRead(IORead):
 
                             self._add_message(
                                 field_ncvar,
-                                field_ncvar,
+                                ncvar,
                                 message=incorrect_interval,
                                 attribute=attribute,
                             )
@@ -7474,7 +7518,7 @@ class NetCDFRead(IORead):
 
                 self._add_message(
                     field_ncvar,
-                    field_ncvar,
+                    ncvar,
                     message=incorrect_interval,
                     attribute=attribute,
                 )
@@ -7485,6 +7529,9 @@ class NetCDFRead(IORead):
 
             out.append(cm)
 
+        if norm_cms:
+            out.extend(norm_cms)
+                
         return out
 
     def _parse_coordinate_interpolation(self, string, parent_ncvar):

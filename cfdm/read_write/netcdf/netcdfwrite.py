@@ -71,9 +71,7 @@ class NetCDFWrite(IOWrite):
 
     def cf_cell_method_qualifiers(self):
         """Cell method qualifiers."""
-        return set(
-            ("within", "where", "over", "interval", "comment", "norm")
-        )
+        return set(("within", "where", "over", "interval", "comment", "norm"))
 
     def _createGroup(self, parent, group_name):
         """Creates a new dataset group object.
@@ -239,6 +237,7 @@ class NetCDFWrite(IOWrite):
             ncvar: `str`
 
             extra: `dict`, optional
+                TODO
 
             omit: sequence of `str`, optional
 
@@ -2373,12 +2372,7 @@ class NetCDFWrite(IOWrite):
 
         return ncvar
 
-    def _write_field_ancillary(
-        self,
-        f,
-        key,
-        anc,
-    ):
+    def _write_field_ancillary(self, f, key, anc, extra=None):
         """Write a field ancillary to the dataset.
 
         If an equal field ancillary has already been written to the
@@ -2391,6 +2385,11 @@ class NetCDFWrite(IOWrite):
             key : `str`
 
             anc : `FieldAncillary`
+
+            extra: `dict`, optional
+                TODO
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -2421,6 +2420,7 @@ class NetCDFWrite(IOWrite):
                 ncdimensions,
                 anc,
                 self.implementation.get_data_axes(f, key),
+                extra=extra,
             )
 
         g["key_to_ncvar"][key] = ncvar
@@ -4386,11 +4386,13 @@ class NetCDFWrite(IOWrite):
         # Field ancillary variables
         #
         # Create the 'ancillary_variables' CF attribute and create the
-        # referenced dataset ancillary variables
+        # referenced dataset ancillary variables.
+        #
+        # Include any cell methods defined for the field ancillaries.
         # ------------------------------------------------------------
         if field:
             ancillary_variables = [
-                self._write_field_ancillary(f, key, anc)
+                self._write_field_ancillary( f, key, anc )
                 for key, anc in self.implementation.get_field_ancillaries(
                     f
                 ).items()
@@ -4404,11 +4406,11 @@ class NetCDFWrite(IOWrite):
         else:
             default = "domain"
 
+        extra = {}
+
         ncvar = self._create_variable_name(f, default=default)
 
         ncdimensions = data_ncdimensions
-
-        extra = {}
 
         # Cell measures
         if cell_measures:
@@ -4451,11 +4453,18 @@ class NetCDFWrite(IOWrite):
 
             extra["ancillary_variables"] = ancillary_variables
 
-        # name can be a dimension of the variable, a scalar coordinate
-        # variable, a valid standard name, or the word 'area'
+        # ------------------------------------------------------------
+        # Cell methods
+        # ------------------------------------------------------------
         if field:
+            norm_cms = {}
+            
             cell_methods = self.implementation.get_cell_methods(f)
             if cell_methods:
+                coordinates = None
+                field_ancillaries = None
+                fa_key = None
+
                 axis_map = g["axis_to_ncdim"].copy()
                 axis_map.update(g["axis_to_ncscalar"])
 
@@ -4466,9 +4475,11 @@ class NetCDFWrite(IOWrite):
                     ):
                         raise ValueError(
                             f"Can't write {org_f!r}: Unknown cell method "
-                            f"property: {cm.properties()!r}"
+                            f"qualifier: {cm.qualifiers()!r}"
                         )
 
+                    method = cm.get_method(None)
+                
                     axes = [
                         axis_map.get(axis, axis)
                         for axis in self.implementation.get_cell_method_axes(
@@ -4480,16 +4491,18 @@ class NetCDFWrite(IOWrite):
                     # Field ancillary construct keys need converting
                     # to netCDF variable names
                     qualifier = "norm"
-                    key = cm.get_qualifier(qualifier, None)
-                    if key is not None:
-                        field_ancillaries = f.field_ancillaries(todict=True)
-                        if key in field_ancillaries:
-                            value = g["key_to_ncvar"][key]
+                    fa_key = cm.get_qualifier(qualifier, None)
+                    has_norm_qualifier = fa_key is not None
+                    if has_norm_qualifier and method == "anomaly_wrt":
+                        field_ancillaries = f.field_ancillaries(
+                            todict=True, cached=field_ancillaries
+                        )
+                        if fa_key in field_ancillaries:
+                            value = g["key_to_ncvar"][fa_key]
                             cm.set_qualifier(qualifier, value)
 
                     # Coordinate construct keys need converting to
                     # netCDF variable names
-                    coordinates = None
                     for qualifier in ("where", "over"):
                         key = cm.get_qualifier(qualifier, None)
                         if key is None:
@@ -4502,9 +4515,20 @@ class NetCDFWrite(IOWrite):
                             value = g["key_to_ncvar"][key]
                             cm.set_qualifier(qualifier, value)
 
-                    cell_methods_strings.append(
-                        self.implementation.get_cell_method_string(cm)
-                    )
+                    if has_norm_qualifier and method not in ("anomaly_wrt", None):
+                        # This cell method is describing a field
+                        # ancillary that is acting as an anomaly norm
+                        # variable => Pretend that its a cell method
+                        # of the field itself so that the string
+                        # doesn't look like '...[...]'.
+                        cm.del_qualifier("norm")
+                        norm_cms.setdefault(fa_key, []).append(
+                            self.implementation.get_cell_method_string(cm)
+                        )
+                    else:
+                        cell_methods_strings.append(
+                            self.implementation.get_cell_method_string(cm)
+                        )
 
                 cell_methods = " ".join(cell_methods_strings)
                 logger.info(
@@ -4514,6 +4538,14 @@ class NetCDFWrite(IOWrite):
 
                 extra["cell_methods"] = cell_methods
 
+            # Add cell_methods attributes to ancillary variables
+            for fa_key, cms in norm_cms.items():
+                cm_string =  " ".join(cms)
+                self._set_attributes(
+                    {'cell_methods': cm_string},
+                    g["key_to_ncvar"][fa_key]
+                )
+            
         # ------------------------------------------------------------
         # Geometry container (CF>=1.8)
         # ------------------------------------------------------------
