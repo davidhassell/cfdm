@@ -4454,6 +4454,8 @@ class NetCDFWrite(IOWrite):
         if field:
             cell_methods = self.implementation.get_cell_methods(f)
             if cell_methods:
+                coordinates = None
+
                 axis_map = g["axis_to_ncdim"].copy()
                 axis_map.update(g["axis_to_ncscalar"])
 
@@ -4464,7 +4466,7 @@ class NetCDFWrite(IOWrite):
                     ):
                         raise ValueError(
                             f"Can't write {org_f!r}: Unknown cell method "
-                            f"property: {cm.properties()!r}"
+                            f"qualifier: {cm.qualifiers()!r}"
                         )
 
                     axes = [
@@ -4477,7 +4479,6 @@ class NetCDFWrite(IOWrite):
 
                     # Coordinate construct keys need converting to
                     # netCDF variable names
-                    coordinates = None
                     for qualifier in ("where", "over"):
                         value = cm.get_qualifier(qualifier, None)
                         if value is None:

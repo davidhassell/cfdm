@@ -168,11 +168,14 @@ class Field(
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
         if cell_methods:
+            coordinates = None
+
             x = []
             for cm in cell_methods.values():
                 cm = cm.copy()
 
-                # Axis names
+                # Replace a domain axis construct identifers with
+                # their identities
                 cm.set_axes(
                     tuple(
                         [
@@ -182,8 +185,8 @@ class Field(
                     )
                 )
 
-                # Coordinate construct names
-                coordinates = None
+                # Replace coordinate construct identifers with their
+                # identities
                 for qualifier in ("where", "over"):
                     value = cm.get_qualifier(qualifier, None)
                     if value is None:
@@ -214,7 +217,7 @@ class Field(
             self._print_construct(
                 key, c, self.constructs.data_axes()[key], axis_names
             )
-            for key, c in sorted(self.field_ancillaries(todict=True).items())
+            for key, c in sorted(self.field_ancillaries(todict=True).iqtems())
         ]
         if x:
             field_ancils = "\n                : ".join(x)

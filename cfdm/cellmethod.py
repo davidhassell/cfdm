@@ -48,9 +48,13 @@ class CellMethod(mixin.Container, core.CellMethod):
 
         Returns a CF-netCDF-like string of the cell method.
 
-        Note that if the intention is to use this string in a CF-netCDF
-        cell_methods attribute then, unless they are standard names, the
-        axes names will need to be modified to be netCDF dimension names.
+        .. note:: Domain axis and coordinate contructs are specified
+                  by their construct identifiers (e.g. domainaxis2 and
+                  auxiliarycooridnate1 respectively). If the intention
+                  is to use this string as a CF-netCDF cell_methods
+                  attribute then these construct identifiers will need
+                  to be replaced with netCDF dimension or variable
+                  names.
 
         .. versionadded:: (cfdm) 1.7.0
 

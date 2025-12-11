@@ -5098,15 +5098,16 @@ class NetCDFRead(IORead):
 
                 axes = [name_to_axis.get(axis, axis) for axis in axes]
 
-                # Replace coordinate variable names with coordinate
-                # construct axis keys
+                # Replace variable names with construct keys
                 for qualifier in ("where", "over"):
                     d = properties.get(qualifier)
                     if not isinstance(d, dict):
                         continue
 
-                    # 'd' is a dictionary, and therefore contains a
-                    # coordinate variable name. See
+                    # 'd' is a dictionary that contains a netCDF
+                    # coordinate variable name, which we have to
+                    # replace with a construct identifier (such as
+                    # 'auxiliarycoordinate1'). See
                     # `_parse_cell_methods` for details.
                     ncvar = d["ncvar"]
                     if g["has_groups"]:
@@ -7375,9 +7376,9 @@ class NetCDFRead(IORead):
                     and qualifier in ("where", "over")
                     and value in g["coordinates"][field_ncvar]
                 ):
-                    # 'value' is a variable name, so store it in a
-                    # dictionary. Elsewhere, this dictionary will get
-                    # converted to a coordinate construct key.
+                    # 'value' is a netCDF variable name, so store it
+                    # in a dictionary. Elsewhere, this dictionary will
+                    # get converted to a coordinate construct key.
                     value = {"ncvar": value}
 
                 cm[qualifier] = value

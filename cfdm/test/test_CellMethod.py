@@ -1,3 +1,4 @@
+import atexit
 import datetime
 import faulthandler
 import os
@@ -24,6 +25,9 @@ def _remove_tmpfiles():
             os.remove(f)
         except OSError:
             pass
+
+
+atexit.register(_remove_tmpfiles)
 
 
 class CellMethodTest(unittest.TestCase):
