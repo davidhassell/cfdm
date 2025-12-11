@@ -528,6 +528,13 @@ class Constructs(abstract.Container):
 
                 ref.del_coordinate(key, None)
 
+            # Remove references to the removed construct in cell
+            # method constructs
+            for cm in self._construct_dict("cell_method").values():
+                for qualifier, value in cm.qualifiers().items():
+                    if key == value:
+                        cm.del_qualifier(key) # TODO delete anonaly_wrt cm totally
+            
         out = self._pop(key, None)
 
         if out is None:
