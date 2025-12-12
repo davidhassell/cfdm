@@ -4392,7 +4392,7 @@ class NetCDFWrite(IOWrite):
         # ------------------------------------------------------------
         if field:
             ancillary_variables = [
-                self._write_field_ancillary( f, key, anc )
+                self._write_field_ancillary(f, key, anc)
                 for key, anc in self.implementation.get_field_ancillaries(
                     f
                 ).items()
@@ -4458,7 +4458,7 @@ class NetCDFWrite(IOWrite):
         # ------------------------------------------------------------
         if field:
             norm_cms = {}
-            
+
             cell_methods = self.implementation.get_cell_methods(f)
             if cell_methods:
                 coordinates = None
@@ -4470,6 +4470,8 @@ class NetCDFWrite(IOWrite):
 
                 cell_methods_strings = []
                 for cm in list(cell_methods.values()):
+                    org_cm = cm.copy()
+
                     if not self.cf_cell_method_qualifiers().issuperset(
                         self.implementation.get_cell_method_qualifiers(cm)
                     ):
@@ -4479,7 +4481,7 @@ class NetCDFWrite(IOWrite):
                         )
 
                     method = cm.get_method(None)
-                
+
                     axes = [
                         axis_map.get(axis, axis)
                         for axis in self.implementation.get_cell_method_axes(
@@ -4493,6 +4495,13 @@ class NetCDFWrite(IOWrite):
                     qualifier = "norm"
                     fa_key = cm.get_qualifier(qualifier, None)
                     has_norm_qualifier = fa_key is not None
+                    if fa_key == "??":
+                        raise ValueError(
+                            f"Can't write {org_f!r}: Cell method "
+                            f"{org_cm!r} has missing {qualifier!r} "
+                            "field ancillary construct reference"
+                        )
+
                     if has_norm_qualifier and method == "anomaly_wrt":
                         field_ancillaries = f.field_ancillaries(
                             todict=True, cached=field_ancillaries
@@ -4508,6 +4517,13 @@ class NetCDFWrite(IOWrite):
                         if key is None:
                             continue
 
+                        if key == "??":
+                            raise ValueError(
+                                f"Can't write {org_f!r}: Cell method "
+                                f"{org_cm!r} has missing {qualifier!r} "
+                                "coordinate construct reference"
+                            )
+
                         coordinates = f.coordinates(
                             todict=True, cached=coordinates
                         )
@@ -4515,7 +4531,10 @@ class NetCDFWrite(IOWrite):
                             value = g["key_to_ncvar"][key]
                             cm.set_qualifier(qualifier, value)
 
-                    if has_norm_qualifier and method not in ("anomaly_wrt", None):
+                    if has_norm_qualifier and method not in (
+                        "anomaly_wrt",
+                        None,
+                    ):
                         # This cell method is describing a field
                         # ancillary that is acting as an anomaly norm
                         # variable => Pretend that its a cell method
@@ -4540,12 +4559,11 @@ class NetCDFWrite(IOWrite):
 
             # Add cell_methods attributes to ancillary variables
             for fa_key, cms in norm_cms.items():
-                cm_string =  " ".join(cms)
+                cm_string = " ".join(cms)
                 self._set_attributes(
-                    {'cell_methods': cm_string},
-                    g["key_to_ncvar"][fa_key]
+                    {"cell_methods": cm_string}, g["key_to_ncvar"][fa_key]
                 )
-            
+
         # ------------------------------------------------------------
         # Geometry container (CF>=1.8)
         # ------------------------------------------------------------

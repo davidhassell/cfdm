@@ -10,12 +10,12 @@ faulthandler.enable()  # to debug seg faults and timeouts
 import cfdm
 
 # Set up temporary files
-n_tmpfiles = 1
+n_tmpfiles = 2
 tmpfiles = [
     tempfile.mkstemp("_test_CellMethod.nc", dir=os.getcwd())[1]
     for i in range(n_tmpfiles)
 ]
-[tmpfile] = tmpfiles
+[tmpfile, tmpfile1] = tmpfiles
 
 
 def _remove_tmpfiles():
@@ -206,9 +206,9 @@ class CellMethodTest(unittest.TestCase):
         self.assertEqual(c0.get_qualifier("where"), key_x)
         self.assertEqual(c0.get_qualifier("over"), key_y)
 
-        # Check that the "within ... over ... over ... " did not get
-        # converted to construct keys, even though they had values of
-        # netCDF coordinate variable names.
+        # Check that the climatological "within ... over ... over
+        # ... " did not get converted to construct keys, even though
+        # they had values of netCDF coordinate variable names.
         self.assertEqual(c1.get_qualifier("within"), "ncvar_t")
         self.assertEqual(c2.get_qualifier("over"), "ncvar_x")
         self.assertEqual(c3.get_qualifier("over"), "ncvar_y")
@@ -217,6 +217,15 @@ class CellMethodTest(unittest.TestCase):
         # constructs keys after a climatology
         self.assertEqual(c4.get_qualifier("where"), key_x)
         self.assertEqual(c4.get_qualifier("over"), key_y)
+
+        # Test removing the coordinate construct
+        g.del_construct(key_y)
+        self.assertEqual(c4.get_qualifier("over"), "??")
+
+        with self.assertRaises(ValueError):
+            # Missing coordinate construct reference causes write
+            # failure
+            cfdm.write(g, tmpfile1)
 
     def test_CellMethod_field_ancillaries(self):
         """Test CellMethod with field ancillary-valued keys."""
@@ -243,15 +252,26 @@ class CellMethodTest(unittest.TestCase):
         cms = g.cell_methods(todict=True)
         self.assertEqual(len(cms), len(f.cell_methods()))
         cms = tuple(cms.items())
+        cm_anomaly_wrt = cms[-2][1]
 
         # Check that the last penultimate cell method is
         # "anomaly_wrt"
-        self.assertEqual(cms[-2][1].get_method(), "anomaly_wrt")
+        self.assertEqual(cm_anomaly_wrt.get_method(), "anomaly_wrt")
 
-        # Check that the last two cell methods have a "norm" of the
-        # field ancillary key
+        # Check that the last two cell methods have a "norm" equal to
+        # the field ancillary key
         for i in (-2, -1):
             self.assertEqual(cms[i][1].get_qualifier("norm"), key_fa)
+
+        # Test removing the field ancillary construct
+        g.del_construct(key_fa)
+        for i in (-2, -1):
+            self.assertEqual(cms[i][1].get_qualifier("norm"), "??")
+
+        with self.assertRaises(ValueError):
+            # Missing field ancillary construct reference causes write
+            # failure
+            cfdm.write(g, tmpfile1)
 
 
 if __name__ == "__main__":

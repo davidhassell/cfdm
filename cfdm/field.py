@@ -171,14 +171,12 @@ class Field(
             coordinates = None
             field_ancillaries = None
             norm_cms = []
-            fa_key = None
 
             x = []
             for cm in cell_methods.values():
                 cm = cm.copy()
-
                 method = cm.get_method(None)
-                
+
                 # Replace a domain axis construct identifers with
                 # their identities
                 cm.set_axes(
