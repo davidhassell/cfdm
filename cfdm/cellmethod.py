@@ -63,10 +63,10 @@ class CellMethod(mixin.Container, core.CellMethod):
 
         string.append(self.get_method(""))
 
-        for portion in ("within", "where", "over"):
-            q = self.get_qualifier(portion, None)
-            if q is not None:
-                string.extend((portion, q))
+        for qualifier in ("within", "where", "over"):
+            value = self.get_qualifier(qualifier, None)
+            if value is not None:
+                string.extend((qualifier, value))
 
         interval = self.get_qualifier("interval", ())
         comment = self.get_qualifier("comment", None)

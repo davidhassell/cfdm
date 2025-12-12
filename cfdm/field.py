@@ -217,7 +217,7 @@ class Field(
             self._print_construct(
                 key, c, self.constructs.data_axes()[key], axis_names
             )
-            for key, c in sorted(self.field_ancillaries(todict=True).iqtems())
+            for key, c in sorted(self.field_ancillaries(todict=True).items())
         ]
         if x:
             field_ancils = "\n                : ".join(x)

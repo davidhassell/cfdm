@@ -531,9 +531,12 @@ class Constructs(abstract.Container):
             # Remove references to the removed construct in cell
             # method constructs
             for cm in self._construct_dict("cell_method").values():
-                for qualifier, value in cm.qualifiers().items():
-                    if key == value:
-                        cm.del_qualifier(key) # TODO delete anonaly_wrt cm totally
+                for qualifier in ("where", "over"): 
+                    if key == cm.get_qualifier(qualifier, None):
+                        # Set the qualifier value to "??", which will
+                        # cause an exception to be raised if the cell
+                        # method is ever written to a dataset.
+                        cm.set_qualifier(qualifier, "??")
             
         out = self._pop(key, None)
 
