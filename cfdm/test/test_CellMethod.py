@@ -220,7 +220,7 @@ class CellMethodTest(unittest.TestCase):
 
         # Test removing the coordinate construct
         g.del_construct(key_y)
-        self.assertEqual(c4.get_qualifier('over'), '??')
+        self.assertEqual(c4.get_qualifier("over"), "??")
 
         with self.assertRaises(ValueError):
             # Missing coordinate construct reference causes write

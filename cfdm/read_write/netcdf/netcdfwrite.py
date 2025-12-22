@@ -4462,7 +4462,7 @@ class NetCDFWrite(IOWrite):
                 cell_methods_strings = []
                 for cm in list(cell_methods.values()):
                     org_cm = cm.copy()
-                    
+
                     if not self.cf_cell_method_qualifiers().issuperset(
                         self.implementation.get_cell_method_qualifiers(cm)
                     ):
@@ -4486,7 +4486,7 @@ class NetCDFWrite(IOWrite):
                         if value is None:
                             continue
 
-                        if value == "??":                            
+                        if value == "??":
                             raise ValueError(
                                 f"Can't write {org_f!r}: Cell method "
                                 f"{org_cm!r} has missing {qualifier!r} "

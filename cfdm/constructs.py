@@ -327,7 +327,7 @@ class Constructs(Container, core_Constructs):
                     # time.
                     if coordinates:
                         self._set_climatology(coordinates=coordinates)
-            
+
         return out
 
     @_manage_log_level_via_verbosity
