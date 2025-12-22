@@ -4388,7 +4388,8 @@ class NetCDFWrite(IOWrite):
         # Create the 'ancillary_variables' CF attribute and create the
         # referenced dataset ancillary variables.
         #
-        # Include any cell methods defined for the field ancillaries.
+        # These will not have any cell methods yet: cell_methods
+        # attributes, if required, will get added later.
         # ------------------------------------------------------------
         if field:
             ancillary_variables = [
@@ -4498,8 +4499,8 @@ class NetCDFWrite(IOWrite):
                     if fa_key == "??":
                         raise ValueError(
                             f"Can't write {org_f!r}: Cell method "
-                            f"{org_cm!r} has missing {qualifier!r} "
-                            "field ancillary construct reference"
+                            f"{org_cm!r} has missing reference to a "
+                            "field ancillary construct"
                         )
 
                     if has_norm_qualifier and method == "anomaly_wrt":
@@ -4520,8 +4521,8 @@ class NetCDFWrite(IOWrite):
                         if key == "??":
                             raise ValueError(
                                 f"Can't write {org_f!r}: Cell method "
-                                f"{org_cm!r} has missing {qualifier!r} "
-                                "coordinate construct reference"
+                                f"{org_cm!r} has missing reference to a "
+                                "coordinate construct"
                             )
 
                         coordinates = f.coordinates(
@@ -4557,7 +4558,9 @@ class NetCDFWrite(IOWrite):
 
                 extra["cell_methods"] = cell_methods
 
+            # --------------------------------------------------------
             # Add cell_methods attributes to ancillary variables
+            # --------------------------------------------------------
             for fa_key, cms in norm_cms.items():
                 cm_string = " ".join(cms)
                 self._set_attributes(

@@ -7318,16 +7318,16 @@ class NetCDFRead(IORead):
                 .. versionadded:: (cfdm) NEXTVERSION
 
             ncvar_type: `str`, optional
-                The type of variable to which that contains the cell
-                methods. Either ``'data'`` (the default) or
+                The type of CF-netCDF variable to which that contains
+                the cell methods. Either ``'data'`` (the default) or
                 ``'norm'``.
 
-                E.g. if
                 .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             `list` of `dict`
+                The parsed cell methods.
 
         **Examples**
 
@@ -7340,7 +7340,6 @@ class NetCDFRead(IORead):
         >>> r.__parse_cell_methods('x: mean (interval: 1 day comment: ok) grid_latitude: maximum where sea')
         [{'axes': ['x'], 'method': 'mean', 'comment': 'ok', 'interval': [<Data(): 1 day>]},
          {'axes': ['grid_latitude'], 'method': 'maximum', 'where': 'sea'}]
-
 
         >>> r._parse_cell_methods('y: x: mean where land (interval: 0.1 degrees) time: maximum area: anomaly_wrt air_temperature_standard_error')
         [{'axes': ['y', 'x'], 'method': 'mean', 'where': 'land', 'interval': [<Data(): 0.1 degrees>]},
@@ -7361,7 +7360,10 @@ class NetCDFRead(IORead):
             "is incorrectly formatted",
         )
 
+        # The output parsed cell methods
         out = []
+
+        # Parsed cell methods for ancillary variables
         norm_cms = []
 
         if not cell_methods_string:
