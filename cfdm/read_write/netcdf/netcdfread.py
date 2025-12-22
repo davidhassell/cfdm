@@ -7290,7 +7290,7 @@ class NetCDFRead(IORead):
         field_ncvar=None,
         f=None,
         ncvar=None,
-        ncvar_type=None,
+        ncvar_type="data",
     ):
         """Parse a CF cell_methods string.
 
@@ -7299,11 +7299,31 @@ class NetCDFRead(IORead):
         :Parameters:
 
             cell_methods_string: `str`
-                A CF cell methods string.
+                A CF-netCDF cell methods string.
 
             field_ncvar: `str`, optional
                 The netCDF name of the data variable that contains the
-                cell methods.
+                cell methods, or which references the variable that
+                contains the cell methods (see *ncvar* and
+                *ncvar_type*).
+
+            f: `Field`, optional
+                The field construct to which the cell methods apply.
+
+            ncvar: `str` or `None`, optional
+                The netCDF name of the variable that contains the cell
+                methods. If `None` (the default) then *ncvar* is
+                assumed to be the same as *field_ncvar*.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            ncvar_type: `str`, optional
+                The type of variable to which that contains the cell
+                methods. Either ``'data'`` (the default) or
+                ``'norm'``.
+
+                E.g. if
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -7311,8 +7331,21 @@ class NetCDFRead(IORead):
 
         **Examples**
 
-        >>> c = parse_cell_methods('t: minimum within years '
-        ...                        't: mean over ENSO years)')
+        >>> r._parse_cell_methods('area: mean')
+        [{'axes': ['area'], 'method': 'mean'}]
+
+        >>> r._parse_cell_methods('time: minimum')
+        [{'axes': ['time'], 'method': 'minimum'}]
+
+        >>> r.__parse_cell_methods('x: mean (interval: 1 day comment: ok) grid_latitude: maximum where sea')
+        [{'axes': ['x'], 'method': 'mean', 'comment': 'ok', 'interval': [<Data(): 1 day>]},
+         {'axes': ['grid_latitude'], 'method': 'maximum', 'where': 'sea'}]
+
+
+        >>> r._parse_cell_methods('y: x: mean where land (interval: 0.1 degrees) time: maximum area: anomaly_wrt air_temperature_standard_error')
+        [{'axes': ['y', 'x'], 'method': 'mean', 'where': 'land', 'interval': [<Data(): 0.1 degrees>]},
+         {'axes': ['time'], 'method': 'maximum'}, {'axes': ['area'], 'method': 'anomaly_wrt', 'norm': {'ncvar': 'air_temperature_standard_error'}},
+         {'norm': {'ncvar': 'air_temperature_standard_error'}, 'axes': ['time'], 'method': 'minimum'}]
 
         """
         import re
@@ -7372,9 +7405,9 @@ class NetCDFRead(IORead):
 
                 axes.append(axis)
 
-            if ncvar_type is not None:
-                # Record a qualifier that designates a non-field cell
-                # method
+            if ncvar_type != "data":
+                # Designate this cell method as not applying directly
+                # to the data variable
                 cm[ncvar_type] = {"ncvar": ncvar}
 
             cm["axes"] = axes

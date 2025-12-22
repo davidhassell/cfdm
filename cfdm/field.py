@@ -232,9 +232,9 @@ class Field(
                     # that is acting as an anomaly norm variable =>
                     # Pretend that its a cell method of the field
                     # itself so that the string doesn't look like
-                    # '...[...]', because we're controlling that here
-                    # after all anomaly norm cell methods in this
-                    # batch have been processed.
+                    # '...[...]', because we're going to format with
+                    # 'norm[...]' once we've parsed all of the cell
+                    # methods that apply to the same field ancillary.
                     cm.del_qualifier("norm")
                     norm_cms.append(str(cm))
                 else:

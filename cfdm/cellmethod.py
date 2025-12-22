@@ -44,26 +44,19 @@ class CellMethod(mixin.Container, core.CellMethod):
     def __str__(self):
         """Called by the `str` built-in function.
 
-                x.__str__() <==> str(x)
+        x.__str__() <==> str(x)
 
-                Returns a CF-netCDF-like string of the cell method.
+        Returns a CF-netCDF-like string of the cell method.
 
-        <<<<<<< HEAD
-                .. note:: Domain axis, coordinate, and field ancillary
-                          contructs are specified by their construct
-                          identifiers (e.g. domainaxis2, auxiliarycooridnate1,
-                          and fieldancillary0 respectively). If the intention
-        =======
-                .. note:: Domain axis and coordinate contructs are specified
-                          by their construct identifiers (e.g. domainaxis2 and
-                          auxiliarycooridnate1 respectively). If the intention
-        >>>>>>> cell-method-link-cooridnates
-                          is to use this string as a CF-netCDF cell_methods
-                          attribute then these construct identifiers will need
-                          to be replaced with netCDF dimension or variable
-                          names.
+        .. note:: Domain axis, coordinate, and field ancillary
+                  constructs are specified by their construct
+                  identifiers (e.g. domainaxis2, auxiliarycooridnate1,
+                  fieldancillary0). If the intention is to use this
+                  string as a CF-netCDF cell_methods attribute then
+                  these construct identifiers will need to be replaced
+                  with netCDF dimension or variable names.
 
-                .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) 1.7.0
 
         """
         out = [f"{axis}:" for axis in self.get_axes(())]
