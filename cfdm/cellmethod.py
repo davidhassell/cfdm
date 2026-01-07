@@ -101,7 +101,7 @@ class CellMethod(mixin.Container, core.CellMethod):
         if method != "anomaly_wrt":
             norm = self.get_qualifier("norm", None)
             if norm is not None:
-                # Mark this cell method as applying to a field
+                # Indicate that this cell method applies to a field
                 # ancillary representing an anomaly norm variable
                 out = f"{norm}[{out}]"
 

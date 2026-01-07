@@ -220,12 +220,7 @@ class CellMethodTest(unittest.TestCase):
 
         # Test removing the coordinate construct
         g.del_construct(key_y)
-        self.assertEqual(c4.get_qualifier("over"), "??")
-
-        with self.assertRaises(ValueError):
-            # Missing coordinate construct reference causes write
-            # failure
-            cfdm.write(g, tmpfile1)
+        self.assertFalse(c4.has_qualifier("over"))
 
     def test_CellMethod_field_ancillaries(self):
         """Test CellMethod with field ancillary-valued keys."""
@@ -266,12 +261,7 @@ class CellMethodTest(unittest.TestCase):
         # Test removing the field ancillary construct
         g.del_construct(key_fa)
         for i in (-2, -1):
-            self.assertEqual(cms[i][1].get_qualifier("norm"), "??")
-
-        with self.assertRaises(ValueError):
-            # Missing field ancillary construct reference causes write
-            # failure
-            cfdm.write(g, tmpfile1)
+            self.assertFalse(cms[i][1].has_qualifier("norm"))
 
 
 if __name__ == "__main__":

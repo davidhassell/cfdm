@@ -247,6 +247,7 @@ class Field(
                         # the output list
                         norm = " ".join(norm_cms)
                         x.append(f"norm[{norm}]")
+
                         # Reset the list, ready for another field
                         # ancillary.
                         norm_cms = []

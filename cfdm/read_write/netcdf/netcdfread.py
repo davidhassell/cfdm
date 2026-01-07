@@ -7290,7 +7290,7 @@ class NetCDFRead(IORead):
         field_ncvar=None,
         f=None,
         ncvar=None,
-        ncvar_type="data",
+        parent_type="data",
     ):
         """Parse a CF cell_methods string.
 
@@ -7305,19 +7305,19 @@ class NetCDFRead(IORead):
                 The netCDF name of the data variable that contains the
                 cell methods, or which references the variable that
                 contains the cell methods (see *ncvar* and
-                *ncvar_type*).
+                *parent_type*).
 
             f: `Field`, optional
                 The field construct to which the cell methods apply.
 
             ncvar: `str` or `None`, optional
-                The netCDF name of the variable that contains the cell
-                methods. If `None` (the default) then *ncvar* is
-                assumed to be the same as *field_ncvar*.
+                The netCDF name of the parent variable that contains
+                the cell methods. If `None` (the default) then *ncvar*
+                is assumed to be the same as *field_ncvar*.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            ncvar_type: `str`, optional
+            parent_type: `str`, optional
                 The type of CF-netCDF variable to which that contains
                 the cell methods. Either ``'data'`` (the default) or
                 ``'norm'``.
@@ -7407,10 +7407,10 @@ class NetCDFRead(IORead):
 
                 axes.append(axis)
 
-            if ncvar_type != "data":
+            if parent_type != "data":
                 # Designate this cell method as not applying directly
                 # to the data variable
-                cm[ncvar_type] = {"ncvar": ncvar}
+                cm[parent_type] = {"ncvar": ncvar}
 
             cm["axes"] = axes
 
@@ -7446,7 +7446,7 @@ class NetCDFRead(IORead):
                             norm_cell_methods_string,
                             field_ncvar,
                             ncvar=value,
-                            ncvar_type="norm",
+                            parent_type="norm",
                         )
 
                         # Remove the cell_methods property from the
