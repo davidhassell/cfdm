@@ -188,24 +188,24 @@ class Field(
                 # Replace coordinate construct identifers with their
                 # identities
                 for qualifier in ("where", "over"):
-                    value = cm.get_qualifier(qualifier, None)
-                    if value is None:
+                    key = cm.get_qualifier(qualifier, None)
+                    if key is None:
                         continue
 
                     coordinates = self.coordinates(
                         todict=True, cached=coordinates
                     )
-                    for key, c in coordinates.items():
-                        if value == key:
-                            value = self._print_construct(
-                                key,
-                                c,
-                                self.constructs.data_axes()[key],
-                                axis_names,
-                                append_data=False,
-                            )
-                            cm.set_qualifier(qualifier, value)
+                    if key in coordinates:
+                        value = self._print_construct(
+                            key,
+                            coordinates[key],
+                            self.constructs.data_axes()[key],
+                            axis_names,
+                            append_data=False,
+                        )
+                        cm.set_qualifier(qualifier, value)
 
+                # Now add the cell method to the output list
                 x.append(str(cm))
 
             c = " ".join(x)

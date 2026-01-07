@@ -59,14 +59,14 @@ class CellMethod(mixin.Container, core.CellMethod):
         .. versionadded:: (cfdm) 1.7.0
 
         """
-        string = [f"{axis}:" for axis in self.get_axes(())]
+        out = [f"{axis}:" for axis in self.get_axes(())]
 
-        string.append(self.get_method(""))
+        out.append(self.get_method(""))
 
         for qualifier in ("within", "where", "over"):
             value = self.get_qualifier(qualifier, None)
             if value is not None:
-                string.extend((qualifier, value))
+                out.extend((qualifier, value))
 
         interval = self.get_qualifier("interval", ())
         comment = self.get_qualifier("comment", None)
@@ -82,12 +82,12 @@ class CellMethod(mixin.Container, core.CellMethod):
 
             x.append(")")
 
-            string.append("".join(x))
+            out.append("".join(x))
 
         elif comment is not None:
-            string.append(f"({comment})")
+            out.append(f"({comment})")
 
-        return " ".join(string)
+        return " ".join(out)
 
     def _identities_iter(self):
         """Return all possible identities.

@@ -7294,8 +7294,15 @@ class NetCDFRead(IORead):
 
         **Examples**
 
-        >>> c = parse_cell_methods('t: minimum within years '
-        ...                        't: mean over ENSO years)')
+        >>> r._parse_cell_methods('area: mean')
+        [{'axes': ['area'], 'method': 'mean'}]
+
+        >>> r._parse_cell_methods('time: minimum')
+        [{'axes': ['time'], 'method': 'minimum'}]
+
+        >>> r.__parse_cell_methods('x: mean (interval: 1 day comment: ok) grid_latitude: maximum where sea')
+        [{'axes': ['x'], 'method': 'mean', 'comment': 'ok', 'interval': [<Data(): 1 day>]},
+         {'axes': ['grid_latitude'], 'method': 'maximum', 'where': 'sea'}]
 
         """
         import re
