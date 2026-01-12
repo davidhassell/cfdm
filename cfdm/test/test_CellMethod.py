@@ -209,18 +209,27 @@ class CellMethodTest(unittest.TestCase):
         key = f.field_ancillary(key=True)
 
         # Set up a test cell method
-        c0 = cfdm.CellMethod(axes=("area",), method="anomaly_wrt")
-        c0.set_qualifier("norm", key)
+        c2= cfdm.CellMethod(axes=("area",), method="anomaly_wrt")
+        c2.set_qualifier("norm", key)
 
-        c1 = cfdm.CellMethod(axes=("time",), method="minimum")
-        c1.set_qualifier("norm", key)
+        c3 = cfdm.CellMethod(axes=("time",), method="minimum")
+        c3.set_qualifier("norm", key)
 
-        f.set_construct(c0)
-        f.set_construct(c1)
+        f.set_construct(c2)
+        f.set_construct(c3)
+
+        c4 = cfdm.CellMethod(axes=("time",), method="mean")
+        f.set_construct(c4)
 
         # Write to disk and read back in
         cfdm.write(f, tmpfile)
         g = cfdm.read(tmpfile)[0]
+
+
+        print(g)
+
+        print(g.cell_methods())
+        print(g.dump())
 
         key_fa = f.field_ancillary(key=True)
 

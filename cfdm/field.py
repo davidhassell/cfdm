@@ -246,7 +246,7 @@ class Field(
                         # to an anomaly norm variable, and add them to
                         # the output list
                         norm = " ".join(norm_cms)
-                        x.append(f"norm[{norm}]")
+                        x[-1] += f"[{norm}]"
 
                         # Reset the list, ready for another field
                         # ancillary.
@@ -258,7 +258,7 @@ class Field(
 
             if norm_cms:
                 norm = " ".join(norm_cms)
-                x.append(f"norm[{norm}]")
+                x[-1] += f"[{norm}]"
 
             c = " ".join(x)
 
@@ -1904,6 +1904,7 @@ class Field(
         axis_to_name = self._unique_domain_axis_identities()
 
         constructs_data_axes = self.constructs.data_axes()
+        construct_names = self._unique_construct_names()
 
         # Simple properties
         properties = self.properties()
@@ -1940,9 +1941,11 @@ class Field(
             string.append(q.dump(display=False, _level=_level))
             string.append("")
 
+        field_ancillaries = self.field_ancillaries(todict=True)
+        
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
-        if cell_methods:
+        if cell_methods:         
             for cm in cell_methods.values():
                 cm = cm.copy()
                 cm.set_axes(
@@ -1953,12 +1956,22 @@ class Field(
                         ]
                     )
                 )
+
+                # Replace a field ancillary construct identifer
+                qualifier = "norm"
+                key = cm.get_qualifier(qualifier, None)
+                has_norm_qualifier = key is not None
+                if has_norm_qualifier:
+                    if key in field_ancillaries:
+                        value = f"Field Ancillary: {construct_names[key]}"
+                        cm.set_qualifier(qualifier, value)
+
                 string.append(cm.dump(display=False, _level=_level))
 
             string.append("")
 
         # Field ancillaries
-        for cid, value in sorted(self.field_ancillaries(todict=True).items()):
+        for cid, value in sorted(field_ancillaries.items()):
             string.append(
                 value.dump(
                     display=False,
