@@ -201,6 +201,7 @@ class Field(
                             coordinates[key],
                             self.constructs.data_axes()[key],
                             axis_names,
+                            append_axes=False,
                             append_data=False,
                         )
                         cm.set_qualifier(qualifier, value)
@@ -1852,6 +1853,7 @@ class Field(
         axis_to_name = self._unique_domain_axis_identities()
 
         constructs_data_axes = self.constructs.data_axes()
+        construct_names = self._unique_construct_names()
 
         # Simple properties
         properties = self.properties()
@@ -1891,6 +1893,8 @@ class Field(
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
         if cell_methods:
+            coordinates = None
+
             for cm in cell_methods.values():
                 cm = cm.copy()
                 cm.set_axes(
@@ -1901,6 +1905,23 @@ class Field(
                         ]
                     )
                 )
+                # Replace coordinate construct identifers
+                for qualifier in ("where", "over"):
+                    key = cm.get_qualifier(qualifier, None)
+                    if key is None:
+                        continue
+
+                    coordinates = self.coordinates(
+                        todict=True, cached=coordinates
+                    )
+                    if key in coordinates:
+                        construct_type = coordinates[key].construct_type
+                        construct_type = construct_type.replace(
+                            "_", " "
+                        ).capitalize()
+                        value = f"<{construct_type}: {construct_names[key]}>"
+                        cm.set_qualifier(qualifier, value)
+
                 string.append(cm.dump(display=False, _level=_level))
 
             string.append("")
