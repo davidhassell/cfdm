@@ -168,6 +168,9 @@ class CellMethodTest(unittest.TestCase):
         c0.set_qualifier("where", key_x)
         c0.set_qualifier("over", key_y)
 
+        # Climatological "within ... over ... over ... " should not
+        # get converted to construct keys, even when they have values
+        # that are netCDF coordinate variable names.
         c1 = cfdm.CellMethod(
             axes=("time",), method="mean", qualifiers={"within": "ncvar_t"}
         )
@@ -188,39 +191,16 @@ class CellMethodTest(unittest.TestCase):
         cfdm.write(f, tmpfile)
         g = cfdm.read(tmpfile)[0]
 
-        key_x = g.coordinate("longitude", key=True)
-        key_y = g.coordinate("latitude", key=True)
-
-        cms = g.cell_methods(todict=True)
-        self.assertEqual(len(cms), 5)
-
-        cms = tuple(cms.items())
-        c0 = cms[0][1]
-        c1 = cms[1][1]
-        c2 = cms[2][1]
-        c3 = cms[3][1]
-        c4 = cms[4][1]
-
-        # Check that the "where ... over ..." got converted to
-        # constructs keys before a climatology
-        self.assertEqual(c0.get_qualifier("where"), key_x)
-        self.assertEqual(c0.get_qualifier("over"), key_y)
-
-        # Check that the climatological "within ... over ... over
-        # ... " did not get converted to construct keys, even though
-        # they had values of netCDF coordinate variable names.
-        self.assertEqual(c1.get_qualifier("within"), "ncvar_t")
-        self.assertEqual(c2.get_qualifier("over"), "ncvar_x")
-        self.assertEqual(c3.get_qualifier("over"), "ncvar_y")
-
-        # Check that the "where ... over ..." got converted to
-        # constructs keys after a climatology
-        self.assertEqual(c4.get_qualifier("where"), key_x)
-        self.assertEqual(c4.get_qualifier("over"), key_y)
+        self.assertTrue(f.cell_methods().equals(g.cell_methods()))
 
         # Test removing the coordinate construct
+        cms = g.cell_methods(todict=True)
+        cms = tuple(cms.items())
+        cm0 = cms[0][1]
+        cm4 = cms[4][1]
         g.del_construct(key_y)
-        self.assertFalse(c4.has_qualifier("over"))
+        self.assertFalse(cm0.has_qualifier("over"))
+        self.assertFalse(cm4.has_qualifier("over"))
 
     def test_CellMethod_field_ancillaries(self):
         """Test CellMethod with field ancillary-valued keys."""
