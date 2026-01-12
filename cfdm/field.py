@@ -203,9 +203,10 @@ class Field(
                             field_ancillaries[key],
                             self.constructs.data_axes()[key],
                             axis_names,
+                            append_axes=False,
                             append_data=False,
                         )
-                        cm.set_qualifier(qualifier, value)
+                        cm.set_qualifier(qualifier, f"<{value}")
 
                 # Replace coordinate construct identifers with their
                 # identities
@@ -223,9 +224,10 @@ class Field(
                             coordinates[key],
                             self.constructs.data_axes()[key],
                             axis_names,
+                            append_axes=False,
                             append_data=False,
                         )
-                        cm.set_qualifier(qualifier, value)
+                        cm.set_qualifier(qualifier, f"<{value}>")
 
                 if has_norm_qualifier and method not in ("anomaly_wrt", None):
                     # This cell method is describing a field ancillary
@@ -237,6 +239,8 @@ class Field(
                     # methods that apply to the same field ancillary.
                     cm.del_qualifier("norm")
                     norm_cms.append(str(cm))
+                #                    if x[-1][-1] == ">":
+                #                        x[-1] = x[-1][:-1]
                 else:
                     if norm_cms:
                         # This cell method is describing the field
@@ -246,7 +250,7 @@ class Field(
                         # to an anomaly norm variable, and add them to
                         # the output list
                         norm = " ".join(norm_cms)
-                        x[-1] += f"[{norm}]"
+                        x[-1] += f" [{norm}]>"
 
                         # Reset the list, ready for another field
                         # ancillary.
@@ -258,7 +262,8 @@ class Field(
 
             if norm_cms:
                 norm = " ".join(norm_cms)
-                x[-1] += f"[{norm}]"
+                x[-1] += f" [{norm}]>"
+            #                x[-1] = f"<{x[-1]} [{norm}]>"
 
             c = " ".join(x)
 
@@ -1942,10 +1947,12 @@ class Field(
             string.append("")
 
         field_ancillaries = self.field_ancillaries(todict=True)
-        
+
         # Cell methods
         cell_methods = self.cell_methods(todict=True)
-        if cell_methods:         
+        if cell_methods:
+            coordinates = None
+
             for cm in cell_methods.values():
                 cm = cm.copy()
                 cm.set_axes(
@@ -1957,14 +1964,32 @@ class Field(
                     )
                 )
 
+                # Replace coordinate construct identifers
+                for qualifier in ("where", "over"):
+                    key = cm.get_qualifier(qualifier, None)
+                    if key is None:
+                        continue
+
+                    coordinates = self.coordinates(
+                        todict=True, cached=coordinates
+                    )
+                    if key in coordinates:
+                        construct_type = coordinates[key].construct_type
+                        construct_type = construct_type.replace(
+                            "_", " "
+                        ).capitalize()
+                        value = f"<{construct_type}: {construct_names[key]}>"
+                        cm.set_qualifier(qualifier, value)
+
                 # Replace a field ancillary construct identifer
                 qualifier = "norm"
                 key = cm.get_qualifier(qualifier, None)
-                has_norm_qualifier = key is not None
-                if has_norm_qualifier:
-                    if key in field_ancillaries:
-                        value = f"Field Ancillary: {construct_names[key]}"
-                        cm.set_qualifier(qualifier, value)
+                if key in field_ancillaries:
+                    value = f"Field Ancillary: {construct_names[key]}"
+                    if cm.get_method(None) == "anomaly_wrt":
+                        value = f"<{value}>"
+
+                    cm.set_qualifier(qualifier, value)
 
                 string.append(cm.dump(display=False, _level=_level))
 

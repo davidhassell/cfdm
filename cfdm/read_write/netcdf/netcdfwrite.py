@@ -233,17 +233,26 @@ class NetCDFWrite(IOWrite):
         :Parameters:
 
             parent:
+                The `cfdm` object (such as `Field,
+                `DimensionCoordinate`, etc) that contains properties
+                to be written to the netCDF variable as attributes..
 
             ncvar: `str`
+                The netCDF variable name.
 
             extra: `dict`, optional
-                TODO
+                A dictionary of extra properties to write as variable
+                attributes.
 
             omit: sequence of `str`, optional
+                Any properties of *parent* and *extra* to be omitted
+                (i.e. not written to the variable).
 
         :Returns:
 
             `dict`
+                The attributes that were actually written to the
+                variable.
 
         """
         # To avoid mutable default argument (an anti-pattern) of extra={}
@@ -4518,9 +4527,9 @@ class NetCDFWrite(IOWrite):
                     ):
                         # This cell method is describing a field
                         # ancillary that is acting as an anomaly norm
-                        # variable => Pretend that its a cell method
+                        # variable => Pretend that it's a cell method
                         # of the field itself so that the string
-                        # doesn't look like '...[...]'.
+                        # doesn't look like '<... [...]>'.
                         cm.del_qualifier("norm")
                         norm_cms.setdefault(fa_key, []).append(
                             self.implementation.get_cell_method_string(cm)

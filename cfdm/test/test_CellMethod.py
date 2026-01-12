@@ -209,34 +209,32 @@ class CellMethodTest(unittest.TestCase):
         key = f.field_ancillary(key=True)
 
         # Set up a test cell method
-        c2= cfdm.CellMethod(axes=("area",), method="anomaly_wrt")
+        c2 = cfdm.CellMethod(axes=("area",), method="anomaly_wrt")
         c2.set_qualifier("norm", key)
 
         c3 = cfdm.CellMethod(axes=("time",), method="minimum")
         c3.set_qualifier("norm", key)
 
+        c4 = cfdm.CellMethod(axes=("time",), method="maximum")
+        c4.set_qualifier("norm", key)
+
         f.set_construct(c2)
         f.set_construct(c3)
-
-        c4 = cfdm.CellMethod(axes=("time",), method="mean")
         f.set_construct(c4)
+
+        c5 = cfdm.CellMethod(axes=("time",), method="mean")
+        f.set_construct(c5)
 
         # Write to disk and read back in
         cfdm.write(f, tmpfile)
         g = cfdm.read(tmpfile)[0]
-
-
-        print(g)
-
-        print(g.cell_methods())
-        print(g.dump())
 
         key_fa = f.field_ancillary(key=True)
 
         cms = g.cell_methods(todict=True)
         self.assertEqual(len(cms), len(f.cell_methods()))
         cms = tuple(cms.items())
-        cm_anomaly_wrt = cms[-2][1]
+        cm_anomaly_wrt = cms[2][1]
 
         # Check that the last penultimate cell method is
         # "anomaly_wrt"
@@ -244,12 +242,12 @@ class CellMethodTest(unittest.TestCase):
 
         # Check that the last two cell methods have a "norm" equal to
         # the field ancillary key
-        for i in (-2, -1):
+        for i in (2, 3, 4):
             self.assertEqual(cms[i][1].get_qualifier("norm"), key_fa)
 
         # Test removing the field ancillary construct
         g.del_construct(key_fa)
-        for i in (-2, -1):
+        for i in (2, 3, 4):
             self.assertFalse(cms[i][1].has_qualifier("norm"))
 
 

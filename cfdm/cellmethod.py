@@ -61,16 +61,19 @@ class CellMethod(mixin.Container, core.CellMethod):
         """
         out = [f"{axis}:" for axis in self.get_axes(())]
 
+        anomaly_wrt = False
+
         method = self.get_method(None)
         if method is not None:
             out.append(method)
 
             # Get a field ancillary representing an anomaly norm
             # variable
-            if method == "anomaly_wrt":
-                q = self.get_qualifier("norm", None)
-                if q is not None:
-                    out.append(q)
+            anomaly_wrt = method == "anomaly_wrt"
+            if anomaly_wrt:
+                norm = self.get_qualifier("norm", None)
+                if norm is not None:
+                    out.append(norm)
 
         for qualifier in ("within", "where", "over"):
             value = self.get_qualifier(qualifier, None)
@@ -98,12 +101,12 @@ class CellMethod(mixin.Container, core.CellMethod):
 
         out = " ".join(out)
 
-        if method != "anomaly_wrt":
+        if not anomaly_wrt:
             norm = self.get_qualifier("norm", None)
             if norm is not None:
                 # Indicate that this cell method applies to a field
                 # ancillary representing an anomaly norm variable
-                out = f"{norm}[{out}]"
+                out = f"<{norm}> {out}"
 
         return out
 
