@@ -8,7 +8,7 @@ Version NEXTVERSION
   (https://github.com/NCAS-CMS/cfdm/issues/369)
 
 ----
-  
+
 Version NEXTVERSION
 ----------------
 
