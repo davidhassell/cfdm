@@ -1086,6 +1086,7 @@ class Field(
                         ):
                             c_start = shape1 * i
                             c_end = c_start + shape1
+
                             last = sum(n > 0 for n in count[c_start:c_end])
 
                             end = start + last
@@ -1792,7 +1793,13 @@ class Field(
         return out
 
     @_display_or_return
-    def dump(self, data=True, display=True, _level=0, _title=None):
+    def dump(
+        self,
+        data=None,
+        display=True,
+        _level=0,
+        _title=None,
+    ):
         """A full description of the field construct.
 
         Returns a description of all properties, including those of
@@ -1803,19 +1810,7 @@ class Field(
 
         :Parameters:
 
-            data: `bool`, optional
-                If True (the default) then display the first and last
-                Field data values. This can take a long time if the
-                data needs an expensive computation (possibly
-                including a slow read from local or remote disk), in
-                which case setting *data* to False will not display
-                these values, thereby avoiding the computational
-                cost. This only applies to the Field's data - the
-                first and last values of data arrays stored in
-                metadata constructs are always displayed.
-
-                Note that when the first and last values are
-                displayed, they are cached for fast future retrieval.
+            {{data: `bool` or `None`, optional}}
 
                 .. versionadded:: (cfdm) 1.12.3.0
 
@@ -1864,22 +1859,7 @@ class Field(
         d = self.get_data(None)
         if d is not None:
             x = [axis_to_name[axis] for axis in self.get_data_axes(default=())]
-            x = f"{indent0}Data({', '.join(x)})"
-            if data:
-                # Show selected data values
-                x += f" = {d}"
-            else:
-                # Don't show any data values
-                units = d.Units
-                if units.isreftime:
-                    calendar = getattr(units, "calendar", None)
-                    if calendar is not None:
-                        x += f" {calendar}"
-                else:
-                    units = getattr(units, "units", None)
-                    if units is not None:
-                        x += f" {units}"
-
+            x = f"{indent0}Data({', '.join(x)}) = {d._str(data=data)}"
             string.append("")
             string.append(x)
             string.append("")
@@ -1930,6 +1910,7 @@ class Field(
         for cid, value in sorted(self.field_ancillaries(todict=True).items()):
             string.append(
                 value.dump(
+                    data=data,
                     display=False,
                     _axes=constructs_data_axes[cid],
                     _axis_names=axis_to_name,
@@ -1939,7 +1920,11 @@ class Field(
             string.append("")
 
         string.append(
-            self.get_domain().dump(display=False, _create_title=False)
+            self.get_domain().dump(
+                data=data,
+                display=False,
+                _create_title=False,
+            )
         )
 
         return "\n".join(string)
