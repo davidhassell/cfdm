@@ -462,7 +462,13 @@ class FieldDomain:
         return out
 
     def _print_construct(
-        self, key, construct, axes, axis_names, append_data=True
+        self,
+        key,
+        construct,
+        axes,
+        axis_names,
+        append_axes=True,
+        append_data=True,
     ):
         """Create one-line description of a construct.
 
@@ -488,9 +494,15 @@ class FieldDomain:
                 ``{'domainaxis0': 'latitude(5)','domainaxis1':
                 'longitude(8)'}``.
 
+            append_axes: `bool`, optional
+                If True (the default) then add the axes description to
+                the string (e.g. ``(8)``, ``(grid_latitude(10),
+                grid_longitude(9))``). If False then do not do this.
+
             append_data: `bool`, optional
-                If True (the default) then add a data description
-                to the string. If False then do not do this.
+                If True (the default) then add a data description to
+                the string (e.g. `` = [[0.76, ..., 0.32]] K``). If
+                False then do not do this.
 
         :Returns:
 
@@ -499,7 +511,7 @@ class FieldDomain:
         """
         x = [construct.identity(default=f"key%{key}")]
 
-        if construct.has_data():
+        if append_axes and construct.has_data():
             shape = [axis_names[axis] for axis in axes]
             data = construct.get_data()
             ndim = data.ndim
@@ -510,7 +522,8 @@ class FieldDomain:
             shape = shape.replace(",)", ")")
             x.append(shape)
         elif (
-            construct.construct_type
+            append_axes
+            and construct.construct_type
             in ("auxiliary_coordinate", "domain_ancillary")
             and construct.has_bounds()
             and construct.bounds.has_data()
