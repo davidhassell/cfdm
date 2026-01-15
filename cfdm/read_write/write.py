@@ -17,7 +17,7 @@ class write(ReadWrite):
 
     **Dataset variable and dimension names**
 
-    These names are stored within constructs and are either read a
+    These names are stored within constructs and are either read
     from another dataset or may be set manually. They are used when
     writing a field construct to the dataset. If a name has not been
     set then one will be constructed (usually based on the standard
@@ -149,7 +149,7 @@ class write(ReadWrite):
 
         mode: `str`, optional
             Specify the mode of write access for the output
-            datset. One of:
+            dataset. One of:
 
             ========  =================================================
             *mode*    Description
@@ -195,6 +195,8 @@ class write(ReadWrite):
                         and can appear as extra fields. Set them on the
                         resultant fields using `set_domain_ancillary`
                         and similar methods if required.
+
+                      .. note: Zarr datasets can not be appended to.
 
             ``'r+'``  Alias for ``'a'``.
 
@@ -346,7 +348,7 @@ class write(ReadWrite):
             ``'little'``, ``'big'`` or ``'native'``. By default the
             output is native endian. See the `netCDF4 package
             <http://unidata.github.io/netcdf4-python>`_ for more
-            details. Ignored for Zarr datsets.
+            details. Ignored for Zarr datasets.
 
             *Parameter example:*
               ``endian='big'``
@@ -569,7 +571,7 @@ class write(ReadWrite):
 
             * ``'contiguous'``
 
-              The data will written to the dataset contiguously,
+              The data will be written to the dataset contiguously,
               i.e. no chunking. For a Zarr dataset, this is
               implemented as a single dataset chunk for the entire
               array.
@@ -630,7 +632,7 @@ class write(ReadWrite):
             storing the dataset chunks.
 
             The *dataset_shards* parameter is ignored when writing to
-            a non-Zarr datset.
+            a non-Zarr dataset.
 
             If any `Data` being written already stores its own dataset
             sharding strategy (i.e. its `Data.nc_dataset_shards`
@@ -648,7 +650,7 @@ class write(ReadWrite):
 
               The integer number of dataset chunks to be stored in a
               single shard, favouring an equal number of dataset
-              chunks along each shard dimenson.
+              chunks along each shard dimension.
 
             *Example:*
               For two-dimensional data, ``dataset_shards=9`` will
@@ -767,7 +769,7 @@ class write(ReadWrite):
               URIs). If ``'absolute'`` then all fragment dataset names
               will be written as absolute URIs. If ``'relative'`` then
               all fragment dataset names will be written as
-              relative-path URI references URIs, relative to the
+              relative-path URI references, relative to the
               location of the aggregation dataset.
 
             * ``'strict'``: `bool`
@@ -784,7 +786,7 @@ class write(ReadWrite):
             Define the CF data model implementation that defines field
             and metadata constructs and their components.
 
-        filename: Deprecated at version NEXTVERSION
+        filename: Deprecated at version 1.13.0.0
             Use *dataset_name* instead.
 
     :Returns:

@@ -1,6 +1,7 @@
-Version NEXTVERSION
+Version 1.13.0.0
+----------------
 
-**2026-01-??**
+**2026-01-15**
 
 * Handle the more general CF cell methods convention for statistics
   applying to portions of cells
@@ -10,10 +11,25 @@ Version NEXTVERSION
   (https://github.com/NCAS-CMS/cfdm/issues/354)
 * Read Zarr v2 and v3 datasets that contain a group hierarchy with
   `cfdm.read` (https://github.com/NCAS-CMS/cfdm/issues/355)
-* New optional dependency: ``zarr>=3.1.3``
-* Removed dependency (now optional): ``zarr>=3.0.8``
+* New function `cfdm.dataset_flatten` that replaces the deprecated
+  `cfdm.netcdf_flatten` (https://github.com/NCAS-CMS/cfdm/issues/355)
+* Raise `IndexError` for out-of-range indices in a value-setting
+  operation on a data array (https://github.com/NCAS-CMS/cfdm/issues/377)
+* New function to control the creation of cached elements during data
+  display: `cfdm.display_data`
+  (https://github.com/NCAS-CMS/cfdm/issues/363)
+* New methods: `cfdm.Data.get_cached_elements`,
+  `cfdm.Data.cache_elements`
+  (https://github.com/NCAS-CMS/cfdm/issues/363)
+* Set cached elements during `cfdm.Data.__init__`
+  (https://github.com/NCAS-CMS/cfdm/issues/363)
+* Removed the `cfdm.constants.CONSTANTS` dictionary, replacing it
+  with `cfdm.ConstantAccess.constants`
+  (https://github.com/NCAS-CMS/cfdm/issues/361)
 * Reduce the time taken to import `cfdm`
   (https://github.com/NCAS-CMS/cfdm/issues/361)
+* New optional dependency: ``zarr>=3.1.3``
+* Removed dependency (now optional): ``zarr>=3.0.8``
 
 ----
 

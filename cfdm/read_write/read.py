@@ -172,7 +172,7 @@ class read(ReadWrite):
 
         {{read store_dataset_shards: `bool`, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.0.0
 
         {{read cfa: `dict`, optional}}
 
@@ -196,7 +196,7 @@ class read(ReadWrite):
 
         {{read group_dimension_search: `str`, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.0.0
 
         ignore_unknown_type: Deprecated at version 1.12.2.0
             Use *dataset_type* instead.
@@ -381,7 +381,7 @@ class read(ReadWrite):
                 if isdir(x):
                     if is_zarr(x):
                         # This directory is a Zarr dataset, so don't
-                        # look in any subdirectories, which we contain
+                        # look in any subdirectories, which contain
                         # the dataset chunks (but note - it is allowed
                         # for non-chunk subdirectories to exist, but
                         # if they do we're going to ignore them!).

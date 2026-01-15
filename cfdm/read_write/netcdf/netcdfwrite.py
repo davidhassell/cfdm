@@ -80,7 +80,7 @@ class NetCDFWrite(IOWrite):
 
         :Parameters:
 
-            parent: `netCDF4.Dateset` or `netCDF4.Group` or `Zarr.Group`
+            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
                 The group in which to create the new group.
 
             group_name: `str`
@@ -311,7 +311,7 @@ class NetCDFWrite(IOWrite):
     def _set_attributes(self, attributes, ncvar=None, group=None):
         """Set dataset attributes on a variable or group.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
@@ -518,7 +518,7 @@ class NetCDFWrite(IOWrite):
     def _createDimension(self, group, ncdim, size):
         """Create a dataset dimension in group.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
@@ -1025,7 +1025,7 @@ class NetCDFWrite(IOWrite):
         :Returns:
 
             `dict`
-                A representation off the CF geometry container
+                A representation of the CF geometry container
                 variable for field construct. If there is no geometry
                 container then the dictionary is empty.
 
@@ -1313,7 +1313,7 @@ class NetCDFWrite(IOWrite):
                 bounds dimension).
 
             coord_ncvar: `str`
-                The datset variable name of the parent variable
+                The dataset variable name of the parent variable
 
         :Returns:
 
@@ -2429,7 +2429,7 @@ class NetCDFWrite(IOWrite):
     def _write_cell_measure(self, f, key, cell_measure):
         """Write a cell measure construct to the dataset.
 
-        If an identical construct has already in the dataset then the
+        If an identical construct is already in the dataset then the
         cell measure will not be written.
 
         :Parameters:
@@ -2589,8 +2589,8 @@ class NetCDFWrite(IOWrite):
 
                 contiguous = kwargs.get("contiguous")
 
-                NETCDF4 = g["dataset"].data_model.startswith("NETCDF4")
-                if NETCDF4 and contiguous:
+                is_netcdf4 = g["dataset"].data_model.startswith("NETCDF4")
+                if is_netcdf4 and contiguous:
                     # NETCDF4 contiguous variables can't be compressed
                     kwargs["compression"] = None
                     kwargs["complevel"] = 0
@@ -3474,7 +3474,7 @@ class NetCDFWrite(IOWrite):
     def _filled_array(self, array, fill_value):
         """Replace masked values with a fill value.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
@@ -4735,7 +4735,7 @@ class NetCDFWrite(IOWrite):
 
         The group will be created if it doesn't already exist.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
@@ -4939,7 +4939,7 @@ class NetCDFWrite(IOWrite):
     def dataset_exists(self, dataset):
         """Whether or not a dataset exists on disk.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
@@ -4966,7 +4966,7 @@ class NetCDFWrite(IOWrite):
                   not removed. To do so could be very dangerous (what
                   if it were your home space?).
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Returns:
 
@@ -5060,7 +5060,8 @@ class NetCDFWrite(IOWrite):
                 except ModuleNotFoundError as error:
                     error.msg += (
                         ". Install the 'zarr' package "
-                        "(https://pypi.org/project/zarr) to read Zarr datasets"
+                        "(https://pypi.org/project/zarr) to write Zarr "
+                        "datasets"
                     )
                     raise
 
@@ -5349,7 +5350,7 @@ class NetCDFWrite(IOWrite):
                 The Zarr dataset sharding strategy. The default value
                 is `None`. See `cfdm.write` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.0.0
 
             cfa: `dict` or `None`, optional
                 Configure the creation of aggregation variables. See
@@ -5581,6 +5582,9 @@ class NetCDFWrite(IOWrite):
         effective_fields = fields
 
         if mode == "a":
+            if fmt == "ZARR3":
+                raise ValueError("Can't write with mode 'a' to a Zarr dataset")
+
             # First read in the fields from the existing dataset:
             effective_fields = self._NetCDFRead(self.implementation).read(
                 dataset_name, netcdf_backend="netCDF4"
@@ -6279,7 +6283,7 @@ class NetCDFWrite(IOWrite):
                 data.
 
             ncvar: `str`
-                The dataset xname for the variable.
+                The dataset name for the variable.
 
             ncdimensions: sequence of `str`
 
@@ -6607,7 +6611,7 @@ class NetCDFWrite(IOWrite):
         if not data.nc_get_aggregation_write_status():
             raise AggregationError(
                 f"Can't write {cfvar!r} as a CF aggregation variable. "
-                "This is could be "
+                "This could be "
                 "because some fragment values in memory have been "
                 "changed relative to those in the fragment datasets, "
                 "or a Dask rechunking has occured, etc."
@@ -6697,7 +6701,7 @@ class NetCDFWrite(IOWrite):
                         "aggregation variable: "
                         f"The Dask chunk in position {position} "
                         f"(defined by data index {index!r}) does not "
-                        "reference a unique fragment dataset. This is could "
+                        "reference a unique fragment dataset. This could "
                         "be because some fragment values in memory have been "
                         "changed relative to those in the fragment datasets, "
                         "or a Dask rechunking has occured, etc."
@@ -6872,7 +6876,7 @@ class NetCDFWrite(IOWrite):
     def _missing_value(self, x, datatype):
         """Get the missing value.
 
-         .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
