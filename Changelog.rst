@@ -1,3 +1,13 @@
+Version NEXTVERSION
+----------------
+
+**2026-??-??**
+
+* New method: `cfdm.Field.data_axis_position`
+  (https://github.com/NCAS-CMS/cfdm/issues/???)
+
+----
+
 Version 1.13.0.0
 ----------------
 
