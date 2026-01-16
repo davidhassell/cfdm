@@ -1787,6 +1787,70 @@ class Field(
 
         return out
 
+    def data_axis_position(self, *identity, default=ValueError(),
+                           **filter_kwargs):
+        """Gets position in the data array dimensions of a domain axis.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `get_data`, `get_data_axes`, `domain_axis`
+
+        :Parameters:
+
+            identity, filter_kwargs: optional
+                Select the unique domain axis construct returned by
+                ``f.domain_axis(*identity, **filter_kwargs)``. See
+                `domain_axis` for details.
+
+            default: optional
+                Return the value of the *default* parameter if the
+                specified domain axis is not spanned by the data
+                array.
+
+                {{default Exception}}
+
+        :Returns:
+
+            `int`
+                The integer position in the data array dimensions of
+                the selected domain axis.
+
+        **Examples**
+
+        >>> f = {{package}}.example_field(0)
+        >>> print(f)
+        Field: specific_humidity (ncvar%q)
+        ----------------------------------
+        Data            : specific_humidity(latitude(5), longitude(8)) 1
+        Cell methods    : area: mean
+        Dimension coords: latitude(5) = [-75.0, ..., 75.0] degrees_north
+                        : longitude(8) = [22.5, ..., 337.5] degrees_east
+                        : time(1) = [2019-01-01 00:00:00]
+        >>> f.data_axis_position('latitude')
+        0
+        >>> f.data_axis_position('longitude')
+        1
+        >>> f.get_data_axes('time')
+        ValueError: Field data does not span domain axis 'domainaxis2'
+        >>> print(f.get_data_axes('time', default=None)
+        None
+        >>> f.data_axis_position('domainaxis1')
+        1
+        >>> f.data_axis_position(1)
+        1
+
+        """
+        key = self.domain_axis( *identity, key=True, **filter_kwargs)
+        try:
+            return self.get_data_axes().index(key)
+        except ValueError:
+            if default is None:
+                return default
+
+            return self._default(
+                default, f"Field data does not span domain axis {key!r}"
+            )
+
     @_display_or_return
     def dump(
         self,
@@ -1946,7 +2010,8 @@ class Field(
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `del_data_axes`, `get_data`, `set_data_axes`
+        .. seealso:: `del_data_axes`, `get_data`, `set_data_axes`,
+                     `data_axis_position`
 
         :Parameters:
 
@@ -2000,6 +2065,7 @@ class Field(
             # Get axes of the Field data array
             return super().get_data_axes(default=default)
 
+        # Get axes of a metadata construct
         key = self.construct(
             *identity, key=True, default=None, **filter_kwargs
         )

@@ -1073,6 +1073,20 @@ class FieldTest(unittest.TestCase):
         self.assertIsNone(g.unsqueeze(inplace=True))
         self.assertEqual(g.shape, (1, 5, 8))
 
+    def test_Field_data_axis_position(self):
+        """Test Field.data_axis_position"""
+        f = self.f0
+
+        for i in (0, "latitude", "domainaxis0"):
+            self.assertEqual(f.data_axis_position(i), 0)
+
+        for i in (1, "longitude", "domainaxis1"):
+            self.assertEqual(f.data_axis_position(i), 1)
+
+        for i in (2, "time", "BAD"):
+            with self.assertRaises(ValueError):
+                f.data_axis_position(i)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
