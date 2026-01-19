@@ -7439,8 +7439,8 @@ class NetCDFRead(IORead):
                 if value in g["field_ancillary_key"]:
                     # 'value' is a netCDF variable name, so store it
                     # in a dictionary. Elsewhere, this dictionary will
-                    # get converted to a field ancillary construct
-                    # key.
+                    # get converted to a field ancillary construct key
+                    # (e.g. {'ncvar':'norm'} -> 'fieldancillary0').
                     cm[qualifier] = {"ncvar": value}
 
                     # Parse the cell methods of the anomaly norm
