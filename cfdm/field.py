@@ -177,8 +177,8 @@ class Field(
                 cm = cm.copy()
                 method = cm.get_method(None)
 
-                # Replace a domain axis construct identifers with
-                # their identities
+                # Replace domain axis construct identifers with their
+                # identities
                 cm.set_axes(
                     tuple(
                         [

@@ -229,6 +229,10 @@ class CellMethodTest(unittest.TestCase):
         cfdm.write(f, tmpfile)
         g = cfdm.read(tmpfile)[0]
 
+        print(g)
+        print(g.cell_methods())
+        print(g.dump())
+
         key_fa = f.field_ancillary(key=True)
 
         cms = g.cell_methods(todict=True)
