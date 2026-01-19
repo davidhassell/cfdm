@@ -4457,6 +4457,8 @@ class NetCDFWrite(IOWrite):
             if cell_methods:
                 coordinates = None
 
+                # Domain axis construct keys need converting to netCDF
+                # dimension names or netCDF scalar variable names.
                 axis_map = g["axis_to_ncdim"].copy()
                 axis_map.update(g["axis_to_ncscalar"])
 

@@ -192,7 +192,6 @@ class CellMethodTest(unittest.TestCase):
         g = cfdm.read(tmpfile)[0]
 
         print(g)
-
         print(g.cell_methods())
         print(g.dump())
 

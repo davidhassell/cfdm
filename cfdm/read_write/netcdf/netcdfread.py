@@ -7375,7 +7375,7 @@ class NetCDFRead(IORead):
                 break
 
             # Climatological statistics, and statistics which apply to
-            # portions of cells
+            # portions of cells.
             while cell_methods[0] in ("within", "where", "over"):
                 qualifier = cell_methods.pop(0)
                 value = cell_methods.pop(0)
@@ -7392,7 +7392,8 @@ class NetCDFRead(IORead):
                 ):
                     # 'value' is a netCDF variable name, so store it
                     # in a dictionary. Elsewhere, this dictionary will
-                    # get converted to a coordinate construct key.
+                    # get converted to a coordinate construct key (e.g.
+                    # {'ncvar':'area_types'} -> 'auxiliarycoordinate2').
                     value = {"ncvar": value}
 
                 cm[qualifier] = value

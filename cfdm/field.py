@@ -174,8 +174,8 @@ class Field(
             for cm in cell_methods.values():
                 cm = cm.copy()
 
-                # Replace a domain axis construct identifers with
-                # their identities
+                # Replace domain axis construct identifers with their
+                # identities
                 cm.set_axes(
                     tuple(
                         [
