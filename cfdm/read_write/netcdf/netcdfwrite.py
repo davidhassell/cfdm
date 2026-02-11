@@ -523,7 +523,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         :Parameters:
 
-            group: `netCDF.Dataset` or `netCDF.Group` or `zarr.Group`
+            group:
                 The group in which to create the dimension.
 
             ncdim: `str`
@@ -538,6 +538,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         match self.write_vars["backend"]:
+            case "h5netcdf-h5py":
+                group.dimensions[ncdim] = size
             case "netCDF4":
                 group.createDimension(ncdim, size)
             case "zarr":
@@ -702,7 +704,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 # Create an unlimited dimension
                 size = None
                 try:
-                    parent_group.createDimension(ncdim, size)
+                    self._createDimension(parent_group, ncdim, size)
+#                    parent_group.createDimension(ncdim, size)
                 except RuntimeError as error:
                     message = (
                         "Can't create unlimited dimension "
@@ -723,7 +726,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     g["unlimited_dimensions"].add(ncdim)
             else:
                 try:
-                    parent_group.createDimension(ncdim, size)
+                    self._createDimension(parent_group, ncdim, size)
+#                    parent_group.createDimension(ncdim, size)
                 except RuntimeError as error:
                     raise RuntimeError(
                         f"Can't create size {size} dimension {ncdim!r} in "
@@ -2587,12 +2591,64 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         ncvar = kwargs["varname"]
 
         match g["backend"]:
+            case "h5netcdf-h5py":
+                print(kwargs)
+                kwargs['name'] = kwargs.pop('varname', None)
+                kwargs['dtype'] = kwargs.pop('datatype', None)
+                kwargs['fillvalue'] = kwargs.pop('fill_value', None)
+                kwargs['compression_opts'] = kwargs.pop('complevel', None)
+                  kwargs['maxshape'] = None
+                
+                kwargs.setdefault("dimensions", ()) 
+
+                # Chunked/contiguous
+                kwargs['chunks'] = kwargs.pop("chunksizes", None)
+                if kwargs.pop("contiguous", False):
+                    kwargs['chunks'] = None
+                    kwargs.pop("compression", None )
+                    kwargs.pop("compression_opts", None)
+                    kwargs.pop("fletcher32", None)
+                    kwargs.pop("shuffle", None)
+
+                    # NETCDF4 contiguous variables can't span
+                    # unlimited dimensions
+                    unlimited_dimensions = g[
+                        "unlimited_dimensions"
+                    ].intersection(kwargs.get("dimensions", ()))
+                    if unlimited_dimensions:
+                        data_model = g["dataset"].data_model
+                        raise ValueError(
+                            f"Can't create variable {ncvar!r} in "
+                            f"{g['fmt']} dataset: "
+                            f"In {g['fmt']} it is not allowed to write "
+                            "contiguous (as opposed to chunked) data "
+                            "that spans one or more unlimited dimensions: "
+                            f"{unlimited_dimensions}"
+                        )
+                    
+                # Remove netCDF4-specific kwargs
+                kwargs.pop('chunk_cache', None)
+                if kwargs.pop('endian', 'native') != 'native':
+                    raise ValueError("TODOHDF5")
+                
+                for key in ('least_significant_digit',):
+                    if kwargs.pop(key, None) is not None:
+                        raise ValueError("TODOHDF5")
+                
+                # Remove Zarr-specific kwargs
+                kwargs.pop("shape", None)
+                kwargs.pop("shards", None)
+
+                print(kwargs)
+                print()
+                variable = g["dataset"].create_variable(**kwargs)
+
             case "netCDF4":
                 netcdf4_kwargs = kwargs
                 if "dimensions" not in kwargs:
                     netcdf4_kwargs["dimensions"] = ()
 
-                contiguous = kwargs.get("contiguous")
+                contiguous = kwargs.get("contiguous") 
 
                 is_netcdf4 = g["dataset"].data_model.startswith("NETCDF4")
                 if is_netcdf4 and contiguous:
@@ -2917,7 +2973,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # False then the variable is not pre-filled.
         # ------------------------------------------------------------
         match g["backend"]:
-            case "netCDF4":
+            case "h5netcdf-h5py" | "netCDF4":
                 if (
                     omit_data or fill or g["post_dry_run"]
                 ):  # or append mode's appending iteration
@@ -4998,7 +5054,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         g = self.write_vars
-        if g["backend"] == "netCDF4":
+        if g["backend"] in ("h5netcdf-h5py", "netCDF4"):
             g["dataset"].close()
 
     def dataset_open(self, dataset_name, mode, fmt, fields):
@@ -5031,8 +5087,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `netCDF.Dataset` or `zarr.Group`
 
         """
-        import netCDF4
-
         if fields and mode == "w":
             dataset_name = os.path.abspath(dataset_name)
             for f in fields:
@@ -5055,7 +5109,18 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             self.dataset_remove()
 
         match g["backend"]:
+            case "h5netcdf-h5py":
+                import h5netcdf
+                
+                try:
+                    nc = h5netcdf.File(dataset_name, mode, format=fmt,
+                                       fs_strategy="page", fs_page_size=2**20)
+                except RuntimeError as error:
+                    raise RuntimeError(f"{error}: {dataset_name}")
+
             case "netCDF4":
+                import netCDF4
+                
                 try:
                     nc = netCDF4.Dataset(dataset_name, mode, format=fmt)
                 except RuntimeError as error:
@@ -5113,6 +5178,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         dataset_shards=None,
         cfa="auto",
         reference_datetime=None,
+            backend=None
     ):
         """Write field and domain constructs to a dataset.
 
@@ -5406,7 +5472,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # Format of output dataset
             "fmt": None,
             # Backend for writing to the dataset
-            "backend": None,
+            "backend": backend,
             # Whether the output datset is a file or a directory
             "dataset_type": None,
             # netCDF4.Dataset instance
@@ -5778,6 +5844,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         else:
             compression = None
 
+        g["fmt"] = fmt
         if fmt in NETCDF3_FMTS:
             if compress:
                 # Can't compress a netCDF-3 format file
@@ -5791,7 +5858,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 f"Unknown output dataset format: {fmt!r}. "
                 f"Valid formats are {NETCDF4_FMTS + NETCDF3_FMTS + ZARR_FMTS}"
             )
-
+        
         # ------------------------------------------------------------
         # Set up global/non-global attributes
         # ------------------------------------------------------------
@@ -5854,15 +5921,27 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         g["endian"] = endian
         g["least_significant_digit"] = least_significant_digit
 
-        g["fmt"] = fmt
+        # -------------------------------------------------------
+        # Backend
+        # -------------------------------------------------------
+        if g["backend"] is None:
+            # Set default backend based on output dataset format
+            match fmt:
+                case "NETCDF4" | "NETCDF4_CLASSIC":
+                    g["backend"] = "h5netcdf-h5py"
+                case "ZARR3":
+                    g["backend"] = "zarr"
+                case _:
+                    g["backend"] = "netCDF4"
+        elif g["backend"] not in ("h5netcdf-h5py", "zarr", "netCDF4"):
+            raise ValueError("TODOHDF5")
+        
         match fmt:
             case "ZARR3":
-                g["backend"] = "zarr"
                 g["dataset_type"] = "directory"
             case _:
-                g["backend"] = "netCDF4"
                 g["dataset_type"] = "file"
-
+            
         if isinstance(
             fields,
             (

@@ -839,6 +839,7 @@ class write(ReadWrite):
         dataset_shards=None,
         cfa="auto",
         extra_write_vars=None,
+            backend=None,
     ):
         """Write field and domain constructs to a dataset."""
         # Flatten the sequence of intput fields
@@ -902,4 +903,5 @@ class write(ReadWrite):
             dataset_chunks=dataset_chunks,
             dataset_shards=dataset_shards,
             cfa=cfa,
+            backend=backend,
         )
