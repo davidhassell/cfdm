@@ -5849,6 +5849,13 @@ class NetCDFWrite(IOWrite):
         g["overwrite"] = overwrite
 
         # ------------------------------------------------------------
+        # HDF5 internal file metadata
+        # ------------------------------------------------------------
+        n_data_chunks = 0
+        for f in fields:
+            n_data_chunks +=   self._n_data_chunks(f)
+        
+        # ------------------------------------------------------------
         # Open the output dataset
         # ------------------------------------------------------------
         if self.dataset_exists(dataset_name):
@@ -6889,3 +6896,54 @@ class NetCDFWrite(IOWrite):
                 mv = ""
 
         return mv
+
+    
+    def _n_data_chunks(self, data):
+        """TODO"""
+        chunksizes = data.nc_dataset_chunksize()
+        
+        if chunksizes == 'contiguous':
+            return 1
+
+        dataset_chunks = self.write_vars["dataset_chunks"]
+        if chunksizes is None:
+            chunksizes = dataset_chunks
+        elif isinstance(chunksizes, int):
+            # Reset dataset chunks to the integer given by 'data'
+            dataset_chunks = chunksizes
+
+        if isinstance(chunksizes, int):
+            # Convert an integer to a chunksize tuple
+            from dask import config as dask_config
+            from dask.array.core import normalize_chunks
+    
+            with dask_config.set({"array.chunk-size": dataset_chunks}):
+                chunksizes = normalize_chunks(
+                    "auto", shape=data.shape, dtype=self.dtype
+                )    
+            if chunksizes:
+                # 'chunksizes' looks something like ((96, 96, 96, 50),
+                # (250, 250, 4)). However, we only want one number per
+                # dimension, so we choose the largest: [96, 250].
+                chunksizes = [max(c) for c in chunksizes]
+            else:
+                # The data is scalar
+                return 1
+
+        # Still here? Then calculate the number of chunks from a
+        #             chunksize tuple.
+        nchunks = 1
+        for dimsize, chunksize in zip(data.shape, chunksizes):
+            nchunks *= -(dimsize // -chunksize)
+
+        return nchunks
+                
+            
+
+    def _field_n_data_chunks(self, f):
+        """TODO"""
+         for key, construct in f.constructs.filter_by_data(
+                todict=True
+         ).items():
+
+           

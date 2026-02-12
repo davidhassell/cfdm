@@ -2777,7 +2777,20 @@ class NetCDFChunks(NetCDFMixin):
 
         self._set_netcdf("dataset_chunksizes", chunksizes)
 
+    def nc_dataset_nchunks(self):
+        """TODO"""
+        chunks = self.nc_dataset_chunksize()
+        if not isinstance(chunks, tuple):
+            raise ValueError("")
 
+        total_nchunks = 1
+        for size, chunksize in zip(self.size, chunks):
+            total_nchunks *= -(size // -chunksize)
+
+        return total_nchunks
+                
+            
+        
 class NetCDFHDF5(NetCDFMixin):
     """Mixin class for accessing the netCDF HDF5 chunksizes.
 

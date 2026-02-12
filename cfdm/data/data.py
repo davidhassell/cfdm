@@ -3172,7 +3172,7 @@ class Data(
     def nbytes(self):
         """Total number of bytes consumed by the elements of the array.
 
-        Does not include bytes consumed by the array mask
+        Does not include bytes consumed by the array mask.
 
         **Performance**
 
@@ -3199,7 +3199,7 @@ class Data(
             _force_mask_hardness=False, _force_to_memory=False
         )
         if math.isnan(dx.size):
-            logger.debug("Computing data nbytes: Performance may be degraded")
+            logger.debug("Computing data size for nbytes ...")
             dx.compute_chunk_sizes()
 
         return dx.nbytes

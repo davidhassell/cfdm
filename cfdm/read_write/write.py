@@ -550,7 +550,10 @@ class write(ReadWrite):
             chunking strategy (i.e. its `Data.nc_dataset_chunksizes`
             method returns something other than `None`) then, for that
             data array alone, it is used in preference to the strategy
-            defined by the *dataset_chunks* parameter.
+            defined by the *dataset_chunks* parameter. However, if the
+            *ignore_dataset_chunksizesTODO* parameter is True then the
+            strategy defined by *dataset_chunks* will be applied to
+            all data, regardless of of any other settings.
 
             Ignored for netCDF3 output formats, for which all data is
             always written out contiguously.
@@ -565,7 +568,7 @@ class write(ReadWrite):
                       the dataset chunking strategy from the original
                       dataset being stored, see the
                       *store_dataset_chunks* parameter to
-                      `{{package}}.read`.
+                      `{{package}}.read`. TODO.
 
             The *dataset_chunks* parameter may be one of:
 
