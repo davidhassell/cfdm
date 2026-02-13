@@ -2597,7 +2597,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 kwargs['dtype'] = kwargs.pop('datatype', None)
                 kwargs['fillvalue'] = kwargs.pop('fill_value', None)
                 kwargs['compression_opts'] = kwargs.pop('complevel', None)
-                  kwargs['maxshape'] = None
                 
                 kwargs.setdefault("dimensions", ()) 
 
@@ -2620,12 +2619,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                         raise ValueError(
                             f"Can't create variable {ncvar!r} in "
                             f"{g['fmt']} dataset: "
-                            f"In {g['fmt']} it is not allowed to write "
-                            "contiguous (as opposed to chunked) data "
-                            "that spans one or more unlimited dimensions: "
-                            f"{unlimited_dimensions}"
+                            f"It is not allowed to write contiguous (as "
+                            "opposed to chunked) data that spans one or more "
+                            f"unlimited dimensions: {unlimited_dimensions}"
                         )
-                    
+
                 # Remove netCDF4-specific kwargs
                 kwargs.pop('chunk_cache', None)
                 if kwargs.pop('endian', 'native') != 'native':
@@ -5113,8 +5111,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 import h5netcdf
                 
                 try:
-                    nc = h5netcdf.File(dataset_name, mode, format=fmt,
-                                       fs_strategy="page", fs_page_size=2**20)
+                    nc = h5netcdf.File(
+                        dataset_name,
+                        mode,
+                        format=fmt,
+                        fs_strategy="page",
+                        fs_page_size=g['fs_page_size'],
+                    )
                 except RuntimeError as error:
                     raise RuntimeError(f"{error}: {dataset_name}")
 
@@ -5176,6 +5179,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         omit_data=None,
         dataset_chunks="4MiB",
         dataset_shards=None,
+            ignore_nc_dataset_chunksizes=False,
         cfa="auto",
         reference_datetime=None,
             backend=None
@@ -5569,6 +5573,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # --------------------------------------------------------
             "dataset_chunks": dataset_chunks,
             "dataset_shards": dataset_shards,
+            "ignore_nc_dataset_chunksizes":  ignore_nc_dataset_chunksizes,
             # --------------------------------------------------------
             # Quantization: Store unique Quantization objects, keyed
             #               by their output dataset variable names.
@@ -5578,6 +5583,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # UGRID:
             # --------------------------------------------------------
             "meshes": {},
+            # TODO
+            "h5py_options": None,
         }
 
         if mode not in ("w", "a", "r+"):
@@ -5655,6 +5662,26 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         self.write_vars["cfa"] = cfa
 
+        if not h5py_options:
+             g['h5py_options'] = {'fs_strategy': 'page',
+                                  'fs_page_size': g['fs_page_size']}
+        else:
+             g['h5py_options'] =  h5py_options.copy()
+
+        f_stragegy = h5py_options.get('fs_strategy')
+        if fs_strategy is None:
+            g['h5py_options']['fs_page_size'] = ???
+
+        if 'fs_page_size' not in h5py_options:
+            g['h5py_options']['fs_page_size'] = ???
+
+            
+             'fs_strategy': 'page',
+                                  'fs_page_size': g['fs_page_size']}
+        else:
+            if h5py_options.get('fs_strategy') == 'page' and h5py_options.get('fs_page_size') 
+                g['h5py_options']
+        
         effective_mode = mode  # actual mode to use for the first IO iteration
         effective_fields = fields
 
@@ -6168,64 +6195,61 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         g = self.write_vars
 
+        if self._compressed_data(ncdimensions):
+            # Base the dataset chunks on the compressed data that is
+            # going into the dataset
+            data = self.implementation.get_compressed_array(data)
+            
         # ------------------------------------------------------------
         # Dataset chunk strategy: Either use that provided on the
         # data, or else work it out.
         # ------------------------------------------------------------
         # Get the chunking strategy defined by the data itself
-        chunksizes = self.implementation.nc_get_dataset_chunksizes(data)
-        shards = self.implementation.nc_get_dataset_shards(data)
-
-        if chunksizes == "contiguous":
-            # Contiguous as defined by 'data'
-            return True, None, None
-
-        # Still here?
-        if shards is None:
-            shards = g["dataset_shards"]
-
-        dataset_chunks = g["dataset_chunks"]
-        if isinstance(chunksizes, int):
-            # Reset dataset chunks to the integer given by 'data'
-            dataset_chunks = chunksizes
-        elif chunksizes is not None:
-            # Chunked as defined by the tuple of int given by 'data'
-            return False, chunksizes, shards
-
-        # Still here? Then work out the chunking strategy from the
-        # dataset_chunks
-        if dataset_chunks == "contiguous":
-            # Contiguous as defined by 'dataset_chunks'
-            return True, None, None
-
-        # Still here? Then work out the chunks from both the
-        # size-in-bytes given by dataset_chunks (e.g. 1024, or '1
-        # KiB'), and the data shape (e.g. (12, 73, 96)).
-        if self._compressed_data(ncdimensions):
-            # Base the dataset chunks on the compressed data that is
-            # going into the dataset
-            d = self.implementation.get_compressed_array(data)
+        if g['ignore_nc_dataset_chunksizes']:
+            chunksizes = None
         else:
-            d = data
+            chunksizes = self.implementation.nc_get_dataset_chunksizes(data)
+            if chunksizes == "contiguous":
+                # Contiguous as defined by 'data'
+                return True, None, None
+            
+        dataset_chunks = g["dataset_chunks"]
 
-        d_dtype = d.dtype
-        dtype = g["datatype"].get(d_dtype, d_dtype)
-
-        from dask import config as dask_config
-        from dask.array.core import normalize_chunks
-
-        with dask_config.set({"array.chunk-size": dataset_chunks}):
-            chunksizes = normalize_chunks("auto", shape=d.shape, dtype=dtype)
+        if chunksizes is None:
+            if dataset_chunks == "contiguous":
+                # Contiguous as defined by 'dataset_chunks'
+                return True, None, None
+            
+            chunksizes = "auto"
+        elif isinstance(chunksizes, int):
+            dataset_chunks = chunksizes
+            chunksizes = "auto"
+        
+        # Work out the chunking strategy from the dataset_chunks
+        if "auto" in chunksizes:
+            from dask import config as dask_config
+            from dask.array.core import normalize_chunks
+            
+            d_dtype = data.dtype
+            dtype = g["datatype"].get(d_dtype, d_dtype)
+            
+            with dask_config.set({"array.chunk-size": dataset_chunks}):
+                chunksizes = normalize_chunks(
+                    chunksizes, shape=d.shape, dtype=dtype
+                )
+                # 'chunksizes' looks something like ((96, 96, 96, 50),
+                # (250, 250, 4)). However, we only want one number per
+                # dimension, so we choose the largest: [96, 250].
+                chunksizes = [max(c) for c in chunksizes]
 
         if chunksizes:
-            # 'chunksizes' looks something like ((96, 96, 96, 50),
-            # (250, 250, 4)). However, we only want one number per
-            # dimension, so we choose the largest: [96, 250].
-            chunksizes = [max(c) for c in chunksizes]
+            shards = self.implementation.nc_get_dataset_shards(data)
+            if shards is None:
+                shards = g["dataset_shards"]
+                
             return False, chunksizes, shards
         else:
-            # The data is scalar, so 'chunksizes' is () => write the
-            # data contiguously.
+            # The data is scalar, so write the data contiguously.
             return True, None, None
 
     def _compressed_data(self, ncdimensions):
@@ -7013,3 +7037,54 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 mv = ""
 
         return mv
+    
+    def _n_data_chunks(self, data):
+        """TODO"""
+        chunksizes = data.nc_dataset_chunksize()
+        
+        if chunksizes == 'contiguous':
+            return 1
+
+        dataset_chunks = self.write_vars["dataset_chunks"]
+        if chunksizes is None:
+            chunksizes = dataset_chunks
+        elif isinstance(chunksizes, int):
+            # Reset dataset chunks to the integer given by 'data'
+            dataset_chunks = chunksizes
+
+        if isinstance(chunksizes, int):
+            # Convert an integer to a chunksize tuple
+            from dask import config as dask_config
+            from dask.array.core import normalize_chunks
+    
+            with dask_config.set({"array.chunk-size": dataset_chunks}):
+                chunksizes = normalize_chunks(
+                    "auto", shape=data.shape, dtype=self.dtype
+                )    
+            if chunksizes:
+                # 'chunksizes' looks something like ((96, 96, 96, 50),
+                # (250, 250, 4)). However, we only want one number per
+                # dimension, so we choose the largest: [96, 250].
+                chunksizes = [max(c) for c in chunksizes]
+            else:
+                # The data is scalar
+                return 1
+
+        # Still here? Then calculate the number of chunks from a
+        #             chunksize tuple.
+        nchunks = 1
+        for dimsize, chunksize in zip(data.shape, chunksizes):
+            nchunks *= -(dimsize // -chunksize)
+
+        return nchunks
+                
+            
+
+    def _field_n_data_chunks(self, f):
+        """TODO"""
+         for key, construct in f.constructs.filter_by_data(
+                todict=True
+         ).items():
+             pass
+
+           

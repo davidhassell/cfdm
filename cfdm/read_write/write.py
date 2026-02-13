@@ -403,6 +403,73 @@ class write(ReadWrite):
 
             .. versionadded:: (cfdm) 1.12.2.0
 
+        variable_chunk_cache: `int` or `None`, optional
+            The amount of memory (in bytes) used in each HDF5
+            variable's chunk cache.
+
+            Ignored unless writing to a netCDF-4 format with the
+            netCDF4 backend. By default, or if `None`, the default
+            netCDF-C chunk cache size of 16777216 bytes (i.e. 16 MiB)
+            is used. Changing this has no effect on the new netCDF-4
+            file on disk, but may be used to prevent the available
+            memory from filling up when a very large number of
+            netCDF-4 variables are being created. Note the changing
+            the size of the per-variable chunk cache has the potential
+            to seriously degrade performance, although that may be
+            preferable to the write process failing due to lack of
+            memory.
+
+            For instance, if 1024 netCDF-4 variables are being
+            created, then by default 17179869184 bytes (i.e. 16 GiB)
+            of memory will be needed for their chunk caches, and if
+            this is too much then the chunk cache should be reduced.
+
+            See the netCDF-C library documentation for
+            `nc_set_var_chunk_cache` for details.
+
+            .. versionadded:: (cfdm) 1.12.2.0
+
+        file_chunk_cache: `int` or `None`, optional
+            The amount of memory (in bytes) used as a chunk cache for
+            all each HDF5 variables.
+
+            Ignored unless writing to a netCDF-4 format with the
+            h5netcdf-h5py backend. By default, or if `None`, the
+            default cache size of 16777216 bytes (i.e. 16 MiB) is
+            used. Changing this has no effect on the new netCDF-4 file
+            on disk, but may be used to prevent the available memory
+            from filling up when a very large number of netCDF-4
+            variables are being created. Note the changing the size of
+            the per-variable chunk cache has the potential to
+            seriously degrade performance, although that may be
+            preferable to the write process failing due to lack of
+            memory.
+
+
+            Ignored when not writing to a netCDF-4 format. By default,
+            or if `None`, the default netCDF-C chunk cache size of
+            16777216 bytes (i.e. 16 MiB) is used. Changing this has no
+            effect on the new netCDF-4 file on disk, but may be used
+            to prevent the available memory from filling up when a
+            very large number of netCDF-4 variables are being
+            created. Note the changing the size of the per-variable
+            chunk cache has the potential to seriously degrade
+            performance, although that may be preferable to the write
+            process failing due to lack of memory.
+
+            For instance, if 1024 netCDF-4 variables are being
+            created, then by default 17179869184 bytes (i.e. 16 GiB)
+            of memory will be needed for their chunk caches, and if
+            this is too much then the chunk cache should be reduced.
+
+            See the netCDF-C library documentation for
+            `nc_set_var_chunk_cache` for details.
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        h5py_options: `dict`, optional
+            TODO
+
         fletcher32: `bool`, optional
             If True then the Fletcher-32 HDF5 checksum algorithm is
             activated to detect compression errors. Ignored if
@@ -546,26 +613,22 @@ class write(ReadWrite):
             By default, *dataset_chunks* is ``'4 MiB'``, i.e. 4194304
             bytes.
 
-            If any `Data` being written already stores its own dataset
-            chunking strategy (i.e. its `Data.nc_dataset_chunksizes`
-            method returns something other than `None`) then, for that
-            data array alone, it is used in preference to the strategy
-            defined by the *dataset_chunks* parameter.
+            If and only if the *ignore_nc_dataset_chunksizes*
+            parameter is False (the default), when `Data` being
+            written already stores its own dataset chunking strategy
+            (i.e. its `Data.nc_dataset_chunksizes` method returns
+            something other than `None`), it is used in preference to
+            the strategy defined by the *dataset_chunks*, for that
+            data array alone.
+
+            .. note:: By default, a data array returned by
+                      `{{package}}.read` stores the dataset chunking
+                      strategy from the dataset being read, controlled
+                      by the `{{package}}.read` *store_dataset_chunks*
+                      parameter.
 
             Ignored for netCDF3 output formats, for which all data is
             always written out contiguously.
-
-            .. note:: By default, a data array returned by
-                      `{{package}}.read` stores its dataset chunking
-                      strategy from the dataset being read. When this
-                      happens that same dataset chunking strategy will
-                      be used when the data is written to a new
-                      netCDF4 or Zarr dataset, unless the strategy was
-                      modified or removed prior to writing. To prevent
-                      the dataset chunking strategy from the original
-                      dataset being stored, see the
-                      *store_dataset_chunks* parameter to
-                      `{{package}}.read`.
 
             The *dataset_chunks* parameter may be one of:
 
@@ -618,6 +681,18 @@ class write(ReadWrite):
                       size.
 
             .. versionadded:: (cfdm) 1.12.0.0
+
+        ignore_nc_dataset_chunksizes: `bool`, optional
+            When True, the dataset chunking strategy defined on any
+            `Data` being written to the dataset is ignored, and the
+            chunking strategy defined by the *dataset_chunks* is used
+            inteadt. When False (the default) and `Data` has its own
+            chunking strategy (i.e. its `Data.nc_dataset_chunksizes`
+            method returns something other than `None`), then it is
+            used in preference to the strategy defined by the
+            *dataset_chunks*, for that data array alone.
+
+            .. versionadded:: (cfdm) NEXTVERSION
 
         dataset_shards: `None` or `int`, optional
             When writing to a Zarr dataset, sharding provides a
@@ -837,6 +912,8 @@ class write(ReadWrite):
         omit_data=None,
         dataset_chunks="4 MiB",
         dataset_shards=None,
+            ignore_nc_dataset_chunksizes=False,
+            fs_page_size=None,
         cfa="auto",
         extra_write_vars=None,
             backend=None,
@@ -902,6 +979,7 @@ class write(ReadWrite):
             omit_data=omit_data,
             dataset_chunks=dataset_chunks,
             dataset_shards=dataset_shards,
+            ignore_nc_dataset_chunksizes=ignore_nc_dataset_chunksizes,
             cfa=cfa,
             backend=backend,
         )

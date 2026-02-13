@@ -2719,13 +2719,14 @@ class NetCDFChunks(NetCDFMixin):
 
         # Convert a dictionary to a sequence.
         if isinstance(chunksizes, dict):
-            org_chunksizes = self.nc_dataset_chunksizes()
-            if not isinstance(org_chunksizes, tuple):
-                org_chunksizes = shape
-
-            chunksizes = [
-                chunksizes.get(n, j) for n, j in enumerate(org_chunksizes)
-            ]
+            chunksizes = [chunksizes.get(n, "auto") for n in range(len(shape))]
+#            org_chunksizes = self.nc_dataset_chunksizes()
+#            if not isinstance(org_chunksizes, tuple):
+ #               org_chunksizes = shape
+#
+#            chunksizes = [
+#                chunksizes.get(n, j) for n, j in enumerate(org_chunksizes)
+#            ]
 
         if chunksizes != "contiguous":
             from dask.utils import parse_bytes
@@ -2767,7 +2768,7 @@ class NetCDFChunks(NetCDFMixin):
                     if i is None or i == -1 or i > j:
                         # Set the chunk size to the dimension size
                         i = j
-                    else:
+                    elif i != "auto":
                         # Make sure the chunk size is an integer
                         i = int(i)
 
@@ -2777,7 +2778,44 @@ class NetCDFChunks(NetCDFMixin):
 
         self._set_netcdf("dataset_chunksizes", chunksizes)
 
-
+#   def nc_n_dataset_chunks(self,  dataset_chunks='4 MiB', ignore=False):
+#       """TODO"""
+#       if self.size == 1:
+#           return 1
+#
+#       if ignore:
+#           chunksizes = "auto"
+#       else:
+#           chunksizes = self.nc_dataset_chunksize()            
+#           if chunksizes == 'contiguous':
+#               return 1
+#           
+#           if chunksizes is None:
+#               chunksizes = "auto"
+#           elif isinstance(chunksizes, int):
+#               dataset_chunks = chunksizes
+#               chunksizes = "auto"
+#
+#       if "auto" in chunksizes:
+#           from dask import config as dask_config
+#           from dask.array.core import normalize_chunks
+#           
+#           with dask_config.set({"array.chunk-size": dataset_chunks}):
+#               chunksizes = normalize_chunks(
+#                   chunksizes, shape=self.shape, dtype=self.dtype
+#               )    
+#               chunksizes = [max(c) for c in chunksizes] 
+#
+#       if not chunksizes:
+#           return 1
+#
+#       # Calculate the number of chunks from the chunksize tuple
+#       nchunks = 1
+#       for dimsize, chunksize in zip(self.shape, chunksizes):
+#           nchunks *= -(dimsize // -chunksize)
+#
+#       return nchunks                
+            
 class NetCDFHDF5(NetCDFMixin):
     """Mixin class for accessing the netCDF HDF5 chunksizes.
 

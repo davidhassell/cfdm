@@ -1015,6 +1015,50 @@ class PropertiesData(Properties):
         if data is not None:
             return data.nc_dataset_chunksizes(todict=todict)
 
+
+    def nc_hdf5_metadata_size(self, dataset_chunks='4 MiB', override=False, todict=False):
+        """TODO"""
+        
+        chunk_overhead = 64
+        attr_overhead = 51
+        
+        n_chunks =0
+        data = self.get_data(None, _units=False, _fill_value=False)
+        if data is not None:
+            n_chunks += data.nc_n_dataset_chunks(
+                dataset_chunks=dataset_chunks, override=override
+            )
+            
+        chunks_size = n_chunks * chunk_overhead
+        
+        attrs_size = 0
+        for prop, value in self.properties():            
+            attrs_size +=  attr_overhead + len(prop.encode('utf-8'))
+            if isinstance(value, str):
+                attrs += len(value.encode('utf-8'))
+            else:
+                value = np.array(value)
+                itemsize = value.dtype.itemsize
+                if value.dtype.kind in "UST":
+                    if  value.dtype.kind == "T":
+                        itemsize = value.astype("O", copy=False).astype(
+                            "U", copy=False).dtype.itemsize
+                        
+                    attrs_size += itemsize
+                else:
+                    attrs_size += value.size* itemsize
+                    
+        # Total size of HDF5 internal metadata
+        size = chunks_size + attrs_size
+
+        if todict:
+            return {'data_chunks': chunks_size, 'attributes': attrs_size}
+        
+#        block_size = 1024
+#        metadata_size = (size + block_size - 1) // block_size * block_size    
+        
+        return size
+        
     def nc_set_dataset_chunksizes(self, chunksizes):
         """Set the dataset chunking strategy.
 
