@@ -1073,6 +1073,19 @@ class FieldTest(unittest.TestCase):
         self.assertIsNone(g.unsqueeze(inplace=True))
         self.assertEqual(g.shape, (1, 5, 8))
 
+    def test_Field__getattr__(self):
+        """Test Field.__getattr__."""
+        f = self.f0
+        with self.assertRaises(AttributeError):
+            f.__getattribute__('time')
+
+        t0 = f.coordinate('time')
+        t1 = f.time
+        self.assertTrue(t1.equals(t0))
+        
+        with self.assertRaises(AttributeError):
+            f.not_an_attr_nor_a_construct_identity
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

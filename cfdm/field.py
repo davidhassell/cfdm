@@ -151,8 +151,8 @@ class Field(
         string.append("".ljust(len(string[0]), "-"))
 
         # Units
-        units = getattr(self, "units", "")
-        calendar = getattr(self, "calendar", None)
+        units = self.get_property("units", "")
+        calendar = self.get_property("calendar", None)
         if calendar is not None:
             units += f" {calendar}"
 

@@ -12,6 +12,25 @@ class FieldDomain:
 
     """
 
+    def __getattr__(self, name):
+        """Called when attribute access fails.
+
+        When an attribute does not exist, then assume that the
+        attribute name is a metadata construct identity, and try to
+        return that construct.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. sealso:: `construct`
+
+        """
+        return self.construct(
+            name,
+            default=AttributeError(
+                f"No unique construct identified by f.construct({name!r})"
+            ),
+        )
+
     def __initialise_from_source(self, source, copy=True):
         """Initialise mesh_id information from a source.
 
