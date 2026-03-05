@@ -7054,7 +7054,7 @@ class NetCDFWrite(IOWrite):
                     "variable. "
                     "At least one Dask chunk has more than one unique value: "
                     f"{error}. "
-                    "Set the 'strict' keyword of the 'cfa' parameter to True "
+                    "Set the 'strict' keyword of the 'cfa' parameter to False "
                     "to use a unique value of missing data in this case."
                 )
 

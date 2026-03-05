@@ -5121,12 +5121,15 @@ class NetCDFAggregation(NetCDFMixin):
             `None`
 
         """
-        if status:
+        if status and self.nc_get_aggregation_fragment_type() == "uri":
             raise ValueError(
-                "'nc_set_aggregation_write_status' only allows the netCDF "
-                "aggregation write status to be set to False. At your own "
-                "risk you may use '_nc_set_aggregation_write_status' to set "
-                "the status to True."
+                "When the fragment type (as returned by "
+                "'nc_get_aggregation_fragment_type') is 'uri', "
+                "'nc_set_aggregation_write_status' only allows the "
+                "netCDF aggregation write status to be set to False "
+                "At your own risk you may override this by using "
+                "'_nc_set_aggregation_write_status' to set the status "
+                "to True in this case."
             )
 
         self._nc_set_aggregation_write_status(status)

@@ -3917,16 +3917,10 @@ class Data(
             # N-d (N>=1) with size 1
             # Set cache keys 0 and -1
             element = self._elements(Ellipsis, array=_array)
-            cache[0] = element
-            cache[-1] = element
+            cache[0] = element[0]
+            cache[-1] = element[0]
         elif ndim == 1:
-            if size == 1:
-                # 1-d with size  1
-                # Set cache keys 0, 1, and -1
-                element = self._elements(Ellipsis, array=_array)
-                cache[0] = element
-                cache[-1] = element
-            elif size <= 3:
+            if size <= 3:
                 # 1-d with size 2 or 3
                 # Set cache keys 0, 1, and -1
                 elements = self._elements(Ellipsis, array=_array)
@@ -4739,7 +4733,13 @@ class Data(
         import dask.array as da
 
         dx = da.empty(shape, dtype=dtype, chunks=chunks)
-        return cls(dx, units=units, calendar=calendar)
+        out = cls(dx, units=units, calendar=calendar)
+
+        if out.npartitions == 1:
+            out._nc_set_aggregation_fragment_type("unique_value")
+            out._nc_set_aggregation_write_status(True)
+
+        return out
 
     @_manage_log_level_via_verbosity
     def equals(
@@ -5299,7 +5299,13 @@ class Data(
                 dtype = np.array(fill_value).dtype
 
         dx = da.full(shape, fill_value, dtype=dtype, chunks=chunks)
-        return cls(dx, units=units, calendar=calendar)
+        out = cls(dx, units=units, calendar=calendar)
+
+        if out.npartitions == 1:
+            out._nc_set_aggregation_fragment_type("unique_value")
+            out._nc_set_aggregation_write_status(True)
+
+        return out
 
     def get_calendar(self, default=ValueError()):
         """Return the calendar.
@@ -6438,7 +6444,13 @@ class Data(
         import dask.array as da
 
         dx = da.ones(shape, dtype=dtype, chunks=chunks)
-        return cls(dx, units=units, calendar=calendar)
+        out = cls(dx, units=units, calendar=calendar)
+
+        if out.npartitions == 1:
+            out._nc_set_aggregation_fragment_type("unique_value")
+            out._nc_set_aggregation_write_status(True)
+
+        return out
 
     @_inplace_enabled(default=False)
     def pad_missing(self, axis, pad_width=None, to_size=None, inplace=False):
@@ -7637,7 +7649,13 @@ class Data(
         import dask.array as da
 
         dx = da.zeros(shape, dtype=dtype, chunks=chunks)
-        return cls(dx, units=units, calendar=calendar)
+        out = cls(dx, units=units, calendar=calendar)
+
+        if out.npartitions == 1:
+            out._nc_set_aggregation_fragment_type("unique_value")
+            out._nc_set_aggregation_write_status(True)
+
+        return out
 
     # ----------------------------------------------------------------
     # Aliases
