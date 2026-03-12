@@ -3184,18 +3184,21 @@ class Field(
 
         return f
 
-    def to_xarray(self, cfxarray=True, uxarray=True):
+    def to_xarray(self, cf_xarray=True, uxarray=True):
         """TODOX"""
         from collections import Counter
         
         import xarray as xr
 
-        if cfxarray:
-            import cf_xarray
+        if cf_xarray:
+            import cf_xarray as cfxr
 
             # cf_xarray works best when xarray keeps attributes by default
             xr.set_options(keep_attrs=True)
         
+        if uxarray:
+            import uxarray as ux
+
         # 
         var_counter = Counter()        
         def get_name(c, default=None):
@@ -3217,7 +3220,13 @@ class Field(
                 name += f"_{var_counter[name]}"
 
             return name
-                
+
+        def add_coordinate(name, dims, data, properties):            
+            ds_coords[name] = (dims, data, properties)
+        
+        def add_variable(name, dims, data, properties):            
+            ds_vars[name] = (dims, data, properties)
+        
         # ------------------------------------------------------------
         axis_name = {}  
         ds_vars = {}
@@ -3234,10 +3243,102 @@ class Field(
                 name += f"_{axis_counter[name]}"
 
             axis_name[axis] = name
-    
+
+            
+                        
+        # ------------------------------------------------------------
+        # Domain topologies
+        # ------------------------------------------------------------
+        ugrid_dim = None
+        mesh_name = None
+        location = None
+        mesh = {}
+        connectivity = {}
+        for key, c in self.domain_topologies(todict=True).items():
+            location = c.get_cell(None)
+            cell = location
+            match location:
+                case "face":
+                    topology_dimension = 2
+                case "edge":
+                    topology_dimension = 1
+                case "point":
+                    topology_dimension = 1
+                    cell = "edge"
+                case "volume":
+                    topology_dimension = 3
+                case _:
+                    continue
+
+            c = c.normalise()
+            domain_topology = c
+            
+            if location == "point":
+                # Convert point topology to edge_nodes_connectivity
+                c = c.to_edge(sort=True)
+            
+            name = get_name(c, key)
+            
+            ugrid_axis = self.get_data_axes(key)[0]
+            
+            dims = [axis_name[axis] for axis in self.get_data_axes(key)]
+            dims += [f"nodes{c.data.shape[-1]}"]
+            add_variable(name, dims, c.data.to_dask_array(), c.properties())
+            
+            ugrid_dim = dims[0]
+            
+            # Get the 1-d auxiliary coordinates that span the UGRID
+            # axis, and their dataset variable names
+            cell_coordinates = self._auxiliary_coordinates(
+                axes=(ugrid_axis,), exact=True
+            )
+            
+            mesh.update(
+                {
+                    "cf_role": "mesh_topology",
+                    "topology_dimension": topology_dimension,
+                    f"{cell}_node_connectivity": name,
+                }
+            )
+            
+            mesh_name = self.nc_get_mesh_variable("mesh")
+            mesh_name = get_name(mesh_name)
+            
+            # There can only be one mesh topology
+            break
+                
+        # ------------------------------------------------------------
+        # Cell connectivity
+        # ------------------------------------------------------------
+        for key, c in self.cell_connectivities(todict=True).items():
+            cell_connectivity = c.get_connectivity(None)
+            match cell_connectivity :
+                case "edge":
+                    cell = "face"
+                case "point":
+                    cell = "edge"
+                case "face":
+                    cell = "volume"
+                case _:
+                    continue
+                
+            c = c.normalise()
+            
+            # Remove the first column, which (now that the array has
+            # been normalised) just contains the index of each row (0,
+            # ..., N-1).
+            c = c[:, 1:]
+            
+            name = get_name(c, key)
+            dims = [axis_name[axis] for axis in self.get_data_axes(key)]
+            add_variable(name, dims, c.data.to_dask_array(), c.properties())
+
+            mesh[f"{cell}_{cell}_connectivity"] = name
+                
         # ------------------------------------------------------------
         # Coordinates
         # ------------------------------------------------------------
+        index = None
         for key, c in self.coordinates(todict=True).items():
             c_name = get_name(c, key)
             c_dims = [axis_name[axis] for axis in self.get_data_axes(key)]
@@ -3248,23 +3349,58 @@ class Field(
             if b is not None:
                 # Create a dedicated vertex dimension for this
                 # specific coordinate
-                b_name = get_name(b, f"{c_name}_bounds")
+                b_name = get_name(b, f"{c_name}_bounds")                
                 b_dims = c_dims + [f"bounds{b.shape[-1]}"]
+                b_properties = b.properties()
+                b = b.get_data(None)
+                if b is not None:
+                    add_variable(
+                        b_name, b_dims, b.to_dask_array(), b_properties
+                    )
+                    # Link coordinate to bounds via CF attribute
+                    c_properties['bounds'] = b_name
     
-                ds_vars[b_name] = (
-                    b_dims,
-                    b.data.to_dask_array(),
-                    b.properties()
-                )
-                # Link coordinate to bounds via CF attribute
-                c_properties['bounds'] = b_name
-    
-            ds_coords[c_name] = (
-                c_dims,
-                c.data.to_dask_array(),
-                c_properties
+            add_coordinate(
+                c_name, c_dims, c.data.to_dask_array(), c_properties
             )
+                
+            if c_dims == [ugrid_dim]:
+                if location == 'point':
+                    node_coordinates.append(c_name)
+                elif b is not None:                
+                    if index is None:
+                        # Create the array index that will extract, in
+                        # the correct order, the node coordinates from
+                        # the flattened cell bounds, i.e. so that the
+                        # first node coordinate has node id 0, the
+                        # second has node id 1, etc.
+                        node_ids, index = np.unique(
+                            domain_topology, return_index=True
+                        )
+                        if node_ids[-1] is np.ma.masked:
+                            # Remove the element that corresponds to
+                            # missing data (which is always at the end
+                            # of the `np.unique` outputs)
+                            index = index[:-1]
 
+                    # Create, from the cell bounds, an Auxiliary
+                    # Coordinate that contains the unique node
+                    # coordinates.
+                    n = self._AuxiliaryCoordinate(
+                        data=b.flatten()[index],
+                        properties=c_properties
+                    )
+
+                    n_name = get_name(n, "node_coordinate")
+                    add_coordinate(
+                        n_name, n_dims, n.data.to_dask_array(), n.properties()
+                    )
+
+                    node_coordinates.append(n_name)
+
+        if node_coordinates:
+            mesh['node_coordinates'] = " ".join(node_coordinates)
+                    
         # ------------------------------------------------------------
         # Coordinate references
         # ------------------------------------------------------------
@@ -3276,12 +3412,8 @@ class Field(
                 continue
             
             name = get_name(c.nc_get_variable(grid_mapping_name))
-            ds_vars[name] = (
-                [],
-                None,
-                parameters
-            )
-
+            add_variable(name, [], None, parameters)
+            
             grid_mappings.append(name)
 
         # ------------------------------------------------------------
@@ -3290,12 +3422,7 @@ class Field(
         for key, c in self.domain_ancillaries(todict=True).items():
             name = get_name(c, key)
             dims = [axis_name[axis] for axis in self.get_data_axes(key)]
-            ds_vars[name] = (
-                dims,
-                c.data.to_dask_array(),
-                c.properties()
-            )
-                        
+            add_variable(name, dims, c.data.to_dask_array(), c.properties())
         # ------------------------------------------------------------
         # Cell measures
         # ------------------------------------------------------------
@@ -3320,11 +3447,7 @@ class Field(
         for key, c in self.field_ancillaries(todict=True).items():
             name = get_name(c, key)
             dims = [axis_name[axis] for axis in self.get_data_axes(key)]
-            ds_vars[name] = (
-                dims,
-                c.data.to_dask_array(),
-                c.properties()
-            )
+            add_variable(name, dims, c.data.to_dask_array(), c.properties())
             
             ancillary_variables.append(name)
 
@@ -3332,7 +3455,7 @@ class Field(
         # Field
         # ------------------------------------------------------------
         field_name = get_name(self, 'field')
-        field_axes = [axis_name[axis] for axis in self.get_data_axes()]
+        field_dims = [axis_name[axis] for axis in self.get_data_axes()]
 
         properties =  self.properties()
         if grid_mappings:
@@ -3343,13 +3466,20 @@ class Field(
 
         if ancillary_variables:
             properties['ancillary_variables'] = " ".join(ancillary_variables)
-            
-        ds_vars[field_name] = (
-            field_axes ,
-            self.data.to_dask_array(),
-            properties
-        )
 
+        if mesh:
+            if mesh_name is not None:
+                properties['mesh'] = name
+                
+            if location is not None:
+                properties['location'] = location
+            
+            add_variable(mesh_name, [], None, mesh)
+                
+        add_variable(
+            field_name, field_dims, self.data.to_dask_array(), properties
+        )
+       
         # Build xarray dataset
         return xr.Dataset(data_vars=ds_vars, coords=ds_coords)
 

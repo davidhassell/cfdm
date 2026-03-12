@@ -2455,6 +2455,81 @@ class FieldDomain:
         """
         return self._has_component("mesh_id")
 
+    def node_coordinates(self):
+        """TODOX"""
+        import numpy as np
+        
+        key, domain_topology = self.domain_topology(item=True, default=(None, None))
+        if key is None:
+            raise ValueError(
+                "Can't get node coordinates for a UGRID mesh of "
+                f"{cell!r} cells for {self!r} when there is no unique "
+                "domain topology construct"
+            )
+        
+        cell = domain_topology.get_cell(None)
+        if cell is None:
+            raise ValueError(
+                "Can't get node coordinates for a UGRID mesh of "
+                f"{self!r} when the domain topology construct has no "
+                "'cell' type"
+            )
+
+        ugrid_axis = self.get_data_axes(key)[0] 
+        cell_coordinates = self.auxiliary_coordinates(
+            filter_by_axis=(ugrid_axis,), axis_mode="exact"
+        )
+
+        if cell == "point":
+            return [c.copy() for c in cell_coordinates.values()]
+
+        if cell in ("face", "edge"):
+            nodes = []
+            
+            index = None
+            for key, c in cell_coordinates.items():
+                bounds = c.get_bounds(None)
+                if bounds is None or bounds.get_data(None) is None:
+                    raise ValueError(
+                        "Can't get node coordinates for a UGRID mesh of "
+                        f"{cell!r} cells for {self!r} when {c!r} has no "
+                        "coordinate bounds data"
+                    )
+
+                if index is None:
+                    # Create the array index that will extract, in the
+                    # correct order, the node coordinates from the
+                    # flattened cell bounds, i.e. so that the first
+                    # node coordinate has node id 0, the second has
+                    # node id 1, etc.
+                    node_ids, index = np.unique(
+                        domain_topology, return_index=True
+                    )
+                    if node_ids[-1] is np.ma.masked:
+                        # Remove the element that corresponds to
+                        # missing data (which is always at the end of
+                        # the `np.unique` outputs)
+                        index = index[:-1]
+
+                    del node_ids                        
+
+                # Create, from the cell bounds, an Auxiliary
+                # Coordinate that contains the unique node
+                # coordinates.
+                coord = self._AuxiliaryCoordinate(
+                    data=bounds.data.flatten()[index],
+                    properties=c.properties(),
+                )
+
+                nodes.append(coord)
+
+            return nodes
+
+        raise ValueError(
+            "Can't get node coordinates for a UGRID mesh of "
+            f"{cell!r} cells for {self!r}"
+        )
+    
     def set_mesh_id(self, mesh_id):
         """Set a UGRID mesh topology identifier.
 
