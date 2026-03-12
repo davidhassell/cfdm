@@ -3184,6 +3184,175 @@ class Field(
 
         return f
 
+    def to_xarray(self, cfxarray=True, uxarray=True):
+        """TODOX"""
+        from collections import Counter
+        
+        import xarray as xr
+
+        if cfxarray:
+            import cf_xarray
+
+            # cf_xarray works best when xarray keeps attributes by default
+            xr.set_options(keep_attrs=True)
+        
+        # 
+        var_counter = Counter()        
+        def get_name(c, default=None):
+            if isinstance(c, str):
+                name = c
+            else:
+                try:
+                    name = c.nc_get_variable(None)
+                    if name is None:
+                        name = c.identity(None)
+                except AttributeError:
+                    name = None
+            
+                if name is None:
+                    name = default
+
+            var_counter[name] += 1
+            if var_counter[name] > 1:
+                name += f"_{var_counter[name]}"
+
+            return name
+                
+        # ------------------------------------------------------------
+        axis_name = {}  
+        ds_vars = {}
+        ds_coords = {}     
+
+        # ------------------------------------------------------------
+        # Domain axes
+        # ------------------------------------------------------------
+        axis_counter = Counter()        
+        for axis in self.domain_axes(todict=True):
+            name =  self.constructs.domain_axis_identity(axis)
+            axis_counter[name] += 1
+            if axis_counter[name] > 1:
+                name += f"_{axis_counter[name]}"
+
+            axis_name[axis] = name
+    
+        # ------------------------------------------------------------
+        # Coordinates
+        # ------------------------------------------------------------
+        for key, c in self.coordinates(todict=True).items():
+            c_name = get_name(c, key)
+            c_dims = [axis_name[axis] for axis in self.get_data_axes(key)]
+            c_properties = c.properties()
+    
+            # Handle Bounds for plotting libraries like easygems
+            b = c.get_bounds(None)
+            if b is not None:
+                # Create a dedicated vertex dimension for this
+                # specific coordinate
+                b_name = get_name(b, f"{c_name}_bounds")
+                b_dims = c_dims + [f"bounds{b.shape[-1]}"]
+    
+                ds_vars[b_name] = (
+                    b_dims,
+                    b.data.to_dask_array(),
+                    b.properties()
+                )
+                # Link coordinate to bounds via CF attribute
+                c_properties['bounds'] = b_name
+    
+            ds_coords[c_name] = (
+                c_dims,
+                c.data.to_dask_array(),
+                c_properties
+            )
+
+        # ------------------------------------------------------------
+        # Coordinate references
+        # ------------------------------------------------------------
+        grid_mappings = []
+        for key, c in self.coordinate_references(todict=True).items():
+            parameters = c.coordinate_conversion.parameters()
+            grid_mapping_name = parameters.get('grid_mapping_name')
+            if grid_mapping_name is None:
+                continue
+            
+            name = get_name(c.nc_get_variable(grid_mapping_name))
+            ds_vars[name] = (
+                [],
+                None,
+                parameters
+            )
+
+            grid_mappings.append(name)
+
+        # ------------------------------------------------------------
+        # Domain ancillaries
+        # ------------------------------------------------------------
+        for key, c in self.domain_ancillaries(todict=True).items():
+            name = get_name(c, key)
+            dims = [axis_name[axis] for axis in self.get_data_axes(key)]
+            ds_vars[name] = (
+                dims,
+                c.data.to_dask_array(),
+                c.properties()
+            )
+                        
+        # ------------------------------------------------------------
+        # Cell measures
+        # ------------------------------------------------------------
+        cell_measures = []
+        for key, c in self.cell_measures(todict=True).items():
+            name = get_name(c, key)
+            dims = [axis_name[axis] for axis in self.get_data_axes(key)]
+            ds_vars[name] = (
+                dims,
+                c.data.to_dask_array(),
+                c.properties()
+            )
+            
+            measure = c.get_measure(None)
+            if measure:
+                cell_measures.append(f"{measure}: {name}")
+
+        # ------------------------------------------------------------
+        # Field ancillaries
+        # ------------------------------------------------------------
+        ancillary_variables = []
+        for key, c in self.field_ancillaries(todict=True).items():
+            name = get_name(c, key)
+            dims = [axis_name[axis] for axis in self.get_data_axes(key)]
+            ds_vars[name] = (
+                dims,
+                c.data.to_dask_array(),
+                c.properties()
+            )
+            
+            ancillary_variables.append(name)
+
+        # ------------------------------------------------------------
+        # Field
+        # ------------------------------------------------------------
+        field_name = get_name(self, 'field')
+        field_axes = [axis_name[axis] for axis in self.get_data_axes()]
+
+        properties =  self.properties()
+        if grid_mappings:
+            properties['grid_mappings'] = " ".join(grid_mappings)
+            
+        if cell_measures:
+            properties['cell_measures'] = " ".join(cell_measures)
+
+        if ancillary_variables:
+            properties['ancillary_variables'] = " ".join(ancillary_variables)
+            
+        ds_vars[field_name] = (
+            field_axes ,
+            self.data.to_dask_array(),
+            properties
+        )
+
+        # Build xarray dataset
+        return xr.Dataset(data_vars=ds_vars, coords=ds_coords)
+
     @_inplace_enabled(default=False)
     def transpose(self, axes=None, constructs=False, inplace=False):
         """Permute the axes of the data array.
