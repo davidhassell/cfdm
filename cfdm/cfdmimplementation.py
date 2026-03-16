@@ -40,7 +40,7 @@ from .data import (
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
     ScipyNetcdfFileArray,
-    SubsampledArray,
+    SubsampledArray, XarrayArray,
     ZarrArray,
 )
 
@@ -2655,6 +2655,24 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("PyfiveArray")
         return cls(**kwargs)
 
+    def initialise_XarrayArray(self, **kwargs):
+        """Return a `ZarrArray` instance.
+
+        .. versionadded:: (cfdm) 1.12.2.0
+
+        :Parameters:
+
+            kwargs: optional
+                Initialisation parameters to pass to the new instance.
+
+        :Returns:
+
+            `ZarrArray`
+
+        """
+        cls = self.get_class("XarrayArray")
+        return cls(**kwargs)
+
     def initialise_ZarrArray(self, **kwargs):
         """Return a `ZarrArray` instance.
 
@@ -4101,7 +4119,7 @@ _implementation = CFDMImplementation(
     RaggedIndexedArray=RaggedIndexedArray,
     RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
     SubsampledArray=SubsampledArray,
-    TiePointIndex=TiePointIndex,
+    TiePointIndex=TiePointIndex,XarrayArray=XarrayArray,
     ZarrArray=ZarrArray,
 )
 

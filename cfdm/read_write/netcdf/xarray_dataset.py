@@ -97,18 +97,6 @@ class XarrayDataset:
 
         return var
 
-    def setncatts(self, attributes):
-        """Set dataset attributes.
-
-        .. versionadded:: (cfdm) NEXVERSION
-
-        :Returns:
-
-            `None`
-
-        """
-        self.ds.attrs.update(attributes)
-
     def finalise(self):
         """Return the `xarray.Dataset` instance.
 
@@ -127,7 +115,19 @@ class XarrayDataset:
 
         return self.ds
 
+    def setncatts(self, attributes):
+        """Set dataset attributes.
 
+        .. versionadded:: (cfdm) NEXVERSION
+
+        :Returns:
+
+            `None`
+
+        """
+        self.ds.attrs.update(attributes)
+
+        
 class XarrayVariable:
     """An `xarray.DataAray` constructor.
 

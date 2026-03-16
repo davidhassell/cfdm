@@ -545,10 +545,14 @@ class NetCDFRead(IORead):
 
         g["cdl_filename"] = cdl_filename
 
-        u = urisplit(dataset)
-        storage_options = self._get_storage_options(dataset, u)
-
-        if u.scheme == "s3":
+        if g["d_type"] == "Xarray":
+            scheme = None
+        else:
+            u = urisplit(dataset)
+            storage_options = self._get_storage_options(dataset, u)
+            scheme = u.scheme
+        
+        if scheme == "s3":
             # --------------------------------------------------------
             # A file in an S3 object store
             # --------------------------------------------------------
@@ -582,6 +586,7 @@ class NetCDFRead(IORead):
             "netCDF4": self._open_netCDF4,
             "netcdf_file": self._open_netcdf_file,
             "zarr": self._open_zarr,
+            "xarray": self._open_xarray,
         }
 
         # Loop around the netCDF backends until we successfully open
@@ -793,6 +798,25 @@ class NetCDFRead(IORead):
         self.read_vars["original_dataset_opened_with"] = "zarr"
         return nc
 
+    def _open_xarray(self, dataset):
+        """Return an open `zarr.Group`.TODOX
+
+        .. versionadded:: (cfdm) 1.12.2.0TODOX
+
+        :Parameters:
+
+            dataset: `str`
+                The dataset to open.TODOX
+
+        :Returns:
+
+            `zarr.Group` TODOX
+
+        """
+        nc = dataset
+        self.read_vars["original_dataset_opened_with"] = "xarray"
+        return nc
+
     def cdl_to_netcdf(self, filename):
         """Create a temporary netCDF-4 file from a CDL text file.
 
@@ -911,6 +935,11 @@ class NetCDFRead(IORead):
 
         from uritools import urisplit
 
+        print ('HERE', repr(dataset))
+        if cls.is_xarray(dataset):
+            return 'Xarray'
+        
+        print ('HERE')
         # Assume that non-local URIs are netCDF or zarr
         u = urisplit(dataset)
         if u.scheme not in (None, "file"):
@@ -1185,7 +1214,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Parse the 'dataset_type' keyword parameter
         # ------------------------------------------------------------
-        valid_dataset_types = ("netCDF", "CDL", "Zarr")
+        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Xarray")
         if dataset_type is not None:
             if isinstance(dataset_type, str):
                 dataset_type = (dataset_type,)
@@ -1218,11 +1247,12 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Parse the 'dataset' keyword parameter
         # ------------------------------------------------------------
-        try:
-            dataset = abspath(dataset, uri=False)
-        except ValueError:
-            dataset = abspath(dataset)
-
+        if isinstance(dataset, str):
+            try:
+                dataset = abspath(dataset, uri=False)
+            except ValueError:
+                dataset = abspath(dataset)
+                
         # ------------------------------------------------------------
         # Check the file type, raising an exception if the type is not
         # valid.
@@ -1252,6 +1282,8 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         if d_type == "Zarr":
             netcdf_backend = ("zarr",)  # Zarr
+        elif d_type == "Xarray":
+            netcdf_backend = ("xarray",)
         elif netcdf_backend is None:
             # By default, try netCDF backends in the following order.
             #
@@ -6845,8 +6877,12 @@ class NetCDFRead(IORead):
             "mask": g["mask"],
             "unpack": g["unpack"],
             "attributes": attributes,
-            "storage_options": g["file_system_storage_options"].get(dataset),
-        }
+            }
+
+        try:            
+            kwargs['"storage_options"'] = g["file_system_storage_options"].get(dataset),
+        except TypeError:
+            pass
 
         if not self._cfa_is_aggregation_variable(ncvar):
             # Normal (non-aggregation) variable
@@ -6878,7 +6914,17 @@ class NetCDFRead(IORead):
                             **kwargs
                         )
                     )
-
+                case "xarray":
+                    variable = self._original_dataset_variable(ncvar)
+                    kwargs["variable"]  = variable
+                    array = (
+                        self.implementation.initialise_XarrayArray(
+                            **kwargs
+                        )
+                    )
+            from pprint import pprint
+                    
+            pprint(g)
             return array, kwargs
 
         # ------------------------------------------------------------
@@ -11063,6 +11109,22 @@ class NetCDFRead(IORead):
             case "netcdf_file":
                 return False
 
+            case "netcdf_file":
+                return False
+
+            case "xarray":
+                try:
+                    # xr.DataTree has a groups attribute that contains
+                    # at least the root group
+                    has_groups = len(nc.groups) > 1
+                    if has_groups:
+                        raise NotImplementedError("TODOX")
+
+                    return has_groups
+                except AttributeError:
+                    # xr.Dataset has no groups other than the root group
+                    return False 
+
     def _file_global_attribute(self, nc, attr):
         """Return a global attribute from a dataset.
 
@@ -11083,7 +11145,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr" | "xarray":
                 return nc.attrs[attr]
 
             case "netCDF4":
@@ -11111,7 +11173,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr" | "xarray":
                 return nc.attrs
 
             case "netCDF4":
@@ -11137,7 +11199,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "xarray":
                 return group.variables
 
             case "zarr":
@@ -11182,6 +11244,12 @@ class NetCDFRead(IORead):
                 dimensions = {
                     name: Dimension(name, size, nc)
                     for name, size in nc.dimensions.items()
+                }
+
+            case "xarray":
+                dimensions = {
+                    name: Dimension(name, size, nc)
+                    for name, size in nc.dims.items()
                 }
 
         return dimensions
@@ -11235,6 +11303,9 @@ class NetCDFRead(IORead):
             case "zarr" | "netcdf_file":
                 return False
 
+            case "xarray":
+                return dim_name in nc.encoding['unlimited_dims']
+
     def _file_dimension_size(self, nc, dim_name):
         """Return a dimension's size.
 
@@ -11277,7 +11348,7 @@ class NetCDFRead(IORead):
         """
         match self.read_vars["nc_opened_with"]:
             case (
-                "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "netcdf_file"
+                "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "netcdf_file" | "xarray"
             ):
                 return nc.variables
 
@@ -11304,7 +11375,7 @@ class NetCDFRead(IORead):
                 `scipy.io.netcdf_file`, or `h5netcdf.Variable`, `zarr.Array`
 
         """
-        # netCDF4, h5netcdf, zarr, scipy
+        # netCDF4, h5netcdf, zarr, scipy, xarray
         return self._file_variables(nc)[var_name]
 
     def _file_variable_attributes(self, var):
@@ -11326,7 +11397,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "xarray":
                 return dict(var.attrs)
 
             case "netCDF4":
@@ -11383,6 +11454,10 @@ class NetCDFRead(IORead):
                         # Zarr v2
                         return tuple(var.attrs["_ARRAY_DIMENSIONS"])
 
+            case "xarray":
+                return var.dims
+
+          
     def _ndim(self, var):
         """Return the size of a variable's array.
 
@@ -11402,7 +11477,7 @@ class NetCDFRead(IORead):
 
         """
         try:
-            # h5netcdf, netCDF4, zarr
+            # h5netcdf, netCDF4, zarr, xarray
             return var.ndim
         except AttributeError:
             # scipy
@@ -11428,7 +11503,7 @@ class NetCDFRead(IORead):
 
         """
         try:
-            # h5netcdf, netCDF4, zarr
+            # h5netcdf, netCDF4, zarr, xarray
             dtype = var.dtype
         except AttributeError:
             # scipy: Need to get the datatype from the memory-mapped
@@ -11462,12 +11537,21 @@ class NetCDFRead(IORead):
                 The array subspace.
 
         """
-        array = var[index]
-        if self.read_vars["nc_opened_with"] == "netcdf_file":
-            # Need to copy the numpy array returned by
-            # scipy.io.netcdf_file with mmap=True. See `dataset_close`
-            # and the scipy.io.netcdf_file docs for details.
-            array = array.copy()
+        match self.read_vars["nc_opened_with"]:
+            case "xarray":
+                 array = var[index].to_numpy()
+                 
+            case "netcdf_file":
+                array = var[index]
+                if self.read_vars["nc_opened_with"] == "netcdf_file":
+                    # Need to copy the numpy array returned by
+                    # scipy.io.netcdf_file with mmap=True. See
+                    # `dataset_close` and the scipy.io.netcdf_file
+                    # docs for details.
+                    array = array.copy()
+                    
+            case _:
+                array = var[index]
 
         return array
 
@@ -11550,7 +11634,7 @@ class NetCDFRead(IORead):
             ncvar = ncvar.replace("/", flattener_separator)
 
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "xarray":
                 var = nc.variables[ncvar]
                 chunks = var.chunks
                 if chunks is None:
@@ -12120,7 +12204,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr" :
                 chunks = variable.chunks
                 if not chunks:
                     chunks = None
@@ -12131,6 +12215,9 @@ class NetCDFRead(IORead):
                     chunks = None
 
             case "netcdf_file":
+                chunks = None
+
+            case "netcdf_file" | "xarray":
                 chunks = None
 
         return chunks
@@ -12388,3 +12475,12 @@ class NetCDFRead(IORead):
             variable = g["variables"].get(ncvar)
 
         return variable
+
+    @classmethod
+    def is_xarray(cls, dataset):
+        """TODOX."""
+        print(repr(dataset))
+        
+        print (getattr(dataset.__class__, "__module__", ""))
+        return getattr(dataset.__class__, "__module__", "").split(".")[0] == "xarray"
+      

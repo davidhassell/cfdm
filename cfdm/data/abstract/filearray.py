@@ -180,15 +180,22 @@ class FileArray(Array):
         .. versionadded:: (cfdm) 1.12.0.0
 
         """
+        try:
+            ddd = self.get_filename(normalise=True, default=None)
+            eee = self.get_storage_options()
+        except Exception:
+            ddd = 'BLAHDEBLAH'
+            eee = 'ertertrter'
+        print('ddd=', ddd)
         return (
             self.__class__,
             self.shape,
-            self.get_filename(normalise=True, default=None),
+            ddd, #self.get_filename(normalise=True, default=None),
             self.get_address(),
             self.get_mask(),
             self.get_unpack(),
             self.get_attributes(copy=False),
-            self.get_storage_options(),
+            eee, #self.get_storage_options(),
         )
 
     def _get_array(self, index=None):

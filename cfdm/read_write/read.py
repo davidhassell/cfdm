@@ -343,7 +343,8 @@ class read(ReadWrite):
         recursive = kwargs.get("recursive", False)
         followlinks = kwargs.get("followlinks", False)
 
-        datasets = self._flat(kwargs["datasets"])
+        datasets = kwargs["datasets"]
+#        datasets = self._flat(kwargs["datasets"])
         if kwargs["cdl_string"]:
             # Return CDL strings as they are
             for dataset1 in datasets:
@@ -352,6 +353,14 @@ class read(ReadWrite):
 
             return
 
+        is_xarray= NetCDFRead.is_xarray
+
+        if is_xarray(datasets):
+             print('00000')
+             print(list(datasets))
+             yield datasets         
+             return 
+            
         from uritools import urisplit
 
         if followlinks and not recursive:
@@ -363,6 +372,11 @@ class read(ReadWrite):
         is_zarr = NetCDFRead.is_zarr
 
         for datasets1 in datasets:
+            print('ppppp', repr(datasets1))
+            if is_xarray(datasets1):
+                yield datasets1
+                continue
+            
             # Apply tilde and environment variable expansions
             datasets1 = expanduser(expandvars(datasets1))
 

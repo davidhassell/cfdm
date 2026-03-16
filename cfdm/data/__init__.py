@@ -37,6 +37,7 @@ from .raggedindexedarray import RaggedIndexedArray
 from .raggedindexedcontiguousarray import RaggedIndexedContiguousArray
 from .sparsearray import SparseArray
 from .subsampledarray import SubsampledArray
+from .xarrayarray import XarrayArray
 from .zarrarray import ZarrArray
 
 from .data import Data
