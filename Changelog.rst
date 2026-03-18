@@ -3,6 +3,10 @@ Version NEXTVERSION
 
 **2026-??-??**
 
+* Fix bug that caused a failure on the second, and subsequent,
+  attempts to access aggregation variable data when using the
+  `h5netcdf-pyfive` netCDF backend
+  (https://github.com/NCAS-CMS/cfdm/pull/???)
 * New keyword parameter to `cfdm.Data.compute`: ``persist``
   (https://github.com/NCAS-CMS/cfdm/issues/389)
 * New function to control the persistence of computed data:

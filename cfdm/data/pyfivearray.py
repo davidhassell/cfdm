@@ -77,13 +77,10 @@ class PyfiveArray(IndexMixin, FileArray):
             if groups:
                 dataset = self._group(dataset, groups)
 
-            variable = dataset.variables[address]
+            variable = dataset.variables[address]._h5ds
 
             # Cache the variable
             self._set_component("variable", variable, copy=False)
-
-            self.close(dataset0)
-            del dataset, dataset0
 
         # Get the data, applying masking and scaling as required.
         array = netcdf_indexer(
@@ -210,7 +207,7 @@ class PyfiveArray(IndexMixin, FileArray):
             h5netcdf.File,
             mode="r",
             decode_vlen_strings=True,
-            netcdf_backend="pyfive",
+            backend="pyfive",
             phony_dims="sort",
             **kwargs
         )
