@@ -9,29 +9,40 @@ class XarrayDataset:
 
     If the `cf_xarray` package (https://cf-xarray.readthedocs.io) is
     installed then the `cf_xarray` accessors that allow some
-    interpretation of CF attributes will bxe present on the returned
-    `xarray` objects (`xarray.DataArray.cf` and `xarray.Dataset.cf`,
-    but not `xarray.DataTree`).
+    interpretation of CF attributes will be present on
+    `xarray.DataArray` and `xarray.Dataset` objects.
 
     Has a similar API to `netCDF4.Dataset`.
 
-    .. versionadded:: (cfdm) NEXVERSION
+    .. versionadded:: (cfdm) NEXTVERSION
 
     """
 
-    def __init__(self, name=None):
-        """**Initialisation**"""
+    def __init__(self, name=None, source=None):
+        """**Initialisation**
+
+        :Parameters:
+
+            name: `str` or `None`
+                The name of the group, or `None` for the root group.
+
+        """
+        if source is not None:
+            self.ds = source
+            self.variables = source.variables
+            self.attrs = source.attrs
+            self.groups = {}
 
         try:
             import xarray as xr
         except ModuleNotFoundError as error:
             error.msg += (
                 ". Install the 'xarray' package "
-                "(https://pypi.org/project/xarray) to convert to a xarray "
-                "datasets"
+                "(https://pypi.org/project/xarray) to convert to an xarray "
+                "dataset"
             )
             raise
-        
+
         # Attempt to apply the cf_xarray accessors
         try:
             import cf_xarray  # noqa: F401
@@ -41,15 +52,14 @@ class XarrayDataset:
             # cf_xarray works best when xarray keeps attributes by
             # default.
             xr.set_options(keep_attrs=True)
-            
+
         self.ds = xr.Dataset()
         self.name = name
-        self.coords = {}
-        self.data_vars = {}        
         self.attrs = self.ds.attrs
+        self.coords = {}
+        self.data_vars = {}
 
-        # XarrayDataset objects in sub-groups - only used when
-        # creating datasets ab initio
+        # XarrayDataset objects in sub-groups
         self.groups = {}
 
     def createDimension(self, *args, **kwargs):
@@ -60,21 +70,21 @@ class XarrayDataset:
         `xarray` handles dimensions implicitly, so this method does
         nothing.
 
-        .. versionadded:: (cfdm) NEXVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             `None`
-        
+
         """
         pass
-        
+
     def createGroup(self, group_name):
         """Creates a new group with the given group name.
 
         Has a similar API to `netCDF4.createGroup`.
 
-        .. versionadded:: (cfdm) NEXVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
@@ -91,10 +101,10 @@ class XarrayDataset:
         if "/" in group_name:
             raise ValueError(
                 f"Cant create group {group_name!r}: Can only create "
-                "subgroups direcly inside the parent"
+                "subgroups directly inside the parent"
             )
 
-        new_group = XarrayDataset(name=group_name)
+        new_group = type(self)(name=group_name)
         self.groups[group_name] = new_group
 
         return new_group
@@ -104,7 +114,7 @@ class XarrayDataset:
 
         Has a similar API to `netCDF4.createVariable`.
 
-        .. versionadded:: (cfdm) NEXVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
@@ -159,10 +169,37 @@ class XarrayDataset:
 
         return var
 
-    def finalise(self):
+    def get_dims(self):
+        """The dimensions native to this group. TODOX
+
+        Returns a dictionary of dimension names to objects with a 
+        'size' attribute. 
+        
+        If the source is a `DataTree` node, only dimensions that are 
+        defined in this node (and not inherited from parents) are 
+        returned.
+        """
+        return tuple(
+            [Dimension(name, size, self)
+             for name, size in self.ds.dims.items()]
+        )
+
+    def setncatts(self, attributes):
+        """Set dataset attributes.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `None`
+
+        """
+        self.ds.attrs.update(attributes)
+
+    def to_xarray(self):
         """Return the `xarray` dataset.
 
-        .. versionadded:: (cfdm) NEXVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -170,24 +207,29 @@ class XarrayDataset:
 
         """
         ds = self.ds
-        
+
         for name, var in self.coords.items():
-            ds.coords[name] = var.finalise()
+            ds.coords[name] = var.to_xarray()
 
         for name, var in self.data_vars.items():
-            ds[name] = var.finalise()
+            ds[name] = var.to_xarray()
 
         if not self.groups:
+            # --------------------------------------------------------
+            # Return an xr.Dataset that has no group structure
+            # --------------------------------------------------------
             return ds
 
-        # Return a DateaTree that has the group structure
+        # ------------------------------------------------------------
+        # Return an xr.DataTree that has a group structure
+        # ------------------------------------------------------------
         import xarray as xr
 
         current_group = xr.DataTree(dataset=ds, name=self.name)
 
-        # 4. Recursively finalise children and attach them
+        # Recursively convert children to xarray, and attach them.
         for parent_group_name, parent_group in self.groups.items():
-            child_group = parent_group.finalise()
+            child_group = parent_group.to_xarray()
 
             if isinstance(child_group, xr.Dataset):
                 # Create a node for the Dataset
@@ -200,30 +242,18 @@ class XarrayDataset:
                 child_node.name = parent_group_name
 
             # Use the node itself as a dictionary. This is the
-            # "DataTree" way to add a child.
+            # xr.DataTree way to add a child.
             current_group[parent_group_name] = child_node
 
         return current_group
 
-    def setncatts(self, attributes):
-        """Set dataset attributes.
-
-        .. versionadded:: (cfdm) NEXVERSION
-
-        :Returns:
-
-            `None`
-
-        """
-        self.ds.attrs.update(attributes)
-
 
 class XarrayVariable:
-    """An `xarray.DataAray` constructor.
+    """An `xarray.DataArray` constructor.
 
     Has a similar API to `netCDF4.Variable`.
 
-    .. versionadded:: (cfdm) NEXVERSION
+    .. versionadded:: (cfdm) NEXTVERSION
 
     """
 
@@ -239,7 +269,7 @@ class XarrayVariable:
                 Typecode or data-type of the variable.
 
             dimensions: sequence of `str`, optional
-                The dimension of the variable.
+                The names of the dimensions of the variable.
 
         """
         self.name = name
@@ -250,7 +280,7 @@ class XarrayVariable:
     def setncatts(self, attributes):
         """Set variable attributes.
 
-        .. versionadded:: (cfdm) NEXVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -259,10 +289,10 @@ class XarrayVariable:
         """
         self.attrs.update(attributes)
 
-    def finalise(self):
+    def to_xarray(self):
         """Return the `xarray` variable.
 
-        .. versionadded:: (cfdm) NEXVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -285,98 +315,99 @@ class XarrayVariable:
         return xr.DataArray(
             data=data, dims=self.dimensions, name=self.name, attrs=self.attrs
         )
-#ppppppppppppppppppp
 
-class XarrayDatasetRead:
-    """An `xarray` dataset` constructor. TODOX
-
-    Constructs either `xarray.Dataset` (if there are no sub-groups of
-    the root group) or else `xarray.DataTree` (if there are sub-groups
-    of the root group).
-
-    If the `cf_xarray` package (https://cf-xarray.readthedocs.io) is
-    installed then the `cf_xarray` accessors that allow some
-    interpretation of CF attributes will bxe present on the returned
-    `xarray` objects (`xarray.DataArray.cf` and `xarray.Dataset.cf`,
-    but not `xarray.DataTree`).
-
-    Has a similar API to `netCDF4.Dataset`.
-
-    .. versionadded:: (cfdm) NEXVERSION
-
-    """
-
-    def __init__(self, source=None):
-        """**Initialisation**"""
-
-        self.ds = source
-        self.variables = source.variables
-        self.attrs = source.attrs
-
-    @property
-    def dimensions(self):
-        """The dimensions native to this group.
-
-        Returns a dictionary of dimension names to objects with a 
-        'size' attribute. 
-        
-        If the source is a `DataTree` node, only dimensions that are 
-        defined in this node (and not inherited from parents) are 
-        returned.
-        """
-        # Get all dimensions visible at this node/dataset
-        all_dims = dict(ds.dims)
-        
-        # Identify "local" dimensions
-        if getattr(ds, 'parent', None) is not None:
-            # It's a DataTree node: exclude dimensions defined in ancestors.
-            # xarray-datatree dimensions are propagated, so we subtract
-            # the parent's dimensions to find those unique to this group.
-            local_dims = set(all_dims).difference(ds.parent.dims)
-        else:
-            # It's a root node or a standalone xr.Dataset
-            local_dims = all_dims
-
-        # Return a mock object for each dimension that has a .size
-        # property, matching the API expected by cfdm.read
-        # (netCDF4.Dimension-like).
-#        dims =  {name: Dimension(name, all_dims[name], self)
-#                 for name in local_names}
-        return local_names
-    
-    @property
-    def groups(self):
-        """TODOX"""
-        ds = self.ds
-        if hasattr(ds, "children"):
-            # Has sub-groups
-            return {group_name: type(self)(child_group)
-                    for group_name, child_group in ds.children.items()}
-
-        return {}
-
-    def get_dims(self):
-        """The dimensions native to this group. TODOX
-
-        Returns a dictionary of dimension names to objects with a 
-        'size' attribute. 
-        
-        If the source is a `DataTree` node, only dimensions that are 
-        defined in this node (and not inherited from parents) are 
-        returned.
-        """
-        return tuple([
-            Dimension(name, size, self)
-            for name, size in ds.dims.items()])
-
-    def to_xarray(self):
-        """Return the `xarray` dataset.
-
-        .. versionadded:: (cfdm) NEXVERSION
-
-        :Returns:
-
-            `xarray.Dataset` or `xarray.DataTree`
-
-        """
-        return self.ds
+##ppppppppppppppppppp
+#
+#class XarrayDatasetRead:
+#    """An `xarray` dataset` constructor. TODOX
+#
+#    Constructs either `xarray.Dataset` (if there are no sub-groups of
+#    the root group) or else `xarray.DataTree` (if there are sub-groups
+#    of the root group).
+#
+#    If the `cf_xarray` package (https://cf-xarray.readthedocs.io) is
+#    installed then the `cf_xarray` accessors that allow some
+#    interpretation of CF attributes will bxe present on the returned
+#    `xarray` objects (`xarray.DataArray.cf` and `xarray.Dataset.cf`,
+#    but not `xarray.DataTree`).
+#
+#    Has a similar API to `netCDF4.Dataset`.
+#
+#    .. versionadded:: (cfdm) NEXVERSION
+#
+#    """
+#
+#    def __init__(self, source=None):
+#        """**Initialisation**"""
+#
+#        self.ds = source
+#        self.variables = source.variables
+#        self.attrs = source.attrs
+#
+#    @property
+#    def dimensions(self):
+#        """The dimensions native to this group.
+#
+#        Returns a dictionary of dimension names to objects with a 
+#        'size' attribute. 
+#        
+#        If the source is a `DataTree` node, only dimensions that are 
+#        defined in this node (and not inherited from parents) are 
+#        returned.
+#        """
+#        # Get all dimensions visible at this node/dataset
+#        all_dims = dict(ds.dims)
+#        
+#        # Identify "local" dimensions
+#        if getattr(ds, 'parent', None) is not None:
+#            # It's a DataTree node: exclude dimensions defined in ancestors.
+#            # xarray-datatree dimensions are propagated, so we subtract
+#            # the parent's dimensions to find those unique to this group.
+#            local_dims = set(all_dims).difference(ds.parent.dims)
+#        else:
+#            # It's a root node or a standalone xr.Dataset
+#            local_dims = all_dims
+#
+#        # Return a mock object for each dimension that has a .size
+#        # property, matching the API expected by cfdm.read
+#        # (netCDF4.Dimension-like).
+##        dims =  {name: Dimension(name, all_dims[name], self)
+##                 for name in local_names}
+#        return local_names
+#    
+#    @property
+#    def groups(self):
+#        """TODOX"""
+#        ds = self.ds
+#        if hasattr(ds, "children"):
+#            # Has sub-groups
+#            return {group_name: type(self)(child_group)
+#                    for group_name, child_group in ds.children.items()}
+#
+#        return {}
+#
+#    def get_dims(self):
+#        """The dimensions native to this group. TODOX
+#
+#        Returns a dictionary of dimension names to objects with a 
+#        'size' attribute. 
+#        
+#        If the source is a `DataTree` node, only dimensions that are 
+#        defined in this node (and not inherited from parents) are 
+#        returned.
+#        """
+#        return tuple([
+#            Dimension(name, size, self)
+#            for name, size in ds.dims.items()])
+#
+#    def to_xarray(self):
+#        """Return the `xarray` dataset.
+#
+#        .. versionadded:: (cfdm) NEXVERSION
+#
+#        :Returns:
+#
+#            `xarray.Dataset` or `xarray.DataTree`
+#
+#        """
+#        return self.ds
