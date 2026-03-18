@@ -343,6 +343,13 @@ class read(ReadWrite):
         recursive = kwargs.get("recursive", False)
         followlinks = kwargs.get("followlinks", False)
 
+        is_xarray = NetCDFRead.is_xarray
+
+        datasets = kwargs["datasets"]
+        print(repr(datasets))
+        if is_xarray(datasets):
+            yield datasets
+            return 
         datasets = self._flat(kwargs["datasets"])
         if kwargs["cdl_string"]:
             # Return CDL strings as they are
@@ -361,8 +368,9 @@ class read(ReadWrite):
             )
 
         is_zarr = NetCDFRead.is_zarr
-
+            
         for datasets1 in datasets:
+            
             # Apply tilde and environment variable expansions
             datasets1 = expanduser(expandvars(datasets1))
 

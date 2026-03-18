@@ -168,6 +168,8 @@ from .cfdmimplementation import CFDMImplementation, implementation
 from .read_write import read, write
 from .read_write.netcdf.flatten import dataset_flatten
 
+from .from_xarray import from_xarray
+
 from .examplefield import example_field, example_fields, example_domain
 
 from .abstract import Container

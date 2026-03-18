@@ -62,6 +62,22 @@ class XarrayDataset:
         # XarrayDataset objects in sub-groups
         self.groups = {}
 
+    @property
+    def dimensions(self):
+        """The dimensions native to this group.
+
+        Returns a dictionary of dimension names to objects with a 
+        'size' attribute. 
+        
+        If the source is a `DataTree` node, only dimensions that are 
+        defined in this node (and not inherited from parents) are 
+        returned.
+        """
+        return {
+            name: Dimension(name, size, self)
+            for name, size in self.ds.sizes.items()
+        }
+    
     def createDimension(self, *args, **kwargs):
         """Create a new dimension.
 
@@ -179,10 +195,7 @@ class XarrayDataset:
         defined in this node (and not inherited from parents) are 
         returned.
         """
-        return tuple(
-            [Dimension(name, size, self)
-             for name, size in self.ds.dims.items()]
-        )
+        return tuple(self.dimensions.values())
 
     def setncatts(self, attributes):
         """Set dataset attributes.

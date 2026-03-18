@@ -411,8 +411,6 @@ class _Flattener:
             self._input_ds_backend = "netCDF4"
         elif hasattr(input_ds, "store"):
             self._input_ds_backend = "zarr"
-        elif hasattr(input_ds, "TODOX"):
-            self._input_ds_backend = "xarray"
         else:
             raise ValueError(
                 "Unknown type of 'input_ds'. Must be one of h5netcdf.File, "
@@ -459,7 +457,7 @@ class _Flattener:
                     for attr in variable.ncattrs()
                 }
 
-            case "h5netcdf" | "xarray":
+            case "h5netcdf":
                 return dict(variable.attrs)
 
             case "zarr":
@@ -507,9 +505,6 @@ class _Flattener:
 
                 return chunking
 
-            case "xarray":
-                return
-
     def contiguous(self, variable):
         """Whether or not the variable data is contiguous on disk.
 
@@ -538,9 +533,6 @@ class _Flattener:
 
             case "netCDF4":
                 return variable.chunking() == "contiguous"
-
-            case "xarray":
-                return True
 
     def dtype(self, variable):
         """Return the data type of a variable.
@@ -604,9 +596,6 @@ class _Flattener:
             case "netCDF4":
                 return variable.endian()
 
-            case "xarray":
-                return "native"
-
     def dataset_name(self, dataset=None):
         """Return the file path for the dataset.
 
@@ -642,9 +631,6 @@ class _Flattener:
 
             case "zarr":
                 return str(dataset.store)
-
-            case "xarray":
-                return
 
     def _variable_dimensions(self, variable):
         """Return the dimension objects associated with a variable.
@@ -1967,7 +1953,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "netCDF4" | "xarray":
+            case "h5netcdf" | "netCDF4":
                 if self._group_dimension_search != "closest_ancestor":
                     raise ValueError(
                         f"For netCDF dataset {self.dataset_name()}, "
