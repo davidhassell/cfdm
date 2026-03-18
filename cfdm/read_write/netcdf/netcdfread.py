@@ -582,6 +582,7 @@ class NetCDFRead(IORead):
             "netCDF4": self._open_netCDF4,
             "netcdf_file": self._open_netcdf_file,
             "zarr": self._open_zarr,
+            "xarray": self._open_xarray,
         }
 
         # Loop around the netCDF backends until we successfully open
@@ -763,6 +764,25 @@ class NetCDFRead(IORead):
             phony_dims="sort",
         )
         self.read_vars["original_dataset_opened_with"] = "h5netcdf-pyfive"
+        return nc
+
+    def _open_xarray(self, dataset):
+        """Return an open `zarr.Group`. TODOX
+
+        .. versionadded:: (cfdm) 1.12.2.0
+
+        :Parameters:
+
+            dataset: `str`
+                The dataset to open.
+
+        :Returns:
+
+            `XarrayDatasetRead`
+
+        """
+        nc = XarrayDatasetRead(dataset)
+        self.read_vars["original_dataset_opened_with"] = "xarray"
         return nc
 
     def _open_zarr(self, dataset):
@@ -11054,7 +11074,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "xarray":
                 return bool(nc.groups)
 
             case "zarr":
@@ -11083,7 +11103,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr" | "xarray":
                 return nc.attrs[attr]
 
             case "netCDF4":
@@ -11111,7 +11131,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr" | "xarray":
                 return nc.attrs
 
             case "netCDF4":
@@ -11137,7 +11157,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "xarray":
                 return group.variables
 
             case "zarr":
@@ -11162,7 +11182,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "xarray":
                 dimensions = dict(nc.dimensions)
 
             case "zarr":
@@ -11568,6 +11588,10 @@ class NetCDFRead(IORead):
 
             case "netcdf_file":
                 var = nc.variables[ncvar]
+                chunks = "contiguous"
+
+            case "xarray":
+                # TODOX
                 chunks = "contiguous"
 
         return chunks, var.shape
@@ -12132,6 +12156,10 @@ class NetCDFRead(IORead):
 
             case "netcdf_file":
                 chunks = None
+
+            case "xarray":
+                # TODOX
+                chunks = "contiguous"
 
         return chunks
 
