@@ -775,7 +775,6 @@ class NetCDFRead(IORead):
             `h5netcdf.File`
 
         """
-        print('calling  _open_h5netcdf_pyfive')
         import h5netcdf
 
         nc = h5netcdf.File(
