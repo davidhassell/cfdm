@@ -118,10 +118,11 @@ _docstring_substitution_definitions = {
             The dataset, or datasets, from which to read field or
             domain constructs.
 
-            May be a string-valued path, a file-like object (such as
-            `io.BufferedReader`, or a directory-like object (such as
-            `fsspec.mapping.FSMap`); or a sequence of any combination
-            of these types.
+            May be a `str` or `pathlib.Path` path, a file-like object
+            (such as `io.BufferedReader` or the reult of an `fsspec`
+            file system file open), or a directory-like object (such
+            as `fsspec.mapping.FSMap`); or a sequence of any
+            combination of these types.
 
             Note that a Kerchunk dataset may be only read from a
             directory-like object. For instance::

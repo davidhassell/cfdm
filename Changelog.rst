@@ -3,6 +3,8 @@ Version NEXTVERSION
 
 **2026-??-??**
 
+* Read datasets represented by `pathlib.Path` strings with `cfdm.read`
+  (https://github.com/NCAS-CMS/cfdm/issues/403)
 * Read Kerchunk datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/385)
 * Read open file handle datasets with `cfdm.read`

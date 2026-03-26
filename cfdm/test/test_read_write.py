@@ -2,6 +2,7 @@ import atexit
 import datetime
 import faulthandler
 import os
+import pathlib
 import platform
 import shutil
 import subprocess
@@ -1620,6 +1621,36 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(len(f), 1)
         f = cfdm.read(gen([x, x]))
         self.assertEqual(len(f), 2)
+
+    def test_read_pathlib_Path(self):
+        """Test cfdm.read with pathlib.Path object."""
+        p = pathlib.Path(self.filename)
+
+        f = cfdm.read(p)
+        self.assertEqual(len(f), 1)
+
+        # Check that we can read it from a list
+        f = cfdm.read([p])
+        self.assertEqual(len(f), 1)
+
+        # Check that we can read two of it from a list
+        f = cfdm.read([p, p])
+        self.assertEqual(len(f), 2)
+
+        # Check that we can read it from a generator
+        def gen(i):
+            for a in i:
+                yield (a)
+
+        f = cfdm.read(gen([p]))
+        self.assertEqual(len(f), 1)
+        f = cfdm.read(gen([p, p]))
+        self.assertEqual(len(f), 2)
+
+        # Test with a glob
+        p = pathlib.Path("ugrid_[12].nc")
+        f = cfdm.read(p)
+        self.assertEqual(len(f), 6)
 
 
 if __name__ == "__main__":

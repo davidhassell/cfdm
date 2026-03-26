@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from functools import reduce
 from math import log, nan, prod
 from numbers import Integral
+from os import fspath
 from os.path import isdir, isfile, join
 from typing import Any
 from uuid import uuid4
@@ -1311,15 +1312,19 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Parse the 'dataset' keyword parameter
         # ------------------------------------------------------------
-        if representation == "path" and filesystem is None:
-            try:
-                dataset = abspath(dataset, uri=False)
-            except ValueError:
-                dataset = abspath(dataset)
+        if representation == "path":
+            # Convert `pathlib.Path` to `str`
+            dataset = fspath(dataset)
 
-            dataset, filesystem = self.create_filesystem(
-                dataset, storage_options
-            )
+            if filesystem is None:
+                try:
+                    dataset = abspath(dataset, uri=False)
+                except ValueError:
+                    dataset = abspath(dataset)
+
+                dataset, filesystem = self.create_filesystem(
+                    dataset, storage_options
+                )
 
         # ------------------------------------------------------------
         # Check the file type, raising an exception if the type is not
@@ -12555,7 +12560,7 @@ class NetCDFRead(IORead):
             `str`
                 The dataset representation:
 
-                * ``'path'``: A string-valued path.
+                * ``'path'``: A `str` or `pathlib.Path` path.
 
                 * ``'kerchunk_mapper'``: A Kerchunk virtual directory.
 
@@ -12574,8 +12579,8 @@ class NetCDFRead(IORead):
                 * ``'unknown'``: Anything else.
 
         """
-        # Strings (Paths)
-        if isinstance(dataset, str):
+        # Check for a string or pathlib.Path
+        if isinstance(dataset, str) or hasattr(dataset, "__fspath__"):
             return "path"
 
         # Check for a "virtual directory" (Mapper)

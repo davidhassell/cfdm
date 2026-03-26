@@ -1,7 +1,7 @@
 from functools import partial
 from glob import iglob
 from logging import getLogger
-from os import walk
+from os import fspath, walk
 from os.path import expanduser, expandvars, isdir, join
 
 from cfdm.decorators import _manage_log_level_via_verbosity
@@ -385,6 +385,9 @@ class read(ReadWrite):
         for datasets1 in datasets:
             representation = NetCDFRead.dataset_representation(datasets1)
             if representation == "path":
+                # Convert `pathlib.Path` to `str`
+                datasets1 = fspath(datasets1)
+
                 if filesystem is None:
                     # Apply tilde and environment variable expansions
                     datasets1 = expanduser(expandvars(datasets1))
