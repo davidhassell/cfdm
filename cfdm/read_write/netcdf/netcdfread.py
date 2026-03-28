@@ -37,10 +37,19 @@ from .flatten.config import (
 )
 from .zarr import ZarrDimension
 
+import time
+
 logger = logging.getLogger(__name__)
 
 _cached_temporary_files = {}
 
+
+def timer(label, s, limit=0.01):
+    d = time.time()-s
+    if d > limit:
+        print (label, d)
+        
+    return time.time()
 
 @dataclass()
 class Mesh:
@@ -746,7 +755,7 @@ class NetCDFRead(IORead):
 
         """
         import h5netcdf
-
+        
         nc = h5netcdf.File(
             filename,
             "r",
@@ -756,6 +765,7 @@ class NetCDFRead(IORead):
             rdcc_nslots=4133,
             phony_dims="sort",
         )
+        
         self.read_vars["original_dataset_opened_with"] = "h5netcdf-h5py"
         return nc
 
@@ -775,7 +785,7 @@ class NetCDFRead(IORead):
 
         """
         import h5netcdf
-
+        s0 = time.time()
         nc = h5netcdf.File(
             filename,
             "r",
@@ -783,6 +793,7 @@ class NetCDFRead(IORead):
             backend="pyfive",
             phony_dims="sort",
         )
+        timer('h5netcdf.File(..., backend="pyfive")', s0)
         self.read_vars["original_dataset_opened_with"] = "h5netcdf-pyfive"
         return nc
 
@@ -1871,7 +1882,8 @@ class NetCDFRead(IORead):
                 flattener_attribute_map,
             ):
                 g["global_attributes"].pop(attr, None)
-
+        import time
+        s7 = time.time()
         for ncvar, variable in self._file_variables(nc).items():
             ncvar_basename = ncvar
             groups = ()
@@ -1945,6 +1957,7 @@ class NetCDFRead(IORead):
             variable_groups[ncvar] = groups
             variable_group_attributes[ncvar] = group_attributes
 
+        s7 = timer('.... parsing', s7)
         # Populate dimensions_groups and dimension_basename
         # dictionaries
         file_dimensions = dict(self._file_dimensions(nc))
@@ -1976,12 +1989,14 @@ class NetCDFRead(IORead):
                 nc, ncdim_org
             )
 
+        s7 = timer('.... parsing', s7)
         if has_groups:
             variable_dimensions = {
                 name: tuple([flattener_dimensions[ncdim] for ncdim in value])
                 for name, value in variable_dimensions.items()
             }
 
+        s7 = timer('.... parsing', s7)
         if debug:
             logger.debug(
                 "    General read variables:\n"
@@ -2044,6 +2059,7 @@ class NetCDFRead(IORead):
                 for name, value in internal_dimension_sizes.items()
             }
 
+        s7 = timer('.... parsing', s7)
         g["internal_dimension_sizes"] = internal_dimension_sizes
 
         # The group structure for each variable. Variables in the root
@@ -2122,7 +2138,7 @@ class NetCDFRead(IORead):
         # Now that all of the variables have been scanned, customise
         # the read parameters.
         self._customise_read_vars()
-
+        s7 = timer('Done parsing', s7)
         # ------------------------------------------------------------
         # Aggregation variables (CF>=1.12)
         # ------------------------------------------------------------
@@ -2399,9 +2415,11 @@ class NetCDFRead(IORead):
             if ncvar in g["do_not_create_field"] or ncvar in g["mesh"]:
                 continue
 
+            s3 = time.time()
             field_or_domain = self._create_field_or_domain(
                 ncvar, domain=domain
             )
+            print('FIELD',  ncvar,time.time()-s3, '\n')
             if field_or_domain is not None:
                 all_fields_or_domains[ncvar] = field_or_domain
 
@@ -4072,6 +4090,7 @@ class NetCDFRead(IORead):
             `Field` or `Domain`
 
         """
+        s5 = time.time()
         g = self.read_vars
 
         field = not domain
@@ -4374,6 +4393,8 @@ class NetCDFRead(IORead):
 
             ncdim_to_axis[ncdim] = axis
             axis_to_ncdim[axis] = ncdim
+            
+        s5 = timer('A', s5)
 
         # ------------------------------------------------------------
         # Add the data to the field
@@ -4391,6 +4412,8 @@ class NetCDFRead(IORead):
 
         # Store the original file names
         self.implementation.set_original_filenames(f, g["dataset"])
+
+        s5 = timer('B', s5)
 
         # ------------------------------------------------------------
         # Add auxiliary coordinate constructs derived from UGRID
@@ -4685,6 +4708,7 @@ class NetCDFRead(IORead):
                 if scalar:
                     ncscalar_to_axis[ncvar] = dimensions[0]
 
+#            print('C', time.time()-s); s = time.time()
         # ------------------------------------------------------------
         # Add dimension or auxiliary coordinate constructs derived
         # from from tie point coordinate variables and bounds tie
@@ -5075,6 +5099,7 @@ class NetCDFRead(IORead):
 
             g["vertical_crs"][key] = coordinate_reference
 
+#        print('E', time.time()-s); s = time.time()
         # ------------------------------------------------------------
         # Add grid mapping coordinate references (do this after
         # formula terms)
@@ -5210,6 +5235,7 @@ class NetCDFRead(IORead):
                         self._reference(grid_mapping_ncvar, field_ncvar)
                         ncvar_to_key[grid_mapping_ncvar] = key
 
+#            print('F', time.time()-s); s = time.time()
         # ------------------------------------------------------------
         # Add cell measures to the field/domain
         # ------------------------------------------------------------
@@ -5255,6 +5281,7 @@ class NetCDFRead(IORead):
                     if ncvar in g["external_variables"]:
                         g["referenced_external_variables"].add(ncvar)
 
+#            print('G', time.time()-s); s = time.time()
         # ------------------------------------------------------------
         # Add cell methods to the field
         # ------------------------------------------------------------
@@ -5363,6 +5390,8 @@ class NetCDFRead(IORead):
             dataset_compliance = {}
 
         self.implementation.set_dataset_compliance(f, dataset_compliance)
+
+        s5 = timer('Z', s5)
 
         # Return the finished field/domain
         return f
@@ -6055,7 +6084,6 @@ class NetCDFRead(IORead):
             properties.pop("formula_terms", None)
         else:
             properties = {}
-
         # Check for tie points
         tie_points = ncvar in g["tie_point_ncvar"].get(parent_ncvar, ())
 
@@ -6854,10 +6882,16 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
+        s6 = time.time()
         variable = self._original_dataset_variable(ncvar)
+        s6 = timer('    cn0.1:', s6)
+
         if variable is None:
             return None
 
+        s6 = timer('    cn0.2:', s6)
+        print(type(variable))
+        s6 = timer('    cn0.3:', s6)
         dtype = self._dtype(variable)
         if dtype is str or dtype.kind == "O":
             # netCDF string types have a dtype of `str`, which needs
@@ -6865,13 +6899,16 @@ class NetCDFRead(IORead):
             # without reading the data, so set it to None for now.
             dtype = None
 
+        s6 = timer('    cn2:', s6)
         if dtype is not None and unpacked_dtype is not False:
             dtype = np.result_type(dtype, unpacked_dtype)
 
+        s6 = timer('    cn3:', s6)
         ndim = self._ndim(variable)
         shape = variable.shape
         size = prod(shape)
 
+        s6 = timer('    cn4:', s6)
         if size < 2:
             size = int(size)
 
@@ -6881,6 +6918,7 @@ class NetCDFRead(IORead):
             shape = shape[:-1]
             dtype = np.dtype(f"U{strlen}")
 
+        s6 = timer('    cn5:', s6)
         dataset = g["variable_datasetname"][ncvar]
 
         attributes = g["variable_attributes"][ncvar].copy()
@@ -6920,8 +6958,9 @@ class NetCDFRead(IORead):
                 case "h5netcdf-pyfive":
                     # Add the pyfive.Variable object to the Array
                     # object initialisation
-                    variable = self._original_dataset_variable(ncvar)
-                    kwargs["variable"] = variable._h5ds
+#                    variable = self._original_dataset_variable(ncvar)
+                    kwargs["variable"] = variable #._h5ds
+                    print('        storing in Dask:',  type(variable))
                     array = self.implementation.initialise_PyfiveArray(
                         **kwargs
                     )
@@ -7040,12 +7079,14 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
+        s4 = time.time()
         construct_type = self.implementation.get_construct_type(construct)
         netcdf_array, netcdf_kwargs = self._create_netcdfarray(
             ncvar,
             unpacked_dtype=unpacked_dtype,
             coord_ncvar=coord_ncvar,
         )
+        s4 = timer('    cd0:', s4)
 
         if netcdf_array is None:
             return None
@@ -7278,7 +7319,8 @@ class NetCDFRead(IORead):
                     computational_precision=rec["computational_precision"],
                 )
                 compressed = True
-
+        s4 = timer('    cd5:', s4)
+     
         data = self._create_Data(
             array,
             units=units,
@@ -7287,6 +7329,7 @@ class NetCDFRead(IORead):
             compressed=compressed,
             construct_type=construct_type,
         )
+        s4 = timer('    cd6:', s4)
 
         data._original_filenames(define=dataset)
 
@@ -7316,6 +7359,7 @@ class NetCDFRead(IORead):
         if not aggregation_variable:
             # For non-aggregation variables, set the aggregated write
             # status to True when there is exactly one dask chunk.
+#            print('        here2')
             if data.npartitions == 1:
                 data._nc_set_aggregation_write_status(True)
                 data._nc_set_aggregation_fragment_type("uri")
@@ -7364,6 +7408,8 @@ class NetCDFRead(IORead):
                         )
 
         # Return the data object
+        s4 = timer('    cd9:', s4)
+
         return data
 
     def _create_domain_axis(self, size, ncdim=None):
@@ -8398,6 +8444,8 @@ class NetCDFRead(IORead):
             `Data`
 
         """
+        s2 = time.time()
+
         g = self.read_vars
 
         # Deal with strings
@@ -8468,9 +8516,12 @@ class NetCDFRead(IORead):
                 # same shape as its netCDF variable. This may not be
                 # the case for variables compressed by convention
                 # (e.g. some DSG variables).
+                s2 = time.time()
                 chunks, shape = self._get_dataset_chunks(ncvar)
                 if shape == data.shape:
                     self.implementation.nc_set_dataset_chunksizes(data, chunks)
+
+                s2 = timer('    cD7:', s2)
 
             # Store the dataset sharding
             if g["store_dataset_shards"]:
@@ -11569,20 +11620,28 @@ class NetCDFRead(IORead):
         if ncvar.startswith("/"):
             ncvar = ncvar[1:]
             ncvar = ncvar.replace("/", flattener_separator)
-
+            
         match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py":
-                var = nc.variables[ncvar]
+            case "h5netcdf-pyfive":
+                # It's important drill down to the pyfive variable
+                # (_h5ds), as that has the shape and chunks cached.
+                var = nc.variables[ncvar]._h5ds
                 chunks = var.chunks
                 if chunks is None:
                     chunks = "contiguous"
 
+            case "h5netcdf-h5py":
+                var = nc.variables[ncvar]
+                chunks = var.chunks
+                if chunks is None:
+                    chunks = "contiguous"
+                    
             case "netCDF4":
                 var = nc.variables[ncvar]
                 chunks = var.chunking()
                 if chunks is None:
                     chunks = "contiguous"
-
+                    
             case "zarr":
                 var = dict(nc.arrays())[ncvar]
                 chunks = var.chunks
@@ -12482,6 +12541,10 @@ class NetCDFRead(IORead):
         else:
             variable = g["variables"].get(ncvar)
 
+        s8 = time.time()
+        if g["original_dataset_opened_with"] == "h5netcdf-pyfive":
+            variable = variable._h5ds
+            s8 = timer('               _h5ds', s8)
         return variable
 
     @classmethod
