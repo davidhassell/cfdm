@@ -5,7 +5,7 @@ class Dimension:
 
     """
 
-    def __init__(self, name, size, group):
+    def __init__(self, name, size, group, unlimited):
         """**Initialisation**
 
         :Parameters:
@@ -19,10 +19,14 @@ class Dimension:
             group:
                 The group that the dimension is a member of.
 
+            root_group:
+                The root group.
+
         """
         self.name = name
         self.size = size
-        self.group = group
+        self._group = group
+        self._unlimited = bool(unlimited)
 
     def __len__(self):
         """The size of the dimension.
@@ -44,7 +48,7 @@ class Dimension:
                 The group containing the dimension.
 
         """
-        return self.group
+        return self._group
 
     def isunlimited(self):
         """Whether or not the dimension is unlimited.
@@ -57,4 +61,4 @@ class Dimension:
                 `True` if and only if the dimension is unlimited.
 
         """
-        return False
+        return self._unlimited
