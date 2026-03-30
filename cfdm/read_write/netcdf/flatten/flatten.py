@@ -89,7 +89,7 @@ def dataset_flatten(
         input_ds:
             The dataset to be flattened. Must be an open dataet object
             with the same API as `netCDF4.Dataset`, `h5netcdf.File`,
-            or `zarr.Group`.
+            `zarr.Group`, or `p5netcdf.File`.
 
         output_ds: `netCDF4.Dataset`
             A container for the flattened dataset that will get
@@ -405,7 +405,9 @@ class _Flattener:
         self._output_ds = output_ds
 
         # Record the backend that defines 'input_ds'
-        if hasattr(input_ds, "_h5file"):
+        if getattr(input_ds, "_p5netcdf"):
+            self._input_ds_backend = "p5netcdf"
+        elif hasattr(input_ds, "_h5file"):
             self._input_ds_backend = "h5netcdf"
         elif hasattr(input_ds, "data_model"):
             self._input_ds_backend = "netCDF4"
@@ -414,7 +416,8 @@ class _Flattener:
         else:
             raise ValueError(
                 "Unknown type of 'input_ds'. Must be one of h5netcdf.File, "
-                f"netCDF4.Dataset, or zarr.Group. Got {type(input_ds)}"
+                "netCDF4.Dataset, zarr.Group or p5netcdf.File. "
+                f"Got {type(input_ds)}"
             )
 
         self._strict = bool(strict)
@@ -451,6 +454,9 @@ class _Flattener:
 
         """
         match self._backend(dataset):
+            case "p5netcdf":
+                return variable.attrs.copy()
+
             case "netCDF4":
                 return {
                     attr: variable.getncattr(attr)
@@ -495,7 +501,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "zarr":
+            case "p5netcdf" | "h5netcdf" | "zarr":
                 return variable.chunks
 
             case "netCDF4":
@@ -528,7 +534,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "zarr":
+            case "p5netcdf" | "h5netcdf" | "zarr":
                 return variable.chunks is None
 
             case "netCDF4":
@@ -589,7 +595,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "zarr":
+            case "p5netcdf" | "h5netcdf" | "zarr":
                 dtype = variable.dtype
                 return _dtype_endian_lookup[getattr(dtype, "byteorder", None)]
 
@@ -623,7 +629,7 @@ class _Flattener:
             dataset = self._input_ds
 
         match self._backend():
-            case "h5netcdf":
+            case "p5netcdf" | "h5netcdf":
                 return dataset.filename
 
             case "netCDF4":
@@ -648,7 +654,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "netCDF4":
+            case "p5netcdf" | "netCDF4":
                 return variable.get_dims()
 
             case "h5netcdf":
@@ -689,7 +695,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "zarr":
+            case "p5netcdf" | "h5netcdf" | "zarr":
                 value = x.attrs[attr]
 
             case "netCDF4":
@@ -716,7 +722,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "netCDF4":
+            case "p5netcdf" | "netCDF4":
                 return x.group()
 
             case "h5netcdf":
@@ -749,7 +755,7 @@ class _Flattener:
 
         """
         match self._backend(dataset):
-            case "h5netcdf" | "netCDF4":
+            case "p5netcdf" | "h5netcdf" | "netCDF4":
                 return x.name.split(group_separator)[-1]
 
             case "zarr":
@@ -776,7 +782,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf":
+            case "p5netcdf" | "h5netcdf":
                 attrs = list(x.attrs)
 
             case "netCDF4":
@@ -807,7 +813,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "netCDF4":
+            case "p5netcdf" | "h5netcdf" | "netCDF4":
                 return group.parent
 
             case "zarr":
@@ -841,7 +847,7 @@ class _Flattener:
                 except AttributeError:
                     return group_separator
 
-            case "netCDF4":
+            case "p5netcdf" | "netCDF4":
                 return group.path
 
     def flatten(self):
@@ -1153,7 +1159,7 @@ class _Flattener:
         # Need to convert a string-valued 'old_var' to a numpy array
         if self.dtype(old_var) == str:
             match self._backend():
-                case "h5netcdf" | "netCDF4":
+                case "p5netcdf" | "h5netcdf" | "netCDF4":
                     array = old_var[...]
 
                     string_type = isinstance(array, str)
@@ -1953,7 +1959,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "netCDF4":
+            case "p5netcdf" | "h5netcdf" | "netCDF4":
                 if self._group_dimension_search != "closest_ancestor":
                     raise ValueError(
                         f"For netCDF dataset {self.dataset_name()}, "
@@ -1990,7 +1996,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "netCDF4":
+            case "p5netcdf" | "h5netcdf" | "netCDF4":
                 return group.variables
 
             case "zarr":
@@ -2347,7 +2353,7 @@ class _Flattener:
 
         """
         match self._backend():
-            case "h5netcdf" | "netCDF4":
+            case "p5netcdf" | "h5netcdf" | "netCDF4":
                 return group.groups
 
             case "zarr":
