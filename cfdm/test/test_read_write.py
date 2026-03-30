@@ -1621,6 +1621,19 @@ class read_writeTest(unittest.TestCase):
         f = cfdm.read(gen([x, x]))
         self.assertEqual(len(f), 2)
 
+    def test_read_pyfive_File(self):
+        """Test cfdm.read with a pyfive.File."""
+        import pyfive
+
+        f = cfdm.read(self.filename)
+
+        p = pyfive.File(self.filename)
+        g = cfdm.read(p)
+
+        self.assertEqual(len(f), 1)
+        self.assertEqual(len(f), len(g))
+        self.assertTrue(f[0].equals(g[0]))
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

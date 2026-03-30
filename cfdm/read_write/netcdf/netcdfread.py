@@ -790,14 +790,14 @@ class NetCDFRead(IORead):
         self.read_vars["original_dataset_opened_with"] = "h5netcdf-pyfive"
         return nc
 
-    def _open_pyfive(self, filename):
+    def _open_pyfive(self, dataset):
         """Open a dataset with `pyfive`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
-            filename:
+            dataset:
                 The file to open. May be a string-valued path or a
                 file-like object.
 
@@ -805,12 +805,12 @@ class NetCDFRead(IORead):
 
             `p5netcdf.File`
                  A `p5netcdf.File` object that provides a netCDF view
-                 of an underlying `pyfive.File` object.
+                 of an underlying `pyfive.File`-like object.
 
         """
         from .p5netcdf import p5netcdf
 
-        nc = p5netcdf.File(filename)
+        nc = p5netcdf.File(dataset)
         self.read_vars["original_dataset_opened_with"] = "pyfive"
         return nc
 
@@ -982,6 +982,9 @@ class NetCDFRead(IORead):
         """
         if representation is None:
             representation = cls.dataset_representation(dataset)
+
+        if representation == "pyfive.File":
+            return "pyfive.File"
 
         if cls.is_kerchunk(dataset, filesystem, representation):
             return "Kerchunk"
@@ -1380,7 +1383,11 @@ class NetCDFRead(IORead):
         # Parse the 'netcdf_backend' keyword parameter
         # ------------------------------------------------------------
         if d_type in ("Zarr", "Kerchunk"):
-            netcdf_backend = ("zarr",)  # Zarr, Kerchunk
+            # Must use `zarr` for Zarr and Kerchunk datasets
+            netcdf_backend = ("zarr",)
+        elif d_type == "pyfive.File":
+            # Must use `pyfive` for pyfive.File datasets
+            netcdf_backend = ("pyfive",)
         elif netcdf_backend is None:
             # By default, try netCDF backends in the following order.
             #
@@ -12578,6 +12585,10 @@ class NetCDFRead(IORead):
         # Strings (Paths)
         if isinstance(dataset, str):
             return "path"
+
+        # Todo
+        if hasattr(dataset, "consolidated_metadata"):
+            return "pyfive.File"
 
         # Check for a "virtual directory" (Mapper)
         if isinstance(dataset, Mapping):
