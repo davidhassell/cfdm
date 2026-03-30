@@ -585,7 +585,7 @@ class NetCDFRead(IORead):
 
         # Map backend names to dataset-open functions
         dataset_open_function = {
-            "pyfive": self._open_pyfive,
+            "p5netcdf": self._open_p5netcdf,
             "h5netcdf-pyfive": self._open_h5netcdf_pyfive,
             "h5netcdf-h5py": self._open_h5netcdf_h5py,
             "netCDF4": self._open_netCDF4,
@@ -790,28 +790,27 @@ class NetCDFRead(IORead):
         self.read_vars["original_dataset_opened_with"] = "h5netcdf-pyfive"
         return nc
 
-    def _open_pyfive(self, dataset):
-        """Open a dataset with `pyfive`.
+    def _open_p5netcdf(self, dataset):
+        """Open a dataset with `p5netcdf`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
             dataset:
-                The file to open. May be a string-valued path or a
-                file-like object.
+                The file to open. May be a string-valued path, a
+                file-like object, or a (subclass of a) `pyfive.File`
+                object.
 
         :Returns:
 
             `p5netcdf.File`
-                 A `p5netcdf.File` object that provides a netCDF view
-                 of an underlying `pyfive.File`-like object.
 
         """
         from .p5netcdf import p5netcdf
 
         nc = p5netcdf.File(dataset)
-        self.read_vars["original_dataset_opened_with"] = "pyfive"
+        self.read_vars["original_dataset_opened_with"] = "p5netcdf"
         return nc
 
     def _open_zarr(self, dataset):
@@ -1386,8 +1385,8 @@ class NetCDFRead(IORead):
             # Must use `zarr` for Zarr and Kerchunk datasets
             netcdf_backend = ("zarr",)
         elif d_type == "pyfive.File":
-            # Must use `pyfive` for pyfive.File datasets
-            netcdf_backend = ("pyfive",)
+            # Must use `p5netcdf` for pyfive.File-like datasets
+            netcdf_backend = ("p5netcdf",)
         elif netcdf_backend is None:
             # By default, try netCDF backends in the following order.
             #
@@ -1395,7 +1394,7 @@ class NetCDFRead(IORead):
             #       netcdf_backend parameter docstring must also be
             #       updated.
             netcdf_backend = (
-                "pyfive",  # netCDF-4
+                "p5netcdf",  # netCDF-4
                 "h5netcdf-pyfive",  # netCDF-4
                 "h5netcdf-h5py",  # netCDF-4
                 "netCDF4",  # netCDF-3 and netCDF-4
@@ -1403,7 +1402,7 @@ class NetCDFRead(IORead):
             )
         else:
             valid_netcdf_backends = (
-                "pyfive",
+                "p5netcdf",
                 "h5netcdf-pyfive",
                 "h5netcdf-h5py",
                 "netCDF4",
@@ -1971,7 +1970,7 @@ class NetCDFRead(IORead):
                 variable_attributes[ncvar][attr] = value
 
             variable_dimensions[ncvar] = tuple(
-                self._file_variable_dimensions(nc, variable)
+                self._file_variable_dimensions(variable)
             )
 
             variable_dataset[ncvar] = nc
@@ -6954,7 +6953,7 @@ class NetCDFRead(IORead):
                 return kwargs
 
             match g["original_dataset_opened_with"]:
-                case "pyfive" | "h5netcdf-pyfive":
+                case "p5netcdf" | "h5netcdf-pyfive":
                     # Add the pyfive.Variable object to the Array
                     # object initialisation
                     variable = self._original_dataset_variable(ncvar)
@@ -8438,7 +8437,7 @@ class NetCDFRead(IORead):
 
         # Deal with strings
         match g["original_dataset_opened_with"]:
-            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
                 if array.dtype is None:
                     if g["has_groups"]:
                         group, name = self._netCDF4_group(
@@ -11151,7 +11150,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
                 return bool(nc.groups)
 
             case "zarr":
@@ -11202,7 +11201,7 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         match g["nc_opened_with"]:
-            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
                 attributes = nc.attrs
 
             case "netCDF4":
@@ -11235,7 +11234,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
                 return group.variables.get(varname)
 
             case "zarr":
@@ -11262,7 +11261,7 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         match g["nc_opened_with"]:
-            case "pyfive":
+            case "p5netcdf":
                 dimensions = nc.dimensions
 
             case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
@@ -11275,7 +11274,7 @@ class NetCDFRead(IORead):
                         {
                             name: ZarrDimension(name, size, nc)
                             for name, size in zip(
-                                self._file_variable_dimensions(nc, var),
+                                self._file_variable_dimensions(var),
                                 var.shape,
                             )
                             if name not in dimensions
@@ -11356,7 +11355,7 @@ class NetCDFRead(IORead):
 
         match g["nc_opened_with"]:
             case (
-                "pyfive"
+                "p5netcdf"
                 | "h5netcdf-pyfive"
                 | "h5netcdf-h5py"
                 | "netCDF4"
@@ -11389,7 +11388,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case "pyfive":
+            case "p5netcdf":
                 return var.attrs
 
             case "h5netcdf-pyfive" | "h5netcdf-h5py":
@@ -11410,7 +11409,7 @@ class NetCDFRead(IORead):
             case "netcdf_file":
                 return var._attributes
 
-    def _file_variable_dimensions(self, nc, var):
+    def _file_variable_dimensions(self, var):
         """Return the variable dimension names.
 
         .. versionadded:: (cfdm) 1.12.2.0
@@ -11430,7 +11429,7 @@ class NetCDFRead(IORead):
         """
         match self.read_vars["nc_opened_with"]:
             case (
-                "pyfive"
+                "p5netcdf"
                 | "h5netcdf-pyfive"
                 | "h5netcdf-h5py"
                 | "netCDF4"
@@ -11456,7 +11455,7 @@ class NetCDFRead(IORead):
     def _ndim(self, var):
         """Return the size of a variable's array.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionaddede:: (cfdm) NEXTVERSION
 
         :Parameters:
 
@@ -11472,7 +11471,7 @@ class NetCDFRead(IORead):
 
         """
         try:
-            # pyfive, h5netcdf, netCDF4, zarr
+            # p5netcdf, h5netcdf, netCDF4, zarr
             return var.ndim
         except AttributeError:
             # scipy
@@ -11498,7 +11497,7 @@ class NetCDFRead(IORead):
 
         """
         try:
-            # pyfive, h5netcdf, netCDF4, zarr
+            # p5netcdf, h5netcdf, netCDF4, zarr
             dtype = var.dtype
         except AttributeError:
             # scipy: Need to get the datatype from the memory-mapped
@@ -11583,7 +11582,7 @@ class NetCDFRead(IORead):
         var = self._file_variables(nc)[ncvar]
 
         match g["nc_opened_with"]:
-            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py":
+            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py":
                 chunks = var.chunks
                 if chunks is None:
                     chunks = "contiguous"
@@ -12149,7 +12148,7 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
+            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
                 chunks = variable.chunks
                 if not chunks:
                     chunks = None
@@ -12586,8 +12585,10 @@ class NetCDFRead(IORead):
         if isinstance(dataset, str):
             return "path"
 
-        # Todo
-        if hasattr(dataset, "consolidated_metadata"):
+        # (Subclass of) pyfive.File
+        import pyfive
+
+        if isinstance(dataset, pyfive.File):
             return "pyfive.File"
 
         # Check for a "virtual directory" (Mapper)

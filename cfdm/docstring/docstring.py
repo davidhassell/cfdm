@@ -119,9 +119,10 @@ _docstring_substitution_definitions = {
             domain constructs.
 
             May be a string-valued path, a file-like object (such as
-            `io.BufferedReader`, or a directory-like object (such as
-            `fsspec.mapping.FSMap`); or a sequence of any combination
-            of these types.
+            `io.BufferedReader`), or a directory-like object (such as
+            `fsspec.mapping.FSMap`), or a (subclass of a)
+            `pyfive.File` object; or a sequence of any combination of
+            these types.
 
             Note that a Kerchunk dataset may be only read from a
             directory-like object. For instance::
@@ -323,31 +324,41 @@ _docstring_substitution_definitions = {
             specified, and an attempt to open each netCDF-3 or
             netCDF-4 dataset is made by the given backends in the
             order given, stopping after the first successful read.
-            Note that a Zarr dataset is always opened with the `zarr`
-            library.
+
+            Note that a Zarr or Kerchunk dataset is always opened with
+            the `zarr` library.
+
+            * ``'p5netcdf'``
+
+              - The `cfdm.p5netcdf` library.
+              - Reads local and remote netCDF-4 datasets.
+              - Even more performant than ``'h5netcdf-pyfive'``,
+                especially for remote datasets.
+              - Allows parallelised reading.
+              - Improves the performance by storing a dataset
+                variable's B-tree at read time so that it doesn't have
+                to be re-retrieved at compute time).
 
             * ``'h5netcdf-pyfive'``
 
               - The `h5netcdf` library using `pyfive` as its backend.
-              - Reads local and remote (http and s3) netCDF-4
-                datasets.
+              - Reads local and remote netCDF-4 datasets.
               - Allows parallelised reading.
-              - Improves the performance of active storage reductions
-                (by storing the a dataset variable's B-tree at read
-                time so that it doesn't have to be re-retrieved at
-                compute time).
+              - Improves the performance by storing a dataset
+                variable's B-tree at read time so that it doesn't have
+                to be re-retrieved at compute time).
+
+
+            * ``'h5netcdf-h5py'``
+
+              - The `h5netcdf` library using `h5py` as its backend.
+              - Reads local and remote netCDF-4 datasets.
+              - Parallelised reading is not possible.
 
             * ``'netCDF4'``
 
               - The `netCDF4` library.
               - Reads local and remote (http) netCDF-3 and netCDF-4
-                datasets.
-              - Parallelised reading is not possible.
-
-            * ``'h5netcdf-h5py'``
-
-              - The `h5netcdf` library using `h5py` as its backend.
-              - Reads local and remote (http and s3) netCDF-4
                 datasets.
               - Parallelised reading is not possible.
 
@@ -362,7 +373,7 @@ _docstring_substitution_definitions = {
             By default *netcdf_backend* is `None`, which is equivalent
             to providing the ordered sequence:
 
-            ``('h5netcdf-pyfive', 'h5netcdf-h5py', 'netCDF4', 'netcdf_file')``
+            ``('p5netcdf', 'h5netcdf-pyfive', 'h5netcdf-h5py', 'netCDF4', 'netcdf_file')``
 
             which means that by default, reading a netCDF dataset is
             first attempted with the `h5netcdf` library using `pyfive`
