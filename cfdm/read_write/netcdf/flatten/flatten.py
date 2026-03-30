@@ -405,7 +405,7 @@ class _Flattener:
         self._output_ds = output_ds
 
         # Record the backend that defines 'input_ds'
-        if getattr(input_ds, "_p5netcdf"):
+        if getattr(input_ds, "_p5netcdf", False):
             self._input_ds_backend = "p5netcdf"
         elif hasattr(input_ds, "_h5file"):
             self._input_ds_backend = "h5netcdf"

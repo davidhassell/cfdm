@@ -1,23 +1,26 @@
-import time
 from collections.abc import Mapping
 
 # Strip out the ones that don't start with _nc4 or _Netcdf4
-IGNORED_ATTRS = {
+_IGNORED_ATTRS = {
     "CLASS",
     "NAME",
     "REFERENCE_LIST",
     "DIMENSION_LIST",
     "DIMENSION_LABELS",
     "_NCProperties",
+    "_nc3_strict",
 }
 
+
 def _format_attr(value):
-    """Safely decodes and flattens HDF5 attributes to NetCDF conventions.
+    """Safely decodes and flattens HDF5 attributes to NetCDF
+    conventions.
 
     Attributes that are stored as single-element lists, tuples, or
     bytes are unpacked and decoded to UTF-8 strings. Single-byte
     integers representing printable ASCII characters are converted to
-    their string equivalents.
+    their string equivalents. NumPy arrays of size 1 are flattened to
+    scalars.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -32,19 +35,24 @@ def _format_attr(value):
             conventions.
 
     """
+    # Extract scalar from 1-element numpy arrays
+    if hasattr(value, "shape") and hasattr(value, "item") and value.size == 1:
+        value = value.item()
+
     if isinstance(value, (list, tuple, bytes)):
         if len(value) == 1:
             value = value[0]
-            
+
         if isinstance(value, bytes):
-            return value.decode('utf-8')
-            
+            return value.decode("utf-8")
+
     # Handle single-byte chars bleeding through as integers (e.g.,
     # units = 49 -> '1')
     if isinstance(value, int) and 32 <= value <= 126:
         return chr(value)
-        
+
     return value
+
 
 class Dimension:
     """Represents a NetCDF dimension.
@@ -56,8 +64,9 @@ class Dimension:
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
+
     _p5netcdf = True
-    
+
     def __init__(self, name, size, is_unlimited, parent_group):
         """**Initialization**
 
@@ -92,7 +101,9 @@ class Dimension:
 
     def __repr__(self):
         unlim_str = ", unlimited" if self._is_unlimited else ""
-        return f"<p5netcdf.Dimension {self.name!r}: size {self.size}{unlim_str}>"
+        return (
+            f"<p5netcdf.Dimension {self.name!r}: size {self.size}{unlim_str}>"
+        )
 
     def group(self):
         """The group that defines this dimension.
@@ -115,7 +126,8 @@ class Dimension:
 
         """
         return self._is_unlimited
-    
+
+
 class Variable:
     """Represents a NetCDF variable.
 
@@ -126,6 +138,7 @@ class Variable:
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
+
     _p5netcdf = True
 
     def __init__(self, name, h5_dataset, parent_group=None):
@@ -147,44 +160,58 @@ class Variable:
         self._h5ds = h5_dataset
         self._parent = parent_group
         self.dimensions = self._get_dimensions()
-        
+
         # Filter out all specified internal NetCDF/HDF5 reserved attributes
         self.attrs = {
-            k: _format_attr(v) 
-            for k, v in self._h5ds.attrs.items() 
-            if k not in IGNORED_ATTRS and not k.startswith(('_Netcdf4', '_nc4'))
+            k: _format_attr(v)
+            for k, v in self._h5ds.attrs.items()
+            if k not in _IGNORED_ATTRS
+            and not k.startswith(("_Netcdf4", "_nc4"))
         }
 
     def __getitem__(self, key):
         return self._h5ds[key]
 
     def __repr__(self):
-        return f"<p5netcdf.{self.__class__.__name__} {self.name!r}: shape {self.shape}, dims {self.dimensions}>"
+        """Called by the `repr` built-in function.
+
+        x.__repr__() <==> repr(x)
+
+        """
+        return (
+            f"<p5netcdf.{self.__class__.__name__} "
+            "{self.name!r}: shape {self.shape}, dims {self.dimensions}>"
+        )
 
     def _get_dimensions(self):
-        """Resolves dimension names, handling both standard variables and Dimension Scales."""
+        """Get the variable dimension names.
+
+        Resolves dimension names, handling both standard variables and
+        Dimension Scales.
+
+        """
         # Case 1: It's a Dimension Scale itself (no DIMENSION_LIST attribute)
-        if self._h5ds.attrs.get('CLASS') == b'DIMENSION_SCALE':
-            return (self.name.split('/')[-1],)
-            
+        if self._h5ds.attrs.get("CLASS") == b"DIMENSION_SCALE":
+            return (self.name.split("/")[-1],)
+
         # Case 2: Standard variable with linked dimensions
-        if 'DIMENSION_LIST' not in self._h5ds.attrs:
+        if "DIMENSION_LIST" not in self._h5ds.attrs:
             return ()
-            
+
         dim_names = []
-        for ref in self._h5ds.attrs['DIMENSION_LIST']:
+        for ref in self._h5ds.attrs["DIMENSION_LIST"]:
             try:
-                if hasattr(ref, 'item'):
+                if hasattr(ref, "item"):
                     ref = ref.item()
                 elif isinstance(ref, (list, tuple)) and len(ref) > 0:
                     ref = ref[0]
-                    
+
                 root_file = self._h5ds.file
                 dim_dataset = root_file[ref]
-                dim_names.append(dim_dataset.name.split('/')[-1])
+                dim_names.append(dim_dataset.name.split("/")[-1])
             except (KeyError, ValueError, TypeError):
                 continue
-                
+
         return tuple(dim_names)
 
     @property
@@ -225,25 +252,27 @@ class Variable:
 
         """
         dims = []
-        
+
         for dim_name in self.dimensions:
             current_group = self._parent
             found = False
-            
+
             # Walk up the tree to find where the dimension is defined
             while current_group is not None:
                 if dim_name in current_group.dimensions:
                     dims.append(current_group.dimensions[dim_name])
                     found = True
                     break
-                    
+
                 current_group = current_group.parent
-                
+
             # Fallback if we somehow can't find it at all (shouldn't
             # happen in valid files)
             if not found:
-                raise KeyError(f"Dimension {dim_name!r} not found in the group hierarchy.")
-                
+                raise KeyError(
+                    f"Dimension {dim_name!r} not found in the group hierarchy."
+                )
+
         return tuple(dims)
 
     def group(self):
@@ -257,6 +286,7 @@ class Variable:
         """
         return self._parent
 
+
 class Group(Mapping):
     """Represents a NetCDF group.
 
@@ -267,6 +297,7 @@ class Group(Mapping):
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
+
     def __init__(self, h5_obj, parent=None):
         """**Initialization**
 
@@ -282,46 +313,51 @@ class Group(Mapping):
         self._h5 = h5_obj
         self.name = h5_obj.name
         self.parent = parent
-        
+
         self.dimensions = {}
         self.variables = {}
-        self.groups = {} 
-        
+        self.groups = {}
+
         self.attrs = {
-            k: _format_attr(v) 
-            for k, v in self._h5.attrs.items() 
-            if k not in IGNORED_ATTRS and not k.startswith(('_Netcdf4', '_nc4'))
+            k: _format_attr(v)
+            for k, v in self._h5.attrs.items()
+            if k not in _IGNORED_ATTRS
+            and not k.startswith(("_Netcdf4", "_nc4"))
         }
-        
+
         self._parse_structure()
 
     def __getitem__(self, key):
         # 1. Strip leading slash for absolute paths
-        if key.startswith('/'):
-            key = key.lstrip('/')
-            
+        if key.startswith("/"):
+            key = key.lstrip("/")
+
         if not key:
             return self
-            
+
         # 2. Handle nested paths like 'group/subgroup/variable'
-        if '/' in key:
-            parts = key.split('/', 1)
+        if "/" in key:
+            parts = key.split("/", 1)
             current_part = parts[0]
             remaining_path = parts[1]
-            
+
             if current_part in self.groups:
                 return self.groups[current_part][remaining_path]
-                
-            raise KeyError(f"'{current_part}' not found in groups of {self.name}")
-            
+
+            raise KeyError(
+                f"'{current_part}' not found in groups of {self.name}"
+            )
+
         # 3. Standard local lookup
         if key in self.variables:
             return self.variables[key]
-            
+
         if key in self.groups:
             return self.groups[key]
-            
-        raise KeyError(f"'{key}' not found in variables or groups of {self.name}")
+
+        raise KeyError(
+            f"'{key}' not found in variables or groups of {self.name}"
+        )
 
     def __iter__(self):
         return iter(self.variables)
@@ -336,17 +372,17 @@ class Group(Mapping):
         """Parses variables, dimensions, and subgroups in a single
         optimized pass."""
         import pyfive
-        
+
         raw_dims = {}
         subgroups_to_process = []
         datasets_to_process = []
-        
+
         # Pass 1: Categorize objects without double-reading items from
         # HDF5
         for name, obj in self._h5.items():
             if isinstance(obj, pyfive.Group):
                 subgroups_to_process.append((name, obj))
-                
+
             elif isinstance(obj, pyfive.Dataset):
                 datasets_to_process.append((name, obj))
 
@@ -354,44 +390,47 @@ class Group(Mapping):
         for name, obj in datasets_to_process:
             # Access attributes ONCE and cache them
             attrs = obj.attrs
-            
-            if attrs.get('CLASS') == b'DIMENSION_SCALE':
-                dim_id = int(attrs.get('_Netcdf4Dimid', -1))
-                dim_name = name.split('/')[-1]
-                
+
+            if attrs.get("CLASS") == b"DIMENSION_SCALE":
+                dim_id = int(attrs.get("_Netcdf4Dimid", -1))
+                dim_name = name.split("/")[-1]
+
                 is_unlim = False
                 if obj.maxshape and len(obj.maxshape) > 0:
                     is_unlim = obj.maxshape[0] is None
-                    
+
                 raw_dims[dim_name] = {
-                    'id': dim_id,
-                    'size': obj.shape[0],
-                    'is_unlimited': is_unlim,
-                    'is_stub': b'not a netCDF variable' in attrs.get('NAME', b'')
+                    "id": dim_id,
+                    "size": obj.shape[0],
+                    "is_unlimited": is_unlim,
+                    "is_stub": b"not a netCDF variable"
+                    in attrs.get("NAME", b""),
                 }
-                
+
                 # If it's not a stub, it's a coordinate variable!
-                if not raw_dims[dim_name]['is_stub']:
-                    self.variables[name] = Variable(name, obj, parent_group=self)
-                    
+                if not raw_dims[dim_name]["is_stub"]:
+                    self.variables[name] = Variable(
+                        name, obj, parent_group=self
+                    )
+
             else:
                 # It's a standard variable
                 self.variables[name] = Variable(name, obj, parent_group=self)
 
         # Pass 3: Sort and create dimensions
-        sorted_items = sorted(raw_dims.items(), key=lambda x: x[1]['id'])
+        sorted_items = sorted(raw_dims.items(), key=lambda x: x[1]["id"])
         for d_name, d_info in sorted_items:
             self.dimensions[d_name] = Dimension(
-                d_name, 
-                d_info['size'], 
-                d_info['is_unlimited'],
-                parent_group=self
+                d_name,
+                d_info["size"],
+                d_info["is_unlimited"],
+                parent_group=self,
             )
 
         # Pass 4: Build subgroups
         for name, obj in subgroups_to_process:
             self.groups[name] = Group(obj, parent=self)
-            
+
     @property
     def path(self):
         """The full absolute path of the group.
@@ -404,6 +443,7 @@ class Group(Mapping):
         """
         return self._h5.name
 
+
 class File(Group):
     """The root NetCDF file accessor.
 
@@ -414,6 +454,9 @@ class File(Group):
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
+
+    _p5netcdf = True
+
     def __init__(self, filename):
         """**Initialization**
 
@@ -425,14 +468,10 @@ class File(Group):
         """
         import pyfive
 
-        s = time.time()
         self._h5_file = pyfive.File(filename)
-        print(time.time()-s); s = time.time()
-        super().__init__(self._h5_file, parent=None)
-        print(time.time()-s); s = time.time()
 
-        self._p5netcdf = True
-        
+        super().__init__(self._h5_file, parent=None)
+
     def close(self):
         """Close the file.
 
@@ -456,5 +495,3 @@ class File(Group):
 
         """
         return self._h5_file.filename
-
-

@@ -617,12 +617,10 @@ class NetCDFRead(IORead):
             else:
                 g["netcdf_backend"] = backend
                 g["nc_opened_with"] = backend
-                print('backen=', backend)
                 break
-            
-        g['dataset_open_errors'] =  errors
-        print(errors)
-            
+
+        g["dataset_open_errors"] = errors
+
         if nc is None:
             if g["dataset_representation"] == "file_handle":
                 # Rewind a file-like object that couldn't be read
@@ -771,8 +769,9 @@ class NetCDFRead(IORead):
 
         :Parameters:
 
-            filename: `str`
-                The file to open.
+            filename:
+                The file to open. May be a string-valued path or a
+                file-like object.
 
         :Returns:
 
@@ -792,26 +791,26 @@ class NetCDFRead(IORead):
         return nc
 
     def _open_pyfive(self, filename):
-        """Return an open `p5netcdf.File`
+        """Open a dataset with `pyfive`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
-            filename: `str`
-                The file to open.
+            filename:
+                The file to open. May be a string-valued path or a
+                file-like object.
 
         :Returns:
 
             `p5netcdf.File`
+                 A `p5netcdf.File` object that provides a netCDF view
+                 of an underlying `pyfive.File` object.
 
         """
-        import time
         from .p5netcdf import p5netcdf
-        print('PPPPPPPP55555555555')
-        s = time.time()
+
         nc = p5netcdf.File(filename)
-        print('p5netcdf.File(filename)', time.time()-s)
         self.read_vars["original_dataset_opened_with"] = "pyfive"
         return nc
 
@@ -1904,7 +1903,6 @@ class NetCDFRead(IORead):
                 g["global_attributes"].pop(attr, None)
 
         for ncvar, variable in self._file_variables(nc).items():
-            print(ncvar)
             ncvar_basename = ncvar
             groups = ()
             group_attributes = {}
@@ -4104,7 +4102,6 @@ class NetCDFRead(IORead):
             `Field` or `Domain`
 
         """
-        print(field_ncvar)
         g = self.read_vars
 
         field = not domain
@@ -6954,7 +6951,7 @@ class NetCDFRead(IORead):
                     # Add the pyfive.Variable object to the Array
                     # object initialisation
                     variable = self._original_dataset_variable(ncvar)
-                    kwargs["variable"] = variable
+                    kwargs["variable"] = variable._h5ds
                     array = self.implementation.initialise_PyfiveArray(
                         **kwargs
                     )
@@ -8441,9 +8438,9 @@ class NetCDFRead(IORead):
                             g["variable_grouped_dataset"][ncvar], ncvar
                         )
                         variable = group.variables.get(name)
-                    else:                        
+                    else:
                         variable = g["variables"].get(ncvar)
-                        
+
                     array = self._index(variable, Ellipsis)
 
                     string_type = isinstance(array, str)
@@ -11147,17 +11144,8 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["nc_opened_with"]:
-            case  "pyfive" | "h5netcdf-h5py" | "netCDF4":
+            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
                 return bool(nc.groups)
-
-            case "h5netcdf-pyfive":
-                from pyfive import Group
-                
-                for x in nc.values():
-                    if isinstance(x, Group):
-                        return True
-
-                return False
 
             case "zarr":
                 return bool(tuple(nc.group_keys()))
@@ -11240,16 +11228,9 @@ class NetCDFRead(IORead):
 
         """
         match self.read_vars["original_dataset_opened_with"]:
-            case "pyive" | "h5netcdf-h5py" | "netCDF4":
+            case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
                 return group.variables.get(varname)
 
-            case "h5netcdf-pyfive":
-                var = group.variables.get(varname)
-                if var is not None:
-                    var = var._h5ds
-
-                return var
-            
             case "zarr":
                 return dict(group.arrays()).get(varname)
 
@@ -11273,53 +11254,11 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        dimensions = g.get("file_dimensions")
-        if dimensions is not None:
-            # Return cached dimensions
-            return dimensions
-
         match g["nc_opened_with"]:
             case "pyfive":
-                dimensions = nc.dimensions                
+                dimensions = nc.dimensions
 
-            case "h5netcdf-pyfive":
-                # Get the dimensions from the underlying pyfive
-                # variables, for speed.
-                from pyfive.inspect import (
-                    collect_dimensions_from_root,
-                    gather_dimensions,
-                )
-
-                pyfive_variables = self._file_variables(nc)
-
-                variable_dims = []
-                real_dimensions = collect_dimensions_from_root(nc._h5file)
-                dims = set()
-                phonys = []
-                for name, ds in pyfive_variables.items():
-                    ds, dims, phonys = gather_dimensions(
-                        ds, dims, phonys, real_dimensions
-                    )
-                    variable_dims.append(
-                        (ds.__dict__["__inspected_dims"], ds.maxshape)
-                    )
-
-                n_dims = len(dims)
-
-                dimensions = {}
-                for name_size_maxsize in variable_dims:
-                    if len(dimensions) == n_dims:
-                        break
-
-                    for (name, size), maxsize in zip(*name_size_maxsize):
-                        if name in dimensions:
-                            continue
-
-                        dimensions[name] = Dimension(
-                            name, size, nc, unlimited=maxsize is None
-                        )
-
-            case "h5netcdf-h5py" | "netCDF4":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
                 dimensions = dict(nc.dimensions)
 
             case "zarr":
@@ -11341,9 +11280,6 @@ class NetCDFRead(IORead):
                     name: Dimension(name, size, nc, False)
                     for name, size in nc.dimensions.items()
                 }
-
-        # Cache the dimensions
-        g["file_dimensions"] = dimensions
 
         return dimensions
 
@@ -11368,7 +11304,7 @@ class NetCDFRead(IORead):
 
         """
         return self._file_dimensions(nc)[dim_name].isunlimited()
-    
+
     def _file_dimension_size(self, nc, dim_name):
         """Return a dimension's size.
 
@@ -11411,27 +11347,18 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        variables = g.get("file_variables")
-        if variables is not None:
-            # Return cached variables
-            return variables
-
         match g["nc_opened_with"]:
-            case "pyfive" | "h5netcdf-h5py" | "netCDF4" | "netcdf_file":
+            case (
+                "pyfive"
+                | "h5netcdf-pyfive"
+                | "h5netcdf-h5py"
+                | "netCDF4"
+                | "netcdf_file"
+            ):
                 variables = nc.variables
-
-            case "h5netcdf-pyfive":
-                # Get the underlying pyfive.Dataset variables, for
-                # speed.
-                variables = {
-                    name: var._h5ds for name, var in nc.variables.items()
-                }
 
             case "zarr":
                 variables = dict(nc.arrays())
-
-        # Cache the variables
-        g["file_variables"] = variables
 
         return variables
 
@@ -11454,26 +11381,11 @@ class NetCDFRead(IORead):
                 names.
 
         """
-        match self.read_vars["nc_opened_with"]:        
+        match self.read_vars["nc_opened_with"]:
             case "pyfive":
                 return var.attrs
 
-            case "h5netcdf-pyfive":
-                attrs = var.attrs.copy()
-                for attr in (
-                    "CLASS",
-                    "NAME",
-                    "_Netcdf4Dimid",
-                    "REFERENCE_LIST",
-                    "DIMENSION_LIST",
-                    "DIMENSION_LABELS",
-                    "_Netcdf4Coordinates",
-                ):
-                    attrs.pop(attr, None)
-
-                return attrs
-
-            case "h5netcdf-h5py":
+            case "h5netcdf-pyfive" | "h5netcdf-h5py":
                 return dict(var.attrs)
 
             case "netCDF4":
@@ -11511,17 +11423,13 @@ class NetCDFRead(IORead):
         """
         match self.read_vars["nc_opened_with"]:
             case (
-                "pyfive" | "h5netcdf-h5py" | "netCDF4" | "netcdf_file"
+                "pyfive"
+                | "h5netcdf-pyfive"
+                | "h5netcdf-h5py"
+                | "netCDF4"
+                | "netcdf_file"
             ):
                 return var.dimensions
-
-            case "h5netcdf-pyfive":
-                # Make sure file dimensions have been created (as this
-                # will seed the variable's __inspected_dims attribute)
-                self._file_dimensions(nc)
-                return tuple(
-                    [dim[0] for dim in var.__dict__["__inspected_dims"]]
-                )
 
             case "zarr":
                 match var.metadata.zarr_format:
@@ -11655,7 +11563,8 @@ class NetCDFRead(IORead):
         None, (12, 324, 432)
 
         """
-        nc = self.read_vars["variable_dataset"][ncvar]
+        g = self.read_vars
+        nc = g["variable_dataset"][ncvar]
 
         # 'nc' is the flattened dataset, so replace an 'ncvar' string
         # that contains groups (e.g. '/forecast/tas') with its
@@ -11666,7 +11575,7 @@ class NetCDFRead(IORead):
 
         var = self._file_variables(nc)[ncvar]
 
-        match self.read_vars["nc_opened_with"]:            
+        match g["nc_opened_with"]:
             case "pyfive" | "h5netcdf-pyfive" | "h5netcdf-h5py":
                 chunks = var.chunks
                 if chunks is None:
@@ -12696,29 +12605,3 @@ class NetCDFRead(IORead):
             return "kerchunk_bytes"
 
         return "unknown"
-    
-def get_group_metadata(h5_group):
-    dims = {}
-    ordered_dim_names = []
-    
-    # 1. Collect all dimensions in this group
-    for name, obj in h5_group.items():
-        attrs = obj.attrs
-        if attrs.get('CLASS') == b'DIMENSION_SCALE':
-            dim_id = int(attrs.get('_Netcdf4Dimid', -1))
-            dim_name = name.split('/')[-1]
-            dims[dim_name] = {
-                'id': dim_id,
-                'size': obj.shape[0],
-                'is_stub': b'not a netCDF variable' in attrs.get('NAME', b'')
-            }
-
-    # 2. Sort by NetCDF Dimension ID (crucial for compatibility)
-    sorted_dims = sorted(dims.items(), key=lambda x: x[1]['id'])
-    
-    # 3. Separate into 'Dimensions' and 'Variables'
-    nc_dimensions = {name: d['size'] for name, d in sorted_dims}
-    nc_variables = {name: obj for name, obj in h5_group.items() 
-                    if not dims.get(name, {}).get('is_stub', False)}
-                    
-    return nc_dimensions, nc_variables
