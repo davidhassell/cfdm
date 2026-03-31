@@ -18,9 +18,10 @@ def _format_attr(value):
     """Format an attribute according to netCDF.
 
     - Strings return as pure Python strings.
-    - Single numeric values return as true NumPy scalars (preserving
+    - Single numeric values return as true numpy scalars (preserving
       bit-width).
-    - Multi-element numeric values return as NumPy arrays.
+    - Multi-element numeric values return as numpy arrays.
+    - String sequences return as Python lists of strings.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -35,35 +36,50 @@ def _format_attr(value):
             conventions.
 
     """
-    # 1. Handle bytes or 1-element bytes directly (force to string)
-    if isinstance(value, bytes):
+    # String-like values
+    if isinstance(value, (bytes, np.bytes_)):
         return value.decode("utf-8")
 
-    # 2. Handle NumPy string/bytes scalars
-    if isinstance(value, np.bytes_):
-        return value.decode("utf-8")
+    # Sequence (numpy, list, tuple)
+    if hasattr(value, "__len__") or hasattr(value, "shape"):
+        size = getattr(value, "size", len(value))
 
-    # 3. Handle sequences (lists/tuples)
-    if isinstance(value, (list, tuple)):
-        # If it's a list of bytes, decode them or unpack if single
-        if len(value) == 1 and isinstance(value[0], bytes):
-            return value[0].decode("utf-8")
+        # Empty or string-like primitives
+        if size == 0:
+            if isinstance(value, (bytes, str)):
+                return ""
 
-        # If it's a multi-element numeric list, make it an array
-        return np.array(value)
+            return value
 
-    # 4. Handle NumPy arrays and scalars
-    if hasattr(value, "shape"):
-        # If it's a 1-element array or a scalar, extract the true
-        # NumPy scalar
-        if value.size == 1:
-            # .flat[0] gets the actual scalar element out of the array
-            return value.dtype.type(value.flat[0])
+        # 1-element sequence (scalar/string)
+        if size == 1:
+            item = value.flat[0] if hasattr(value, "flat") else value[0]
 
-        # If it's a multi-element array, leave it as an array
-        return value
+            if isinstance(item, (bytes, np.bytes_)):
+                return item.decode("utf-8")
+            if isinstance(item, str):
+                return item
 
-    # 5. Fallback for raw Python ints/floats
+            # Numeric scalar: preserve numpy bit-width
+            dtype = getattr(value, "dtype", None)
+            if dtype:
+                return dtype.type(item)
+            return np.array(item).dtype.type(item)
+
+        # Multi-element sequence
+        first_item = value.flat[0] if hasattr(value, "flat") else value[0]
+
+        # If string/bytes, return as a Python list
+        if isinstance(first_item, (str, bytes, np.bytes_)):
+            return [
+                v.decode("utf-8") if isinstance(v, (bytes, np.bytes_)) else v
+                for v in value
+            ]
+
+        # Convert a numeric sequence to a numpy array
+        if not hasattr(value, "dtype"):
+            return np.array(value)
+
     return value
 
 
@@ -171,8 +187,9 @@ class Dimension:
 class Variable:
     """Represents a netCDF variable.
 
-    This class wraps a `pyfive.Dataset`, mapping internal HDF5
-    dimensions and attributes to standard netCDF structures.
+    This class wraps a (subclass of a) `pyfive.Dataset`, mapping
+    internal HDF5 dimensions and attributes to standard netCDF
+    structures.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -186,7 +203,7 @@ class Variable:
             name: `str`
                 The name of the variable.
 
-            h5_dataset: `pyfive.Dataset`
+            h5_dataset: (subclass of) `pyfive.Dataset`
                 The underlying pyfive dataset object.
 
             parent_group: `Group`, optional
@@ -257,7 +274,7 @@ class Variable:
 
     @property
     def chunks(self):
-        """Returns the chunk size tuple, or None if contiguous."""
+        """Returns the chunk size `tuple`, or None if contiguous."""
         chunks = getattr(self, "_chunks", None)
         if chunks is None:
             chunks = self._h5ds.chunks
@@ -313,6 +330,14 @@ class Variable:
             self._size = size
 
         return size
+
+    def chunking(self):
+        """Returns the chunk size `list`, or 'contiguous'."""
+        chunks = self.chunks
+        if chunks is None:
+            return "contiguous"
+
+        return list(chunks)
 
     def get_dims(self):
         """Return the dimensions of the variable.
@@ -381,7 +406,7 @@ class Group(Mapping):
 
         :Parameters:
 
-            h5: `pyfive.Group` or `pyfive.File`
+            h5: (subclass of) `pyfive.Group` or (subclass of)` pyfive.File`
                 The underlying pyfive object.
 
             parent: `Group` or `None`, optional
@@ -402,28 +427,45 @@ class Group(Mapping):
         self._parse_structure()
 
     def __getitem__(self, key):
-        """TOOT."""
-        # 1. Strip leading slash for absolute paths
+        """Get a group or variable."""
+        # Absolute path
         if key.startswith("/"):
-            key = key.lstrip("/")
+            current = self
+            while current.parent is not None:
+                current = current.parent
 
+            # If the request was just "/", return the root
+            if key == "/":
+                return current
+
+            # Otherwise, evaluate the rest of the path from the root
+            return current[key[1:]]
+
+        # Strip leading slash for absolute path
+        key = key.lstrip("/")
         if not key:
             return self
 
-        # 2. Handle nested paths like 'group/subgroup/variable'
+        # Handle nested path like 'group/subgroup/variable'
         if "/" in key:
-            parts = key.split("/", 1)
-            current_part = parts[0]
-            remaining_path = parts[1]
+            part, rest = key.split("/", 1)
 
-            if current_part in self.groups:
-                return self.groups[current_part][remaining_path]
+            # Only groups can have children
+            if part in self.groups:
+                return self.groups[part][rest]
+
+            # Fail if the user tries to treat a variable as a group
+            if part in self.variables:
+                raise KeyError(
+                    f"{part!r} is a variable and cannot have child path "
+                    f"{rest!r}"
+                )
 
             raise KeyError(
-                f"{current_part!r} not found in groups of {self.name}"
+                f"Path element {part!r} not found in group {self.name!r}"
             )
 
-        # 3. Standard local lookup
+        # Standard local lookup
         if key in self.variables:
             return self.variables[key]
 
@@ -431,7 +473,7 @@ class Group(Mapping):
             return self.groups[key]
 
         raise KeyError(
-            f"'{key}' not found in variables or groups of {self.name}"
+            f"{key!r} not found in variables or groups of {self.name!r}"
         )
 
     def __iter__(self):
@@ -467,20 +509,24 @@ class Group(Mapping):
         subgroups_to_process = []
         datasets_to_process = []
 
-        # Pass 1: Categorize objects without double-reading items from HDF5
+        # Categorize objects without double-reading items from HDF5
         for name, h5 in self._h5.items():
             if isinstance(h5, pyfive.Group):
                 subgroups_to_process.append((name, h5))
             elif isinstance(h5, pyfive.Dataset):
                 datasets_to_process.append((name, h5))
 
-        # Pass 2: Extract Dimension Scales (strictly ignoring scalars)
+        # Extract dimension scales (strictly ignoring scalars)
         for name, h5ds in datasets_to_process:
             attrs = h5ds.attrs
             shape = h5ds.shape
 
             if shape and attrs.get("CLASS") == b"DIMENSION_SCALE":
-                dim_id = int(attrs.get("_Netcdf4Dimid", -1))
+                # Get ID: Use None if missing to push to end of sort
+                dim_id = attrs.get("_Netcdf4Dimid")
+                if dim_id is not None:
+                    dim_id = int(dim_id)
+
                 dim_name = name.split("/")[-1]
 
                 is_unlimited = False
@@ -497,8 +543,23 @@ class Group(Mapping):
                     ),
                 }
 
-        # Pass 3: Sort and create Dimension objects
-        sorted_items = sorted(raw_dims.items(), key=lambda x: x[1]["id"])
+        # Sort and create Dimension objects
+        #
+        # Sorting ensures consistency with netCDF4-python, which
+        # preserves the creation order of its dimensions in an ordered
+        # dictionary.
+        #
+        # We sort by (ID, Name). If ID is None (pure HDF5), it's
+        # treated as infinity to ensure it appears after the
+        # netCDF-indexed dimensions.
+        sorted_items = sorted(
+            raw_dims.items(),
+            key=lambda x: (
+                x[1]["id"] if x[1]["id"] is not None else float("inf"),
+                x[0],
+            ),
+        )
+
         for d_name, d_info in sorted_items:
             self.dimensions[d_name] = Dimension(
                 d_name,
@@ -507,19 +568,20 @@ class Group(Mapping):
                 parent_group=self,
             )
 
-        # Pass 4: Create variables (skipping only dummy stubs)
+        # Create variables (skippinginternal netCDF stubs)
         for name, h5ds in datasets_to_process:
             dim_name = name.split("/")[-1]
 
-            # If it's in raw_dims and flagged as a stub, we skip it.
-            # Otherwise, whether it's a coordinate, normal data, or a
-            # scalar pretending to be a scale, it becomes a Variable!
+            # If it's in raw_dims and flagged as a stub, skip it.
+            # Otherwise - whether it's a coordinate variable, normal
+            # data, or a scalar pretending to be a scale - it becomes
+            # a Variable.
             is_stub = raw_dims.get(dim_name, {}).get("is_stub", False)
 
             if not is_stub:
                 self.variables[name] = Variable(name, h5ds, parent_group=self)
 
-        # Pass 5: Build subgroups
+        # Create subgroups
         for name, group in subgroups_to_process:
             self.groups[name] = Group(group, parent=self)
 
@@ -555,11 +617,12 @@ class File(Group):
         :Parameters:
 
             dataset:
-                The dataset to be read. May be a `str` or
-                `pathlib.Path` path, a file-like object (such as
-                `io.BufferedReader` or the result of an `fsspec` file
-                system file open), or a (subclass of a) `pyfive.File`
-                object.
+                The dataset to be read.
+
+                May be a `str` or `pathlib.Path` path, a file-like
+                object (such as `io.BufferedReader` or the result of
+                an `fsspec` file system file open), or a (subclass of
+                a) `pyfive.File` object.
 
         """
         import pyfive
@@ -574,7 +637,7 @@ class File(Group):
     def close(self):
         """Close the file.
 
-        Closes the underlying `pyfive.File` object.
+        Closes the underlying (subclass of a) `pyfive.File` object.
 
         :Returns:
 
@@ -593,4 +656,9 @@ class File(Group):
                 The filename associated with the file handle.
 
         """
-        return self._h5_file.filename
+        filename = getattr(self, "_filename", None)
+        if filename is None:
+            filename = self._h5_file.filename
+            self._filename = filename
+
+        return filename

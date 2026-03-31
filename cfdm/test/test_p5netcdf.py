@@ -1,143 +1,260 @@
 import datetime
 import os
+import tempfile
 import unittest
 
+import netCDF4
 import numpy as np
+
 import cfdm
 
-from cfdm.read_write.netcdf.p5netcdf import File, Dimension, Variable, Group
 
+class Testp5netcdf(unittest.TestCase):
+    """Test suite for the p5netcdf read-only netCDF-4 implementation."""
 
-_format_attr = cfdm.read_write.netcdf.p5netcdf._format_attr
-
-class TestP5NetCDF(unittest.TestCase):
-    """Test suite for the p5netcdf read-only NetCDF-4 implementation."""
-    
     @classmethod
     def setUpClass(cls):
-        """Create a real NetCDF-4 file on disk using cfdm.example_field."""
-        cls.test_file = "test_p5_example.nc"
-        
-        # Grab a standard example field (typically a 2D specific humidity field)
+        """Create test file."""
         f = cfdm.example_field(0)
-        
-        # Add a custom attribute to test single-byte integer decoding ('1' = 49)
-        f.set_property('int32', np.int32(49))
-        f.set_property('int64', np.int64(49))
-        f.set_property('float32', np.float32(49.0))
-        f.set_property('float64', np.float64(49.0))
-        f.set_property('list', [2.5, 3.5])
-        
-        # Write it to disk as NetCDF-4
-        cfdm.write(f, cls.test_file, fmt='NETCDF4')
 
-#    @classmethod
-#    def tearDownClass(cls):
-#        """Clean up the generated test file."""
-#        if os.path.exists(cls.test_file):
-#            os.remove(cls.test_file)
+        # Attributes
+        f.clear_properties()
+        f.set_properties(
+            {
+                "int": 49,
+                "float": 49.0,
+                "int32": np.int32(49),
+                "int64": np.int64(49),
+                "float32": np.float32(49.0),
+                "float64": np.float64(49.0),
+                "list1": [2, 3],
+                "list2": np.array([2, 3], dtype="int32"),
+                "list3": np.array([2, 3], dtype="float32"),
+                "list4": ["a", "bb", "ccc"],
+                "list5": ["a", 1, 2.5],
+                "string1": "1",
+                "string2": "a",
+                "string3": "kg m-2",
+                "string4": "",
+                "string5": " ",
+                "group_attr_1": 12,
+                "group_attr_2": "foo",
+            }
+        )
 
-    def setUp(self):
-        """Open the file for reading before each test."""
-        self.nc = File(self.test_file)
+        # Groups
+        f.nc_set_variable_groups(["forecast", "model"])
+        f.coordinate("latitude").nc_set_variable_groups(["forecast", "model"])
+        f.coordinate("longitude").nc_set_variable_groups(["forecast"])
 
-    def tearDown(self):
-        """Close the file after each test."""
-        self.nc.close()
+        # Group attributes
+        f.nc_set_group_attributes({"group_attr_1": None, "group_attr_2": None})
 
-    # ------------------------------------------------------------------
-    # Attribute Formatter Tests
-    # ------------------------------------------------------------------
-    def test_format_attr_numpy_scalar(self):
-        """Test that 1-element numpy arrays are flattened to scalars."""
-        val = np.array([38.0])
-        self.assertEqual(_format_attr(val), 38.0)
-        self.assertNotIsInstance(_format_attr(val), np.ndarray)
+        # Unlimited dimensions
+        f.domain_axis("longitude").nc_set_unlimited(True)
 
-    def test_format_attr_decoding(self):
-        """Test attribute decoding."""
-        attrs= self.nc['q'].attrs
-        self.assertIsInstance(attrs['int32'], np.int32)
-        self.assertIsInstance(attrs['int64'], np.int64)
-        self.assertIsInstance(attrs['float32'], np.float32)
-        self.assertIsInstance(attrs['float64'], np.float64)
-        self.assertIsInstance(attrs['list'], np.ndarray)
-        self.assertIsInstance(attrs['units'], str)
+        tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
+        cfdm.write(f, tmpfile, fmt="NETCDF4", netcdf_backend="netCDF4")
 
-    # ------------------------------------------------------------------
-    # File & Group Tests
-    # ------------------------------------------------------------------
-    def test_file_properties(self):
+        cls.test_file = tmpfile
+        cls.p5 = cfdm.p5netcdf.File(tmpfile)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up the generated test file."""
+        if os.path.exists(cls.test_file):
+            os.remove(cls.test_file)
+
+    def test_p5netcdf_attributes(self):
+        """Check that attributes are parsed correctly."""
+        n = netCDF4.Dataset(self.test_file, "r")
+        p = self.p5
+
+        nq = n["/forecast/model/q"]
+        pq = p["/forecast/model/q"]
+
+        self.assertEqual(list(pq.attrs), nq.ncattrs())
+
+        for attr, pvalue in pq.attrs.items():
+            nvalue = nq.getncattr(attr)
+
+            self.assertEqual(type(pvalue), type(nvalue))
+
+            if isinstance(pvalue, np.ndarray):
+                self.assertEqual(pvalue.dtype, nvalue.dtype)
+                self.assertTrue(np.allclose(pvalue, nvalue))
+            else:
+                self.assertEqual(pvalue, nvalue)
+
+        n.close()
+
+    def test_p5netcdf_dimensions(self):
+        """Check that dimensions are parsed correctly."""
+        n = netCDF4.Dataset(self.test_file, "r")
+        p = self.p5
+
+        for group in ("/", "/forecast", "/forecast/model"):
+            pg = p[group]
+            ng = n if group == "/" else n[group]
+
+            self.assertEqual(set(ng.dimensions), set(pg.dimensions))
+
+            for name, pdim in pg.dimensions.items():
+                ndim = ng.dimensions[name]
+                self.assertEqual(pdim.isunlimited(), ndim.isunlimited())
+                self.assertEqual(pdim.group().path, ndim.group().path)
+
+                for name, pvar in pg.dimensions.items():
+                    for attr in ("name", "size"):
+                        self.assertEqual(
+                            getattr(pdim, attr), getattr(ndim, attr)
+                        )
+
+        n.close()
+
+    def test_p5netcdf_variables(self):
+        """Check that variables are parsed correctly."""
+        n = netCDF4.Dataset(self.test_file, "r")
+        p = self.p5
+
+        for group in ("/", "/forecast", "/forecast/model"):
+            pg = p[group]
+            ng = n if group == "/" else n[group]
+
+            self.assertEqual(set(ng.variables), set(pg.variables))
+
+            for name, pvar in pg.variables.items():
+                nvar = ng.variables[name]
+                self.assertEqual(pvar.chunking(), nvar.chunking())
+
+                self.assertEqual(len(pvar.get_dims()), len(nvar.get_dims()))
+
+                self.assertTrue(np.ma.allclose(pvar[...], nvar[...]))
+
+                if pvar.shape:
+                    self.assertEqual(len(pvar), len(nvar))
+                else:
+                    with self.assertRaises(TypeError):
+                        len(pvar)
+
+                for attr in (
+                    "name",
+                    "size",
+                    "shape",
+                    "ndim",
+                    "dtype",
+                    "dimensions",
+                ):
+                    self.assertEqual(getattr(pvar, attr), getattr(nvar, attr))
+
+                for pdim, ndim in zip(*(pvar.get_dims(), nvar.get_dims())):
+                    self.assertEqual(pdim.name, ndim.name)
+                    self.assertEqual(pdim.group().path, ndim.group().path)
+
+        n.close()
+
+    def test_p5netcdf_groups(self):
+        """Check that groups are parsed correctly."""
+        n = netCDF4.Dataset(self.test_file, "r")
+        p = self.p5
+
+        for group in ("/", "/forecast", "/forecast/model"):
+            pg = p[group]
+            ng = n if group == "/" else n[group]
+
+            pattrs = pg.attrs
+            nattrs = {k: ng.getncattr(k) for k in ng.ncattrs()}
+            self.assertEqual(pattrs, nattrs)
+            self.assertEqual(pg.name, group)
+            self.assertEqual(pg.name, ng.path)
+
+        n.close()
+
+    def test_p5netcdf_File_filename(self):
         """Test basic properties of the File root object."""
-        self.assertEqual(self.nc.name, '/')
-        self.assertEqual(self.nc.filename, self.test_file)
+        self.assertEqual(self.p5.filename, self.test_file)
 
-    def test_group_attributes(self):
-        """Test that global attributes are parsed and ignored list works."""
-        # Conventions is standard on cfdm example fields
-        self.assertTrue(self.nc.attrs.get('Conventions').startswith('CF-'))
-        
-        # Check that hidden attributes didn't bleed through
-        self.assertNotIn('_NCProperties', self.nc.attrs)
-        self.assertNotIn('_nc3_strict', self.nc.attrs)
+    def test_p5netcdf_Dimension_sizes(self):
+        """Test Dimension.size."""
+        dim = self.p5.dimensions["bounds2"]
+        self.assertEqual(dim.size, 2)
 
-    def test_group_contains_variables(self):
-        """Test that variables are correctly mapped into the group."""
-        # The example field typically has lat, lon, and the data variable
-        self.assertIn('lat', self.nc.variables)
-        self.assertIn('lon', self.nc.variables)
-        self.assertGreaterEqual(len(self.nc.variables), 3)
+    def test_p5netcdf_Dimension__len__(self):
+        """Test Dimension.__len__."""
+        dim = self.p5.dimensions["bounds2"]
+        self.assertEqual(len(dim), dim.size)
 
-    # ------------------------------------------------------------------
-    # Dimension Tests
-    # ------------------------------------------------------------------
-    def test_dimension_sizes(self):
-        """Test that sizes are correctly read and __len__ works."""
-        self.assertIn('lat', self.nc.dimensions)
-        dim_lat = self.nc.dimensions['lat']
-        self.assertGreater(dim_lat.size, 0)
-        self.assertEqual(len(dim_lat), dim_lat.size)
+        dim = self.p5["forecast"].dimensions["lon"]
+        self.assertIsInstance(dim.isunlimited(), bool)
 
-    def test_dimension_isunlimited(self):
-        """Test that isunlimited returns a boolean."""
-        dim_lat = self.nc.dimensions['lat']
-        self.assertIsInstance(dim_lat.isunlimited(), bool)
+    def test_p5netcdf_Dimension_isunlimited(self):
+        """Test Dimension.isunlimited."""
+        dim = self.p5.dimensions["bounds2"]
+        self.assertIsInstance(dim.isunlimited(), bool)
+        self.assertFalse(dim.isunlimited())
 
-    # ------------------------------------------------------------------
-    # Variable Tests
-    # ------------------------------------------------------------------
-    def test_variable_coordinate_dimensions(self):
-        """Test that dimension scales resolve their own name as a dimension."""
-        lat_var = self.nc.variables['lat']
-        self.assertEqual(lat_var.dimensions, ('lat',))
-        
-        lon_var = self.nc.variables['lon']
-        self.assertEqual(lon_var.dimensions, ('lon',))
+        dim = self.p5["forecast"].dimensions["lon"]
+        self.assertIsInstance(dim.isunlimited(), bool)
+        self.assertTrue(dim.isunlimited())
 
-    def test_variable_get_dims(self):
-        """Test that Variable.get_dims returns actual Dimension objects."""
-        lat_var = self.nc.variables['lat']
-        dims = lat_var.get_dims()
-        
-        self.assertEqual(len(dims), 1)
-        self.assertIsInstance(dims[0], Dimension)
-        self.assertEqual(dims[0].name, 'lat')
+    def test_p5netcdf_Dimension_name(self):
+        """Test Dimension.name."""
+        dim = self.p5.dimensions["bounds2"]
+        self.assertEqual(dim.name, "bounds2")
 
-    def test_variable_numpy_slicing(self):
-        """Test that variable indexing correctly calls the underlying pyfive dataset."""
-        lat_var = self.nc.variables['lat']
-        data = lat_var[:]
-        self.assertIsInstance(data, np.ndarray)
-        self.assertEqual(data.shape, lat_var.shape)
+        dim = self.p5["forecast"].dimensions["lon"]
+        self.assertEqual(dim.name, "lon")
 
-    # ------------------------------------------------------------------
-    # Path Routing Tests
-    # ------------------------------------------------------------------
-    def test_absolute_path_lookup(self):
-        """Test that leading slashes are stripped and resolve perfectly."""
-        lat_var_direct = self.nc.variables['lat']
-        lat_var_path = self.nc['/lat']
-        self.assertEqual(lat_var_direct.name, lat_var_path.name)
+    def test_p5netcdf_Dimension_group(self):
+        """Test Dimension.group."""
+        dim = self.p5.dimensions["bounds2"]
+        self.assertEqual(dim.group().path, "/")
+
+        dim = self.p5["forecast"].dimensions["lon"]
+        self.assertEqual(dim.group().path, "/forecast")
+
+    def test_p5netcdf_Variable_maxshape(self):
+        """Test Dimension.group."""
+        var = self.p5["time"]
+        self.assertEqual(var.maxshape, ())
+
+        var = self.p5["forecast/lon"]
+        self.assertEqual(var.maxshape, (None,))
+        var = self.p5["forecast/lon_bnds"]
+
+        self.assertEqual(var.maxshape, (None, 2))
+
+    def test_p5netcdf_Group__getitem__(self):
+        """Test Group.__getitem__."""
+        self.assertIs(self.p5[""], self.p5)
+        self.assertIs(self.p5["/"], self.p5)
+        self.assertIs(self.p5["forecast"], self.p5["/forecast"])
+        self.assertIs(self.p5["forecast"], self.p5["/forecast/"])
+        self.assertIs(self.p5["forecast/model"], self.p5["forecast"]["model"])
+        self.assertIs(
+            self.p5["/forecast/model/"], self.p5["/forecast"]["model/"]
+        )
+        self.assertIs(
+            self.p5["forecast"]["/forecast/model/"], self.p5["/forecast/model"]
+        )
+
+        self.assertIs(self.p5["forecast"]["/"], self.p5["/"])
+        self.assertIs(self.p5["forecast"]["/forecast"], self.p5["/forecast"])
+        self.assertIs(
+            self.p5["forecast"]["/forecast/model/q"],
+            self.p5["/forecast/model/q"],
+        )
+
+        for bad_group in (
+            ".",
+            "..",
+            "/bad_group",
+            "bad_group",
+            "/forecast/bad_group",
+            "/forecast/model/q/subgroup",
+        ):
+            with self.assertRaises(KeyError):
+                self.p5[bad_group]
 
 
 if __name__ == "__main__":

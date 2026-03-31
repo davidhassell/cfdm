@@ -4912,12 +4912,12 @@ class NetCDFWrite(IOWrite):
 
         :Returns:
 
-            `netCDF4.Group` or `Zarr.Group`
+            `h5netcdf.Group` or `netCDF4.Group` or `Zarr.Group`
                 The group.
 
         """
         match self.write_vars["backend"]:
-            case "netCDF4":
+            case "h5netcdf-h5py" | "netCDF4":
                 for group in groups:
                     if group in parent.groups:
                         parent = parent.groups[group]
@@ -4930,6 +4930,12 @@ class NetCDFWrite(IOWrite):
                     parent = parent[group]
                 else:
                     parent = self._createGroup(parent, group)
+
+            case _:
+                raise NotImplementedError(
+                    "Need to implement _get_group for the "
+                    f"{self.write_vars['backend']!r} backend"
+                )
 
         return parent
 
