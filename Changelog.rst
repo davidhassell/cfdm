@@ -3,10 +3,15 @@ Version NEXTVERSION
 
 **2026-??-??**
 
+* New default backend for netCDF-4 in `cfdm.read` that allows more
+  performant parallel reading: ``cfdm.p5netcdf``
+  (https://github.com/NCAS-CMS/cfdm/issues/375)
 * Read Kerchunk datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/385)
 * Read open file handle datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/401)
+* Write UGRID datasets with `cfdm.write`
+  (https://github.com/NCAS-CMS/cfdm/issues/271)
 * New keyword to `cfdm.read`: ``filesystem``
   (https://github.com/NCAS-CMS/cfdm/issues/397)
 * New keyword parameter to `cfdm.Data.compute`: ``persist``
@@ -19,8 +24,8 @@ Version NEXTVERSION
   that allows control of the internal file metadata via the new
   ``h5py_options`` parameter
   (https://github.com/NCAS-CMS/cfdm/issues/386)
-* New default backend for netCDF-4 in `cfdm.read` that allows parallel
-  reading: ``h5netcdf-pyfive``
+* New optional backend for netCDF-4 in `cfdm.read` that allows
+  parallel reading: ``h5netcdf-pyfive``
   (https://github.com/NCAS-CMS/cfdm/issues/375)
 * New optional backend for netCDF-3 in `cfdm.read` that allows
   parallel reading: ``netcdf_file``
