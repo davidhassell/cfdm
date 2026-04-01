@@ -2,8 +2,7 @@ from collections.abc import Mapping
 
 import numpy as np
 
-# Non-netCDF attributes don't start with _nc4 or _Netcdf4 (these two
-# cases are handle separately)
+# Ignore netCDF internal attributes
 _IGNORED_ATTRS = {
     "CLASS",
     "NAME",
@@ -12,6 +11,7 @@ _IGNORED_ATTRS = {
     "DIMENSION_LABELS",
 }
 _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
+
 
 def _format_attr(value):
     """Format an attribute according to netCDF.
@@ -87,7 +87,7 @@ def _parse_attributes(raw_attributes):
 
     * Strings return as pure Python strings.
     * Single numeric values return as true numpy scalars (preserving
-      bit-width).    
+      bit-width).
     * Multi-element numeric values return as numpy arrays.
 
     .. versionadded:: (cfdm) NEXTVERSION

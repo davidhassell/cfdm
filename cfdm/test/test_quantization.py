@@ -45,7 +45,7 @@ def _remove_tmpfiles():
             pass
 
 
-#atexit.register(_remove_tmpfiles)
+# atexit.register(_remove_tmpfiles)
 
 
 class quantizationTest(unittest.TestCase):
