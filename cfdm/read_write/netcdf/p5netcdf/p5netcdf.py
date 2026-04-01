@@ -2,26 +2,25 @@ from collections.abc import Mapping
 
 import numpy as np
 
-# Strip out the ones that don't start with _nc4 or _Netcdf4
+# Non-netCDF attributes don't start with _nc4 or _Netcdf4 (these two
+# cases are handle separately)
 _IGNORED_ATTRS = {
     "CLASS",
     "NAME",
     "REFERENCE_LIST",
     "DIMENSION_LIST",
     "DIMENSION_LABELS",
-    "_NCProperties",
-    "_nc3_strict",
 }
-
+_IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
 def _format_attr(value):
     """Format an attribute according to netCDF.
 
-    - Strings return as pure Python strings.
-    - Single numeric values return as true numpy scalars (preserving
+    * Strings return as pure Python strings.
+    * Single numeric values return as true numpy scalars (preserving
       bit-width).
-    - Multi-element numeric values return as numpy arrays.
-    - String sequences return as Python lists of strings.
+    * Multi-element numeric values return as numpy arrays.
+    * String sequences return as Python lists of strings.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -86,10 +85,10 @@ def _format_attr(value):
 def _parse_attributes(raw_attributes):
     """Format raw attributes attributes according to netCDF .
 
-    - Strings return as pure Python strings.
-    - Single numeric values return as true NumPy scalars (preserving
-      bit-width).
-    - Multi-element numeric values return as NumPy arrays.
+    * Strings return as pure Python strings.
+    * Single numeric values return as true numpy scalars (preserving
+      bit-width).    
+    * Multi-element numeric values return as numpy arrays.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -107,7 +106,7 @@ def _parse_attributes(raw_attributes):
     return {
         k: _format_attr(v)
         for k, v in raw_attributes.items()
-        if k not in _IGNORED_ATTRS and not k.startswith(("_Netcdf4", "_nc4"))
+        if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }
 
 
@@ -296,7 +295,7 @@ class Variable:
     def maxshape(self):
         """The maximum dimension lengths of the variable.
 
-        Unlimited dimensions are represneted by `None`.
+        Unlimited dimensions are represented by `None`.
 
         """
         maxshape = getattr(self, "_maxshape", None)
@@ -393,7 +392,7 @@ class Variable:
 class Group(Mapping):
     """Represents a netCDF group.
 
-    This class wraps a (sublcass of) `pyfive.Group`, mapping internal
+    This class wraps a (subclass of) `pyfive.Group`, mapping internal
     HDF5 dimensions, attributes, variables, and subgroups to standard
     netCDF structures.
 
@@ -509,7 +508,7 @@ class Group(Mapping):
         subgroups_to_process = []
         datasets_to_process = []
 
-        # Categorize objects without double-reading items from HDF5
+        # Categorise objects without double-reading items from HDF5
         for name, h5 in self._h5.items():
             if isinstance(h5, pyfive.Group):
                 subgroups_to_process.append((name, h5))
@@ -568,7 +567,7 @@ class Group(Mapping):
                 parent_group=self,
             )
 
-        # Create variables (skippinginternal netCDF stubs)
+        # Create variables (skipping internal netCDF stubs)
         for name, h5ds in datasets_to_process:
             dim_name = name.split("/")[-1]
 
