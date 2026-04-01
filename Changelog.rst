@@ -5,7 +5,7 @@ Version NEXTVERSION
 
 * New default backend for netCDF-4 in `cfdm.read` that allows more
   performant parallel reading: ``cfdm.p5netcdf``
-  (https://github.com/NCAS-CMS/cfdm/issues/375)
+  (https://github.com/NCAS-CMS/cfdm/issues/???)
 * Read Kerchunk datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/385)
 * Read open file handle datasets with `cfdm.read`
