@@ -111,7 +111,7 @@ def _parse_attributes(raw_attributes):
 
 
 class Dimension:
-    """Represents a netCDF dimension.
+    """A netCDF dimension.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -184,17 +184,13 @@ class Dimension:
 
 
 class Variable:
-    """Represents a netCDF variable.
-
-    This class wraps a (subclass of a) `pyfive.Dataset`, mapping
-    internal HDF5 dimensions and attributes to standard netCDF
-    structures.
+    """A netCDF variable.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
 
-    def __init__(self, name, h5_dataset, parent_group=None):
+    def __init__(self, name, h5ds, parent_group, _h5ds_attrs=None):
         """**Initialisation**
 
         :Parameters:
@@ -202,20 +198,26 @@ class Variable:
             name: `str`
                 The name of the variable.
 
-            h5_dataset: (subclass of) `pyfive.Dataset`
+            h5ds: (subclass of) `pyfive.Dataset`
                 The underlying pyfive dataset object.
 
-            parent_group: `Group`, optional
+            parent_group: `Group` or `File`
                 The parent group containing this variable.
+
+            _h5ds_attrs: `dict` or `None`, optional
+                The raw attribtes of *h5ds*. If `None` (the default)
+                then the attirbutes ar retrieved from *h5ds*.
 
         """
         self.name = name
-        self._h5ds = h5_dataset
+        self._h5ds = h5ds
         self._parent = parent_group
 
-        h5ds_attrs = self._h5ds.attrs
-        self.dimensions = self._get_dimensions(h5ds_attrs)
-        self.attrs = _parse_attributes(h5ds_attrs)
+        if _h5ds_attrs is None:
+            _h5ds_attrs = self._h5ds.attrs
+
+        self.dimensions = self._get_dimensions(_h5ds_attrs)
+        self.attrs = _parse_attributes(_h5ds_attrs)
 
     def __getitem__(self, key):
         """Return a subspace of the data array defined by indices."""
@@ -390,11 +392,7 @@ class Variable:
 
 
 class Group(Mapping):
-    """Represents a netCDF group.
-
-    This class wraps a (subclass of) `pyfive.Group`, mapping internal
-    HDF5 dimensions, attributes, variables, and subgroups to standard
-    netCDF structures.
+    """A netCDF group.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -507,8 +505,10 @@ class Group(Mapping):
         raw_dims = {}
         subgroups_to_process = []
         datasets_to_process = []
+        dataset_attrs = {}
 
-        # Categorise objects without double-reading items from HDF5
+        # Categorise objects without double-reading items from the
+        # dataset
         for name, h5 in self._h5.items():
             if isinstance(h5, pyfive.Group):
                 subgroups_to_process.append((name, h5))
@@ -517,8 +517,9 @@ class Group(Mapping):
 
         # Extract dimension scales (strictly ignoring scalars)
         for name, h5ds in datasets_to_process:
-            attrs = h5ds.attrs
             shape = h5ds.shape
+            attrs = h5ds.attrs
+            dataset_attrs[name] = attrs
 
             if shape and attrs.get("CLASS") == b"DIMENSION_SCALE":
                 # Get ID: Use None if missing to push to end of sort
@@ -578,7 +579,12 @@ class Group(Mapping):
             is_stub = raw_dims.get(dim_name, {}).get("is_stub", False)
 
             if not is_stub:
-                self.variables[name] = Variable(name, h5ds, parent_group=self)
+                self.variables[name] = Variable(
+                    name,
+                    h5ds,
+                    parent_group=self,
+                    _h5ds_attrs=dataset_attrs[name],
+                )
 
         # Create subgroups
         for name, group in subgroups_to_process:
@@ -598,11 +604,11 @@ class Group(Mapping):
 
 
 class File(Group):
-    """The root netCDF file accessor.
+    """A netCDF dataset.
 
-    This class wraps a (subclass of) `pyfive.File`, mapping internal
-    HDF5 dimensions, attributes, variables, and subgroups to standard
-    netCDF structures.
+    A `File` is a collection of dimensions, groups, variables and
+    attributes which describe the meaning of the data and metadata
+    stored in a netCDF dataset.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -616,7 +622,7 @@ class File(Group):
         :Parameters:
 
             dataset:
-                The dataset to be read.
+                The netCDF dataset to be read.
 
                 May be a `str` or `pathlib.Path` path, a file-like
                 object (such as `io.BufferedReader` or the result of
@@ -627,7 +633,7 @@ class File(Group):
         import pyfive
 
         if not isinstance(dataset, pyfive.File):
-            dataset = pyfive.File(dataset)
+            dataset = pyfive.File(dataset, mode="r")
 
         self._h5_file = dataset
 
@@ -652,7 +658,7 @@ class File(Group):
         :Returns:
 
             `str`
-                The filename associated with the file handle.
+                The filename of the dataset.
 
         """
         filename = getattr(self, "_filename", None)
