@@ -205,8 +205,8 @@ class Variable:
                 The parent group containing this variable.
 
             _h5ds_attrs: `dict` or `None`, optional
-                The raw attribtes of *h5ds*. If `None` (the default)
-                then the attirbutes ar retrieved from *h5ds*.
+                The raw attributes of *h5ds*. If `None` (the default)
+                then the attributes are retrieved from *h5ds*.
 
         """
         self.name = name
