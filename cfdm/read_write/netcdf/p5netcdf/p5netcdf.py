@@ -138,7 +138,7 @@ class Dimension:
         self.name = name
         self.size = size
         self._is_unlimited = is_unlimited
-        self._parent_group = parent_group
+        self._parent = parent_group
 
     def __len__(self):
         """The size of the dimension.
@@ -155,10 +155,23 @@ class Dimension:
         x.__repr__() <==> repr(x)
 
         """
-        unlimited = ", unlimited" if self._is_unlimited else ""
+        unlimited = " (unlimited)" if self._is_unlimited else ""
         return (
-            f"<p5netcdf.Dimension {self.name!r}: size {self.size}{unlimited}>"
+            f"<p5netcdf.{self.__class__.__name__}: "
+            f"{self.path}, size={self.size}{unlimited}>"
         )
+
+    @property
+    def path(self):
+        """Return the full absolute path of the dimension."""
+        # Get the parent group's path
+        group_path = getattr(self._parent, "path", "")
+
+        # Avoid returning '//dimname' if in the root group
+        if group_path == "/":
+            return f"/{self.name}"
+
+        return f"{group_path}/{self.name}"
 
     def group(self):
         """The group that defines this dimension.
@@ -169,7 +182,7 @@ class Dimension:
                 The group object containing this dimension.
 
         """
-        return self._parent_group
+        return self._parent
 
     def isunlimited(self):
         """Whether the dimension is unlimited.
@@ -237,9 +250,26 @@ class Variable:
         x.__repr__() <==> repr(x)
 
         """
+        # Resolve the dimension objects to get their full paths
+        try:
+            dim_paths = [d.path for d in self.get_dims()]
+            if len(dim_paths) == 1:
+                dims = f"({dim_paths[0]},)"
+            else:
+                dims = f"({', '.join(dim_paths)})"
+
+        except Exception:
+            # Fallback if resolution fails for any reason
+            dims = self.dimensions
+
         return (
-            f"<p5netcdf.{self.__class__.__name__} "
-            f"{self.name!r}: shape {self.shape}, dims {self.dimensions}>"
+            f"<p5netcdf.{self.__class__.__name__}: "
+            f"{self.path}, shape={self.shape}, dimensions={dims}>"
+        )
+
+        return (
+            f"<p5netcdf.{self.__class__.__name__}: "
+            f"{self.path}, shape={self.shape}, dims={self.dimensions}>"
         )
 
     def _get_dimensions(self, h5ds_attrs):
@@ -311,6 +341,19 @@ class Variable:
     def ndim(self):
         """The number of dimensions for the variable."""
         return len(self.shape)
+
+    @property
+    def path(self):
+        """Return the full absolute path of the variable."""
+        # Get the parent group's path
+        group_path = getattr(self._parent, "path", "")
+
+        # If the parent is the root group '/', then avoid returning
+        # '//varname'
+        if group_path == "/":
+            return f"/{self.name}"
+
+        return f"{group_path}/{self.name}"
 
     @property
     def shape(self):
@@ -483,10 +526,13 @@ class Group(Mapping):
 
     def __repr__(self):
         """Called by the `repr` built-in function."""
+        pv = "" if len(self.variables) == 1 else "s"
+        pg = "" if len(self.groups) == 1 else "s"
+
         return (
-            f"<p5netcdf.{self.__class__.__name__} "
-            f"{self.name!r} ({len(self.variables)} variables, "
-            f"{len(self.groups)} groups)>"
+            f"<p5netcdf.{self.__class__.__name__}: "
+            f"{self.path}, {len(self.variables)} variable{pv}, "
+            f"{len(self.groups)} sub-group{pg}>"
         )
 
     def _parse_structure(self):
@@ -549,7 +595,7 @@ class Group(Mapping):
         # preserves the creation order of its dimensions in an ordered
         # dictionary.
         #
-        # We sort by (ID, Name). If ID is None (pure HDF5), it's
+        # We sort by (ID, Name). If ID is `None` (pure HDF5), it's
         # treated as infinity to ensure it appears after the
         # netCDF-indexed dimensions.
         sorted_items = sorted(
@@ -572,10 +618,10 @@ class Group(Mapping):
         for name, h5ds in datasets_to_process:
             dim_name = name.split("/")[-1]
 
-            # If it's in raw_dims and flagged as a stub, skip it.
-            # Otherwise - whether it's a coordinate variable, normal
-            # data, or a scalar pretending to be a scale - it becomes
-            # a Variable.
+            # If it's in 'raw_dims' and flagged as a stub then skip
+            # it. Otherwise - whether it's a coordinate variable,
+            # normal data, or a scalar pretending to be a scale - it
+            # becomes a Variable.
             is_stub = raw_dims.get(dim_name, {}).get("is_stub", False)
 
             if not is_stub:
