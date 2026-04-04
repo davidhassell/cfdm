@@ -110,6 +110,27 @@ def _parse_attributes(raw_attributes):
     }
 
 
+def normalize_path_segments(segments):
+    """Resolve '.' and '..' in a list of path segments."""
+    segments = segments.split("/")
+    resolved = []
+    for segment in segments:
+        if segment == "." or segment == "":
+            continue
+
+        if segment == "..":
+            if resolved:
+                resolved.pop()
+            else:
+                # If we try to go above the requested path's base,
+                # we just ignore it or let it fail naturally.
+                pass
+        else:
+            resolved.append(segment)
+
+    return resolved
+
+
 class Dimension:
     """A netCDF dimension.
 
@@ -467,54 +488,83 @@ class Group(Mapping):
         self._parse_structure()
 
     def __getitem__(self, key):
-        """Get a group or variable."""
-        # Absolute path
+        """Get a variable or group.
+
+        Absolute and relative nested paths are allowed, which may
+        include ``.`` (current group) and ``..`` (parent group)
+        elements.
+
+        """
+        if key == "":
+            return self
+
+        # Determine the starting point
+        current = self
         if key.startswith("/"):
-            current = self
             while current.parent is not None:
                 current = current.parent
 
-            # If the request was just "/", return the root
-            if key == "/":
-                return current
+        # Split the path into parts (ignoring empty strings from
+        # double-slashes)
+        segments = [s for s in key.split("/") if s]
 
-            # Otherwise, evaluate the rest of the path from the root
-            return current[key[1:]]
+        # Handle a request of just "/"
+        if not segments and key.startswith("/"):
+            return current
 
-        # Strip leading slash for absolute path
-        key = key.lstrip("/")
-        if not key:
-            return self
+        # Loop through the segments
+        for i, part in enumerate(segments):
+            if part == "..":
+                # Move up one group
+                current = current.parent
+                if current is None:
+                    if key.startswith("/"):
+                        start = ""
+                    else:
+                        start = f" from group {self.path}"
 
-        # Handle nested path like 'group/subgroup/variable'
-        if "/" in key:
-            part, rest = key.split("/", 1)
+                    raise KeyError(
+                        f"Invalid path {key!r}{start}: Attempted to "
+                        "navigate above the root group."
+                    )
 
-            # Only groups can have children
-            if part in self.groups:
-                return self.groups[part][rest]
+                continue
 
-            # Fail if the user tries to treat a variable as a group
-            if part in self.variables:
+            if part == ".":
+                continue
+
+            # Group/Variable navigation
+            if part in current.groups:
+                current = current.groups[part]
+
+            elif part in current.variables:
+                # A variable must be the final element in a path
+                if i != len(segments) - 1:
+                    if key.startswith("/"):
+                        start = ""
+                    else:
+                        start = f" from group {self.path}"
+
+                    raise KeyError(
+                        f"Invalid path {key!r}{start}: "
+                        f"{current.variables[part].path} is a variable "
+                        "and cannot have children"
+                    )
+
+                return current.variables[part]
+
+            else:
+                if key.startswith("/"):
+                    start = ""
+                else:
+                    start = f" from group {self.path}"
+
                 raise KeyError(
-                    f"{part!r} is a variable and cannot have child path "
-                    f"{rest!r}"
+                    f"Invalid path {key!r}{start}: Path element {part!r} "
+                    f"not found in group {current.path}"
                 )
 
-            raise KeyError(
-                f"Path element {part!r} not found in group {self.name!r}"
-            )
-
-        # Standard local lookup
-        if key in self.variables:
-            return self.variables[key]
-
-        if key in self.groups:
-            return self.groups[key]
-
-        raise KeyError(
-            f"{key!r} not found in variables or groups of {self.name!r}"
-        )
+        return current
 
     def __iter__(self):
         """The variables and sub-groups."""

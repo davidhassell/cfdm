@@ -15,8 +15,8 @@ class Testp5netcdf(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create the test file."""
-        tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
-        #        tmpfile = "test_p5_example.nc"
+        # tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
+        tmpfile = "test_p5_example.nc"
 
         with netCDF4.Dataset(tmpfile, "w", format="NETCDF4") as nc:
             # Global Attributes
@@ -80,20 +80,29 @@ class Testp5netcdf(unittest.TestCase):
             # from current group)
             q = model.createVariable("q", "f4", ("lat", "lon"))
 
-            # Complex Attributes for 'q'
+            # int and floay attributes for 'q'
+            q.setncattr("int8", np.int8(49))
+            q.setncattr("int16", np.int16(49))
             q.setncattr("int32", np.int32(49))
             q.setncattr("int64", np.int64(49))
             q.setncattr("float32", np.float32(49.0))
             q.setncattr("float64", np.float64(49.0))
+            q.setncattr("uint8", np.uint8(49))
+            q.setncattr("uint16", np.uint16(49))
+            q.setncattr("uint32", np.uint32(49))
+            q.setncattr("uint64", np.uint64(49))
 
-            # List attributes
-            q.setncattr("list1", np.array([2, 3], dtype="int64"))
-            q.setncattr("list2", np.array([2, 3], dtype="int32"))
-            q.setncattr("list3", np.array([2.0, 3.0], dtype="float32"))
-            q.setncattr("list4", ["a", "bb", "ccc"])
-            q.setncattr("list5", ["a", "1", "2.5"])
+            # list attributes
+            q.setncattr("list1", np.array([2, 3], dtype="int8"))
+            q.setncattr("list2", np.array([2, 3], dtype="int16"))
+            q.setncattr("list3", np.array([2, 3], dtype="int64"))
+            q.setncattr("list4", np.array([2, 3], dtype="int32"))
+            q.setncattr("list5", np.array([2.0, 3.0], dtype="float32"))
+            q.setncattr("list6", np.array([2.0, 3.0], dtype="float64"))
+            q.setncattr("list7", ["a", "bb", "ccc"])
+            q.setncattr("list8", ["a", "1", "2.5"])
 
-            # String attributes
+            # char attributes
             q.setncattr("string1", "1")
             q.setncattr("string2", "a")
             q.setncattr("string3", "kg m-2")
@@ -125,11 +134,11 @@ class Testp5netcdf(unittest.TestCase):
         cls.test_file = tmpfile
         cls.p5 = cfdm.p5netcdf.File(tmpfile)
 
-    @classmethod
-    def tearDownClass(cls):
-        """Clean up the generated test file."""
-        if os.path.exists(cls.test_file):
-            os.remove(cls.test_file)
+    # @classmethod
+    # def tearDownClass(cls):
+    #    """Clean up the generated test file."""
+    #    if os.path.exists(cls.test_file):
+    #        os.remove(cls.test_file)
 
     def test_p5netcdf_attributes(self):
         """Check that attributes are parsed correctly."""
@@ -146,7 +155,7 @@ class Testp5netcdf(unittest.TestCase):
 
             self.assertEqual(type(pvalue), type(nvalue))
 
-            if isinstance(pvalue, np.ndarray):
+            if isinstance(pvalue, (np.ndarray, np.integer, np.floating)):
                 self.assertEqual(pvalue.dtype, nvalue.dtype)
                 self.assertTrue(np.allclose(pvalue, nvalue))
             else:
@@ -192,8 +201,7 @@ class Testp5netcdf(unittest.TestCase):
             for name, pvar in pg.variables.items():
                 nvar = ng.variables[name]
                 self.assertEqual(pvar.chunking(), nvar.chunking())
-                print(repr(pvar))
-                print(pvar.get_dims())
+
                 self.assertEqual(len(pvar.get_dims()), len(nvar.get_dims()))
 
                 self.assertTrue(np.ma.allclose(pvar[...], nvar[...]))
@@ -312,16 +320,42 @@ class Testp5netcdf(unittest.TestCase):
             self.p5["/forecast/model/q"],
         )
 
+        self.assertIs(self.p5["forecast/.."], self.p5["/"])
+        self.assertIs(self.p5["/forecast/.."], self.p5[""])
+        self.assertIs(self.p5["/forecast/./.."], self.p5[""])
+        self.assertIs(self.p5["./forecast/./.."], self.p5[""])
+        self.assertIs(
+            self.p5["./forecast/./../forecast/model/.."], self.p5["/forecast"]
+        )
+
+        # Test bad group paths from the root group
+        current_group = self.p5["/"]
         for bad_group in (
-            ".",
-            "..",
+            "/..",
+            "./..",
             "/bad_group",
             "bad_group",
             "/forecast/bad_group",
             "/forecast/model/q/subgroup",
+            "/forecast/model/q/..",
         ):
             with self.assertRaises(KeyError):
-                self.p5[bad_group]
+                current_group[bad_group]
+
+        # Test bad group paths from a sub-group
+        current_group = self.p5["/forecast"]
+        for bad_group in (
+            "../..",
+            "./../..",
+            "../bad_group",
+            "/bad_group",
+            "bad_group",
+            "/forecast/bad_group",
+            "/forecast/model/q/subgroup",
+            "/forecast/model/q/..",
+        ):
+            with self.assertRaises(KeyError):
+                current_group[bad_group]
 
 
 if __name__ == "__main__":
