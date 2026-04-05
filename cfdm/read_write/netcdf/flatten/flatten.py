@@ -755,7 +755,10 @@ class _Flattener:
 
         """
         match self._backend(dataset):
-            case "p5netcdf" | "h5netcdf" | "netCDF4":
+            case "p5netcdf" | "netCDF4":
+                return x.name
+
+            case "h5netcdf":
                 return x.name.split(group_separator)[-1]
 
             case "zarr":
@@ -1043,7 +1046,7 @@ class _Flattener:
             new_name,
             self.dtype(var),
             new_dims,
-            zlib=False,
+            compression=None,
             complevel=4,
             shuffle=True,
             fletcher32=False,

@@ -138,27 +138,27 @@ class Dimension:
 
     """
 
-    def __init__(self, name, size, is_unlimited, parent_group):
+    def __init__(self, name, size, isunlimited, parent_group):
         """**Initialisation**
 
         :Parameters:
 
             name: `str`
-                The name of the dimension.
+                The name of the dimension in its parent group.
 
             size: `int`
                 The size of the dimension.
 
-            is_unlimited: `bool`
+            isunlimited: `bool`
                 True if the dimension is unlimited.
 
             parent_group: `Group`
                 The group in which this dimension is defined.
 
         """
-        self.name = name
-        self.size = size
-        self._is_unlimited = is_unlimited
+        self._name = name
+        self._size = size
+        self._isunlimited = isunlimited
         self._parent = parent_group
 
     def __len__(self):
@@ -176,31 +176,66 @@ class Dimension:
         x.__repr__() <==> repr(x)
 
         """
-        unlimited = " (unlimited)" if self._is_unlimited else ""
+        unlimited = " (unlimited)" if self.isunlimited() else ""
         return (
             f"<p5netcdf.{self.__class__.__name__}: "
             f"{self.path}, size={self.size}{unlimited}>"
         )
 
     @property
+    def name(self):
+        """The name of the dimension in its parent group.
+
+        :Returns:
+
+            `str`
+                The relative netCDF name (e.g. ``'time'``).
+
+        """
+        return self._name
+
+    @property
     def path(self):
-        """Return the full absolute path of the dimension."""
-        # Get the parent group's path
-        group_path = getattr(self._parent, "path", "")
+        """The full absolute path of the dimension.
 
-        # Avoid returning '//dimname' if in the root group
-        if group_path == "/":
-            return f"/{self.name}"
+        :Returns:
 
-        return f"{group_path}/{self.name}"
+            `str`
+                The absolute netCDF path (e.g. ``'/subgroup/time'``).
+
+        """
+        path = getattr(self, "_path", None)
+        if path is None:
+            # Get the parent group's path
+            group_path = getattr(self._parent, "path", "")
+
+            # Avoid returning '//dimname' if in the root group
+            if group_path == "/":
+                path = f"/{self.name}"
+            else:
+                path = f"{group_path}/{self.name}"
+
+        return path
+
+    @property
+    def size(self):
+        """The size of the dimension.
+
+        :Returns:
+
+            `int`
+                The size.
+
+        """
+        return self._size
 
     def group(self):
-        """The group that defines this dimension.
+        """The parent group that defines this dimension.
 
         :Returns:
 
             `Group`
-                The group object containing this dimension.
+                The group.
 
         """
         return self._parent
@@ -211,10 +246,11 @@ class Dimension:
         :Returns:
 
             `bool`
-                True if the dimension is unlimited, False otherwise.
+                `True` if the dimension is unlimited, `False`
+                otherwise.
 
         """
-        return self._is_unlimited
+        return self._isunlimited
 
 
 class Variable:
@@ -230,7 +266,7 @@ class Variable:
         :Parameters:
 
             name: `str`
-                The name of the variable.
+                The name of the variable in its parent group.
 
             h5ds: (subclass of) `pyfive.Dataset`
                 The underlying pyfive dataset object.
@@ -243,7 +279,7 @@ class Variable:
                 then the attributes are retrieved from *h5ds*.
 
         """
-        self.name = name
+        self._name = name
         self._h5ds = h5ds
         self._parent = parent_group
 
@@ -302,7 +338,8 @@ class Variable:
         """
         # Case 1: It's a Dimension Scale itself (no DIMENSION_LIST attribute)
         if h5ds_attrs.get("CLASS") == b"DIMENSION_SCALE":
-            return (self.name.split("/")[-1],)
+            #            return (self.name.split("/")[-1],)
+            return (self.name,)
 
         # Case 2: Standard variable with linked dimensions
         if "DIMENSION_LIST" not in h5ds_attrs:
@@ -348,7 +385,12 @@ class Variable:
     def maxshape(self):
         """The maximum dimension lengths of the variable.
 
-        Unlimited dimensions are represented by `None`.
+        :Returns:
+
+            `tuple`
+                The dimension lengths (e.g. ``(180, 360)``). Unlimited
+                dimensions are represented by `None` (e.g. ``(None,
+                96, 73)``)
 
         """
         maxshape = getattr(self, "_maxshape", None)
@@ -359,26 +401,56 @@ class Variable:
         return maxshape
 
     @property
+    def name(self):
+        """The name of the variable in its parent group.
+
+        :Returns:
+
+            `str`
+                The relative netCDF name (e.g. ``'latitude'``).
+
+        """
+        return self._name
+
+    @property
     def ndim(self):
-        """The number of dimensions for the variable."""
+        """The number of dimensions for the variable.
+
+        :Returns:
+
+            `int`
+                The number of dimensions.
+
+        """
         return len(self.shape)
 
     @property
     def path(self):
-        """Return the full absolute path of the variable."""
-        # Get the parent group's path
-        group_path = getattr(self._parent, "path", "")
+        """The full absolute path of the variable.
 
-        # If the parent is the root group '/', then avoid returning
-        # '//varname'
-        if group_path == "/":
-            return f"/{self.name}"
+        :Returns:
 
-        return f"{group_path}/{self.name}"
+            `str`
+                The absolute netCDF path (e.g. ``'/group/latitude'``).
+
+        """
+        path = getattr(self, "_path", None)
+        if path is None:
+            path = self._h5ds.name
+            self._path = path
+
+        return path
 
     @property
     def shape(self):
-        """The dimensions' lengths of the variable's dataset."""
+        """The dimension lengths of the variable.
+        
+        :Returns:
+
+            `tuple` of `int`
+                The dimension lengths (e.g. ``(12, 96, 73)``).
+
+        """
         shape = getattr(self, "_shape", None)
         if shape is None:
             shape = self._h5ds.shape
@@ -388,7 +460,14 @@ class Variable:
 
     @property
     def size(self):
-        """The total number of elements in the variable's dataset."""
+        """The total number of elements in the variable's data.
+
+        :Returns:
+        
+            `int`
+                The number of elements.        
+
+        """
         size = getattr(self, "_size", None)
         if size is None:
             size = self._h5ds.size
@@ -397,7 +476,15 @@ class Variable:
         return size
 
     def chunking(self):
-        """Returns the chunk size `list`, or 'contiguous'."""
+        """Returns the data chunk shape.
+
+        :Returns:
+        
+            `list` or 'str`
+                The chunk shape (e.g. ``[5, 6, 7]``). If the data is
+                contiguous then ``'contiguous` is returned.
+
+        """
         chunks = self.chunks
         if chunks is None:
             return "contiguous"
@@ -476,7 +563,6 @@ class Group(Mapping):
 
         """
         self._h5 = h5
-        self.name = h5.name
         self.parent = parent
 
         self.dimensions = {}
@@ -687,16 +773,38 @@ class Group(Mapping):
             self.groups[name] = Group(group, parent=self)
 
     @property
+    def name(self):
+        """The name of the group in its parent group.
+
+        :Returns:
+
+            `str`
+                The relative netCDF name (e.g. ``'subgroup'``).
+
+        """
+        name = getattr(self, "_name", None)
+        if name is None:
+            name = self.path.split("/")[-1]
+            self._name = name
+
+        return name
+
+    @property
     def path(self):
         """The full absolute path of the group.
 
         :Returns:
 
             `str`
-                The absolute HDF5 path (e.g. '/model/subgroup').
+                The absolute netCDF path (e.g. ``'/model/subgroup'``).
 
         """
-        return self.name
+        path = getattr(self, "_path", None)
+        if path is None:
+            path = self._h5.name
+            self._path = path
+
+        return path
 
 
 class File(Group):

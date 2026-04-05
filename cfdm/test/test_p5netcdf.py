@@ -37,11 +37,9 @@ class Testp5netcdf(unittest.TestCase):
             forecast = nc.createGroup("forecast")
             forecast.createDimension("lon", None)  # UNLIMITED
 
-            lon_bnds = forecast.createVariable(
-                "lon_bnds", "f8", ("lon", "bounds2")
-            )
+            lon_bnds = forecast.createVariable( "lon_bnds", "f8", ("lon", "bounds2"))
 
-            lon = forecast.createVariable("lon", "f8", ("lon",))
+            lon = forecast.createVariable("lon", "f8", ("lon",) )
             lon.setncattr("units", "degrees_east")
             lon.setncattr("standard_name", "longitude")
             lon.setncattr("bounds", "/forecast/lon_bnds")
@@ -71,14 +69,15 @@ class Testp5netcdf(unittest.TestCase):
                 "lat_bnds", "f8", ("lat", "bounds2")
             )
 
-            lat = model.createVariable("lat", "f8", ("lat",))
+            lat = model.createVariable("lat", "f8", ("lat",),
+                                          contiguous=True)
             lat.setncattr("units", "degrees_north")
             lat.setncattr("standard_name", "latitude")
             lat.setncattr("bounds", "/forecast/model/lat_bnds")
 
             # The 'q' variable (uses 'lon' from the parent group and 'lat'
             # from current group)
-            q = model.createVariable("q", "f4", ("lat", "lon"))
+            q = model.createVariable("q", "f4", ("lat", "lon"), chunksizes=(5, 3))
 
             # int and floay attributes for 'q'
             q.setncattr("int8", np.int8(49))
@@ -240,8 +239,7 @@ class Testp5netcdf(unittest.TestCase):
             pattrs = pg.attrs
             nattrs = {k: ng.getncattr(k) for k in ng.ncattrs()}
             self.assertEqual(pattrs, nattrs)
-            self.assertEqual(pg.name, group)
-            self.assertEqual(pg.name, ng.path)
+            self.assertEqual(pg.path, ng.path)
 
         n.close()
 
@@ -280,6 +278,14 @@ class Testp5netcdf(unittest.TestCase):
         dim = self.p5["forecast"].dimensions["lon"]
         self.assertEqual(dim.name, "lon")
 
+    def test_p5netcdf_Dimension_path(self):
+        """Test Dimension.path."""
+        dim = self.p5.dimensions["bounds2"]
+        self.assertEqual(dim.path, "/bounds2")
+
+        dim = self.p5["forecast"].dimensions["lon"]
+        self.assertEqual(dim.path, "/forecast/lon")
+
     def test_p5netcdf_Dimension_group(self):
         """Test Dimension.group."""
         dim = self.p5.dimensions["bounds2"]
@@ -298,6 +304,30 @@ class Testp5netcdf(unittest.TestCase):
         var = self.p5["forecast/lon_bnds"]
 
         self.assertEqual(var.maxshape, (None, 2))
+
+    def test_p5netcdf_Variable_name(self):
+        """Test Variable.name."""
+        var = self.p5["time"]
+        self.assertEqual(var.name, "time")
+
+        var = self.p5["/forecast/model/q"]
+        self.assertEqual(var.name, "q")
+
+    def test_p5netcdf_Variable_path(self):
+        """Test Variable.path."""
+        var = self.p5["time"]
+        self.assertEqual(var.path, "/time")
+
+        var = self.p5["/forecast/model/q"]
+        self.assertEqual(var.path, "/forecast/model/q")
+
+    def test_p5netcdf_Variable_chunking(self):
+        """Test Variable.chunking."""
+        var = self.p5["/forecast/model/lat"]
+        self.assertEqual(var.chunking(), 'contiguous')
+
+        var = self.p5["/forecast/model/q"]
+        self.assertEqual(var.chunking(), [5, 3])
 
     def test_p5netcdf_Group__getitem__(self):
         """Test Group.__getitem__."""
@@ -356,6 +386,22 @@ class Testp5netcdf(unittest.TestCase):
         ):
             with self.assertRaises(KeyError):
                 current_group[bad_group]
+
+    def test_p5netcdf_Group_name(self):
+        """Test Group.name."""
+        group = self.p5
+        self.assertEqual(group.name, "")
+
+        group = self.p5["/forecast/model"]
+        self.assertEqual(group.name, "model")
+
+    def test_p5netcdf_Group_path(self):
+        """Test Group.path."""
+        group = self.p5
+        self.assertEqual(group.path, "/")
+
+        group = self.p5["/forecast/model"]
+        self.assertEqual(group.path, "/forecast/model")
 
 
 if __name__ == "__main__":
