@@ -444,7 +444,7 @@ class Variable:
     @property
     def shape(self):
         """The dimension lengths of the variable.
-        
+
         :Returns:
 
             `tuple` of `int`
@@ -463,9 +463,9 @@ class Variable:
         """The total number of elements in the variable's data.
 
         :Returns:
-        
+
             `int`
-                The number of elements.        
+                The number of elements.
 
         """
         size = getattr(self, "_size", None)
@@ -479,7 +479,7 @@ class Variable:
         """Returns the data chunk shape.
 
         :Returns:
-        
+
             `list` or 'str`
                 The chunk shape (e.g. ``[5, 6, 7]``). If the data is
                 contiguous then ``'contiguous` is returned.

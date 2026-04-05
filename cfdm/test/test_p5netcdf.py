@@ -37,9 +37,11 @@ class Testp5netcdf(unittest.TestCase):
             forecast = nc.createGroup("forecast")
             forecast.createDimension("lon", None)  # UNLIMITED
 
-            lon_bnds = forecast.createVariable( "lon_bnds", "f8", ("lon", "bounds2"))
+            lon_bnds = forecast.createVariable(
+                "lon_bnds", "f8", ("lon", "bounds2")
+            )
 
-            lon = forecast.createVariable("lon", "f8", ("lon",) )
+            lon = forecast.createVariable("lon", "f8", ("lon",))
             lon.setncattr("units", "degrees_east")
             lon.setncattr("standard_name", "longitude")
             lon.setncattr("bounds", "/forecast/lon_bnds")
@@ -69,15 +71,16 @@ class Testp5netcdf(unittest.TestCase):
                 "lat_bnds", "f8", ("lat", "bounds2")
             )
 
-            lat = model.createVariable("lat", "f8", ("lat",),
-                                          contiguous=True)
+            lat = model.createVariable("lat", "f8", ("lat",), contiguous=True)
             lat.setncattr("units", "degrees_north")
             lat.setncattr("standard_name", "latitude")
             lat.setncattr("bounds", "/forecast/model/lat_bnds")
 
             # The 'q' variable (uses 'lon' from the parent group and 'lat'
             # from current group)
-            q = model.createVariable("q", "f4", ("lat", "lon"), chunksizes=(5, 3))
+            q = model.createVariable(
+                "q", "f4", ("lat", "lon"), chunksizes=(5, 3)
+            )
 
             # int and floay attributes for 'q'
             q.setncattr("int8", np.int8(49))
@@ -324,7 +327,7 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_Variable_chunking(self):
         """Test Variable.chunking."""
         var = self.p5["/forecast/model/lat"]
-        self.assertEqual(var.chunking(), 'contiguous')
+        self.assertEqual(var.chunking(), "contiguous")
 
         var = self.p5["/forecast/model/q"]
         self.assertEqual(var.chunking(), [5, 3])
