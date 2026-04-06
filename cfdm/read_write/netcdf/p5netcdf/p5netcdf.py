@@ -56,17 +56,22 @@ def _format_attr(value):
 
             if isinstance(item, (bytes, np.bytes_)):
                 return item.decode("utf-8")
+
             if isinstance(item, str):
                 return item
 
             # Numeric scalar: preserve numpy bit-width
             dtype = getattr(value, "dtype", None)
-            if dtype:
+            if dtype is not None:
                 return dtype.type(item)
+
             return np.array(item).dtype.type(item)
 
         # Multi-element sequence
-        first_item = value.flat[0] if hasattr(value, "flat") else value[0]
+        if hasattr(value, "flat"):
+            first_item = value.flat[0]
+        else:
+            first_item = value[0]
 
         # If string/bytes, return as a Python list
         if isinstance(first_item, (str, bytes, np.bytes_)):
@@ -110,27 +115,6 @@ def _parse_attributes(raw_attributes):
     }
 
 
-def normalize_path_segments(segments):
-    """Resolve '.' and '..' in a list of path segments."""
-    segments = segments.split("/")
-    resolved = []
-    for segment in segments:
-        if segment == "." or segment == "":
-            continue
-
-        if segment == "..":
-            if resolved:
-                resolved.pop()
-            else:
-                # If we try to go above the requested path's base,
-                # we just ignore it or let it fail naturally.
-                pass
-        else:
-            resolved.append(segment)
-
-    return resolved
-
-
 class Dimension:
     """A netCDF dimension.
 
@@ -138,7 +122,9 @@ class Dimension:
 
     """
 
-    def __init__(self, name, size, isunlimited, parent_group):
+    __hash__ = None
+
+    def __init__(self, name, size, isunlimited, parent):
         """**Initialisation**
 
         :Parameters:
@@ -152,14 +138,14 @@ class Dimension:
             isunlimited: `bool`
                 True if the dimension is unlimited.
 
-            parent_group: `Group`
+            parent: `Group` or `File`
                 The group in which this dimension is defined.
 
         """
         self._name = name
         self._size = size
         self._isunlimited = isunlimited
-        self._parent = parent_group
+        self._parent = parent
 
     def __len__(self):
         """The size of the dimension.
@@ -206,10 +192,7 @@ class Dimension:
         """
         path = getattr(self, "_path", None)
         if path is None:
-            # Get the parent group's path
-            group_path = getattr(self._parent, "path", "")
-
-            # Avoid returning '//dimname' if in the root group
+            group_path = getattr(self._parent, "path", "/")
             if group_path == "/":
                 path = f"/{self.name}"
             else:
@@ -235,7 +218,7 @@ class Dimension:
         :Returns:
 
             `Group`
-                The group.
+                The parent group.
 
         """
         return self._parent
@@ -260,7 +243,9 @@ class Variable:
 
     """
 
-    def __init__(self, name, h5ds, parent_group, _h5ds_attrs=None):
+    __hash__ = None
+
+    def __init__(self, name, parent, h5ds, h5ds_attrs):
         """**Initialisation**
 
         :Parameters:
@@ -268,26 +253,23 @@ class Variable:
             name: `str`
                 The name of the variable in its parent group.
 
+            parent: `Group` or `File`
+                The parent group containing this variable.
+
             h5ds: (subclass of) `pyfive.Dataset`
                 The underlying pyfive dataset object.
 
-            parent_group: `Group` or `File`
-                The parent group containing this variable.
-
-            _h5ds_attrs: `dict` or `None`, optional
-                The raw attributes of *h5ds*. If `None` (the default)
-                then the attributes are retrieved from *h5ds*.
+            h5ds_attrs: `dict`
+                The raw attributes of *h5ds*.
 
         """
         self._name = name
         self._h5ds = h5ds
-        self._parent = parent_group
+        self._parent = parent
 
-        if _h5ds_attrs is None:
-            _h5ds_attrs = self._h5ds.attrs
+        self._dimensions = self._get_dimensions(h5ds_attrs)
 
-        self.dimensions = self._get_dimensions(_h5ds_attrs)
-        self.attrs = _parse_attributes(_h5ds_attrs)
+        self._attrs = _parse_attributes(h5ds_attrs)
 
     def __getitem__(self, key):
         """Return a subspace of the data array defined by indices."""
@@ -324,11 +306,6 @@ class Variable:
             f"{self.path}, shape={self.shape}, dimensions={dims}>"
         )
 
-        return (
-            f"<p5netcdf.{self.__class__.__name__}: "
-            f"{self.path}, shape={self.shape}, dims={self.dimensions}>"
-        )
-
     def _get_dimensions(self, h5ds_attrs):
         """Get the variable dimension names.
 
@@ -362,6 +339,18 @@ class Variable:
         return tuple(dim_names)
 
     @property
+    def attrs(self):
+        """The variable attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._attrs
+
+    @property
     def chunks(self):
         """Returns the chunk size `tuple`, or None if contiguous."""
         chunks = getattr(self, "_chunks", None)
@@ -370,6 +359,19 @@ class Variable:
             self._chunks = chunks
 
         return chunks
+
+    @property
+    def dimensions(self):
+        """The variable dimensions.
+
+        :Returns:
+
+            `tuple`
+                The dimension names, in the order of the data array
+                dimensions.
+
+        """
+        return self._dimensions
 
     @property
     def dtype(self):
@@ -531,12 +533,12 @@ class Variable:
         return dims
 
     def group(self):
-        """The group that contains this variable.
+        """The parent group that defines this variable.
 
         :Returns:
 
             `Group`
-                The group object containing this variable.
+                The parent group.
 
         """
         return self._parent
@@ -549,29 +551,39 @@ class Group(Mapping):
 
     """
 
-    def __init__(self, h5, parent=None):
+    __hash__ = None
+
+    def __init__(self, name, parent, root, h5):
         """**Initialisation**
 
         :Parameters:
 
-            h5: (subclass of) `pyfive.Group` or (subclass of)` pyfive.File`
+            name: `str`
+                The name of the group in its parent group. The root
+                group has the name ``''``.
+
+            parent: `Group` or `None`
+                The parent group. Set to `None` for the root group.
+
+            root: `Group` or `File`
+                The root group.
+
+            h5: (subclass of) `pyfive.Group` or (subclass of) `pyfive.File`
                 The underlying pyfive object.
 
-            parent: `Group` or `None`, optional
-                The parent group. Set to `None` (the default) for the
-                root group.
-
         """
+        self._name = name
+        self._parent = parent
+        self._root = root
         self._h5 = h5
-        self.parent = parent
 
-        self.dimensions = {}
-        self.variables = {}
-        self.groups = {}
+        self._dimensions = {}
+        self._variables = {}
+        self._groups = {}
 
-        self.attrs = _parse_attributes(self._h5.attrs)
+        self._attrs = _parse_attributes(self._h5.attrs)
 
-        self._parse_structure()
+        self._parse_group_structure(root)
 
     def __getitem__(self, key):
         """Get a variable or group.
@@ -584,11 +596,12 @@ class Group(Mapping):
         if key == "":
             return self
 
-        # Determine the starting point
+        # Still here? Determine the starting point
         current = self
         if key.startswith("/"):
-            while current.parent is not None:
-                current = current.parent
+            current = self.root
+        else:
+            current = self
 
         # Split the path into parts (ignoring empty strings from
         # double-slashes)
@@ -598,7 +611,7 @@ class Group(Mapping):
         if not segments and key.startswith("/"):
             return current
 
-        # Loop through the segments
+        # Still here? Then loop through the segments
         for i, part in enumerate(segments):
             if part == "..":
                 # Move up one group
@@ -665,17 +678,28 @@ class Group(Mapping):
         pv = "" if len(self.variables) == 1 else "s"
         pg = "" if len(self.groups) == 1 else "s"
 
+        path = self.path
+        if path == "/":
+            path = ""
+        else:
+            path += ", "
+
         return (
             f"<p5netcdf.{self.__class__.__name__}: "
-            f"{self.path}, {len(self.variables)} variable{pv}, "
+            f"{path}{len(self.variables)} variable{pv}, "
             f"{len(self.groups)} sub-group{pg}>"
         )
 
-    def _parse_structure(self):
+    def _parse_group_structure(self, root):
         """Parse the group structure.
 
         Parses variables, dimensions, and subgroups in a single
         optimised pass.
+
+        :Parameters:
+
+            root: `Group` or `File`
+                The root group.
 
         :Returns:
 
@@ -743,11 +767,11 @@ class Group(Mapping):
         )
 
         for d_name, d_info in sorted_items:
-            self.dimensions[d_name] = Dimension(
-                d_name,
-                d_info["size"],
-                d_info["is_unlimited"],
-                parent_group=self,
+            self._dimensions[d_name] = Dimension(
+                name=d_name,
+                size=d_info["size"],
+                isunlimited=d_info["is_unlimited"],
+                parent=self,
             )
 
         # Create variables (skipping internal netCDF stubs)
@@ -761,16 +785,54 @@ class Group(Mapping):
             is_stub = raw_dims.get(dim_name, {}).get("is_stub", False)
 
             if not is_stub:
-                self.variables[name] = Variable(
-                    name,
-                    h5ds,
-                    parent_group=self,
-                    _h5ds_attrs=dataset_attrs[name],
+                self._variables[name] = Variable(
+                    name=name,
+                    parent=self,
+                    h5ds=h5ds,
+                    h5ds_attrs=dataset_attrs[name],
                 )
 
         # Create subgroups
         for name, group in subgroups_to_process:
-            self.groups[name] = Group(group, parent=self)
+            self._groups[name] = Group(
+                name=name, parent=self, root=root, h5=group
+            )
+
+    @property
+    def attrs(self):
+        """The group attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._attrs
+
+    @property
+    def dimensions(self):
+        """The dimensions defined in this group.
+
+        :Returns:
+
+            `dict`
+                The `Dimension` objects, keyed by their names.
+
+        """
+        return self._dimensions
+
+    @property
+    def groups(self):
+        """The sub-groups.
+
+        :Returns:
+
+            `dict`
+                The `Group` objects, keyed by their names.
+
+        """
+        return self._groups
 
     @property
     def name(self):
@@ -782,12 +844,20 @@ class Group(Mapping):
                 The relative netCDF name (e.g. ``'subgroup'``).
 
         """
-        name = getattr(self, "_name", None)
-        if name is None:
-            name = self.path.split("/")[-1]
-            self._name = name
+        return self._name
 
-        return name
+    @property
+    def parent(self):
+        """The parent group.
+
+        :Returns:
+
+            `Group` or `File` or `None`
+                The parent group, or `None` if there is no parent
+                (i.e. this is the root group).
+
+        """
+        return self._parent
 
     @property
     def path(self):
@@ -805,6 +875,30 @@ class Group(Mapping):
             self._path = path
 
         return path
+
+    @property
+    def root(self):
+        """The root group.
+
+        :Returns:
+
+            `File`
+                The root group.
+
+        """
+        return self._root
+
+    @property
+    def variables(self):
+        """The dimensions defined in this group.
+
+        :Returns:
+
+            `dict`
+                The `Variable` objects, keyed by their names.
+
+        """
+        return self._variables
 
 
 class File(Group):
@@ -841,7 +935,7 @@ class File(Group):
 
         self._h5_file = dataset
 
-        super().__init__(dataset)
+        super().__init__(name="", parent=None, root=self, h5=dataset)
 
     def close(self):
         """Close the file.
