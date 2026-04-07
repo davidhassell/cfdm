@@ -5,12 +5,13 @@ import unittest
 
 import netCDF4
 import numpy as np
+import pyfive
 
 import cfdm
 
 
 class Testp5netcdf(unittest.TestCase):
-    """Test suite for the p5netcdf read-only netCDF-4 implementation."""
+    """Test suite for the p5netcdf read-only netCDF implementation."""
 
     @classmethod
     def setUpClass(cls):
@@ -246,13 +247,43 @@ class Testp5netcdf(unittest.TestCase):
 
         n.close()
 
+    def test_p5netcdf_File__repr__(self):
+        """Test File.__repr__."""
+        self.assertEqual(
+            repr(self.p5), "<p5netcdf.File: 1 variable, 1 sub-group>"
+        )
+
     def test_p5netcdf_File_close(self):
         """Test File.close."""
-        self.p5.close()
+        p = cfdm.p5netcdf.File(self.p5.filename)
+        self.assertFalse(p._h5._fh.closed)
+        p.close()
+        self.assertTrue(p._h5._fh.closed)
+
+        py5 = pyfive.File(self.p5.filename)
+        p = cfdm.p5netcdf.File(py5)
+        self.assertFalse(p._h5._fh.closed)
+        p.close()
+        self.assertFalse(p._h5._fh.closed)
 
     def test_p5netcdf_File_filename(self):
         """Test File.filename."""
         self.assertEqual(self.p5.filename, self.filename)
+
+    def test_p5netcdf_File_enter_exit(self):
+        """Test File in context manager."""
+        with cfdm.p5netcdf.File(self.p5.filename) as p:
+            self.assertEqual(p.attrs["global_attr_2"], "foo")
+            self.assertFalse(p._h5._fh.closed)
+
+        self.assertTrue(p._h5._fh.closed)
+
+        py5 = pyfive.File(self.p5.filename)
+        with cfdm.p5netcdf.File(py5) as p:
+            self.assertEqual(p.attrs["global_attr_2"], "foo")
+            self.assertFalse(p._h5._fh.closed)
+
+        self.assertFalse(p._h5._fh.closed)
 
     def test_p5netcdf_Dimension__repr__(self):
         """Test Dimension.__repr__."""
@@ -476,11 +507,6 @@ class Testp5netcdf(unittest.TestCase):
 
     def test_p5netcdf_Group__repr__(self):
         """Test Group.__repr__."""
-        group = self.p5
-        self.assertEqual(
-            repr(group), "<p5netcdf.File: 1 variable, 1 sub-group>"
-        )
-
         group = self.p5["/forecast"]
         self.assertEqual(
             repr(group),

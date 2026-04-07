@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from math import prod
 
 import numpy as np
 
@@ -315,7 +316,6 @@ class Variable:
         """
         # Case 1: It's a Dimension Scale itself (no DIMENSION_LIST attribute)
         if h5ds_attrs.get("CLASS") == b"DIMENSION_SCALE":
-            #            return (self.name.split("/")[-1],)
             return (self.name,)
 
         # Case 2: Standard variable with linked dimensions
@@ -330,8 +330,8 @@ class Variable:
                 elif isinstance(ref, (list, tuple)) and len(ref) > 0:
                     ref = ref[0]
 
-                root_file = self._h5ds.file
-                dim_dataset = root_file[ref]
+                h5_root = self.parent.root._h5
+                dim_dataset = h5_root[ref]
                 dim_names.append(dim_dataset.name.split("/")[-1])
             except (KeyError, ValueError, TypeError):
                 continue
@@ -352,7 +352,17 @@ class Variable:
 
     @property
     def chunks(self):
-        """Returns the chunk size `tuple`, or None if contiguous."""
+        """The data chunk shape.
+
+        .. seealso:: `chunks`
+
+        :Returns:
+
+            `tuple` or `None`
+                The chunk shape, e.g. ``(5, 6, 7)``. If the data is
+                contiguous then `None` is returned.
+
+        """
         chunks = getattr(self, "_chunks", None)
         if chunks is None:
             chunks = self._h5ds.chunks
@@ -363,6 +373,8 @@ class Variable:
     @property
     def dimensions(self):
         """The variable dimensions.
+
+        .. seealso:: `get_dims`
 
         :Returns:
 
@@ -406,6 +418,8 @@ class Variable:
     def name(self):
         """The name of the variable in its parent group.
 
+        .. seealso:: `path`
+
         :Returns:
 
             `str`
@@ -427,8 +441,24 @@ class Variable:
         return len(self.shape)
 
     @property
+    def parent(self):
+        """The parent group.
+
+        .. seealso:: `group`
+
+        :Returns:
+
+            `Group` or `File`
+                The parent group.
+
+        """
+        return self._parent
+
+    @property
     def path(self):
         """The full absolute path of the variable.
+
+        .. seealso:: `name`
 
         :Returns:
 
@@ -472,7 +502,7 @@ class Variable:
         """
         size = getattr(self, "_size", None)
         if size is None:
-            size = self._h5ds.size
+            size = prod(self.shape)
             self._size = size
 
         return size
@@ -480,10 +510,12 @@ class Variable:
     def chunking(self):
         """Returns the data chunk shape.
 
+        .. seealso:: `chunks`
+
         :Returns:
 
             `list` or 'str`
-                The chunk shape (e.g. ``[5, 6, 7]``). If the data is
+                The chunk shape, e.g. ``[5, 6, 7]``. If the data is
                 contiguous then ``'contiguous` is returned.
 
         """
@@ -495,6 +527,8 @@ class Variable:
 
     def get_dims(self):
         """Return the dimensions of the variable.
+
+        .. seealso:: `dimensions`
 
         :Returns:
 
@@ -509,7 +543,7 @@ class Variable:
         dims = []
 
         for dim_name in self.dimensions:
-            current_group = self._parent
+            current_group = self.parent
             found = False
 
             # Walk up the tree to find where the dimension is defined
@@ -534,6 +568,8 @@ class Variable:
 
     def group(self):
         """The parent group that defines this variable.
+
+        .. seealso:: `parent`
 
         :Returns:
 
@@ -563,7 +599,7 @@ class Group(Mapping):
                 group has the name ``''``.
 
             parent: `Group` or `None`
-                The parent group. Set to `None` for the root group.
+                The parent group. Set to `None` if there is no parent.
 
             root: `Group` or `File`
                 The root group.
@@ -728,7 +764,7 @@ class Group(Mapping):
             dataset_attrs[name] = attrs
 
             if shape and attrs.get("CLASS") == b"DIMENSION_SCALE":
-                # Get ID: Use None if missing to push to end of sort
+                # Get ID: Use `None` if missing to push to end of sort
                 dim_id = attrs.get("_Netcdf4Dimid")
                 if dim_id is not None:
                     dim_id = int(dim_id)
@@ -908,13 +944,32 @@ class File(Group):
     attributes which describe the meaning of the data and metadata
     stored in a netCDF dataset.
 
+    An implementation of the `pyfive` API (e.g. `my_pyfive`) must
+    provide `my_pyfive.File`, `my_pyfive.Group`, and
+    `my_pyfive.Dataset` classes that inherit from their respective
+    `pyfive` base classes; and must expose following attributes and
+    methods:
+
+    * `my_pyfive.File.attrs`
+    * `my_pyfive.File.close`
+    * `my_pyfive.File.filename`
+    * `my_pyfive.File.items`
+    * `my_pyfive.Group.attrs`
+    * `my_pyfive.Group.items`
+    * `my_pyfive.Dataset.attrs`
+    * `my_pyfive.Dataset.chunks`
+    * `my_pyfive.Dataset.dtype`
+    * `my_pyfive.Dataset.maxshape`
+    * `my_pyfive.Dataset.name`
+    * `my_pyfive.Dataset.shape`
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
 
     _p5netcdf = True
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, mode="r", pyfive_options=None):
         """**Initialisation**
 
         :Parameters:
@@ -924,30 +979,45 @@ class File(Group):
 
                 May be a `str` or `pathlib.Path` path, a file-like
                 object (such as `io.BufferedReader` or the result of
-                an `fsspec` file system file open), or a (subclass of
-                a) `pyfive.File` object.
+                an `fsspec` file system file open), a `pyfive.File`
+                object, or a subclass a `pyfive.File` object.
 
         """
         import pyfive
 
-        if not isinstance(dataset, pyfive.File):
-            dataset = pyfive.File(dataset, mode="r")
+        if isinstance(dataset, pyfive.File):
+            self._is_owner = False
+        else:
+            if pyfive_options is None:
+                pyfive_options = {}
 
-        self._h5_file = dataset
+            dataset = pyfive.File(dataset, mode="r", **pyfive_options)
+            self._is_owner = True
 
         super().__init__(name="", parent=None, root=self, h5=dataset)
 
-    def close(self):
-        """Close the file.
+    def __enter__(self):
+        """Enter the runtime context related to this object."""
+        return self
 
-        Closes the underlying (subclass of a) `pyfive.File` object.
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Exit the runtime context and ensure the file is closed."""
+        self.close()
+
+    def close(self):
+        """Close the dataset.
+
+        Closes the underlying netCDF dataset, but not if the dataset
+        was originally defined by a (subclass of a) `pyfive.File`
+        object.
 
         :Returns:
 
             `None`
 
         """
-        self._h5_file.close()
+        if self._is_owner:
+            self._h5.close()
 
     @property
     def filename(self):
@@ -961,7 +1031,7 @@ class File(Group):
         """
         filename = getattr(self, "_filename", None)
         if filename is None:
-            filename = self._h5_file.filename
+            filename = self._h5.filename
             self._filename = filename
 
         return filename
