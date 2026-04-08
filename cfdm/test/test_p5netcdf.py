@@ -1,8 +1,11 @@
 import datetime
 import os
+import pathlib
 import tempfile
 import unittest
 
+import fsspec
+import h5py
 import netCDF4
 import numpy as np
 import pyfive
@@ -83,11 +86,13 @@ class Testp5netcdf(unittest.TestCase):
                 "q", "f4", ("lat", "lon"), chunksizes=(5, 3)
             )
 
-            # int and floay attributes for 'q'
+            # int and float attributes for 'q'
+            q.setncattr("int", 49)
             q.setncattr("int8", np.int8(49))
             q.setncattr("int16", np.int16(49))
             q.setncattr("int32", np.int32(49))
             q.setncattr("int64", np.int64(49))
+            q.setncattr("float", 49.0)
             q.setncattr("float32", np.float32(49.0))
             q.setncattr("float64", np.float64(49.0))
             q.setncattr("uint8", np.uint8(49))
@@ -102,8 +107,14 @@ class Testp5netcdf(unittest.TestCase):
             q.setncattr("list4", np.array([2, 3], dtype="int32"))
             q.setncattr("list5", np.array([2.0, 3.0], dtype="float32"))
             q.setncattr("list6", np.array([2.0, 3.0], dtype="float64"))
-            q.setncattr("list7", ["a", "bb", "ccc"])
-            q.setncattr("list8", ["a", "1", "2.5"])
+            q.setncattr("list7", [2, 3])
+            q.setncattr("list8", np.array([2], dtype="int32"))
+            q.setncattr("list9", np.array([], dtype="int32"))
+            q.setncattr("list10", [])
+            q.setncattr("list11", ["a", "bb", "ccc"])
+            q.setncattr("list12", ["a", "1", "2.5"])
+            q.setncattr("list13", np.array(["a"], dtype="U"))
+            q.setncattr("list14", np.array(["a", "bb"], dtype="U"))
 
             # char attributes
             q.setncattr("string1", "1")
@@ -111,6 +122,10 @@ class Testp5netcdf(unittest.TestCase):
             q.setncattr("string3", "kg m-2")
             q.setncattr("string4", "")
             q.setncattr("string5", " ")
+            q.setncattr("string6", b"")
+            q.setncattr("string7", np.bytes_(""))
+            q.setncattr("string8", np.bytes_([]))
+            q.setncattr("string9", np.array([], dtype="S1"))
 
             # Coordinates and methods
             q.setncattr("coordinates", "time")
@@ -151,7 +166,7 @@ class Testp5netcdf(unittest.TestCase):
         nq = n["/forecast/model/q"]
         pq = p["/forecast/model/q"]
 
-        self.assertEqual(list(pq.attrs), nq.ncattrs())
+        self.assertEqual(sorted(pq.attrs), sorted(nq.ncattrs()))
 
         for attr, pvalue in pq.attrs.items():
             nvalue = nq.getncattr(attr)
@@ -182,11 +197,8 @@ class Testp5netcdf(unittest.TestCase):
                 self.assertEqual(pdim.isunlimited(), ndim.isunlimited())
                 self.assertEqual(pdim.group().path, ndim.group().path)
 
-                for name, pvar in pg.dimensions.items():
-                    for attr in ("name", "size"):
-                        self.assertEqual(
-                            getattr(pdim, attr), getattr(ndim, attr)
-                        )
+                for attr in ("name", "size"):
+                    self.assertEqual(getattr(pdim, attr), getattr(ndim, attr))
 
         n.close()
 
@@ -247,10 +259,54 @@ class Testp5netcdf(unittest.TestCase):
 
         n.close()
 
+    def test_p5netcdf_File_Path(self):
+        """Check File with a file-like input."""
+        p5p = cfdm.p5netcdf.File(pathlib.Path(self.filename))
+        self.assertEqual(
+            p5p["forecast/model/q"].dimensions,
+            self.p5["forecast/model/q"].dimensions,
+        )
+
+    def test_p5netcdf_File_file_like(self):
+        """Check File with a file-like input."""
+        local_fs = fsspec.filesystem("local")
+        fh = local_fs.open(self.filename, "rb")
+        p5fh = cfdm.p5netcdf.File(fh)
+        self.assertEqual(
+            p5fh["forecast/model/q"].dimensions,
+            self.p5["forecast/model/q"].dimensions,
+        )
+
+    def test_p5netcdf_File_pyfive_like(self):
+        """Check File with a pyfive.File input."""
+        py5 = pyfive.File(self.filename)
+        p5py5 = cfdm.p5netcdf.File(py5)
+        self.assertEqual(
+            p5py5["forecast/model/q"].dimensions,
+            self.p5["forecast/model/q"].dimensions,
+        )
+
     def test_p5netcdf_File__repr__(self):
         """Test File.__repr__."""
         self.assertEqual(
             repr(self.p5), "<p5netcdf.File: 1 variable, 1 sub-group>"
+        )
+
+    def test_p5netcdf_File__str__(self):
+        """Test File.__str__."""
+        self.assertEqual(
+            str(self.p5),
+            """<p5netcdf.File: 1 variable, 1 sub-group>
+Attributes:
+    Conventions: 'CF-1.13'
+    global_attr_1: np.float64(3.14)
+    global_attr_2: 'foo'
+Groups:
+    forecast
+Dimensions:
+    bounds2: <p5netcdf.Dimension: /bounds2, size=2>
+Variables:
+    time: <p5netcdf.Variable: /time, shape=(), dimensions=()>""",
         )
 
     def test_p5netcdf_File_close(self):
@@ -279,11 +335,11 @@ class Testp5netcdf(unittest.TestCase):
         self.assertTrue(p._h5._fh.closed)
 
         py5 = pyfive.File(self.p5.filename)
+        self.assertFalse(py5._fh.closed)
         with cfdm.p5netcdf.File(py5) as p:
             self.assertEqual(p.attrs["global_attr_2"], "foo")
-            self.assertFalse(p._h5._fh.closed)
 
-        self.assertFalse(p._h5._fh.closed)
+        self.assertFalse(py5._fh.closed)
 
     def test_p5netcdf_Dimension__repr__(self):
         """Test Dimension.__repr__."""
@@ -293,21 +349,28 @@ class Testp5netcdf(unittest.TestCase):
         dim = self.p5["forecast"].dimensions["lon"]
         self.assertEqual(
             repr(dim),
-            "<p5netcdf.Dimension: /forecast/lon, size=8 (unlimited)>",
+            "<p5netcdf.Dimension: /forecast/lon, size=8, unlimited>",
         )
 
     def test_p5netcdf_Dimension_size(self):
         """Test Dimension.size."""
         dim = self.p5.dimensions["bounds2"]
+        self.assertFalse(dim.isunlimited())
         self.assertEqual(dim.size, 2)
+
+        dim = self.p5["forecast"].dimensions["lon"]
+        self.assertTrue(dim.isunlimited())
+        self.assertEqual(len(dim), 8)
 
     def test_p5netcdf_Dimension__len__(self):
         """Test Dimension.__len__."""
         dim = self.p5.dimensions["bounds2"]
-        self.assertEqual(len(dim), dim.size)
+        self.assertFalse(dim.isunlimited())
+        self.assertEqual(len(dim), 2)
 
         dim = self.p5["forecast"].dimensions["lon"]
-        self.assertIsInstance(dim.isunlimited(), bool)
+        self.assertTrue(dim.isunlimited())
+        self.assertEqual(len(dim), 8)
 
     def test_p5netcdf_Dimension_isunlimited(self):
         """Test Dimension.isunlimited."""
@@ -337,11 +400,31 @@ class Testp5netcdf(unittest.TestCase):
 
     def test_p5netcdf_Dimension_group(self):
         """Test Dimension.group."""
-        dim = self.p5.dimensions["bounds2"]
-        self.assertEqual(dim.group().path, "/")
+        group = self.p5
+        dim = group.dimensions["bounds2"]
+        self.assertIs(dim.group(), group)
 
-        dim = self.p5["forecast"].dimensions["lon"]
-        self.assertEqual(dim.group().path, "/forecast")
+        group = self.p5["/forecast"]
+        dim = group.dimensions["lon"]
+        self.assertIs(dim.group(), group)
+
+        group = self.p5["/forecast/model"]
+        dim = group.dimensions["lat"]
+        self.assertIs(dim.group(), group)
+
+    def test_p5netcdf_Dimension_parent(self):
+        """Test Dimension.group."""
+        group = self.p5
+        dim = group.dimensions["bounds2"]
+        self.assertIs(dim.parent, group)
+
+        group = self.p5["/forecast"]
+        dim = group.dimensions["lon"]
+        self.assertIs(dim.parent, group)
+
+        group = self.p5["/forecast/model"]
+        dim = group.dimensions["lat"]
+        self.assertIs(dim.parent, group)
 
     def test_p5netcdf_Variable__repr__(self):
         """Test Variable.__repr__."""
@@ -494,16 +577,27 @@ class Testp5netcdf(unittest.TestCase):
             ),
         )
 
+    def test_p5netcdf_Variable_parent(self):
+        """Test Variable.parent."""
+        var = self.p5["/time"]
+        self.assertIs(var.parent, self.p5)
+
+        var = self.p5["/forecast/lon"]
+        self.assertIs(var.parent, self.p5["/forecast"])
+
+        var = self.p5["/forecast/model/q"]
+        self.assertIs(var.parent, self.p5["/forecast/model"])
+
     def test_p5netcdf_Variable_group(self):
         """Test Variable.group."""
         var = self.p5["/time"]
-        self.assertEqual(var.group(), self.p5["/"])
+        self.assertIs(var.group(), self.p5)
 
         var = self.p5["/forecast/lon"]
-        self.assertEqual(var.group(), self.p5["/forecast"])
+        self.assertIs(var.group(), self.p5["/forecast"])
 
         var = self.p5["/forecast/model/q"]
-        self.assertEqual(var.group(), self.p5["/forecast/model"])
+        self.assertIs(var.group(), self.p5["/forecast/model"])
 
     def test_p5netcdf_Group__repr__(self):
         """Test Group.__repr__."""
@@ -519,10 +613,45 @@ class Testp5netcdf(unittest.TestCase):
             "<p5netcdf.Group: /forecast/model, 3 variables, 0 sub-groups>",
         )
 
+    def test_p5netcdf_Group__str__(self):
+        """Test Group.__str__."""
+        group = self.p5["/forecast"]
+        self.assertEqual(
+            str(group),
+            """<p5netcdf.Group: /forecast, 2 variables, 1 sub-group>
+Groups:
+    model
+Dimensions:
+    lon: <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>
+Variables:
+    lon_bnds: <p5netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
+    lon: <p5netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>""",
+        )
+
+        group = self.p5["/forecast/model"]
+        self.assertEqual(
+            str(group),
+            """<p5netcdf.Group: /forecast/model, 3 variables, 0 sub-groups>
+Attributes:
+    group_attr_1: np.int64(12)
+    group_attr_2: 'bar'
+Dimensions:
+    lat: <p5netcdf.Dimension: /forecast/model/lat, size=5>
+Variables:
+    lat_bnds: <p5netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
+    lat: <p5netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
+    q: <p5netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>""",
+        )
+
     def test_p5netcdf_Group__getitem__(self):
         """Test Group.__getitem__."""
         self.assertIs(self.p5[""], self.p5)
         self.assertIs(self.p5["/"], self.p5)
+        self.assertIs(self.p5["//"], self.p5)
+        self.assertIs(self.p5["/."], self.p5)
+        self.assertIs(self.p5["./."], self.p5)
+        self.assertIs(self.p5["/./."], self.p5)
+        self.assertIs(self.p5["/././"], self.p5)
         self.assertIs(self.p5["forecast"], self.p5["/forecast"])
         self.assertIs(self.p5["forecast"], self.p5["/forecast/"])
         self.assertIs(self.p5["forecast/model"], self.p5["forecast"]["model"])
@@ -540,20 +669,34 @@ class Testp5netcdf(unittest.TestCase):
             self.p5["forecast"]["/forecast/model/q"],
             self.p5["/forecast/model/q"],
         )
+        self.assertIs(
+            self.p5["/forecast/model/q/"],
+            self.p5["/forecast/model/q"],
+        )
+        self.assertIs(
+            self.p5["/forecast//model///q////"],
+            self.p5["/forecast/model/q"],
+        )
+        self.assertIs(
+            self.p5["/forecast/model/q"],
+            self.p5["/forecast"]["model"]["q"],
+        )
 
         self.assertIs(self.p5["forecast/.."], self.p5["/"])
-        self.assertIs(self.p5["/forecast/.."], self.p5[""])
-        self.assertIs(self.p5["/forecast/./.."], self.p5[""])
-        self.assertIs(self.p5["./forecast/./.."], self.p5[""])
+        self.assertIs(self.p5["/forecast/.."], self.p5["/"])
+        self.assertIs(self.p5["/forecast/./.."], self.p5["/"])
+        self.assertIs(self.p5["./forecast/./.."], self.p5["/"])
         self.assertIs(
             self.p5["./forecast/./../forecast/model/.."], self.p5["/forecast"]
         )
+
+        self.assertIs(self.p5["/forecast"][""], self.p5["/forecast"])
         self.assertIs(self.p5["/forecast"]["."], self.p5["/forecast"])
         self.assertIs(self.p5["/forecast"]["./"], self.p5["/forecast"])
         self.assertIs(self.p5["/forecast"][".."], self.p5)
         self.assertIs(self.p5["/forecast"]["../"], self.p5)
 
-        # Test bad group paths from the root group
+        # Test bad paths from the root group
         current_group = self.p5["/"]
         for bad_group in (
             "/..",
@@ -563,22 +706,27 @@ class Testp5netcdf(unittest.TestCase):
             "/forecast/bad_group",
             "/forecast/model/q/subgroup",
             "/forecast/model/q/..",
+            "/forecast/model/q/.",
+            "/forecast/model/q/./",
         ):
             with self.assertRaises(KeyError):
                 current_group[bad_group]
 
-        # Test bad group paths from a sub-group
+        # Test bad paths from a sub-group
         current_group = self.p5["/forecast"]
         for bad_group in (
             "../..",
             "./../..",
             "../bad_group",
+            "../model/.././bad_group",
             "/bad_group",
             "bad_group",
             "/forecast/bad_group",
             "/forecast/model/q/subgroup",
             "/forecast/model/q/..",
-            "model/subgroup",
+            "/forecast/model/q/.",
+            "/forecast/model/q/./",
+            "model/bad_group",
             "model/q/subgroup",
         ):
             with self.assertRaises(KeyError):
@@ -587,10 +735,17 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_Group__iter__(self):
         """Test Group.__iter__."""
         group = self.p5
-        self.assertEqual(tuple(group), ("time", "forecast"))
+        self.assertEqual(tuple(group), ("forecast", "time"))
 
         group = self.p5["/forecast"]
-        self.assertEqual(tuple(group), ("lon_bnds", "lon", "model"))
+        self.assertEqual(
+            tuple(group),
+            (
+                "model",
+                "lon_bnds",
+                "lon",
+            ),
+        )
 
         group = self.p5["/forecast/model"]
         self.assertEqual(tuple(group), ("lat_bnds", "lat", "q"))
@@ -598,25 +753,25 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_Group_keys(self):
         """Test Group.keys."""
         group = self.p5
-        self.assertEqual(tuple(group.keys()), ("time", "forecast"))
+        self.assertEqual(tuple(group.keys()), ("forecast", "time"))
 
         group = self.p5["/forecast"]
-        self.assertEqual(tuple(group.keys()), ("lon_bnds", "lon", "model"))
+        self.assertEqual(tuple(group.keys()), ("model", "lon_bnds", "lon"))
 
         group = self.p5["/forecast/model"]
         self.assertEqual(tuple(group.keys()), ("lat_bnds", "lat", "q"))
 
     def test_p5netcdf_Group_values(self):
-        """Test Group.keys."""
+        """Test Group.values."""
         group = self.p5
         self.assertEqual(
-            tuple(group.values()), (group["time"], group["forecast"])
+            tuple(group.values()), (group["forecast"], group["time"])
         )
 
         group = self.p5["/forecast"]
         self.assertEqual(
             tuple(group.values()),
-            (group["lon_bnds"], group["lon"], group["model"]),
+            (group["model"], group["lon_bnds"], group["lon"]),
         )
 
         group = self.p5["/forecast/model"]
@@ -630,16 +785,16 @@ class Testp5netcdf(unittest.TestCase):
         group = self.p5
         self.assertEqual(
             tuple(group.items()),
-            (("time", group["time"]), ("forecast", group["forecast"])),
+            (("forecast", group["forecast"]), ("time", group["time"])),
         )
 
         group = self.p5["/forecast"]
         self.assertEqual(
             tuple(group.items()),
             (
+                ("model", group["model"]),
                 ("lon_bnds", group["lon_bnds"]),
                 ("lon", group["lon"]),
-                ("model", group["model"]),
             ),
         )
 
@@ -658,16 +813,28 @@ class Testp5netcdf(unittest.TestCase):
         group = self.p5
         self.assertEqual(group.name, "")
 
+        group = self.p5["/forecast"]
+        self.assertEqual(group.name, "forecast")
+
         group = self.p5["/forecast/model"]
         self.assertEqual(group.name, "model")
 
     def test_p5netcdf_Group_path(self):
         """Test Group.path."""
+        for path in ("/", "/forecast", "/forecast/model"):
+            group = self.p5[path]
+            self.assertEqual(group.path, path)
+
+    def test_p5netcdf_Group_parent(self):
+        """Test Group.parent."""
         group = self.p5
-        self.assertEqual(group.path, "/")
+        self.assertIsNone(group.parent)
+
+        group = self.p5["/forecast"]
+        self.assertIs(group.parent, self.p5)
 
         group = self.p5["/forecast/model"]
-        self.assertEqual(group.path, "/forecast/model")
+        self.assertIs(group.parent, self.p5["/forecast"])
 
 
 if __name__ == "__main__":
