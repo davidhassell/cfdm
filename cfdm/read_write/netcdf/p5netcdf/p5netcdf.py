@@ -15,19 +15,25 @@ _IGNORED_ATTRS = {
 _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
 
+class NetCDF4Error(Exception):
+    """Error raised when file can't be parsed as netCDF4."""
+
+    pass
+
+
 def _format_attr(value):
-    """Format an attribute according to netCDF.
+    """Format an HDF5 attribute according to netCDF4.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
         value:
-            The raw attribute value from the netCDF-4 file.
+            The raw HDF5 attribute value.
 
     :Returns:
 
-            The formatted attribute value adhering to netCDF.
+            The formatted attribute value adhering to netCDF4.
 
     """
     # Handle strings/bytes immediately
@@ -105,12 +111,13 @@ def _format_attr(value):
 
 
 def _parse_attributes(raw_attributes):
-    """Format raw attributes attributes according to netCDF .
+    """Format raw HDF5 attributes attributes according to netCDF4.
 
     * Strings return as pure Python strings.
     * Single numeric values return as true numpy scalars (preserving
-      bit-width).
+      data type).
     * Multi-element numeric values return as numpy arrays.
+    * Multi-element string values return as Python lists.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -347,21 +354,42 @@ class Variable:
     def _get_dimensions(self, h5ds_attrs):
         """Get the variable dimension names.
 
-        Resolves dimension names, handling both standard variables and
-        Dimension Scales.
+        Raises a `NetCDF4Error` exception if the DIMENSION_LIST
+        attribute is not appropriately set.
+
+        :Parameters:
+
+            h5ds_attrs: `dict`
+                The raw HDF5 attributes for the variable.
+
+        :Returns:
+
+            `tuple`
+                The dimension names, relative to their parent groups.
 
         """
-        # Case 1: It's a Dimension Scale itself (no DIMENSION_LIST attribute)
+        # Case 1: It's a coordinate variable that has the same name as
+        #         its dimension.
         if h5ds_attrs.get("CLASS") == b"DIMENSION_SCALE":
             return (self.name,)
 
-        # Case 2: Standard variable with linked dimensions
-        if "DIMENSION_LIST" not in h5ds_attrs:
+        ndim = self.ndim
+
+        # Case 2: It's a scalar variable with no dimensions
+        if not ndim:
             return ()
+
+        # Case 3: It's an N-d variable (N>=1) not covered by case 1.
+        dim_list = h5ds_attrs.get("DIMENSION_LIST", ())
+        if len(dim_list) != ndim:
+            raise NetCDF4Error(
+                f"Variable {self.path!r} requires {ndim} "
+                f"DIMENSION_LIST links, found {len(dim_list)}"
+            )
 
         dim_names = []
 
-        for ref in h5ds_attrs["DIMENSION_LIST"]:
+        for ref in dim_list:
             try:
                 if hasattr(ref, "item"):
                     ref = ref.item()
@@ -586,18 +614,16 @@ class Variable:
 
             # Walk up the tree to find where the dimension is defined
             while current_group is not None:
-                group_dims = current_group.dimensions
-                if dim_name in group_dims:
-                    dims.append(group_dims[dim_name])
+                dim = current_group.dimensions.get(dim_name)
+                if dim is not None:
+                    dims.append(dim)
                     found = True
                     break
 
                 current_group = current_group.parent
 
             if not found:
-                # Fallback if somehow the dimension could not be found
-                # (shouldn't happen in valid files!)
-                raise KeyError(
+                raise NetCDF4Error(
                     f"Dimension {dim_name!r} not found in the group hierarchy."
                 )
 
@@ -638,13 +664,17 @@ class Group(Mapping):
                 group has the name ``''``.
 
             parent: `Group` or `None`
-                The parent group. Set to `None` if there is no parent.
+                The parent group. Set to `None` if there is no parent
+                (i.e. the group is the root group).
 
-            root: `Group` or `File`
+            root: `File`
                 The root group.
 
             h5: (subclass of) `pyfive.Group` or (subclass of) `pyfive.File`
                 The underlying pyfive object.
+
+            h5_attrs: `dict`
+                The raw attributes of *h5*.
 
         """
         self._name = name
@@ -802,7 +832,7 @@ class Group(Mapping):
 
         :Parameters:
 
-            root: `Group` or `File`
+            root: `File`
                 The root group.
 
         :Returns:
@@ -962,7 +992,7 @@ class Group(Mapping):
 
             `Group` or `File` or `None`
                 The parent group, or `None` if there is no parent
-                (i.e. this is the root group).
+                (i.e. this group is the root group).
 
         """
         return self._parent
@@ -1013,26 +1043,12 @@ class Group(Mapping):
 class File(Group):
     """A netCDF dataset.
 
-    A `File` is a collection of dimensions, groups, variables and
-    attributes which describe the meaning of the data and metadata
-    stored in a netCDF dataset.
+    A `File` represents the dataset as a collection of groups (`Group`
+    objects), dimensions (`Dimension` objects), variables (`Variable`
+    objects) and attributes which describe the meaning of the data and
+    metadata stored in a netCDF dataset.
 
-    **Performance**
-
-    `p5netcdf` is "structure- and attribute-eager", meaning that
-    during `File` instantiation, the entire netCDF-4 group, variable,
-    and dimension structure is parsed; along with all group and
-    variable attributes. Variable data access is always via access to
-    an underlying (subclass of a) `pyfive.Dataset` object. Some
-    `Variable` and `Group` properties and methods also access an
-    underlying (subclass of a) `pyfive.Variable` or `pyfive.Group`
-    object, but only for the first request, after which the result is
-    cached (e.g. the first time `Variable.shape` is it requested it is
-    retrieved from the underlying (subclass of a) `pyfive.Variable`,
-    and subsequent requests access the shape cached inside the
-    `Variable` object).
-
-    **Instantiation from a `pyfive`, or an implementation of the
+    **Instantiation from `pyfive`, or an implementation of the
       `pyfive` API**
 
     A `File` can be instantiated from pre-existing `pyfive.File`
@@ -1058,6 +1074,21 @@ class File(Group):
     * `my_pyfive.Dataset.name`
     * `my_pyfive.Dataset.shape`
 
+    **Performance**
+
+    `p5netcdf` is "structure- and attribute-eager", meaning that
+    during `File` instantiation, the entire netCDF-4 group, variable,
+    and dimension structure is parsed; along with all group and
+    variable attributes. Variable data access is always via access to
+    an underlying (subclass of a) `pyfive.Dataset` object. Some
+    `Variable` and `Group` properties and methods also access an
+    underlying (subclass of a) `pyfive.Dataset` or `pyfive.Group`
+    object, but only for the first request, after which the result is
+    cached. For instance, the first time `Variable.shape` is requested
+    it is retrieved from the underlying (subclass of)`pyfive.Dataset`,
+    and subsequent requests access the shape that is cached inside the
+    `Variable` object.
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
@@ -1077,7 +1108,7 @@ class File(Group):
                 an `fsspec` file system open), a `pyfive.File` object,
                 or a subclass of a `pyfive.File` object.
 
-                If *dataset* is path or file-like obect, then a
+                If *dataset* is path or file-like object, then a
                 `pyfive.File` object is automatically created
                 internally. E.g ``p5netcdf.File('file.nc')`` is
                 equivalent to ``py5 = pyfive.File('file.nc');
@@ -1110,16 +1141,8 @@ class File(Group):
             h5 = pyfive.File(dataset, mode="r", **pyfive_options)
             self._is_owner = True
 
-        attrs = h5.attrs
-        if "_NCProperties" not in attrs:
-            self.close()
-            raise ValueError(
-                f"{dataset!r} is not a valid netCDF4 file "
-                "(missing _NCProperties attribute)."
-            )
-
         super().__init__(
-            name="", parent=None, root=self, h5=h5, h5_attrs=attrs
+            name="", parent=None, root=self, h5=h5, h5_attrs=h5.attrs
         )
 
     def __enter__(self):
@@ -1127,7 +1150,7 @@ class File(Group):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Exit the runtime context and ensure the file is closed."""
+        """Exit the runtime context and close the file."""
         self.close()
 
     def close(self):

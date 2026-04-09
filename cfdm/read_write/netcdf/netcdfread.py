@@ -799,9 +799,10 @@ class NetCDFRead(IORead):
         :Parameters:
 
             dataset:
-                The file to open. May be a string-valued path, a
-                file-like object, or a (subclass of a) `pyfive.File`
-                object.
+                May be a `str` or `pathlib.Path` path, a file-like
+                object (such as `io.BufferedReader` or the result of
+                an `fsspec` file system open), a `pyfive.File` object,
+                or a subclass of a `pyfive.File` object.
 
         :Returns:
 
@@ -6990,7 +6991,7 @@ class NetCDFRead(IORead):
 
             match g["original_dataset_opened_with"]:
                 case "p5netcdf" | "h5netcdf-pyfive":
-                    # Add the pyfive.Variable object to the Array
+                    # Add the pyfive.Dataset object to the Array
                     # object initialisation
                     variable = self._original_dataset_variable(ncvar)
                     kwargs["variable"] = variable._h5ds
@@ -11268,8 +11269,8 @@ class NetCDFRead(IORead):
 
         :Returns:
 
-            TODOPN `dict`-like
-                A dictionary of the variables keyed by their names.
+                The variable object, or `None` if it couldn't be
+                found.
 
         """
         match self.read_vars["original_dataset_opened_with"]:
@@ -11621,15 +11622,18 @@ class NetCDFRead(IORead):
         var = self._file_variables(nc)[ncvar]
 
         match g["nc_opened_with"]:
-            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py":
+            case "p5netcdf" | "netCDF4":
+                chunks = var.chunking()
+
+            case "h5netcdf-pyfive" | "h5netcdf-h5py":
                 chunks = var.chunks
                 if chunks is None:
                     chunks = "contiguous"
 
-            case "netCDF4":
-                chunks = var.chunking()
-                if chunks is None:
-                    chunks = "contiguous"
+            # case "netCDF4":
+            #    chunks = var.chunking()
+            #    if chunks is None:
+            #        chunks = "contiguous"
 
             case "zarr":
                 chunks = var.chunks

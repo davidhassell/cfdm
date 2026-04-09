@@ -5,7 +5,6 @@ import tempfile
 import unittest
 
 import fsspec
-import h5py
 import netCDF4
 import numpy as np
 import pyfive
@@ -19,8 +18,8 @@ class Testp5netcdf(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create the test file."""
-        # tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
-        tmpfile = "test_p5_example.nc"
+        tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
+        # tmpfile = "test_p5_example.nc"
 
         with netCDF4.Dataset(tmpfile, "w", format="NETCDF4") as nc:
             # Global Attributes
@@ -152,11 +151,11 @@ class Testp5netcdf(unittest.TestCase):
         cls.filename = tmpfile
         cls.p5 = cfdm.p5netcdf.File(tmpfile)
 
-    # @classmethod
-    # def tearDownClass(cls):
-    #    """Clean up the generated test file."""
-    #    if os.path.exists(cls.filename):
-    #        os.remove(cls.filename)
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up the generated test file."""
+        if os.path.exists(cls.filename):
+            os.remove(cls.filename)
 
     def test_p5netcdf_attributes(self):
         """Check that attributes are parsed correctly."""
