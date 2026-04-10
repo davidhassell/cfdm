@@ -16,25 +16,25 @@ _IGNORED_ATTRS = {
 _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
 
-class NetCDF4Error(Exception):
-    """Error raised when file can't be parsed as netCDF4."""
+class NetCDFError(Exception):
+    """Error raised when file can't be parsed as netCDF."""
 
     pass
 
 
 def _format_attr(value):
-    """Format an HDF5 attribute according to netCDF4.
+    """Format an attribute according to netCDF-4.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
         value:
-            The raw HDF5 attribute value.
+            The raw attribute value.
 
     :Returns:
 
-            The formatted attribute value adhering to netCDF4.
+            The formatted attribute value adhering to netCDF-4.
 
     """
     # Handle strings/bytes immediately
@@ -112,7 +112,7 @@ def _format_attr(value):
 
 
 def _parse_attributes(raw_attributes):
-    """Format raw HDF5 attributes attributes according to netCDF4.
+    """Format raw attributes attributes according to netCDF-4.
 
     * Strings return as pure Python strings.
     * Single numeric values return as true numpy scalars (preserving
@@ -125,7 +125,7 @@ def _parse_attributes(raw_attributes):
     :Parameters:
 
         raw_attributes: `dict`
-            The raw attributes value from the HDF5 file.
+            The raw attributes value from the file.
 
     :Returns:
 
@@ -304,8 +304,9 @@ class Variable:
             parent: `Group` or `File`
                 The parent group containing this variable.
 
-            h5ds: (subclass of) `pyfive.Dataset`
-                The underlying pyfive dataset object.
+            h5ds:
+                The underlying (subclass of) `pyfive.Dataset` or
+                `scipy.io.netcdf_variable` object.
 
             h5ds_attrs: `dict`
                 The raw attributes of *h5ds*.
@@ -314,13 +315,23 @@ class Variable:
         self._name = name
         self._h5ds = h5ds
         self._parent = parent
+        self._backend = parent.root._backend
 
         self._dimensions = self._get_dimensions(h5ds_attrs)
         self._attrs = _parse_attributes(h5ds_attrs)
 
     def __getitem__(self, key):
         """Return a subspace of the data array defined by indices."""
-        return self._h5ds[key]
+        array = self._h5ds[key]
+        match self._backend:
+            case "pyfive":
+                return array
+            case "netcdf_file":
+                # Need to copy the numpy array returned by
+                # scipy.io.netcdf_file with mmap=True. See
+                # `dataset_close` and the scipy.io.netcdf_file docs
+                # for details.
+                return array.copy()
 
     def __len__(self):
         """The size of leading data array dimension."""
@@ -355,13 +366,13 @@ class Variable:
     def _get_dimensions(self, h5ds_attrs):
         """Get the variable dimension names.
 
-        Raises a `NetCDF4Error` exception if the DIMENSION_LIST
+        Raises a `NetCDFError` exception if the DIMENSION_LIST
         attribute is not appropriately set.
 
         :Parameters:
 
             h5ds_attrs: `dict`
-                The raw HDF5 attributes for the variable.
+                The raw attributes for the variable.
 
         :Returns:
 
@@ -369,6 +380,15 @@ class Variable:
                 The dimension names, relative to their parent groups.
 
         """
+        # ------------------------------------------------------------
+        # Backend: netcdf_file
+        # ------------------------------------------------------------
+        if self._backend == "netcdf_file":
+            return self._h5ds.dimensions
+
+        # ------------------------------------------------------------
+        # Backend: pyfive
+        # ------------------------------------------------------------
         # Case 1: It's a coordinate variable that has the same name as
         #         its dimension.
         if h5ds_attrs.get("CLASS") == b"DIMENSION_SCALE":
@@ -383,7 +403,7 @@ class Variable:
         # Case 3: It's an N-d variable (N>=1) not covered by case 1.
         dim_list = h5ds_attrs.get("DIMENSION_LIST", ())
         if len(dim_list) != ndim:
-            raise NetCDF4Error(
+            raise NetCDFError(
                 f"Variable {self.path!r} requires {ndim} "
                 f"DIMENSION_LIST links, found {len(dim_list)}"
             )
@@ -432,7 +452,12 @@ class Variable:
         """
         chunks = getattr(self, "_chunks", None)
         if chunks is None:
-            chunks = self._h5ds.chunks
+            match self._backend:
+                case "pyfive":
+                    chunks = self._h5ds.chunks
+                case "netcdf_file":
+                    chunks = None
+
             self._chunks = chunks
 
         return chunks
@@ -457,7 +482,16 @@ class Variable:
         """The numpy data type of the variable's dataset."""
         dtype = getattr(self, "_dtype", None)
         if dtype is None:
-            dtype = self._h5ds.dtype
+            match self._backend:
+                case "pyfive":
+                    dtype = self._h5ds.dtype
+                case "netcdf_file":
+                    dtype = (
+                        self._h5ds[(slice(0, 1),) * len(self.shape)]
+                        .flat[0]
+                        .dtype
+                    )
+
             self._dtype = dtype
 
         return dtype
@@ -476,7 +510,12 @@ class Variable:
         """
         maxshape = getattr(self, "_maxshape", None)
         if maxshape is None:
-            maxshape = self._h5ds.maxshape
+            match self._backend:
+                case "pyfive":
+                    maxshape = self._h5ds.maxshape
+                case "netcdf_file":
+                    maxshape = self.shape
+
             self._maxshape = maxshape
 
         return maxshape
@@ -536,7 +575,12 @@ class Variable:
         """
         path = getattr(self, "_path", None)
         if path is None:
-            path = self._h5ds.name
+            match self._backend:
+                case "pyfive":
+                    path = self._h5ds.name
+                case "netcdf_file":
+                    path = f"/{self.name}"
+
             self._path = path
 
         return path
@@ -589,6 +633,12 @@ class Variable:
         """
         chunks = self.chunks
         if chunks is None:
+            match self._backend:
+                case "pyfive":
+                    return "contiguous"
+                case "netcdf_file":
+                    return
+
             return "contiguous"
 
         return list(chunks)
@@ -624,7 +674,7 @@ class Variable:
                 current_group = current_group.parent
 
             if not found:
-                raise NetCDF4Error(
+                raise NetCDFError(
                     f"Dimension {dim_name!r} not found in the group hierarchy."
                 )
 
@@ -671,8 +721,9 @@ class Group(Mapping):
             root: `File`
                 The root group.
 
-            h5: (subclass of) `pyfive.Group` or (subclass of) `pyfive.File`
-                The underlying pyfive object.
+            h5:
+                The underlying (subclass of) `pyfive.Group`, (subclass
+                of) `pyfive.File`, or `scipy.io.netcdf_file` object.
 
             h5_attrs: `dict`
                 The raw attributes of *h5*.
@@ -681,6 +732,7 @@ class Group(Mapping):
         self._name = name
         self._parent = parent
         self._root = root
+        self._backend = root._backend
         self._h5 = h5
 
         self._attrs = _parse_attributes(h5_attrs)
@@ -779,6 +831,7 @@ class Group(Mapping):
 
     def __repr__(self):
         """Called by the `repr` built-in function."""
+        pd = "" if len(self.dimensions) == 1 else "s"
         pv = "" if len(self.variables) == 1 else "s"
         pg = "" if len(self.groups) == 1 else "s"
 
@@ -790,84 +843,15 @@ class Group(Mapping):
 
         return (
             f"<p5netcdf.{self.__class__.__name__}: "
-            f"{path}{len(self.variables)} variable{pv}, "
-            f"{len(self.groups)} sub-group{pg}>"
+            f"{path}"
+            f"{len(self.dimensions)} dimension{pd}, "
+            f"{len(self.variables)} variable{pv}, "
+            f"{len(self.groups)} group{pg}>"
         )
 
     def __str__(self):
         """Called by the `str` built-in function."""
-        lines = [repr(self)]
-
-        # Attributes
-        if self.attrs:
-            lines.append("Attributes:")
-            lines.extend(
-                f"    {name}: {value!r}" for name, value in self.attrs.items()
-            )
-
-        # Groups
-        if self.groups:
-            lines.append("Groups:")
-            lines.extend(f"    {name}: {group!r}" for name, group in self.groups.items())
-
-        # Dimensions
-        if self.dimensions:
-            lines.append("Dimensions:")
-            lines.extend(
-                f"    {name}: {dim}" for name, dim in self.dimensions.items()
-            )
-
-        # Variables
-        if self.variables:
-            lines.append("Variables:")
-            lines.extend(
-                f"    {name}: {var!r}" for name, var in self.variables.items()
-            )
-
-        return "\n".join(lines)
-
-    def dump(self, _prefix=None, _level=0):
-        """A full description."""
-        if _prefix is None:
-            _prefix = f"{self.name}: "
-            
-        lines = [f"{_prefix}{self!r}"]
-
-        indent = "    "
-        i = indent * _level
-        i1 = indent * (_level + 1)
-        i2 = indent * (_level + 2)
-        
-        # Attributes
-        if self.attrs:
-            lines.append(f"{i1}Attributes:")
-            lines.extend(
-                f"{i2}{name}: {value!r}" for name, value in self.attrs.items()
-            )
-
-        # Dimensions
-        if self.dimensions:
-            lines.append(f"{i1}Dimensions:")
-            lines.extend(
-                f"{i2}{name}: {dim}" for name, dim in self.dimensions.items()
-            )
-
-        # Variables
-        if self.variables:
-            lines.append(f"{i1}Variables:")
-            lines.extend(
-                f"{i2}{name}: {var!r}" for name, var in self.variables.items()
-            )
-
-        # Groups
-        if self.groups:
-            lines.append(f"{i1}Groups:")
-            lines.extend(
-                f"{i2}{name}: {group.dump(_prefix=None, _level=_level+2)}"
-                for name, group in self.groups.items()
-            )
-
-        return "\n".join(lines)
+        return self.dump(display=False, _recursive=False)
 
     def _parse_group_structure(self, root):
         """Parse the group structure.
@@ -884,6 +868,31 @@ class Group(Mapping):
             `None`
 
         """
+        # ------------------------------------------------------------
+        # Backend: netcdf_file
+        # ------------------------------------------------------------
+        if self._backend == "netcdf_file":
+            for d_name, size in self._h5.dimensions.items():
+                self._dimensions[d_name] = Dimension(
+                    name=d_name,
+                    size=size,
+                    isunlimited=False,
+                    parent=self,
+                )
+
+            for name, h5ds in self._h5.variables.items():
+                self._variables[name] = Variable(
+                    name=name,
+                    parent=self,
+                    h5ds=h5ds,
+                    h5ds_attrs=h5ds._attributes,
+                )
+
+            return
+
+        # ------------------------------------------------------------
+        # Backend: pyfive
+        # ------------------------------------------------------------
         import pyfive
 
         raw_dims = {}
@@ -1054,7 +1063,12 @@ class Group(Mapping):
         """
         path = getattr(self, "_path", None)
         if path is None:
-            path = self._h5.name
+            match self._backend:
+                case "pyfive":
+                    path = self._h5.name
+                case "netcdf_file":
+                    path = f"/{self.name}"
+
             self._path = path
 
         return path
@@ -1083,27 +1097,93 @@ class Group(Mapping):
         """
         return self._variables
 
+    def dump(self, display=True, _prefix=None, _level=0, _recursive=True):
+        """A full description.
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
+        if _prefix is None:
+            _prefix = f"{self.name}: "
+
+        lines = [f"{_prefix}{self!r}"]
+
+        indent = "    "
+        i1 = indent * (_level + 1)
+        i2 = indent * (_level + 2)
+
+        # Attributes
+        if self.attrs:
+            lines.append(f"{i1}Attributes:")
+            lines.extend(
+                f"{i2}{name}: {value!r}" for name, value in self.attrs.items()
+            )
+
+        # Dimensions
+        if self.dimensions:
+            lines.append(f"{i1}Dimensions:")
+            lines.extend(
+                f"{i2}{name}: {dim!r}" for name, dim in self.dimensions.items()
+            )
+
+        # Variables
+        if self.variables:
+            lines.append(f"{i1}Variables:")
+            lines.extend(
+                f"{i2}{name}: {var!r}" for name, var in self.variables.items()
+            )
+
+        # Groups
+        if self.groups:
+            lines.append(f"{i1}Groups:")
+            if _recursive:
+                lines.extend(
+                    f"{i2}{group.dump(display=False, _level=_level + 2)}"
+                    for group in self.groups.values()
+                )
+            else:
+                lines.extend(
+                    f"{i2}{name}: {group!r}"
+                    for name, group in self.groups.items()
+                )
+
+        out = "\n".join(lines)
+        if display:
+            print(out)
+            return
+
+        return out
+
 
 class File(Group):
     """A netCDF dataset.
 
-    A `File` represents the dataset as a collection of groups (`Group`
-    objects), dimensions (`Dimension` objects), variables (`Variable`
-    objects) and attributes which describe the meaning of the data and
-    metadata stored in a netCDF dataset.
+    A `File` represents the netCDF dataset as a collection of groups
+    (`Group` objects), dimensions (`Dimension` objects), variables
+    (`Variable` objects), and attributes.
 
-    **Instantiation from `pyfive`, or an implementation of the
-      `pyfive` API**
+    A `File` may be intantiated from a `str` or `pathlib.Path` path, a
+    file-like object, a `pyfive.File` object, or a subclass of a
+    `pyfive.File` object.
 
-    A `File` can be instantiated from pre-existing `pyfive.File`
-    object, or a subclass of a `pyfive.File` object defined by an
-    implementation of the `pyfive` API.
+    **Instantiation from a subclass of `pyfive.File`**
 
-    An implementation of the `pyfive` API (e.g. `my_pyfive`) must
-    provide `my_pyfive.File`, `my_pyfive.Group`, and
-    `my_pyfive.Dataset` classes that inherit from their respective
-    `pyfive` base classes; and must expose following attributes and
-    methods:
+    A subclass of `pyfive.File` (e.g. `my_pyfive.File`) must reference
+    classes `my_pyfive.Group` and `my_pyfive.Dataset` that inherit
+    repectively from `pyfive.Group` and pyfive.Dataset`. The
+    sublcasses must expose following attributes and methods:
 
     * `my_pyfive.File.attrs`
     * `my_pyfive.File.close`
@@ -1124,14 +1204,14 @@ class File(Group):
     during `File` instantiation, the entire netCDF-4 group, variable,
     and dimension structure is parsed; along with all group and
     variable attributes. Variable data access is always via access to
-    an underlying (subclass of a) `pyfive.Dataset` object. Some
+    the underlying (subclass of a) `pyfive.Dataset` object. Some
     `Variable` and `Group` properties and methods also access an
     underlying (subclass of a) `pyfive.Dataset` or `pyfive.Group`
     object, but only for the first request, after which the result is
     cached. For instance, the first time `Variable.shape` is requested
-    it is retrieved from the underlying (subclass of)`pyfive.Dataset`,
-    and subsequent requests access the shape that is cached inside the
-    `Variable` object.
+    it is retrieved from the underlying (subclass of)
+    `pyfive.Dataset`, and subsequent requests access the shape that is
+    cached inside the `Variable` object.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1154,8 +1234,8 @@ class File(Group):
 
                 If *dataset* is path or file-like object, then a
                 `pyfive.File` object is automatically created
-                internally. E.g ``p5netcdf.File('file.nc')`` is
-                equivalent to ``py5 = pyfive.File('file.nc');
+                internally. E.g ``nc = p5netcdf.File('file.nc')`` is
+                equivalent to ``py5 = pyfive.File('file.nc'); nc =
                 p5netcdf.File(py5)`` (see `close`).
 
             mode: `str`, optional
@@ -1167,18 +1247,25 @@ class File(Group):
 
             pyfive_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `pyfive.File` to
-                be used when opening the *dataset*. Setting to `None`
-                (the default) is equivalent to providing an empty
-                dictionary. Ignored if *dataset* is already a
+                be used when opening a netCDF-4 *dataset*. Setting to
+                `None` (the default) is equivalent to providing an
+                empty dictionary. Ignored if *dataset* is already a
                 (subclass of a) `pyfive.File` object.
 
         """
         import pyfive
 
+        if mode != "r":
+            raise ValueError("'mode' must be 'r'. Got: {mode!r}")
+
         if isinstance(dataset, pyfive.File):
             h5 = dataset
-            # The pyfive.File instance is owned externally
+
+            # The opened dataset instance is owned externally
+            attrs = h5.attrs
+            self._backend = "pyfive"
             self._owns_h5 = False
+
         else:
             if pyfive_options is None:
                 pyfive_options = {}
@@ -1187,15 +1274,33 @@ class File(Group):
                 # Try to expand `str` or `pathlib.Path`
                 dataset = expanduser(expandvars(dataset))
             except TypeError:
-                # Likely file handle 
+                # Likely file handle
                 pass
-            
-            h5 = pyfive.File(dataset, mode="r", **pyfive_options)
-            # The pyfive.File instance is owned internally
+
+            try:
+                h5 = pyfive.File(dataset, mode=mode, **pyfive_options)
+            except Exception:
+                raise NetCDFError(f"Can't parse {dataset!r} as a netCDF file")
+                # from scipy.io import netcdf_file
+                #
+                # try:
+                #    h5 = netcdf_file(dataset, mode=mode, mmap=True)
+                # except Exception:
+                #    raise NetCDFError(
+                #        f"Can't parse {dataset!r} as a netCDF file"
+                #    )
+                # else:
+                #    attrs = h5._attributes
+                #    self._backend = "netcdf_file"
+            else:
+                attrs = h5.attrs
+                self._backend = "pyfive"
+
+            # The opened dataset instance is owned internally
             self._owns_h5 = True
 
         super().__init__(
-            name="", parent=None, root=self, h5=h5, h5_attrs=h5.attrs
+            name="", parent=None, root=self, h5=h5, h5_attrs=attrs
         )
 
     def __enter__(self):
@@ -1236,11 +1341,47 @@ class File(Group):
 
         """
         if self._owns_h5:
+            if self._backend == "netcdf_file":
+                # We can't close a scipy.io.netcdf_file instance
+                # opened with mmap=True when any variable still
+                # exists, or when an array referring to a variable's
+                # data still exists (see scipy.io.netcdf_file docs for
+                # details). So, rather than attempting to hunt down
+                # all such reference (not possible!), the hack of
+                # setting the '_mm_buf' attribute to `None` allows the
+                # file to be closed. We get away with this because we
+                # know that we've copied all memory mapped data into
+                # memory inside `Variable.__getitem__`.
+                self._h5._mm_buf = None
+
             self._h5.close()
 
-    def dump(self, _prefix=None, _level=0):
-        """A full description."""
+    def dump(self, display=True, _prefix=None, _level=0, _recursive=True):
+        """A full description.
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
         if _prefix is None:
             _prefix = f"{self.__class__.__name__}: "
-            
-        return super().dump(_prefix, _level)
+
+        out = "\n".join(
+            (self.filename, super().dump(False, _prefix, _level, _recursive))
+        )
+        if display:
+            print(out)
+            return
+
+        return out
