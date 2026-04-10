@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from itertools import chain
 from math import prod
+from os.path import expanduser, expandvars
 
 import numpy as np
 
@@ -807,7 +808,7 @@ class Group(Mapping):
         # Groups
         if self.groups:
             lines.append("Groups:")
-            lines.extend(f"    {name}" for name in self.groups)
+            lines.extend(f"    {name}: {group!r}" for name, group in self.groups.items())
 
         # Dimensions
         if self.dimensions:
@@ -821,6 +822,49 @@ class Group(Mapping):
             lines.append("Variables:")
             lines.extend(
                 f"    {name}: {var!r}" for name, var in self.variables.items()
+            )
+
+        return "\n".join(lines)
+
+    def dump(self, _prefix=None, _level=0):
+        """A full description."""
+        if _prefix is None:
+            _prefix = f"{self.name}: "
+            
+        lines = [f"{_prefix}{self!r}"]
+
+        indent = "    "
+        i = indent * _level
+        i1 = indent * (_level + 1)
+        i2 = indent * (_level + 2)
+        
+        # Attributes
+        if self.attrs:
+            lines.append(f"{i1}Attributes:")
+            lines.extend(
+                f"{i2}{name}: {value!r}" for name, value in self.attrs.items()
+            )
+
+        # Dimensions
+        if self.dimensions:
+            lines.append(f"{i1}Dimensions:")
+            lines.extend(
+                f"{i2}{name}: {dim}" for name, dim in self.dimensions.items()
+            )
+
+        # Variables
+        if self.variables:
+            lines.append(f"{i1}Variables:")
+            lines.extend(
+                f"{i2}{name}: {var!r}" for name, var in self.variables.items()
+            )
+
+        # Groups
+        if self.groups:
+            lines.append(f"{i1}Groups:")
+            lines.extend(
+                f"{i2}{name}: {group.dump(_prefix=None, _level=_level+2)}"
+                for name, group in self.groups.items()
             )
 
         return "\n".join(lines)
@@ -1133,13 +1177,22 @@ class File(Group):
 
         if isinstance(dataset, pyfive.File):
             h5 = dataset
-            self._is_owner = False
+            # The pyfive.File instance is owned externally
+            self._owns_h5 = False
         else:
             if pyfive_options is None:
                 pyfive_options = {}
 
+            try:
+                # Try to expand `str` or `pathlib.Path`
+                dataset = expanduser(expandvars(dataset))
+            except TypeError:
+                # Likely file handle 
+                pass
+            
             h5 = pyfive.File(dataset, mode="r", **pyfive_options)
-            self._is_owner = True
+            # The pyfive.File instance is owned internally
+            self._owns_h5 = True
 
         super().__init__(
             name="", parent=None, root=self, h5=h5, h5_attrs=h5.attrs
@@ -1152,21 +1205,6 @@ class File(Group):
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the runtime context and close the file."""
         self.close()
-
-    def close(self):
-        """Close the dataset.
-
-        Closes the underlying netCDF dataset, but not if the dataset
-        was originally defined by a (subclass of a) `pyfive.File`
-        object.
-
-        :Returns:
-
-            `None`
-
-        """
-        if self._is_owner:
-            self._h5.close()
 
     @property
     def filename(self):
@@ -1184,3 +1222,25 @@ class File(Group):
             self._filename = filename
 
         return filename
+
+    def close(self):
+        """Close the dataset.
+
+        Closes the underlying netCDF dataset, but not if the dataset
+        was originally defined by a (subclass of a) `pyfive.File`
+        object.
+
+        :Returns:
+
+            `None`
+
+        """
+        if self._owns_h5:
+            self._h5.close()
+
+    def dump(self, _prefix=None, _level=0):
+        """A full description."""
+        if _prefix is None:
+            _prefix = f"{self.__class__.__name__}: "
+            
+        return super().dump(_prefix, _level)

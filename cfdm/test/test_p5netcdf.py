@@ -266,6 +266,9 @@ class Testp5netcdf(unittest.TestCase):
             self.p5["forecast/model/q"].dimensions,
         )
 
+        print(self.filename)
+        
+
     def test_p5netcdf_File_file_like(self):
         """Check File with a file-like input."""
         local_fs = fsspec.filesystem("local")
