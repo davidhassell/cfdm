@@ -1295,7 +1295,7 @@ class Group(Mapping):
 
         :Parameters:
 
-            group:
+            group: `Group`
                 The group object.
 
         :Returns:
@@ -1307,7 +1307,7 @@ class Group(Mapping):
         root = group.root
         group_to_dims = root._group_to_dims
         var_to_dims = root._var_to_dims
-        group_dimension_search = (
+        group_dimension_search = ( #root._group_dimension_search
             "closest_ancestor"  # root._group_dimension_search
         )
 
