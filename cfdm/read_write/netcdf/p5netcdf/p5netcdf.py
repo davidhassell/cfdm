@@ -1412,7 +1412,7 @@ class Group(Mapping):
                         raise NetCDFError(
                             "Dimension names can't end with '/': "
                             f"dataset={self.dataset_name()} "
-                            f"variable={var_name} "
+                            f"variable={var_path} "
                             f"dimension_name={name}"
                         )
 
@@ -1433,12 +1433,9 @@ class Group(Mapping):
                         if zarr_dim.size != size:
                             raise NetCDFError(
                                 f"Zarr dimension has the wrong size: {size}. "
-                                f"Expected size {zarr_dim.size} "
-                                "(defined by variable "
-                                f"{zarr_dim.reference_variable().name}). "
-                                f"dataset={self.dataset_name()} "
-                                f"variable={var_path} "
-                                f"dimension_name={name}"
+                                f"Expected size {zarr_dim.size} defined "
+                                f"by Zarr dimension {zarr_dim.name!r} "
+                                f"in group {zarr_dim.group().path!r}"
                             )
                 else:
                     # Initialise group 'g' in the mapping
@@ -1446,15 +1443,15 @@ class Group(Mapping):
 
                 if zarr_dim is None:
                     # Register a new Dimension in a group
-                    defining_group = root.get(g)
-                    if defining_group is None:
+                    parent = root.get(g)
+                    if parent is None:
                         # Must be the root group
-                        defining_group = root
+                        parent = root
 
-                    zarr_dim = Dimension(basename, size, False, defining_group)
+                    zarr_dim = Dimension(basename, size, False, parent)
                     group_to_dims[g][basename] = zarr_dim
 
-                # Map the variable to the ZarrDimension object
+                # Map the variable to the `Dimension` object
                 var_to_dims[var_path] += (zarr_dim,)
 
         # ------------------------------------------------------------
