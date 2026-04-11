@@ -22,12 +22,15 @@ class NetCDFError(Exception):
     pass
 
 
-def _format_attr(value):
+def _format_attr(lib, value):
     """Format an attribute according to netCDF-4.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
+
+        obj: `Group` or `Variable`
+            The object that owns the raw attribute.
 
         value:
             The raw attribute value.
@@ -41,14 +44,15 @@ def _format_attr(value):
     if isinstance(value, (bytes, np.bytes_)):
         return value.decode("utf-8")
 
-    import pyfive
+    try:
+        if isinstance(value, lib.Empty):
+            dtype = value.dtype
+            if dtype.kind in "SUT":
+                return ""
 
-    if isinstance(value, pyfive.Empty):
-        dtype = value.dtype
-        if dtype.kind in "SUT":
-            return ""
-
-        return np.array([], dtype=value)
+            return np.array([], dtype=value)
+    except AttributeError:
+        pass
 
     if isinstance(value, str):
         return value
@@ -111,7 +115,7 @@ def _format_attr(value):
     return np.array(value)
 
 
-def _parse_attributes(raw_attributes):
+def _parse_attributes(obj, raw_attributes):
     """Format raw attributes attributes according to netCDF-4.
 
     * Strings return as pure Python strings.
@@ -124,6 +128,9 @@ def _parse_attributes(raw_attributes):
 
     :Parameters:
 
+        obj: `Group` or `Variable`
+            The object that owns the raw attributes.
+
         raw_attributes: `dict`
             The raw attributes value from the file.
 
@@ -133,8 +140,9 @@ def _parse_attributes(raw_attributes):
             The formatted attributes
 
     """
+    lib = obj.lib
     return {
-        k: _format_attr(v)
+        k: _format_attr(lib, v)
         for k, v in raw_attributes.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }
@@ -257,6 +265,40 @@ class Dimension:
         """
         return self._size
 
+    def dump(
+        self,
+        display=True,
+        _prefix=None,
+    ):
+        """A full description of the dimension.
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
+        if _prefix is None:
+            _prefix = f"{self.name}: "
+
+        lines = [f"{_prefix}{self!r}"]
+
+        out = "\n".join(lines)
+        if display:
+            print(out)
+            return
+
+        return out
+
     def group(self):
         """The parent group that defines this dimension.
 
@@ -292,7 +334,7 @@ class Variable:
 
     __hash__ = None
 
-    def __init__(self, name, parent, h5ds, h5ds_attrs):
+    def __init__(self, name, parent, var, var_attrs):
         """**Initialisation**
 
         :Parameters:
@@ -303,25 +345,28 @@ class Variable:
             parent: `Group` or `File`
                 The parent group containing this variable.
 
-            h5ds:
+            var:
                 The underlying (subclass of) `pyfive.Dataset` or
                 `scipy.io.netcdf_variable` object.
 
-            h5ds_attrs: `dict`
-                The raw attributes of *h5ds*.
+            var_attrs: `dict`
+                The raw attributes of *var*.
 
         """
         self._name = name
-        self._var = h5ds
+        self._var = var
         self._parent = parent
-        self.backend = parent.root.backend
+        self._var_attrs = var_attrs
 
-        self._dimensions = self._get_dimensions(h5ds_attrs)
-        self._attrs = _parse_attributes(h5ds_attrs)
+        root = parent.root
+        self._backend = root.backend
+        self._lib = root.lib
 
-    def __getitem__(self, key):
+        self._attrs = _parse_attributes(self, var_attrs)
+
+    def __getitem__(self, index):
         """Return a subspace of the data array defined by indices."""
-        array = self._var[key]
+        array = self._var[index]
         match self.backend:
             case "pyfive" | "netCDF4" | "zarr" | "h5py":
                 return array
@@ -362,16 +407,11 @@ class Variable:
             f"{self.path}, shape={self.shape}, dimensions={dims}>"
         )
 
-    def _get_dimensions(self, h5ds_attrs):
+    def _get_dimensions(self):
         """Get the variable dimension names.
 
         Raises a `NetCDFError` exception if the DIMENSION_LIST
         attribute is not appropriately set.
-
-        :Parameters:
-
-            h5ds_attrs: `dict`
-                The raw attributes for the variable.
 
         :Returns:
 
@@ -379,6 +419,7 @@ class Variable:
                 The dimension names, relative to their parent groups.
 
         """
+        var_attrs = self._var_attrs
         match self.backend:
             case "pyfive" | "h5py":
                 # ----------------------------------------------------
@@ -387,7 +428,7 @@ class Variable:
 
                 # Case 1: It's a coordinate variable that has the same
                 #         name as its dimension.
-                if h5ds_attrs.get("CLASS") == b"DIMENSION_SCALE":
+                if var_attrs.get("CLASS") == b"DIMENSION_SCALE":
                     return (self.name,)
 
                 ndim = self.ndim
@@ -398,7 +439,7 @@ class Variable:
 
                 # Case 3: It's an N-d variable (N>=1) not covered by
                 #         case 1.
-                dim_list = h5ds_attrs.get("DIMENSION_LIST", ())
+                dim_list = var_attrs.get("DIMENSION_LIST", ())
                 if len(dim_list) != ndim:
                     raise NetCDFError(
                         f"Variable {self.path!r} requires {ndim} "
@@ -432,11 +473,24 @@ class Variable:
                 # ----------------------------------------------------
                 # zarr
                 # ----------------------------------------------------
-                dim_names = [
-                    dim.name
-                    for dim in self.root._var_to_dims[self.path]
-                ]
-                return tuple(dim_names)
+                if hasattr(self.root, "_var_to_dims"):
+                    return tuple(
+                        dim.name for dim in self.root._var_to_dims[self.path]
+                    )
+
+                return
+
+    @property
+    def backend(self):
+        """The TODO variable attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._backend
 
     @property
     def attrs(self):
@@ -494,7 +548,14 @@ class Variable:
                 dimensions.
 
         """
-        return self._dimensions
+        dimensions = getattr(self, "_dimensions", None)
+        if dimensions is None:
+            dimensions = self._get_dimensions()
+            self._dimensions = dimensions
+            if dimensions is not None:
+                del self._var_attrs
+
+        return dimensions
 
     @property
     def dtype(self):
@@ -515,6 +576,33 @@ class Variable:
             self._dtype = dtype
 
         return dtype
+
+    @property
+    def filename(self):
+        """The TODOvariable dimensions.
+
+        .. seealso:: `get_dims`
+
+        :Returns:
+
+            `tuple`
+                The dimension names, in the order of the data array
+                dimensions.
+
+        """
+        return self.root.filename
+
+    @property
+    def lib(self):
+        """The TODO variable attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._lib
 
     @property
     def maxshape(self):
@@ -618,6 +706,20 @@ class Variable:
         return path
 
     @property
+    def root(self):
+        """The parent group.
+
+        .. seealso:: `group`
+
+        :Returns:
+
+            `Group` or `File`
+                The parent group.
+
+        """
+        return self.parent.root
+
+    @property
     def shape(self):
         """The dimension lengths of the variable.
 
@@ -651,29 +753,52 @@ class Variable:
 
         return size
 
-    #   def chunking(self):
-    #       """Returns the data chunk shape.
-    #
-    #       .. seealso:: `chunks`, `netCDF4.Variable.chunking`
-    #
-    #       :Returns:
-    #
-    #           `list` or 'str`
-    #               The chunk shape, e.g. ``[5, 6, 7]``. If the data is
-    #               contiguous then ``'contiguous` is returned.
-    #
-    #       """
-    #       chunks = self.chunks
-    #       if chunks is None:
-    #           match self.backend:
-    #               case "pyfive" | "h5py" | "netCDF4":
-    #                   return "contiguous"
-    #               case "netcdf_file":
-    #                   return
-    #
-    #           return "contiguous"
-    #
-    #       return list(chunks)
+    def dump(
+        self,
+        display=True,
+        _prefix=None,
+        _level=0,
+        _structure=False,
+    ):
+        """A full description of the variable.
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
+        if _prefix is None:
+            _prefix = f"{self.name}: "
+
+        lines = [f"{_prefix}{self!r}"]
+
+        indent = "    "
+        i1 = indent * (_level + 1)
+        i2 = indent * (_level + 2)
+
+        # Attributes
+        if not _structure and self.attrs:
+            lines.append(f"{i1}Attributes:")
+            lines.extend(
+                f"{i2}{name}: {value!r}" for name, value in self.attrs.items()
+            )
+
+        out = "\n".join(lines)
+        if display:
+            print(out)
+            return
+
+        return out
 
     def get_dims(self):
         """Return the dimensions of the variable.
@@ -727,6 +852,31 @@ class Variable:
         """
         return self._parent
 
+    def structure(
+        self,
+        display=True,
+        _prefix=None,
+        _level=0,
+    ):
+        """A full description of the `Variable`.
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
+        return self.dump(display, _prefix, _level, True)
+
 
 class Group(Mapping):
     """A netCDF group.
@@ -737,7 +887,7 @@ class Group(Mapping):
 
     __hash__ = None
 
-    def __init__(self, name, parent, root, h5, h5_attrs):
+    def __init__(self, name, parent, root, grp, grp_attrs):
         """**Initialisation**
 
         :Parameters:
@@ -753,21 +903,22 @@ class Group(Mapping):
             root: `File`
                 The root group.
 
-            h5:
+            grp:
                 The underlying (subclass of) `pyfive.Group`, (subclass
                 of) `pyfive.File`, or `scipy.io.netcdf_file` object.
 
-            h5_attrs: `dict`
-                The raw attributes of *h5*.
+            grp_attrs: `dict`
+                The raw attributes of *grp*.
 
         """
         self._name = name
         self._parent = parent
         self._root = root
-        self.backend = root.backend
-        self._grp = h5
+        self._backend = root.backend
+        self._lib = root.lib
+        self._grp = grp
 
-        self._attrs = _parse_attributes(h5_attrs)
+        self._attrs = _parse_attributes(self, grp_attrs)
 
         self._dimensions = {}
         self._variables = {}
@@ -883,7 +1034,7 @@ class Group(Mapping):
 
     def __str__(self):
         """Called by the `str` built-in function."""
-        return self.dump(display=False, _recursive=False)
+        return self.dump(display=False, _recursive=False, _structure=True)
 
     def _parse_group_structure(self, root):
         """Parse the group structure.
@@ -905,11 +1056,6 @@ class Group(Mapping):
                 # ----------------------------------------------------
                 # pyfive | h5py
                 # ----------------------------------------------------
-                if self.backend == "pyfive":
-                    import pyfive as lib
-                else:
-                    import h5py as lib
-
                 raw_dims = {}
                 subgroups = []
                 datasets = []
@@ -917,6 +1063,7 @@ class Group(Mapping):
 
                 # Categorise objects without double-reading items from
                 # the dataset
+                lib = root.lib
                 for name, h5 in self._grp.items():
                     if isinstance(h5, lib.Group):
                         subgroups.append((name, h5))
@@ -924,9 +1071,9 @@ class Group(Mapping):
                         datasets.append((name, h5))
 
                 # Extract dimension scales (strictly ignoring scalars)
-                for name, h5ds in datasets:
-                    shape = h5ds.shape
-                    attrs = h5ds.attrs
+                for name, var in datasets:
+                    shape = var.shape
+                    attrs = var.attrs
                     dataset_attrs[name] = attrs
 
                     if shape and attrs.get("CLASS") == b"DIMENSION_SCALE":
@@ -939,7 +1086,7 @@ class Group(Mapping):
                         dim_name = name.split("/")[-1]
 
                         is_unlimited = False
-                        maxshape = h5ds.maxshape
+                        maxshape = var.maxshape
                         if maxshape and len(maxshape) > 0:
                             is_unlimited = maxshape[0] is None
 
@@ -979,7 +1126,7 @@ class Group(Mapping):
                     )
 
                 # Create variables (skipping internal netCDF stubs)
-                for name, h5ds in datasets:
+                for name, var in datasets:
                     dim_name = name.split("/")[-1]
 
                     # If it's in 'raw_dims' and flagged as a stub then
@@ -992,24 +1139,25 @@ class Group(Mapping):
                         self._variables[name] = Variable(
                             name=name,
                             parent=self,
-                            h5ds=h5ds,
-                            h5ds_attrs=dataset_attrs[name],
+                            var=var,
+                            var_attrs=dataset_attrs[name],
                         )
 
                 # Create subgroups
-                for name, group in subgroups:
+                for name, grp in subgroups:
                     self._groups[name] = Group(
                         name=name,
                         parent=self,
                         root=root,
-                        h5=group,
-                        h5_attrs=group.attrs,
+                        grp=grp,
+                        grp_attrs=grp.attrs,
                     )
 
             case "netCDF4":
                 # ----------------------------------------------------
                 # netCDF4
                 # ----------------------------------------------------
+                # Create dimensions in this group
                 for name, dim in self._grp.dimensions.items():
                     self._dimensions[name] = Dimension(
                         name=name,
@@ -1018,6 +1166,7 @@ class Group(Mapping):
                         parent=self,
                     )
 
+                # Create variables in this group
                 for name, var in self._grp.variables.items():
                     attrs = {
                         attr: var.getncattr(attr) for attr in var.ncattrs()
@@ -1025,8 +1174,8 @@ class Group(Mapping):
                     self._variables[name] = Variable(
                         name=name,
                         parent=self,
-                        h5ds=var,
-                        h5ds_attrs=attrs,
+                        var=var,
+                        var_attrs=attrs,
                     )
 
                 # Create subgroups
@@ -1038,14 +1187,15 @@ class Group(Mapping):
                         name=name,
                         parent=self,
                         root=root,
-                        h5=grp,
-                        h5_attrs=attrs,
+                        grp=grp,
+                        grp_attrs=attrs,
                     )
 
             case "netcdf_file":
                 # ----------------------------------------------------
                 # netcdf_file
                 # ----------------------------------------------------
+                # Create dimensions in this group
                 for name, size in self._grp.dimensions.items():
                     self._dimensions[name] = Dimension(
                         name=name,
@@ -1054,71 +1204,66 @@ class Group(Mapping):
                         parent=self,
                     )
 
+                # Create variables in this group
                 for name, var in self._grp.variables.items():
                     self._variables[name] = Variable(
                         name=name,
                         parent=self,
-                        h5ds=var,
-                        h5ds_attrs=var._attributes,
+                        var=var,
+                        var_attrs=var._attributes,
                     )
 
             case "zarr":
                 # ----------------------------------------------------
                 # zarr
                 # ----------------------------------------------------
-                if self.path == '/':
-                    # Populate the `_group_to_dims` and `_var_to_dims`
-                    # dictionaries if we're at the root group
-                    self._populate_dimension_maps(group)
-    
-                for name, dim in self.root._group_to_dims[self.path].items():
-                    self._dimensions[name] = dim
-
-                for name, var in self._grp.arrays().items():
+                # Create variables in this group
+                for name, var in dict(self._grp.arrays()).items():
                     self._variables[name] = Variable(
-                        name=name,
-                        parent=self,
-                        h5ds=var,
-                        h5ds_attrs=var.attrs
+                        name=name, parent=self, var=var, var_attrs=var.attrs
                     )
 
-
-#                    IDEA - recursively go through groups and
-#                    variables, ignoring dimensions. _Then_ go though
-#                    raw dimensions using the groups __getitem_ to to
-#                    find the parent groups (rather than the
-#                    incompleete algorithm of
-#                    _populate_dimension_maps)
-
                 # Create subgroups
-                for name, grp in self._grp.groups().items():
+                for name, grp in dict(self._grp.groups()).items():
                     self._groups[name] = Group(
                         name=name,
                         parent=self,
                         root=root,
-                        h5=grp,
-                        h5_attrs=grp.attrs,
+                        grp=grp,
+                        grp_attrs=grp.attrs,
                     )
 
-    def _populate_dimension_maps(group):
+                # Create dimensions in all groups, starting with the
+                # root group.
+                if self.path == "/":
+                    root._group_to_dims = {}
+                    root._var_to_dims = {}
+                    self._populate_dimension_maps(self)
+
+                    for path, dims in root._group_to_dims.items():
+                        group = self[path]
+                        for name, dim in dims.items():
+                            group._dimensions[name] = dim
+
+    def _populate_dimension_maps(self, group):
         """Populate the dimension map dictionaries.
-    
+
         For the given group and all of its child groups, a mapping of
         full-path group names to the unique dimensions implied by the
         variables therein will be added to `_group_to_dims`. For
         instance::
-    
+
            {'/': {},
             'bounds2': <ZarrDimension: bounds2, size(2)>,
             'x': <ZarrDimension: x, size(9)>},
             '/forecast': {'y': <ZarrDimension: y, size(10)>},
             '/forecast/model': {}}
-    
-    
+
+
         For the given group and all of its child groups, a mapping of
         full-path variables names to their dimensions will be added to
         `_var_to_dims`. For instance::
-    
+
            {'/latitude_longitude': (),
             '/x': (<ZarrDimension: x, size(9)>,),
             '/x_bnds': (<ZarrDimension: x, size(9)>
@@ -1136,58 +1281,59 @@ class Group(Mapping):
                                  <ZarrDimension: bounds2, size(2)>),
             '/forecast/model/ta': (<ZarrDimension: y, size(10)>,
                                    <ZarrDimension: x, size(9)>)}
-    
+
         **Zarr datasets**
-    
+
         Populating the `_group_to_dims` dictionary is currently only
         required for a Zarr grouped dataset, for which this
         information is not explicitly defined in the format's data
         model (unlike for netCDF and HDF5 datasets).
-    
+
         See `dataset_flatten` for details.
-    
+
         .. versionadded:: (cfdm) 1.13.0.0
-    
+
         :Parameters:
-    
+
             group:
                 The group object.
-    
+
         :Returns:
-    
+
             `None`
-    
+
         """
-        # Full path of group
-        group_path = group.name
-    
-        input_ds = self._input_ds
-        group_to_dims = self.root._group_to_dims
-        var_to_dims = self.root._var_to_dims
-        group_dimension_search = self._group_dimension_search
-    
+        group_path = group.path
+        root = group.root
+        group_to_dims = root._group_to_dims
+        var_to_dims = root._var_to_dims
+        group_dimension_search = (
+            "closest_ancestor"  # root._group_dimension_search
+        )
+
         # Initialise the mapping from this group to its `Dimension`
         # objects. Use 'setdefault' because a previous call to
         # `_populate_dimension_maps` might already have done this.
         group_to_dims.setdefault(group_path, {})
-    
+
         # Loop over variables in this group, sorted by variable name.
-        for v in dict(sorted(group.arrays())).values():
-            # Initialise mapping from the variable to its
-            # ZarrDimension objects
-            var_name = v.name
-            var_to_dims[var_name] = ()
-    
-            raw_dimension_names = self._variable_raw_dimension_names(v)
+        #        for v in dict(sorted(group.arrays())).values():
+        for v in group.variables.values():
+            # Initialise mapping from the variable to its Dimension
+            # objects
+            var_path = v.path
+            var_to_dims[var_path] = ()
+
+            raw_dimension_names = self._zarr_raw_dimension_names(v)
             if not raw_dimension_names:
                 # A scalar variable has no dimensions
                 continue
-    
+
             # Loop over this variable's dimension names
             for name, size in zip(raw_dimension_names, v.shape):
-                name_split = name.split(group_separator)
+                name_split = name.split("/")
                 basename = name_split[-1]
-    
+
                 # ----------------------------------------------------
                 # Define 'g' as the absolute path name of the group in
                 # which to register the logical dimension object for
@@ -1196,12 +1342,13 @@ class Group(Mapping):
                 # Which group is defined will depend on the nature of
                 # the dimension's 'name'.
                 # ----------------------------------------------------
-                if group_separator not in name:
+                if "/" not in name:
                     # ------------------------------------------------
-                    # Relative path dimension name which contains no
-                    # '/' characters. The behaviour depends on the
-                    # search algorithm defined by
-                    # 'group_dimension_search'.
+                    # Raw dimension name which contains no '/'
+                    # characters
+                    #
+                    # The behaviour depends on the search algorithm
+                    # defined by 'group_dimension_search'.
                     #
                     # E.g. "dim"
                     # ------------------------------------------------
@@ -1211,22 +1358,22 @@ class Group(Mapping):
                     ):
                         # Find the names of all ancestor groups, in
                         # the appropriate order for searching.
-                        group_split = group_path.split(group_separator)
+                        group_split = group_path.split("/")
                         ancestor_names = [
-                            group_separator.join(group_split[:n])
+                            "/".join(group_split[:n])
                             for n in range(1, len(group_split))
                         ]
-                        ancestor_names[0] = group_separator
+                        ancestor_names[0] = "/"
                         # E.g. if the current group is /g1/g2/g3 then
                         #      the ancestor group names are [/, /g1,
                         #      /g1/g2]
-    
+
                         if group_dimension_search == "closest_ancestor":
                             # "closest_ancestor" searching requires
                             # the ancestor group order to be reversed,
                             # e.g. [/g1/g2, /g1, /]
                             ancestor_names = ancestor_names[::-1]
-    
+
                         # Search through the ancestors in order,
                         # stopping if we find a matching dimension.
                         found_dim_in_ancestor = False
@@ -1238,119 +1385,44 @@ class Group(Mapping):
                                 # size
                                 found_dim_in_ancestor = True
                                 break
-    
+
                         if not found_dim_in_ancestor:
                             # Dimension 'basename' could not be
                             # matched to any ancestor group
                             # dimensions, so define it in the current
                             # group.
                             g = group_path
-    
+
                     elif group_dimension_search == "local":
                         # Assume that the dimension is different to
                         # any with same name and size defined in any
                         # ancestor group.
                         g = group_path
-    
+
                     else:
-                        raise DimensionParsingException(
+                        raise NetCDFError(
                             "Bad 'group_dimension_search' value: "
                             f"{group_dimension_search!r}"
                         )
                 else:
-                    g = group_separator.join(name_split[:-1])
-                    if name.endswith(group_separator):
-                        # --------------------------------------------
-                        # Dimension name that ends with '/'
-                        #
-                        # E.g. "dim/"
-                        # E.g. "group1/dim/"
-                        # --------------------------------------------
-                        raise DimensionParsingException(
-                            "Dimension names can't end with the group "
-                            f"separator ({group_separator}): "
+                    # ------------------------------------------------
+                    # Raw dimension name contains '/' characters
+                    # ------------------------------------------------
+                    if name.endswith("/"):
+                        raise NetCDFError(
+                            "Dimension names can't end with '/': "
                             f"dataset={self.dataset_name()} "
                             f"variable={var_name} "
                             f"dimension_name={name}"
                         )
-    
-                    elif f"{group_separator}..{group_separator}" in name:
-                        # --------------------------------------------
-                        # Relative path dimension name with upward
-                        # path traversals ('../') *not* at the start
-                        # of the name.
-                        #
-                        # E.g. "/group1/../group2/dim"
-                        # E.g. "group1/../group2/dim"
-                        # E.g. "../group1/../group2/dim"
-                        #
-                        # Note that "../../dim" is not such a case.
-                        # --------------------------------------------
-                        raise DimensionParsingException(
-                            "In Zarr datasets, can't yet deal with a "
-                            "relative path dimension name with upward path "
-                            "traversals (../) in middle of the name: "
-                            f"dataset={self.dataset_name()} "
-                            f"variable={var_name} "
-                            f"dimension_name={name}"
-                            "\n\n"
-                            "Please raise an issue at "
-                            "https://github.com/NCAS-CMS/cfdm/issues "
-                            "if you would like this feature."
-                        )
-    
-                    elif name.startswith(f"..{group_separator}"):
-                        # --------------------------------------------
-                        # Relative path dimension name with upward
-                        # path traversals ('../') at the start of the
-                        # name
-                        #
-                        # E.g. "../group1/dim"
-                        # E.g. "../../group1/dim"
-                        # E.g. "../../dim"
-                        # --------------------------------------------
-                        current_group = group
-                        while g.startswith(f"..{group_separator}"):
-                            parent_group = self.parent(current_group)
-                            current_group = parent_group
-                            g = g[3:]
-                            if parent_group is None and g.startswith(
-                                f"..{group_separator}"
-                            ):
-                                # We're about to go beyond the root
-                                # group!
-                                raise DimensionParsingException(
-                                    "Upward path traversals in Zarr dimension "
-                                    "name go beyond the root group: "
-                                    f"dataset={self.dataset_name()} "
-                                    f"variable={var_name} "
-                                    f"dimension_name={name}"
-                                )
-    
-                        g = group_separator.join((self.path(current_group), g))
-    
-                    elif name.startswith(group_separator):
-                        # --------------------------------------------
-                        # Absolute path dimension name that starts
-                        # with '/', and contains no upward path
-                        # traversals ('../').
-                        #
-                        # E.g. "/dim"
-                        # E.g. "/group1/dim"
-                        # --------------------------------------------
-                        if g == "":
-                            g = group_separator
-    
-                    else:
-                        # --------------------------------------------
-                        # Relative path dimension name which contains
-                        # '/' and which contains no upward path
-                        # traversals ('../').
-                        #
-                        # E.g. "group1/dim"
-                        # --------------------------------------------
-                        g = group_separator.join((group_path, g))
-    
+
+                    g = "/".join(name_split[:-1])
+                    try:
+                        g = self[g].path
+                    except KeyError:
+                        raise NetCDFError("Bad dimension name TODO")
+
+                # TODO
                 zarr_dim = None
                 if g in group_to_dims:
                     # Group 'g' is already registered in the mapping
@@ -1359,48 +1431,48 @@ class Group(Mapping):
                         # Dimension 'basename' is already registered
                         # in group 'g'
                         if zarr_dim.size != size:
-                            raise DimensionParsingException(
-                                f"Zarr Dimension has the wrong size: {size}. "
+                            raise NetCDFError(
+                                f"Zarr dimension has the wrong size: {size}. "
                                 f"Expected size {zarr_dim.size} "
                                 "(defined by variable "
                                 f"{zarr_dim.reference_variable().name}). "
                                 f"dataset={self.dataset_name()} "
-                                f"variable={var_name} "
+                                f"variable={var_path} "
                                 f"dimension_name={name}"
                             )
                 else:
                     # Initialise group 'g' in the mapping
                     group_to_dims[g] = {}
-    
+
                 if zarr_dim is None:
-                    # Register a new ZarrDimension in a group
-                    defining_group = input_ds.get(g)
+                    # Register a new Dimension in a group
+                    defining_group = root.get(g)
                     if defining_group is None:
                         # Must be the root group
-                        defining_group = input_ds
-    
+                        defining_group = root
+
                     zarr_dim = Dimension(basename, size, False, defining_group)
                     group_to_dims[g][basename] = zarr_dim
-    
-                # Map the variable to the ZarrDimension object
-                var_to_dims[var_name] += (zarr_dim,)
-    
-        # Recursively scan all child groups
-        for g in group.group_values():
-            _populate_dimension_maps(g)
 
-    def _variable_raw_dimension_names(self, var):
+                # Map the variable to the ZarrDimension object
+                var_to_dims[var_path] += (zarr_dim,)
+
+        # ------------------------------------------------------------
+        # Recursively scan all child groups
+        # ------------------------------------------------------------
+        for g in group.groups.values():
+            self._populate_dimension_maps(g)
+
+    def _zarr_raw_dimension_names(self, variable):
         """Return the raw dimension names for a variable.
 
         Currently this is only required for, and only works for, Zarr
         variables. An `AttributeError` will be raised if called for
         any other type of variable.
 
-        .. versionadded:: (cfdm) 1.13.0.0
-
         :Parameters:
 
-            var:
+            var: `Variable`
                 The variable object.
 
         :Returns:
@@ -1410,29 +1482,31 @@ class Group(Mapping):
                 will have an empty list.
 
         """
-        zarr_format = var.metadata.zarr_format
+        zarr_var = variable._var
+        metadata = zarr_var.metadata
+
+        zarr_format = metadata.zarr_format
         match zarr_format:
             case 3:
-                dimensions = var.metadata.dimension_names
+                dimensions = metadata.dimension_names
             case 2:
-                dimensions = var.metadata.attrs.get("_ARRAY_DIMENSIONS")
+                dimensions = metadata.attrs.get("_ARRAY_DIMENSIONS")
             case _:
-                raise DimensionParsingException(
-                    f"Can't flatten a Zarr v{zarr_format} dataset. "
-                    "Only Zarr v3 and v2 can be flattened"
+                raise NetCDFError(
+                    f"Can't parse a Zarr v{zarr_format} dataset. "
+                    "Only Zarr v3 and v2 can be parsed."
                 )
 
         if dimensions is None:
-            if var.shape:
-                raise DimensionParsingException(
+            if variable.shape:
+                raise NetCDFError(
                     f"Non-scalar Zarr v{zarr_format} variable has no "
-                    f"dimension names: {var.name}"
+                    f"dimension names: {variable.path}"
                 )
 
             dimensions = []
 
         return dimensions
-
 
     @property
     def attrs(self):
@@ -1445,6 +1519,18 @@ class Group(Mapping):
 
         """
         return self._attrs
+
+    @property
+    def backend(self):
+        """The TODO variable attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._backend
 
     @property
     def dimensions(self):
@@ -1469,6 +1555,18 @@ class Group(Mapping):
 
         """
         return self._groups
+
+    @property
+    def lib(self):
+        """The TODO variable attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._lib
 
     @property
     def name(self):
@@ -1509,13 +1607,13 @@ class Group(Mapping):
         path = getattr(self, "_path", None)
         if path is None:
             match self.backend:
-                case "pyfive" | "netCDF4" | "zarr" | "h5py" :
+                case "pyfive" | "netCDF4" | "zarr" | "h5py":
                     # TODO is this OK for netCDF3?
                     path = self._grp.name
                 case "netcdf_file":
                     path = "/"
                     # TODO is this OK for netCDF3?
-               
+
             self._path = path
 
         return path
@@ -1544,8 +1642,15 @@ class Group(Mapping):
         """
         return self._variables
 
-    def dump(self, display=True, _prefix=None, _level=0, _recursive=True):
-        """A full description.
+    def dump(
+        self,
+        display=True,
+        _prefix=None,
+        _level=0,
+        _recursive=True,
+        _structure=False,
+    ):
+        """A full description of the group.
 
         :Parameters:
 
@@ -1572,7 +1677,7 @@ class Group(Mapping):
         i2 = indent * (_level + 2)
 
         # Attributes
-        if self.attrs:
+        if not _structure and self.attrs:
             lines.append(f"{i1}Attributes:")
             lines.extend(
                 f"{i2}{name}: {value!r}" for name, value in self.attrs.items()
@@ -1582,14 +1687,15 @@ class Group(Mapping):
         if self.dimensions:
             lines.append(f"{i1}Dimensions:")
             lines.extend(
-                f"{i2}{name}: {dim!r}" for name, dim in self.dimensions.items()
+                f"{i2}{dim.dump(display=False)}"
+                for name, dim in self.dimensions.items()
             )
-
         # Variables
         if self.variables:
             lines.append(f"{i1}Variables:")
             lines.extend(
-                f"{i2}{name}: {var!r}" for name, var in self.variables.items()
+                f"{i2}{var.dump(display=False, _level=_level + 2, _structure=_structure)}"
+                for name, var in self.variables.items()
             )
 
         # Groups
@@ -1597,7 +1703,7 @@ class Group(Mapping):
             lines.append(f"{i1}Groups:")
             if _recursive:
                 lines.extend(
-                    f"{i2}{group.dump(display=False, _level=_level + 2)}"
+                    f"{i2}{group.dump(display=False, _level=_level + 2, _recursive=True, _structure=_structure)}"
                     for group in self.groups.values()
                 )
             else:
@@ -1612,6 +1718,31 @@ class Group(Mapping):
             return
 
         return out
+
+    def structure(
+        self,
+        display=True,
+        _prefix=None,
+        _level=0,
+    ):
+        """A full description of the `Group`.
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
+        return self.dump(display, _prefix, _level, True, True)
 
 
 class File(Group):
@@ -1703,12 +1834,13 @@ class File(Group):
         import pyfive
 
         if mode != "r":
-            raise ValueError("'mode' must be 'r'. Got: {mode!r}")
+            raise ValueError("mode must be 'r'. Got: mode={mode!r}")
 
         if isinstance(dataset, pyfive.File):
             nc = dataset
             attrs = dataset.attrs
-            self.backend = "pyfive"
+            self._backend = "pyfive"
+            self._lib = pyfive
             # The opened dataset is owned externally
             self._owns_nc = False
 
@@ -1761,10 +1893,10 @@ class File(Group):
             self._owns_nc = True
 
         # ------------------------------------------------------------
-        # Initialise the group structure    
+        # Initialise the group structure
         # ------------------------------------------------------------
         super().__init__(
-            name="", parent=None, root=self, h5=nc, h5_attrs=attrs
+            name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
     def __enter__(self):
@@ -1818,17 +1950,24 @@ class File(Group):
                 # exists, or when an array referring to a variable's
                 # data still exists (see scipy.io.netcdf_file docs for
                 # details). So, rather than attempting to hunt down
-                # all such reference (not possible!), the hack of
-                # setting the '_mm_buf' attribute to `None` allows the
-                # file to be closed. We get away with this because we
-                # know that we've copied all memory mapped data into
-                # memory inside `Variable.__getitem__`.
+                # all such references (messy!), the hack of setting
+                # the '_mm_buf' attribute to `None` allows the file to
+                # be closed. We get away with this because we know
+                # that we've copied all memory mapped data into memory
+                # inside `Variable.__getitem__`.
                 self._grp._mm_buf = None
 
             self._grp.close()
 
-    def dump(self, display=True, _prefix=None, _level=0, _recursive=True):
-        """A full description.
+    def dump(
+        self,
+        display=True,
+        _prefix=None,
+        _level=0,
+        _recursive=True,
+        _structure=False,
+    ):
+        """A full description of the group.
 
         :Parameters:
 
@@ -1846,10 +1985,13 @@ class File(Group):
 
         """
         if _prefix is None:
-            _prefix = f"{self.__class__.__name__}: "
+            _prefix = ""
 
         out = "\n".join(
-            (self.filename, super().dump(False, _prefix, _level, _recursive))
+            (
+                self.filename,
+                super().dump(False, _prefix, _level, _recursive, _structure),
+            )
         )
         if display:
             print(out)
@@ -1874,7 +2016,8 @@ class File(Group):
         import zarr
 
         nc = zarr.open(dataset, mode="r")
-        self.backend = "zarr"
+        self._backend = "zarr"
+        self._lib = zarr
         return nc, nc.attrs
 
     def _open_netCDF4(self, filename):
@@ -1893,7 +2036,8 @@ class File(Group):
         import netCDF4
 
         nc = netCDF4.Dataset(filename, mode="r")
-        self.backend = "netCDF4"
+        self._backend = "netCDF4"
+        self._lib = netCDF4
         return nc, {attr: nc.getncattr(attr) for attr in nc.ncattrs()}
 
     def _open_netcdf_file(self, filename):
@@ -1914,7 +2058,8 @@ class File(Group):
         from scipy.io import netcdf_file
 
         nc = netcdf_file(filename, mode="r", mmap=True)
-        self.backend = "netcdf_file"
+        self._backend = "netcdf_file"
+        self._lib = netcdf_file
         return nc, nc._attributes
 
     def _open_pyfive(self, dataset):
@@ -1938,7 +2083,8 @@ class File(Group):
         import pyfive
 
         nc = pyfive.File(dataset, mode="r")
-        self.backend = "pyfive"
+        self._backend = "pyfive"
+        self._lib = pyfive
         return nc, nc.attrs
 
     def _open_h5py(self, dataset):
@@ -1968,5 +2114,6 @@ class File(Group):
             rdcc_w0=0.75,
             rdcc_nslots=4133,
         )
-        self.backend = "h5py"
+        self._backend = "h5py"
+        self._lib = h5py
         return nc, nc.attrs
