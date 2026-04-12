@@ -5,6 +5,10 @@ from os.path import expanduser, expandvars
 
 import numpy as np
 
+from .utils import NetCDFError, _parse_attributes
+
+from .utils_zarr import zarr_open
+
 # Ignore netCDF internal attributes
 _IGNORED_ATTRS = {
     "CLASS",
@@ -16,103 +20,103 @@ _IGNORED_ATTRS = {
 _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
 
-class NetCDFError(Exception):
-    """Error raised when file can't be parsed as netCDF."""
-
-    pass
-
-
-def _format_attr(lib, value):
-    """Format an attribute according to netCDF-4.
-
-    .. versionadded:: (cfdm) NEXTVERSION
-
-    :Parameters:
-
-        obj: `Group` or `Variable`
-            The object that owns the raw attribute.
-
-        value:
-            The raw attribute value.
-
-    :Returns:
-
-            The formatted attribute value adhering to netCDF-4.
-
-    """
-    # Handle strings/bytes immediately
-    if isinstance(value, (bytes, np.bytes_)):
-        return value.decode("utf-8")
-
-    try:
-        if isinstance(value, lib.Empty):
-            dtype = value.dtype
-            if dtype.kind in "SUT":
-                return ""
-
-            return np.array([], dtype=value)
-    except AttributeError:
-        pass
-
-    if isinstance(value, str):
-        return value
-
-    if np.isscalar(value):
-        return value
-
-    # A Python or numpy sequence attribute
-    is_numpy = False
-    try:
-        size = value.size  # Works for numpy
-        is_numpy = True
-    except AttributeError:
-        try:
-            size = len(value)  # Works for lists
-        except TypeError:
-            return value
-
-    # Empty sequence
-    if not size:
-        if isinstance(value, (bytes, str)) or (
-            isinstance(value, np.ndarray) and value.dtype.kind in "SUT"
-        ):
-            return ""
-
-        return value
-
-    if is_numpy:
-        item = value.flat[0]
-    else:
-        item = value[0]
-
-    # Single-element sequence
-    if size == 1:
-        # If size == 1 and it's an array, then treat it as a scalar.
-        if isinstance(item, (bytes, np.bytes_)):
-            # Return as a string
-            return item.decode("utf-8")
-
-        # Return as a numpy scalar
-        if is_numpy:
-            return item
-
-        return getattr(value, "dtype", np.array(item).dtype).type(item)
-
-    # Multi-element sequence: Return as a numeric numpy array, or as a
-    # list of strings.
-
-    # String sequence
-    if isinstance(item, (bytes, np.bytes_)):
-        return [v.decode("utf-8") for v in value]
-
-    if isinstance(item, str):
-        return list(value)
-
-    # Numeric sequence
-    if is_numpy:
-        return value
-
-    return np.array(value)
+#class NetCDFError(Exception):
+#    """Error raised when file can't be parsed as netCDF."""#
+#
+#    pass
+#
+#
+#def _format_attr(lib, value):
+#    """Format an attribute according to netCDF-4.
+#
+#    .. versionadded:: (cfdm) NEXTVERSION
+#
+#    :Parameters:
+#
+#        obj: `Group` or `Variable`
+#            The object that owns the raw attribute.
+#
+#        value:
+#            The raw attribute value.
+#
+#    :Returns:
+#
+#            The formatted attribute value adhering to netCDF-4.
+#
+#    """
+#    # Handle strings/bytes immediately
+#    if isinstance(value, (bytes, np.bytes_)):
+#        return value.decode("utf-8")
+#
+#    try:
+#        if isinstance(value, lib.Empty):
+#            dtype = value.dtype
+#            if dtype.kind in "SUT":
+#                return ""
+#
+#            return np.array([], dtype=value)
+#    except AttributeError:
+#        pass
+#
+#    if isinstance(value, str):
+#        return value
+#
+#    if np.isscalar(value):
+#        return value
+#
+#    # A Python or numpy sequence attribute
+#    is_numpy = False
+#    try:
+#        size = value.size  # Works for numpy
+#        is_numpy = True
+#    except AttributeError:
+#        try:
+#            size = len(value)  # Works for lists
+#        except TypeError:
+#            return value
+#
+#    # Empty sequence
+#    if not size:
+#        if isinstance(value, (bytes, str)) or (
+#            isinstance(value, np.ndarray) and value.dtype.kind in "SUT"
+#        ):
+#            return ""
+#
+#        return value
+#
+#    if is_numpy:
+#        item = value.flat[0]
+#    else:
+#        item = value[0]
+#
+#    # Single-element sequence
+#    if size == 1:
+#        # If size == 1 and it's an array, then treat it as a scalar.
+#        if isinstance(item, (bytes, np.bytes_)):
+#            # Return as a string
+#            return item.decode("utf-8")
+#
+#        # Return as a numpy scalar
+#        if is_numpy:
+#            return item
+#
+#        return getattr(value, "dtype", np.array(item).dtype).type(item)
+#
+#    # Multi-element sequence: Return as a numeric numpy array, or as a
+#    # list of strings.
+#
+#    # String sequence
+#    if isinstance(item, (bytes, np.bytes_)):
+#        return [v.decode("utf-8") for v in value]
+#
+#    if isinstance(item, str):
+#        return list(value)
+#
+#    # Numeric sequence
+#    if is_numpy:
+#        return value
+#
+#    return np.array(value)
 
 
 def _parse_attributes(obj, raw_attributes):
@@ -244,9 +248,11 @@ class Dimension:
         """
         path = getattr(self, "_path", None)
         if path is None:
-            path = self.parent.path
-            if path == "/":
+            parent = self.parent
+            if parent.isroot:
                 path = ""
+            else:
+                path = parent.path
 
             path += f"/{self.name}"
             self._path = path
@@ -473,12 +479,10 @@ class Variable:
                 # ----------------------------------------------------
                 # zarr
                 # ----------------------------------------------------
-                if hasattr(self.root, "_var_to_dims"):
-                    return tuple(
-                        dim.name for dim in self.root._var_to_dims[self.path]
-                    )
-
-                return
+                # Handled in `zarr_parse_group_structure`
+                #pass
+                #                return zarr_get_dimensions(self)
+                return tuple(dim.name for dim in self.get_dims())
 
     @property
     def backend(self):
@@ -552,14 +556,14 @@ class Variable:
         if dimensions is None:
             dimensions = self._get_dimensions()
             self._dimensions = dimensions
-            if dimensions is not None:
-                del self._var_attrs
+#            if dimensions is not None:
+#                del self._var_attrs
 
         return dimensions
 
     @property
     def dtype(self):
-        """The numpy data type of the variable's dataset."""
+        """The numpy data type of the variable."""
         dtype = getattr(self, "_dtype", None)
         if dtype is None:
             match self.backend:
@@ -572,6 +576,9 @@ class Variable:
                         .flat[0]
                         .dtype
                     )
+#                case "zarr":
+#                    return zarr_dtype(self)
+
 
             self._dtype = dtype
 
@@ -693,10 +700,12 @@ class Variable:
                 case "pyfive" | "zarr" | "h5py":
                     path = self._var.name
                 case "netCDF4":
-                    path = self.parent.path
-                    if path == "/":
+                    parent = self.parent
+                    if parent.isroot:
                         path = ""
-
+                    else:
+                        path = parent.path
+                        
                     path += f"/{self.name}"
                 case "netcdf_file":
                     path = f"/{self.name}"
@@ -815,26 +824,39 @@ class Variable:
         if dims is not None:
             return dims
 
-        dims = []
-        for dim_name in self.dimensions:
-            current_group = self.parent
-            found = False
+        match self.backend:
+            case "pyfive" | "h5py" | "netcdf_file":
+                dims = []
+                for dim_name in self.dimensions:
+                    # Walk up the tree to find where the dimension is
+                    # defined
+                    current_group = self.parent
+                    found = False
+                    while current_group is not None:
+                        dim = current_group.dimensions.get(dim_name)
+                        if dim is not None:
+                            dims.append(dim)
+                            found = True
+                            break
+                        
+                        current_group = current_group.parent
+        
+                    if not found:
+                        raise NetCDFError(
+                            f"Dimension {dim_name!r} not found in the "
+                            "group hierarchy."
+                        )
 
-            # Walk up the tree to find where the dimension is defined
-            while current_group is not None:
-                dim = current_group.dimensions.get(dim_name)
-                if dim is not None:
-                    dims.append(dim)
-                    found = True
-                    break
-
-                current_group = current_group.parent
-
-            if not found:
-                raise NetCDFError(
-                    f"Dimension {dim_name!r} not found in the group hierarchy."
-                )
-
+            case "netCDF4":
+                root = self.root
+                dims = [
+                    root[ndim.group().path].dimensions[ndim.name]
+                    for ndim in self._var.get_dims()
+                ]
+                           
+            case "zarr":
+                dims = self.root._var_to_dims[self.path]
+                                
         dims = tuple(dims)
         self._dims = dims
         return dims
@@ -917,6 +939,7 @@ class Group(Mapping):
         self._backend = root.backend
         self._lib = root.lib
         self._grp = grp
+        self._isroot = False
 
         self._attrs = _parse_attributes(self, grp_attrs)
 
@@ -1018,11 +1041,11 @@ class Group(Mapping):
         pv = "" if len(self.variables) == 1 else "s"
         pg = "" if len(self.groups) == 1 else "s"
 
-        path = self.path
-        if path == "/":
+        parent = self.parent
+        if parent.isroot:
             path = ""
         else:
-            path += ", "
+            path = f"{self.path}, "
 
         return (
             f"<netcdf.{self.__class__.__name__}: "
@@ -1214,6 +1237,7 @@ class Group(Mapping):
                     )
 
             case "zarr":
+                #zarr_parse_group_structure(group, root ,Group, Variable, Dimension)
                 # ----------------------------------------------------
                 # zarr
                 # ----------------------------------------------------
@@ -1235,7 +1259,7 @@ class Group(Mapping):
 
                 # Create dimensions in all groups, starting with the
                 # root group.
-                if self.path == "/":
+                if self.isroot:
                     root._group_to_dims = {}
                     root._var_to_dims = {}
                     self._populate_dimension_maps(self)
@@ -1554,13 +1578,24 @@ class Group(Mapping):
         return self._groups
 
     @property
-    def lib(self):
-        """The TODO variable attributes.
+    def isroot(self):
+        """Whether or not this is the root group.
 
         :Returns:
 
-            `dict`
-                The attribute values, keyed by their names.
+            `bool`
+                `True` if this is the root group, otherwise `False`.
+
+        """
+        return self._isroot
+
+    @property
+    def lib(self):
+        """TODO.
+
+        :Returns:
+            
+                TODO
 
         """
         return self._lib
@@ -1896,6 +1931,9 @@ class File(Group):
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
+        # This is the root group
+        self._isroot = True
+        
     def __enter__(self):
         """Enter the runtime context related to this object."""
         return self
@@ -2010,12 +2048,13 @@ class File(Group):
             `zarr.Group`
 
         """
-        import zarr
-
-        nc = zarr.open(dataset, mode="r")
-        self._backend = "zarr"
-        self._lib = zarr
-        return nc, nc.attrs
+        return zarr_open(self, dataset)
+#        import zarr
+#
+#        nc = zarr.open(dataset, mode="r")
+#        self._backend = "zarr"
+#        self._lib = zarr
+#        return nc, nc.attrs
 
     def _open_netCDF4(self, filename):
         """Return an open `netCDF4.Dataset`.
