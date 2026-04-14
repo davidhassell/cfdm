@@ -1049,7 +1049,7 @@ class _Flattener:
             compression=None,
             complevel=4,
             shuffle=True,
-            fletcher32=False,
+            fletchexr32=False,
             contiguous=self.contiguous(var),
             chunksizes=self.chunksizes(var),
             endian=self.endian(var),

@@ -107,7 +107,7 @@ def zarr_dimension_maps(group, dimension_cls):
         var_path = v.path
         var_to_dims[var_path] = ()
 
-        raw_dimension_names = self._zarr_raw_dimension_names(v)
+        raw_dimension_names = zarr_raw_dimension_names(v)
         if not raw_dimension_names:
             # A scalar variable has no dimensions
             continue
@@ -190,14 +190,14 @@ def zarr_dimension_maps(group, dimension_cls):
                 if name.endswith("/"):
                     raise NetCDFError(
                         "Dimension names can't end with '/': "
-                        f"dataset={self.dataset_name()} "
+                        f"dataset={group.dataset_name()} "
                         f"variable={var_path} "
                         f"dimension_name={name}"
                     )
 
                 g = "/".join(name_split[:-1])
                 try:
-                    g = self[g].path
+                    g = group[g].path
                 except KeyError:
                     raise NetCDFError("Bad dimension name TODO")
 
@@ -299,7 +299,6 @@ def zarr_open(root, dataset):
     import zarr
 
     nc = zarr.open(dataset, mode="r")
-    root._backend = "zarr"
     root._lib = zarr
     return nc, nc.attrs
 
@@ -315,7 +314,7 @@ def zarr_parse_group_structure(group, root, group_cls, variable_cls, dimension_c
     for name, grp in dict(group._grp.groups()).items():
         group._groups[name] = group_cls(
             name=name,
-            parent=self,
+            parent=group,
             root=root,
             grp=grp,
             grp_attrs=grp.attrs,
