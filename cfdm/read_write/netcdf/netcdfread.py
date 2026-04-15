@@ -2630,7 +2630,7 @@ class NetCDFRead(IORead):
                     for construct in g["get_constructs"][construct_type](
                         f
                     ).values():
-                        ncvar = self.implementation.nc_get_variable(construct)
+                        ncvar = self._absolute_ncvar(construct)
                         if ncvar not in all_fields_or_domains:
                             continue
 
@@ -4495,7 +4495,7 @@ class NetCDFRead(IORead):
                 if coord.has_bounds():
                     bounds = self.implementation.get_bounds(coord)
                     self._reference(
-                        self.implementation.nc_get_variable(bounds),
+                        self._absolute_ncvar(bounds),
                         field_ncvar,
                     )
 
@@ -4696,7 +4696,7 @@ class NetCDFRead(IORead):
                             axes=ugrid_axis,
                             copy=True,
                         )
-                        ncvar = self.implementation.nc_get_variable(aux)
+                        ncvar = self._absolute_ncvar(aux)
 
                         ugrid_aux_ncvars.append(ncvar)
 
@@ -4707,7 +4707,7 @@ class NetCDFRead(IORead):
                         if self.implementation.has_bounds(aux):
                             bounds = self.implementation.get_bounds(aux)
                             self._reference(
-                                self.implementation.nc_get_variable(bounds),
+                                self._absolute_ncvar(bounds),
                                 field_ncvar,
                             )
 
@@ -4820,7 +4820,7 @@ class NetCDFRead(IORead):
                     if self.implementation.has_bounds(coord):
                         bounds = self.implementation.get_bounds(coord)
                         self._reference(
-                            self.implementation.nc_get_variable(bounds),
+                            self._absolute_ncvar(bounds),
                             field_ncvar,
                         )
 
@@ -4844,7 +4844,7 @@ class NetCDFRead(IORead):
                     if self.implementation.has_bounds(coord):
                         bounds = self.implementation.get_bounds(coord)
                         self._reference(
-                            self.implementation.nc_get_variable(bounds),
+                            self._absolute_ncvar(bounds),
                             field_ncvar,
                         )
 
@@ -4988,7 +4988,7 @@ class NetCDFRead(IORead):
             if self.implementation.has_bounds(coord):
                 bounds = self.implementation.get_bounds(coord)
                 self._reference(
-                    self.implementation.nc_get_variable(bounds), field_ncvar
+                    self._absolute_ncvar(bounds), field_ncvar
                 )
 
             ncvar_to_key[ncvar] = key
@@ -5074,7 +5074,7 @@ class NetCDFRead(IORead):
                 if self.implementation.has_bounds(coord):
                     bounds = self.implementation.get_bounds(coord)
                     self._reference(
-                        self.implementation.nc_get_variable(bounds),
+                        self._absolute_ncvar(bounds),
                         field_ncvar,
                     )
 
@@ -5098,7 +5098,7 @@ class NetCDFRead(IORead):
                     copy=True,
                 )
                 self._reference(ncvar, field_ncvar)
-                ncvar = self.implementation.nc_get_variable(domain_topology)
+                ncvar = self._absolute_ncvar(domain_topology)
                 ncvar_to_key[ncvar] = key
 
         # ------------------------------------------------------------
@@ -5122,7 +5122,7 @@ class NetCDFRead(IORead):
                     copy=True,
                 )
                 self._reference(ncvar, field_ncvar)
-                ncvar = self.implementation.nc_get_variable(cell_connectivity)
+                ncvar = self._absolute_ncvar(cell_connectivity)
                 ncvar_to_key[ncvar] = key
 
         # ------------------------------------------------------------
@@ -5130,13 +5130,15 @@ class NetCDFRead(IORead):
         # properties
         # ------------------------------------------------------------
         for key, coord in self.implementation.get_coordinates(f).items():
-            coord_ncvar = self.implementation.nc_get_variable(coord)
+            coord_ncvar = self._absolute_ncvar(coord)
 
             if coord_ncvar is None:
                 # This might be the case if the coordinate construct
                 # just contains geometry nodes
                 continue
 
+            if not coord_ncvar.startswith('/'):
+                coord_ncvar = f"/{coord_ncvar}"
 #            formula_terms = g["variable_attributes"][coord_ncvar].get(
 #                "formula_terms"
 #            )
@@ -5221,7 +5223,7 @@ class NetCDFRead(IORead):
                 if self.implementation.has_bounds(domain_anc):
                     bounds = self.implementation.get_bounds(domain_anc)
                     self._reference(
-                        self.implementation.nc_get_variable(bounds),
+                        self._absolute_ncvar(bounds),
                         field_ncvar,
                     )
 
@@ -12896,3 +12898,14 @@ class NetCDFRead(IORead):
             return "kerchunk_bytes"
 
         return "unknown"
+
+    def _absolute_ncvar(self, x):
+        try:
+            ncvar =  self.implementation.nc_get_variable(x)
+        except Exception: # TODO
+            ncvar = x
+        
+        if not ncvar.startswith('/'):
+            ncvar = f"/{ncvar}"
+            
+        return ncvar
