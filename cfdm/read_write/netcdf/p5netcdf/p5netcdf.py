@@ -340,18 +340,6 @@ class Variable:
                 return tuple(dim.name for dim in self.get_dims())
 
     @property
-    def backend(self):
-        """The TODO variable attributes.
-
-        :Returns:
-
-            `dict`
-                The attribute values, keyed by their names.
-
-        """
-        return self._backend
-
-    @property
     def attrs(self):
         """The variable attributes.
 
@@ -362,6 +350,19 @@ class Variable:
 
         """
         return self._attrs
+
+
+    @property
+    def backend(self):
+        """The TODO variable attributes.
+
+        :Returns:
+
+            `dict`
+                The attribute values, keyed by their names.
+
+        """
+        return self._backend
 
     @property
     def chunks(self):
@@ -393,6 +394,27 @@ class Variable:
             self._chunks = chunks
 
         return chunks
+
+
+    @property
+    def dimension_paths(self):
+        """The variable dimensions.
+
+        .. seealso:: `dimensions`, `get_dims`
+
+        :Returns:
+
+            `tuple`
+                The dimension paths, in the order of the data array
+                dimensions.
+
+        """
+        paths = getattr(self, "_dimension_paths", None)
+        if paths is None:
+            paths =  tuple(dim.path for dim in self.get_dims())
+            self._dimension_paths = paths
+
+        return paths
 
     @property
     def dimensions(self):
@@ -580,6 +602,23 @@ class Variable:
 
         """
         return self.parent.root
+
+    @property
+    def shards(self):
+        """The TODO dimension lengths of the variable.
+
+        :Returns:
+
+            `tuple` of `int`
+                The dimension lengths (e.g. ``(12, 96, 73)``).
+
+        """
+        shards = getattr(self, "_shards", None)
+        if shards is None:
+            shards = getattr(self._var, "shards", None)
+            self._shards = shards
+
+        return shards
 
     @property
     def shape(self):
@@ -913,10 +952,14 @@ class Group(Mapping):
         """Called by the `str` built-in function."""
         return self.dump(display=False, _recursive=False, _structure=True)
 
-    
     def _populate_all(self):
         """TODO"""
         root = self.root
+
+        if self.isroot:
+            root._all_dimensions = {}
+            root._all_variables = {}
+            root._all_groups = {}
 
         for dimension in self._dimensions.values():
             root._all_dimensions[dimension.path] = dimension
@@ -926,7 +969,7 @@ class Group(Mapping):
 
         root._all_groups[self.path] = self
 
-        for group in self.groups().values():
+        for group in self.groups.values():
             group._populate_all()
 
     def _parse_group_structure(self, root):
@@ -1450,10 +1493,6 @@ class File(Group):
         """
         import pyfive
 
-        self._all_dimensions = {}
-        self._all_variables = {}
-        self._all_groups = {}
-        
         if mode != "r":
             raise ValueError("mode must be 'r'. Got: mode={mode!r}")
 
@@ -1503,6 +1542,12 @@ class File(Group):
 
             self._open_log = open_log
             if nc is None:
+                try:
+                    # Rewind file-like
+                    dataset.seek(0)
+                except AttributeError:
+                    pass
+                
                 error = "\n\n".join(open_log)
                 raise NetCDFError(
                     f"Can't interpret {dataset} as a netCDF dataset "
@@ -1519,11 +1564,6 @@ class File(Group):
         super().__init__(
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
-
-        # ------------------------------------------------------------
-        # TODO
-        # ------------------------------------------------------------
-        self._populate_all()
         
     def __enter__(self):
         """Enter the runtime context related to this object."""
@@ -1588,6 +1628,27 @@ class File(Group):
             except AttributeError:
                 pass
 
+    @property
+    def all_dimensions(self):
+        if getattr(self, '_all_dimensions', None) is None:
+            self._populate_all()
+
+        return self._all_dimensions
+
+    @property
+    def all_groups(self):
+        if getattr(self, '_all_groups', None) is None:
+            self._populate_all()
+
+        return self._all_groups
+
+    @property
+    def all_variables(self):
+        if getattr(self, '_all_variables', None) is None:
+            self._populate_all()
+
+        return self._all_variables
+            
     def dump(
         self,
         display=True,
