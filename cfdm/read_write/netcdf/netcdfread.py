@@ -4369,6 +4369,7 @@ class NetCDFRead(IORead):
                 field_ncvar, field_groups, ncdim
             )
 
+            print(ncdim, field_ncvar, field_ncdimensions, ncvar)
             if ncvar is not None:
                 # There is a Unidata coordinate variable for this
                 # dimension, so create a domain axis and dimension
