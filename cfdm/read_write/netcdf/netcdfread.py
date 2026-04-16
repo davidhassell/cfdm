@@ -1945,17 +1945,20 @@ class NetCDFRead(IORead):
                         # Do not attempt to create a field from a
                         # count variable
                         g["do_not_create_field"].add(ncvar)
-
+                    break
                 instance_dimension = None
                 #                for ncvar, attributes in variable_attributes.items():
                 for ncvar, variable in g["variables"].items():
                     #                    attributes = variable.attrs
+                    print(ncvar, variable.attrs)
                     instance_dimension = variable.attrs.get(
                         "instance_dimension"
                     )
                     if instance_dimension is None:
                         continue
 
+                    print('copntinuing')
+                    
                     # ------------------------------------------------
                     # This variable is an index variable for DSG
                     # indexed ragged arrays
@@ -1978,7 +1981,8 @@ class NetCDFRead(IORead):
                         # Do not attempt to create a field from a
                         # index variable
                         g["do_not_create_field"].add(ncvar)
-
+                    break
+                print (sample_dimension, instance_dimension)
                 if (
                     sample_dimension is not None
                     and instance_dimension is not None
@@ -2827,6 +2831,7 @@ class NetCDFRead(IORead):
                 maximum number of sub-features in any instance.
 
         """
+        print ('parse I C', sample_dimension, instance_dimension)
         g = self.read_vars
         debug = g["debug"]
 
@@ -7991,6 +7996,7 @@ class NetCDFRead(IORead):
                 # Get dimensions from the netCDF variable array
                 #   ncdimensions = g["variable_dimensions"][ncvar]
                 ncdimensions = g["variable_dimension_paths"][ncvar]
+                ##ncdimensions = variable.dimension_paths
             else:
                 # Use the pre-recorded domain variable dimensions
                 ncdimensions = domain_ncdimensions
@@ -8009,7 +8015,7 @@ class NetCDFRead(IORead):
         # are any, then return the netCDF dimensions for the
         # uncompressed variable.
         compression = g["compression"]
-
+        print(ncvar, ncdimensions)
         if compression and set(compression).intersection(ncdimensions):
             implied_bounds_ncdimensions = None
 
@@ -8027,8 +8033,7 @@ class NetCDFRead(IORead):
                     continue
 
                 i = ncdimensions.index(ncdim)
-
-                print(ncvar, c)
+                print(ncvar, 1111, c)
                 
                 if "gathered" in c:
                     # Compression by gathering
@@ -8052,6 +8057,7 @@ class NetCDFRead(IORead):
                     ncdimensions[i : i + 1] = c["ragged_contiguous"][
                         "implied_ncdimensions"
                     ]
+                    print('       ', ncdimensions)
                     break
                 elif "ragged_indexed" in c:
                     # Indexed ragged array
