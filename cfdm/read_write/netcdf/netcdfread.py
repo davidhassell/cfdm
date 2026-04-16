@@ -1945,20 +1945,21 @@ class NetCDFRead(IORead):
                         # Do not attempt to create a field from a
                         # count variable
                         g["do_not_create_field"].add(ncvar)
+
+                    # We're assuming, as per CF, that there is only
+                    # one count variable in the dataset
                     break
+                
                 instance_dimension = None
-                #                for ncvar, attributes in variable_attributes.items():
+                #  for ncvar, attributes in variable_attributes.items():
                 for ncvar, variable in g["variables"].items():
                     #                    attributes = variable.attrs
-                    print(ncvar, variable.attrs)
                     instance_dimension = variable.attrs.get(
                         "instance_dimension"
                     )
                     if instance_dimension is None:
                         continue
 
-                    print('copntinuing')
-                    
                     # ------------------------------------------------
                     # This variable is an index variable for DSG
                     # indexed ragged arrays
@@ -1977,12 +1978,15 @@ class NetCDFRead(IORead):
                         self._parse_indexed_compression(
                             ncvar, instance_dimension
                         )
-                        print('INDE NCVAR', ncvar)
+
                         # Do not attempt to create a field from a
                         # index variable
                         g["do_not_create_field"].add(ncvar)
+
+                    # We're assuming, as per CF, that there is only
+                    # one index variable in the dataset            
                     break
-                print (sample_dimension, instance_dimension)
+                
                 if (
                     sample_dimension is not None
                     and instance_dimension is not None
@@ -2831,7 +2835,6 @@ class NetCDFRead(IORead):
                 maximum number of sub-features in any instance.
 
         """
-        print ('parse I C', sample_dimension, instance_dimension)
         g = self.read_vars
         debug = g["debug"]
 
@@ -4113,7 +4116,7 @@ class NetCDFRead(IORead):
             ncvar, method = self._find_coordinate_variable(
                 field_ncvar, None, ncdim  # TODO
             )
-            print(ncdim, field_ncvar, field_ncdimensions, ncvar)
+
             if ncvar is not None:
                 # There is a Unidata coordinate variable for this
                 # dimension, so create a domain axis and dimension
@@ -4123,11 +4126,9 @@ class NetCDFRead(IORead):
                         "dimension_coordinate", field_ncvar, ncvar
                     )
                 else:
-                    print('HERE', ncvar)
                     coord = self._create_dimension_coordinate(
                         field_ncvar, ncvar, f
                     )
-                    print(11111)
                     g["dimension_coordinate"][ncvar] = coord
 
                 size = self.implementation.get_construct_data_size(coord)
@@ -5888,10 +5889,9 @@ class NetCDFRead(IORead):
         g = self.read_vars
 #        nc = g["nc"]
 
-        g["bounds"].setdefault('parent_ncvar', {}) # TODO
-        g["coordinates"].setdefault('parent_ncvar', []) # TODO
+        g["bounds"].setdefault(parent_ncvar, {})
+        g["coordinates"].setdefault(parent_ncvar, [])
 
-        print(repr(g["variables"][ncvar]))
         if ncvar is not None:
             # properties = g["variable_attributes"][ncvar].copy()
             properties = g["variables"][ncvar].attrs.copy()
@@ -5952,7 +5952,6 @@ class NetCDFRead(IORead):
         data = None
         if has_coordinates and ncvar is not None:
             data = self._create_data(ncvar, c, parent_ncvar=parent_ncvar)
-            print(data)
             self.implementation.set_data(c, data, copy=False)
 
         # Store the original file names
@@ -6811,7 +6810,7 @@ class NetCDFRead(IORead):
 
             #            match g["original_dataset_opened_with"]:
             match g["variables"][ncvar].backend:
-                #                case "p5netcdf" | "h5netcdf-pyfive":
+                # case "p5netcdf" | "h5netcdf-pyfive":
                 case "pyfive":
                     # Add the pyfive.Dataset object to the Array
                     # object initialisation
@@ -6956,7 +6955,6 @@ class NetCDFRead(IORead):
 
         # dimensions = g["variable_dimensions"][ncvar]
         dimensions = g["variable_dimension_paths"][ncvar]
-        print(dimensions)
         if (
             (uncompress_override is not None and uncompress_override)
             or not compression
@@ -8015,7 +8013,6 @@ class NetCDFRead(IORead):
         # are any, then return the netCDF dimensions for the
         # uncompressed variable.
         compression = g["compression"]
-        print(ncvar, ncdimensions)
         if compression and set(compression).intersection(ncdimensions):
             implied_bounds_ncdimensions = None
 
@@ -8033,7 +8030,6 @@ class NetCDFRead(IORead):
                     continue
 
                 i = ncdimensions.index(ncdim)
-                print(ncvar, 1111, c)
                 
                 if "gathered" in c:
                     # Compression by gathering
@@ -8057,7 +8053,6 @@ class NetCDFRead(IORead):
                     ncdimensions[i : i + 1] = c["ragged_contiguous"][
                         "implied_ncdimensions"
                     ]
-                    print('       ', ncdimensions)
                     break
                 elif "ragged_indexed" in c:
                     # Indexed ragged array
@@ -9017,6 +9012,7 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         if not parsed_grid_mapping:
+            print(9449)
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
@@ -9025,7 +9021,7 @@ class NetCDFRead(IORead):
                 conformance="5.6.requirement.1",
             )
             return False
-
+        print(99)
         ok = True
         for x in parsed_grid_mapping:
             grid_mapping_ncvar, values = list(x.items())[0]
@@ -9601,6 +9597,7 @@ class NetCDFRead(IORead):
             # variable OR to multiple variables with associated
             # coordinate variables (CF>=1.7)
             out = self._parse_x(parent_ncvar, string, keys_are_variables=True)
+            print(string, 'out = ', out)
         else:
             # The grid mapping attribute may only point to a single
             # netCDF variable (CF<=1.6)
@@ -9663,6 +9660,7 @@ class NetCDFRead(IORead):
         .. versionadded:: (cfdm) 1.7.0
 
         """
+        NEDD TO MAKE THIS WORK WITH / in the NAMES
         # ============================================================
         # Thanks to Alan Iwi for creating these regular expressions
         # ============================================================
@@ -9696,6 +9694,7 @@ class NetCDFRead(IORead):
 
         m = re.match(pat_all, string)
         if m is None:
+            print(string, 1111111111)
             return []
 
         sole_mapping = m.group("sole_mapping")
@@ -11066,31 +11065,31 @@ class NetCDFRead(IORead):
 
         return ok
 
-    def _dataset_has_groups(self, nc):
-        """True if the dataset has a groups other than the root group.
-
-        .. versionadded:: (cfdm) 1.12.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-        :Returns:
-
-            `bool`
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
-                return bool(nc.groups)
-
-            case "zarr":
-                return bool(tuple(nc.group_keys()))
-
-            case "netcdf_file":
-                return False
+#    def _dataset_has_groups(self, nc):
+#        """True if the dataset has a groups other than the root group.
+#
+#        .. versionadded:: (cfdm) 1.12.2.0
+#
+#        :Parameters:
+#
+#            nc:
+#                The dataset. One of `netCDF4.Dataset`,
+#                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
+#
+#        :Returns:
+#
+#            `bool`
+#
+#        """
+#        match self.read_vars["nc_opened_with"]:
+#            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+#                return bool(nc.groups)
+#
+#            case "zarr":
+#                return bool(tuple(nc.group_keys()))
+#
+#            case "netcdf_file":
+#                return False
 
     #    def _file_global_attribute(self, nc, attr):
     #        """Return a global attribute from a dataset.
@@ -11147,32 +11146,32 @@ class NetCDFRead(IORead):
     #
     #        return attributes
 
-    def _file_group_variable(self, group, varname):
-        """Return a variables from a group.
-
-        .. versionadded:: (cfdm) 1.13.0.0
-
-        :Parameters:
-
-            group:
-                The group.
-
-            varname:
-                The variable name relative to the group.
-
-        :Returns:
-
-                The variable object, or `None` if it couldn't be
-                found.
-
-        """
-        match self.read_vars["original_dataset_opened_with"]:
-            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
-                return group.variables.get(varname)
-
-            case "zarr":
-                return dict(group.arrays()).get(varname)
-
+#    def _file_group_variable(self, group, varname):
+#        """Return a variables from a group.
+#
+#        .. versionadded:: (cfdm) 1.13.0.0
+#
+#        :Parameters:
+#
+#            group:
+#                The group.
+#
+#            varname:
+#                The variable name relative to the group.
+#
+#        :Returns:
+#
+#                The variable object, or `None` if it couldn't be
+#                found.
+#
+#        """
+#        match self.read_vars["original_dataset_opened_with"]:
+#            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+#                return group.variables.get(varname)
+#
+#            case "zarr":
+#                return dict(group.arrays()).get(varname)
+#
     #    def _file_dimensions(self, nc):
     #        """Return all dimensions in the root group.
     #

@@ -77,6 +77,7 @@ class AuxiliaryCoordinateTest(unittest.TestCase):
     def test_AuxiliaryCoordinate_properties(self):
         """Test the property access methods of AuxiliaryCoordinate."""
         f = cfdm.read(self.filename)[0]
+        print(f)
         x = f.auxiliary_coordinates("latitude").value()
 
         x.set_property("long_name", "qwerty")

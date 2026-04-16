@@ -33,6 +33,7 @@ from .data import (
     Data,
     GatheredArray,
     H5netcdfArray,
+    H5pyArray,
     NetCDF4Array,
     PointTopologyArray,
     PyfiveArray,
@@ -2619,6 +2620,24 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("H5netcdfArray")
         return cls(**kwargs)
 
+    def initialise_H5pyArray(self, **kwargs):
+        """Return a `H5netcdfArray` instance.
+
+        .. versionadded:: (cfdm) 1.11.2.0
+
+        :Parameters:
+
+            kwargs: optional
+                Initialisation parameters to pass to the new instance.
+
+        :Returns:
+
+            `H5pyArray`
+
+        """
+        cls = self.get_class("H5pyArray")
+        return cls(**kwargs)
+
     def initialise_ScipyNetcdfFileArray(self, **kwargs):
         """Return a `NetCDF4Array` instance.
 
@@ -4092,6 +4111,7 @@ _implementation = CFDMImplementation(
     BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
     H5netcdfArray=H5netcdfArray,
+    HpyArray=H5pyArray,
     NetCDF4Array=NetCDF4Array,
     ScipyNetcdfFileArray=ScipyNetcdfFileArray,
     PointTopologyArray=PointTopologyArray,
@@ -4140,6 +4160,7 @@ def implementation():
      'Data': <class 'cfdm.data.data.Data'>,
      'GatheredArray': <class 'cfdm.data.gatheredarray.GatheredArray'>,
      'H5netcdfArray': <class 'cfdm.data.h5netcdfarray.H5netcdfArray'>,
+     'H5pyArray': <class 'cfdm.data.h5pyarray.H5pyArray'>,
      'NetCDF4Array': <class 'cfdm.data.netcdf4array.NetCDF4Array'>,
      'ScipyNetcdfFileArray': <class 'cfdm.data.scipynetcdffilearray.ScipyNetcdfFileArray'>,
      'PointTopologyArray': <class 'cfdm.data.pointtopologyarray.PointTopologyArray'>,

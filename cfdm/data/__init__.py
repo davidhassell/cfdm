@@ -25,6 +25,7 @@ from .cellconnectivityarray import CellConnectivityArray
 from .gatheredarray import GatheredArray
 from .fullarray import FullArray
 from .h5netcdfarray import H5netcdfArray
+from .h5pyarray import H5pyArray
 from .netcdfarray import NetCDFArray
 from .scipynetcdffilearray import ScipyNetcdfFileArray
 from .netcdf4array import NetCDF4Array
