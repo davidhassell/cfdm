@@ -13,11 +13,13 @@ _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
 class NetCDFError(Exception):
     """Error raised when file can't be viewed as netCDF."""
+
     pass
 
 
-class         AttributeParsingError(Exception):
-    """TODO"""
+class AttributeParsingError(Exception):
+    """TODO."""
+
     pass
 
 
@@ -146,5 +148,3 @@ def _parse_attributes(obj, raw_attributes):
         for k, v in raw_attributes.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }
-
-

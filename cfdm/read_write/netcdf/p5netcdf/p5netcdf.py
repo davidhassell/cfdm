@@ -6,7 +6,6 @@ from os.path import expanduser, expandvars
 import numpy as np
 
 from .utils import NetCDFError, _parse_attributes
-
 from .utils_zarr import zarr_open, zarr_parse_group_structure
 
 
@@ -106,7 +105,6 @@ class Dimension:
         """
         path = getattr(self, "_path", None)
         if path is None:
-
 
             parent = self.parent
             if parent.isroot:
@@ -238,7 +236,7 @@ class Variable:
             # scipy.io.netcdf_file with mmap=True. See `File.close`
             # and the scipy.io.netcdf_file docs for details.
             array = array.copy()
-                
+
         return array
 
     def __len__(self):
@@ -351,7 +349,6 @@ class Variable:
         """
         return self._attrs
 
-
     @property
     def backend(self):
         """The TODO variable attributes.
@@ -395,7 +392,6 @@ class Variable:
 
         return chunks
 
-
     @property
     def dimension_paths(self):
         """The variable dimensions.
@@ -411,7 +407,7 @@ class Variable:
         """
         paths = getattr(self, "_dimension_paths", None)
         if paths is None:
-            paths =  tuple(dim.path for dim in self.get_dims())
+            paths = tuple(dim.path for dim in self.get_dims())
             self._dimension_paths = paths
 
         return paths
@@ -451,7 +447,7 @@ class Variable:
                         .flat[0]
                         .dtype
                     )
-                
+
             if dtype is not str and dtype != np.dtypes.StringDType():
                 dtype = np.dtype(f"{dtype.kind}{dtype.itemsize}")
 
@@ -580,7 +576,7 @@ class Variable:
                         path = ""
                     else:
                         path = parent.path
-                        
+
                     path += f"/{self.name}"
                 case "netcdf_file":
                     path = f"/{self.name}"
@@ -730,9 +726,9 @@ class Variable:
                             dims.append(dim)
                             found = True
                             break
-                        
+
                         current_group = current_group.parent
-        
+
                     if not found:
                         raise NetCDFError(
                             f"Dimension {dim_name!r} not found in the "
@@ -745,10 +741,12 @@ class Variable:
                     root[ndim.group().path].dimensions[ndim.name]
                     for ndim in self._var.get_dims()
                 ]
-                           
+
             case "zarr":
-                dims = self.root._var_to_dims[self.path]
-                                
+                # '_dims' should already have been set by
+                # `zarr_parse_group_structure`
+                pass
+
         dims = tuple(dims)
         self._dims = dims
         return dims
@@ -789,7 +787,7 @@ class Variable:
                 string.
 
         """
-        return self.dump(display, _prefix, _level, True)
+        return self.dump(display, _prefix, _level, _structure=True)
 
 
 class Group(Mapping):
@@ -953,7 +951,7 @@ class Group(Mapping):
         return self.dump(display=False, _recursive=False, _structure=True)
 
     def _populate_all(self):
-        """TODO"""
+        """TODO."""
         root = self.root
 
         if self.isroot:
@@ -1060,7 +1058,7 @@ class Group(Mapping):
                         isunlimited=d_info["is_unlimited"],
                         parent=self,
                     )
-                    
+
                 # Create variables (skipping internal netCDF stubs)
                 for name, var in datasets:
                     dim_name = name.split("/")[-1]
@@ -1078,7 +1076,7 @@ class Group(Mapping):
                             var=var,
                             var_attrs=dataset_attrs[name],
                         )
-                        
+
                 # Create subgroups
                 for name, grp in subgroups:
                     self._groups[name] = Group(
@@ -1154,9 +1152,9 @@ class Group(Mapping):
                 # zarr
                 # ----------------------------------------------------
                 zarr_parse_group_structure(
-                    self, root ,Group, Variable, Dimension
+                    self, root, Group, Variable, Dimension
                 )
-       
+
     @property
     def attrs(self):
         """The group attributes.
@@ -1222,8 +1220,8 @@ class Group(Mapping):
         """TODO.
 
         :Returns:
-            
-                TODO
+
+        TODO
 
         """
         return self._lib
@@ -1268,11 +1266,9 @@ class Group(Mapping):
         if path is None:
             match self.backend:
                 case "pyfive" | "netCDF4" | "zarr" | "h5py":
-                    # TODO is this OK for netCDF3?
                     path = self._grp.name
                 case "netcdf_file":
                     path = "/"
-                    # TODO is this OK for netCDF3?
 
             self._path = path
 
@@ -1402,7 +1398,7 @@ class Group(Mapping):
                 string.
 
         """
-        return self.dump(display, _prefix, _level, True, True)
+        return self.dump(display, _prefix, _level, _recursive=True, _structure=True)
 
 
 class File(Group):
@@ -1547,7 +1543,7 @@ class File(Group):
                     dataset.seek(0)
                 except AttributeError:
                     pass
-                
+
                 error = "\n\n".join(open_log)
                 raise NetCDFError(
                     f"Can't interpret {dataset} as a netCDF dataset "
@@ -1564,7 +1560,7 @@ class File(Group):
         super().__init__(
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
-        
+
     def __enter__(self):
         """Enter the runtime context related to this object."""
         return self
@@ -1600,55 +1596,55 @@ class File(Group):
     def close(self):
         """Close the dataset.
 
-        Closes the underlying netCDF dataset, but not if the dataset
-        was originally defined by a (subclass of a) `pyfive.File`
-        object.
+        Closes the underlying netCDF dataset, but not if it is not
+        owned by this `File` instance.
 
         :Returns:
 
             `None`
 
         """
-        if self._owns_nc:
-            if self.backend == "netcdf_file":
-                # We can't close a scipy.io.netcdf_file instance
-                # opened with mmap=True when any variable still
-                # exists, or when an array referring to a variable's
-                # data still exists (see scipy.io.netcdf_file docs for
-                # details). So, rather than attempting to hunt down
-                # all such references (messy!), the hack of setting
-                # the '_mm_buf' attribute to `None` allows the file to
-                # be closed. We get away with this because we know
-                # that we've copied all memory mapped data into memory
-                # inside `Variable.__getitem__`.
-                self._grp._mm_buf = None
-
-            try:
-                self._grp.close()
-            except AttributeError:
-                pass
-
+        if not self._owns_nc:
+            return
+        
+        if self.backend == "netcdf_file":
+            # We can't close a scipy.io.netcdf_file instance opened
+            # with mmap=True when any variable still exists, or when
+            # an array referring to a variable's data still exists
+            # (see scipy.io.netcdf_file docs for details). So, rather
+            # than attempting to hunt down all such references
+            # (messy!), the hack of setting the '_mm_buf' attribute to
+            # `None` allows the file to be closed. We get away with
+            # this because we know that we've copied all memory mapped
+            # data into memory inside `Variable.__getitem__`.
+            self._grp._mm_buf = None
+        
+        try:
+            self._grp.close()
+        except AttributeError:
+            pass
+        
     @property
     def all_dimensions(self):
-        if getattr(self, '_all_dimensions', None) is None:
+        if getattr(self, "_all_dimensions", None) is None:
             self._populate_all()
 
         return self._all_dimensions
 
     @property
     def all_groups(self):
-        if getattr(self, '_all_groups', None) is None:
+        if getattr(self, "_all_groups", None) is None:
             self._populate_all()
 
         return self._all_groups
 
     @property
     def all_variables(self):
-        if getattr(self, '_all_variables', None) is None:
+        if getattr(self, "_all_variables", None) is None:
             self._populate_all()
 
         return self._all_variables
-            
+
     def dump(
         self,
         display=True,
@@ -1703,7 +1699,7 @@ class File(Group):
             `zarr.Group`
 
         """
-        self._backend= "zarr"
+        self._backend = "zarr"
         return zarr_open(self, dataset)
 
     def _open_netCDF4(self, filename):
@@ -1803,9 +1799,3 @@ class File(Group):
             rdcc_nslots=4133,
         )
         return nc, nc.attrs
-
-    def cf_ddd(self):
-        for variable in self._all_variables.values():
-            resolve_references(variable)
-
-            

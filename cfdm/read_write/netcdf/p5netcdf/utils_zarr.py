@@ -1,31 +1,29 @@
-from collections.abc import Mapping
-from itertools import chain
-from math import prod
-from os.path import expanduser, expandvars
+from .utils import NetCDFError
 
-import numpy as np
 
 def zarr_get_dimensions(variable):
     """Get the variable dimension names.
-    
+
     Raises a `NetCDFError` exception if the DIMENSION_LIST attribute
     is not appropriately set.
-    
+
     :Returns:
 
         `tuple`
             The dimension names, relative to their parent groups.
-    
+
     """
-    #var_to_dims = getattr(variable.root, "_var_to_dims", None)
-    #if var_to_dims is None:
-#    return
+    # var_to_dims = getattr(variable.root, "_var_to_dims", None)
+    # if var_to_dims is None:
+    #    return
     return tuple(dim.name for dim in variable.root._var_to_dims[variable.path])
+
 
 def zarr_dtype(variable):
     """The numpy data type of the variable."""
     dtype = variable._var.dtype
-    return dtype # TODO
+    return dtype  # TODO
+
 
 def zarr_dimension_maps(group, dimension_cls):
     """Populate the dimension map dictionaries.
@@ -89,7 +87,7 @@ def zarr_dimension_maps(group, dimension_cls):
     root = group.root
     group_to_dims = root._group_to_dims
     var_to_dims = root._var_to_dims
-    group_dimension_search = ( #root._group_dimension_search
+    group_dimension_search = (  # root._group_dimension_search
         "closest_ancestor"  # root._group_dimension_search
     )
 
@@ -239,6 +237,7 @@ def zarr_dimension_maps(group, dimension_cls):
     for g in group.groups.values():
         zarr_dimension_maps(g, dimension_cls)
 
+
 def zarr_raw_dimension_names(variable):
     """Return the raw dimension names for a variable.
 
@@ -282,6 +281,7 @@ def zarr_raw_dimension_names(variable):
 
     return dimensions
 
+
 def zarr_open(root, dataset):
     """Return an open `zarr.Group`.
 
@@ -302,14 +302,17 @@ def zarr_open(root, dataset):
     root._lib = zarr
     return nc, nc.attrs
 
-def zarr_parse_group_structure(group, root, group_cls, variable_cls, dimension_cls):
-    """TODO"""
-    # Create variables in this` group
+
+def zarr_parse_group_structure(
+    group, root, group_cls, variable_cls, dimension_cls
+):
+    """TODO."""
+    # Create variables in this group
     for name, var in dict(group._grp.arrays()).items():
         group._variables[name] = variable_cls(
             name=name, parent=group, var=var, var_attrs=var.attrs
         )
-        
+
     # Create subgroups
     for name, grp in dict(group._grp.groups()).items():
         group._groups[name] = group_cls(
@@ -319,23 +322,20 @@ def zarr_parse_group_structure(group, root, group_cls, variable_cls, dimension_c
             grp=grp,
             grp_attrs=grp.attrs,
         )
-        
+
     # Create dimensions in all groups, starting with the root group,
     # and attach dimensions to each variable.
     if group.isroot:
         root._group_to_dims = {}
         root._var_to_dims = {}
         zarr_dimension_maps(root, dimension_cls)
-        
+
         for path, dims in root._group_to_dims.items():
             group = root[path]
             for name, dim in dims.items():
                 group._dimensions[name] = dim
-        
-        ## TODO
-        #for path, dims in root._var_to_dims.items():
-        #    variable = root[path]
-        #    variable._dims = tuple(dims)
-        #    variable._dimensions = tuple(dim.name for dim in dims)
-        #
-        del root._group_to_dims #, root._var_to_dims
+
+            for name, var in group.variables.items():
+                var._dims = root._var_to_dims[var.path]
+
+        del root._group_to_dims, root._var_to_dims
