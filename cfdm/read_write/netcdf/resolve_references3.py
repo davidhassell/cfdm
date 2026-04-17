@@ -1,141 +1,5 @@
-import numpy as np
-
 from dataclasses import dataclass
-
-
-@dataclass()
-class FlatteningRules:
-    """Define the flattening rules for a netCDF attribute.
-
-    For a named netCDF attribute, the rules a define how the contents
-    of the attribute are flattened. For instance, it has to be defined
-    that the ``ancillary_variables`` attribute contains the names of
-    other netCDF variables.
-
-    .. versionadded:: (cfdm) NEXTVERSION
-
-    """
-
-    # name: The name of attribute containing the reference to be
-    #       flattened
-    name: str
-    # ref_to_dim: Positive integer if contains references to
-    #             dimensions. If ref_to_dim and ref_to_var are both
-    #             positive then the rule with the greater value is
-    #             tested first.
-#    ref_to_dim: int = 0
-#    # ref_to_var: Positive integer if contains references to
-#    #             variables. If ref_to_dim and ref_to_var are both
-#    #             positive then the rule with the greater value is
-#    #             tested first.
-#    ref_to_var: int = 0
-#    # resolve_key: True if 'keys' have to be resolved in 'key1: value1
-#    #              key2: value2 value3' or 'key1 key2'
-#    resolve_key: bool = False
-#    # resolve_value: True if 'values' have to be resolved in 'key1:
-#    #                value1 key2: value2 value3'
-#    resolve_value: bool = False
-#    # stop_at_local_apex: True if upward research in the hierarchy has
-#    #                     to stop at local apex.
-#    stop_at_local_apex: bool = False
-#    # accept_standard_names: True if any standard name is valid in
-#    #                        place of references (in which case no
-#    #                        exception is raised if a reference cannot
-#    #                        be resolved, and the standard name is
-#    #                        used in place)
-#    accept_standard_names: bool = False
-#    # limit_to_scalar_coordinates: True if references to variables are
-#    #                              only resolved if present as well in
-#    #                              the 'coordinates' attributes of the
-#    #                              variable, and they are scalar.
-#    limit_to_scalar_coordinates: bool = False
-    #
-    resolver: Any = None
-    
-
-# --------------------------------------------------------------------
-# Define the flattening rules for named CF attributes
-# --------------------------------------------------------------------
-flattening_rules = {
-    attr.name: attr
-    for attr in (
-        # ------------------------------------------------------------
-        # Coordinates
-        # ------------------------------------------------------------
-        FlatteningRules(name="coordinates", resolver=resolve_pattern_1),
-        # ------------------------------------------------------------
-        # Bounds            
-        # ------------------------------------------------------------
-        FlatteningRules(name="bounds", resolver=resolve_pattern_1),
-        FlatteningRules(name="climatology", resolver=resolve_pattern_1),
-        # ------------------------------------------------------------
-        # Cell methods
-        # ------------------------------------------------------------
-        FlatteningRules(name="cell_methods", resolver=resolve_pattern_3),
-        # ------------------------------------------------------------
-        # Cell measures
-        # ------------------------------------------------------------
-        FlatteningRules(name="cell_measures", resolver=resolve_pattern_2),
-        # ------------------------------------------------------------
-        # Coordinate references
-        # ------------------------------------------------------------
-        FlatteningRules(name="formula_terms", resolver=resolve_pattern_2),
-        FlatteningRules(name="grid_mapping", resolver=resolve_pattern_2),
-        # ------------------------------------------------------------
-        # Ancillary variables
-        # ------------------------------------------------------------
-        FlatteningRules(name="ancillary_variables", resolver=resolve_pattern_1),
-        # ------------------------------------------------------------
-        # Compression by gathering
-        # ------------------------------------------------------------
-        FlatteningRules(name="compress", resolver=resolve_pattern_1b),
-        # ------------------------------------------------------------
-        # Discrete sampling geometries
-        # ------------------------------------------------------------
-        FlatteningRules(name="instance_dimension", resolver=resolve_pattern_1b),
-        FlatteningRules(name="sample_dimension", resolver=resolve_pattern_1b),
-        # ------------------------------------------------------------
-        # Domain variables
-        # ------------------------------------------------------------
-        FlatteningRules(name="dimensions", resolver=resolve_pattern_1b),
-        # ------------------------------------------------------------
-        # Aggregation variables
-        # ------------------------------------------------------------
-        FlatteningRules(name="aggregated_dimensions", resolver=resolve_pattern_1b),
-        FlatteningRules(name="aggregated_data", resolver=resolve_pattern_2),
-        # ------------------------------------------------------------
-        # Cell geometries
-        # ------------------------------------------------------------
-        FlatteningRules(name="geometry", resolver=resolve_pattern_1),
-        FlatteningRules(name="interior_ring",resolver=resolve_pattern_1),
-        FlatteningRules(name="node_coordinates", resolver=resolve_pattern_1),
-        FlatteningRules(name="node_count", resolver=resolve_pattern_1),
-        FlatteningRules(name="nodes", resolver=resolve_pattern_1),
-        FlatteningRules(name="part_node_count", resolver=resolve_pattern_1),
-        # ------------------------------------------------------------
-        # UGRID variables
-        # ------------------------------------------------------------
-        FlatteningRules(name="mesh", resolver=resolve_pattern_1),
-        FlatteningRules(name="edge_coordinates", resolver=resolve_pattern_1),
-        FlatteningRules(name="face_coordinates", resolver=resolve_pattern_1),
-        FlatteningRules(name="edge_node_connectivity", resolver=resolve_pattern_1),
-        FlatteningRules(name="face_node_connectivity", resolver=resolve_pattern_1),
-        FlatteningRules(name="face_face_connectivity", resolver=resolve_pattern_1),
-        FlatteningRules(name="edge_face_connectivity", resolver=resolve_pattern_1),
-        FlatteningRules(name="face_edge_connectivity", resolver=resolve_pattern_1),
-        FlatteningRules(name="edge_dimension", resolver=resolve_pattern_1b),
-        FlatteningRules(name="face_dimension", resolver=resolve_pattern_1b),
-        # ------------------------------------------------------------
-        # Compression by coordinate subsampling
-        # ------------------------------------------------------------
-        FlatteningRules(name="coordinate_interpolation", resolver=resolve_pattern_2),
-        FlatteningRules(name="tie_point_mapping", resolver=resolve_pattern_4),
-        FlatteningRules(name="interpolation_parameters", resolver=resolve_pattern_2),
-        # ------------------------------------------------------------
-        # Quantization
-        # ------------------------------------------------------------
-        FlatteningRules(name="quantization", resolver=resolve_pattern_1),
-}
+from typing import Callable
 
 
 class NetCDFError(Exception):
@@ -150,327 +14,14 @@ class AttributeParsingError(Exception):
     pass
 
 
-def resolve_references2(f):
+def resolve_references(f):
     """TODO."""
+    resolvable_attributes = set(resolving_rules)
     for variable in f.all_variables.values():
-        resolve_references(variable)
-
-    return f
-
-def _parse_x(
-    self,
-    parent_ncvar,
-    string,
-    keys_are_variables=False,
-    keys_are_dimensions=False,
-):
-    """Parse CF-netCDF strings.
-
-    Handling of CF-compliant strings:
-    ---------------------------------
-
-    'area: areacello' ->
-        [{'area': ['areacello']}]
-
-    'area: areacello volume: volumecello' ->
-        [{'area': ['areacello']}, {'volume': ['volumecello']}]
-
-    'rotated_latitude_longitude' ->
-        [{'rotated_latitude_longitude': []}]
-
-    'rotated_latitude_longitude: x y latitude_longitude: lat lon' ->
-        [{'rotated_latitude_longitude': ['x', 'y']},
-         {'latitude_longitude': ['lat', 'lon']}]
-
-    'rotated_latitude_longitude: x latitude_longitude: lat lon' ->
-        [{'rotated_latitude_longitude': ['x']},
-         {'latitude_longitude': ['lat', 'lon']}]
-
-    'a: A b: B orog: OROG' ->
-        [{'a': ['A']}, {'b': ['B']}, {'orog': ['OROG']}]
-
-    Handling of non-CF-compliant strings:
-    -------------------------------------
-
-    'area' ->
-        [{'area': []}]
-
-    'a: b: B orog: OROG' ->
-        []
-
-    'rotated_latitude_longitude:' ->
-        []
-
-    'rotated_latitude_longitude zzz' ->
-        []
-
-    .. versionadded:: (cfdm) 1.7.0
-
-    """
-    # ============================================================
-    # Thanks to Alan Iwi for creating these regular expressions
-    # ============================================================
-    import re
-
-    def subst(s):
-        """Substitutes WORD and SEP tokens for regular expressions.
-
-        All WORD tokens are replaced by the expression for a space
-        and all SEP tokens are replaced by the expression for the
-        end of string.
-
-        """
-        return s.replace("WORD", r"[A-Za-z0-9_#/]+").replace(
-            "SEP", r"(\s+|$)"
-        )
-
-    out = []
-
-    pat_value = subst(r"(?P<value>WORD)SEP")
-    pat_values = f"({pat_value})+"
-
-    pat_mapping = subst(
-        rf"(?P<mapping_name>WORD):SEP(?P<values>{pat_values})"
-    )
-    pat_mapping_list = f"({pat_mapping})+"
-
-    pat_all = subst(
-        rf"((?P<sole_mapping>WORD)|(?P<mapping_list>{pat_mapping_list}))$"
-    )
-
-    m = re.match(pat_all, string)
-    if m is None:
-        return []
-
-    sole_mapping = m.group("sole_mapping")
-    if sole_mapping:
-        out.append({sole_mapping: []})
-    else:
-        mapping_list = m.group("mapping_list")
-        for mapping in re.finditer(pat_mapping, mapping_list):
-            term = mapping.group("mapping_name")
-            values = [
-                value.group("value")
-                for value in re.finditer(
-                    pat_value, mapping.group("values")
-                )
-            ]
-            out.append({term: values})
-
-    return out
-
-
-def parse_attribute(name, attribute):
-    """Parse variable attribute of any form into a dict:
-
-     * 'time' -> {'time': []}
-     * 'lat lon' -> {'lat': [], 'lon': []}
-     * 'area: time volume: lat lon' -> {'area': ['time'], 'volume':
-       ['lat', 'lon']}
-
-    .. versionadded:: (cfdm) 1.11.2.0
-
-    :Parameters:
-
-        name: `str`
-            The attribute name (e.g. ``'cell_methods'``).
-
-        attribute: `str`
-            The attribute value to parse.
-
-    :Returns:
-
-        `dict`
-            The parsed string.
-
-    """
-    import re
-
-    def subst(s):
-        """Substitute tokens for WORD and SEP."""
-        return s.replace("WORD", r"[A-Za-z0-9_#/.\(\)]+").replace(
-            "SEP", r"(\s+|$)"
-        )
-
-    # Regex for 'dict form': "k1: v1 v2 k2: v3"
-    pat_value = subst(r"(?P<value>WORD)SEP")
-    pat_values = f"({pat_value})*"
-    pat_mapping = subst(rf"(?P<mapping_name>WORD):SEP(?P<values>{pat_values})")
-    pat_mapping_list = f"({pat_mapping})+"
-
-    # Regex for 'list form': "v1 v2 v3" (including single-item form)
-    pat_list_item = subst(r"(?P<list_item>WORD)SEP")
-    pat_list = f"({pat_list_item})+"
-
-    # Regex for any form:
-    pat_all = subst(
-        rf"((?P<list>{pat_list})|(?P<mapping_list>{pat_mapping_list}))$"
-    )
-
-    m = re.match(pat_all, attribute)
-
-    # Output is always a dict. If input form is a list, dict values
-    # are set as empty lists
-    out = {}
-
-    if m is not None:
-        list_match = m.group("list")
-        # Parse as a list
-        if list_match:
-            for mapping in re.finditer(pat_list_item, list_match):
-                item = mapping.group("list_item")
-                out[item] = None
-
-        # Parse as a dict:
-        else:
-            mapping_list = m.group("mapping_list")
-            for mapping in re.finditer(pat_mapping, mapping_list):
-                term = mapping.group("mapping_name")
-                values = [
-                    value.group("value")
-                    for value in re.finditer(
-                        pat_value, mapping.group("values")
-                    )
-                ]
-                out[term] = values
-    else:
-        raise AttributeParsingError(
-            f"Error parsing {name!r} attribute with value {attribute!r}"
-        )
-
-    return out
-
-
-def resolve_references(variable):
-    """TODO."""
-    attrs = variable.attrs
-    for name in set(flattening_rules).intersection(attrs):
-        rules = flattening_rules[name]
-        attrs[name] = rules.resolver(name, variable, rules)
-        
-#        parsed_attribute = parse_attribute(name, attrs[name])
-#
-#        # Resolved references in parsed as required by attribute
-#        # properties
-#        resolved_parsed_attr = {}
-#
-#        rules = flattening_rules[name]
-#        resolve_key = rules.resolve_key
-#        resolve_value = rules.resolve_value
-#
-#        for k, v in parsed_attribute.items():
-#            if resolve_key:
-#                k = resolve_reference(k, variable, rules)
-#
-#            if resolve_value and v is not None:
-#                v = [resolve_reference(x, variable, rules) for x in v]
-#
-#            resolved_parsed_attr[k] = v
-#
-#        # Re-generate attribute value string with resolved
-#        # references
-#        attrs[name] = generate_var_attr_str(resolved_parsed_attr)
-
-
-def generate_var_attr_str(d):
-    """Re-generate the attribute string from a dictionary.
-
-    .. versionadded:: (cfdm) 1.11.2.0
-
-    :Parameters:
-
-        d: `dict`
-            A resolved and parsed attribute.
-
-    :Returns:
-
-        `str`
-            The flattened attribute value.
-
-    """
-    parsed_list = []
-    for k, v in d.items():
-        if v is None:
-            parsed_list.append(k)
-        elif not v:
-            parsed_list.append(f"{k}:")
-        else:
-            parsed_list.append(f"{k}: {' '.join(v)}")
-
-    return " ".join(parsed_list)
-
-
-def resolve_reference(ref, variable, rules):
-    """Resolve a reference.
-
-    Resolves the absolute path to a coordinate variable within the
-    group structure.
-
-    .. versionadded:: (cfdm) 1.11.2.0
-
-    :Parameters:
-
-        ref: `str`
-            The reference to resolve.
-
-        variable: `Variable`
-            The original variable object containing the reference.
-
-        rules: `FlatteningRules`
-            The flattening rules that apply to the reference.
-
-    :Returns:
-
-        `str`
-            The absolute path to the reference.
-
-    """
-    absolute_ref = None
-    ref_type = ""
-
-    ref_to_dim = rules.ref_to_dim
-    ref_to_var = rules.ref_to_var
-
-    # Resolve first as dim (True), or var (False)
-    resolve_dim_or_var = ref_to_dim > ref_to_var
-
-    # Resolve var (resp. dim) if resolving as dim (resp. var) failed
-    resolve_alt = ref_to_dim and ref_to_var
-
-    # Reference is given by relative path
-    if "/" in ref:
-        method = "Relative"
-
-        # First tentative as dim OR var
-        absolute_ref = search_by_relative_path(
-            ref, variable, resolve_dim_or_var
-        )
-
-        # If failed and alternative possible, second tentative
-        if absolute_ref is None and resolve_alt:
-            absolute_ref = search_by_relative_path(
-                ref, variable, not resolve_dim_or_var
-            )
-
-    # Reference is to be searched by proximity
-    else:
-        method = "Proximity"
-        absolute_ref = search_by_proximity(
-            ref,
-            variable,
-            resolve_dim_or_var,
-        )
-        if absolute_ref is None and resolve_alt:
-            absolute_ref = search_by_proximity(
-                ref,
-                variable,
-                not resolve_dim_or_var,
-            )
-
-    if absolute_ref is not None:
-        return absolute_ref
-
-    return ref
+        attrs = variable.attrs
+        for name in resolvable_attributes.intersection(attrs):
+            resolver = resolving_rules[name].resolver
+            attrs[name] = resolver(attrs[name], variable)
 
 
 def search_by_relative_path(ref, variable, search_type):
@@ -480,7 +31,7 @@ def search_by_relative_path(ref, variable, search_type):
     try:
         g = g[path]
     except KeyError:
-        return ref
+        return
 
     name = parts[-1]
 
@@ -528,7 +79,7 @@ def coordinate_search_by_proximity(ref, variable):
         g = g.parent
 
     if dim is None:
-        return ref
+        return
 
     return search_for_coordinate_from_local_apex(ref, g, depth)
 
@@ -536,7 +87,7 @@ def coordinate_search_by_proximity(ref, variable):
 def search_for_coordinate_from_local_apex(ref, group, depth):
     if depth < 0:
         # Not found in the tree from 'group' down to the given depth
-        return ref
+        return
 
     var = group.variables.get(ref)
     if var is not None:
@@ -544,7 +95,7 @@ def search_for_coordinate_from_local_apex(ref, group, depth):
         return var.path
 
     if not depth:
-        return ref
+        return
 
     for g in group.groups():
         var = g.variables.get(ref)
@@ -552,15 +103,16 @@ def search_for_coordinate_from_local_apex(ref, group, depth):
             # Found
             return var.path
 
-        path = search_for_coordinate_local_apex(ref, g, depth - 1)
+        path = search_for_coordinate_from_local_apex(ref, g, depth - 1)
         if path is not None:
             # Found
             return path
 
     # Not found in the tree from 'group' down to the given depth
 
-def resolve_pattern_1(name, value, variable, rules):
-    """TODO
+
+def resolve_pattern_1(value, variable):
+    """TODO.
 
     Resolve attributes whose values are
     * ''
@@ -572,12 +124,13 @@ def resolve_pattern_1(name, value, variable, rules):
 
     """
     resolved = [
-        resolve_reference(x, variable, rules, var=True) for x in value.split()
+        resolve_reference(x, variable, var=True) for x in value.split()
     ]
-    variable.attrs[name] = ' '.join(resolved)
+    return " ".join(resolved)
 
-def resolve_pattern_1b(name, value, variable, rules):
-    """TODO
+
+def resolve_pattern_1b(value, variable):
+    """TODO.
 
     Resolve attributes whose values are
     * ''
@@ -588,15 +141,16 @@ def resolve_pattern_1b(name, value, variable, rules):
 
     """
     resolved = [
-        resolve_reference(x, variable, rules, dim=True) for x in value.split()
+        resolve_reference(x, variable, dim=True) for x in value.split()
     ]
-    variable.attrs[name] = ' '.join(resolved)
+    return " ".join(resolved)
 
-def resolve_pattern_2(name, value, variable, rules):
-    """TODO
+
+def resolve_pattern_2(value, variable):
+    """TODO.
 
     Resolve attributes whose values are
-    
+
     * 'var1: var2',
     * 'var1: var2 var3',
     * 'var1: var2 var3: var4 var5',
@@ -604,23 +158,22 @@ def resolve_pattern_2(name, value, variable, rules):
     """
     resolved = []
     for ref in value.split():
-        ref =  parsed_attr.pop(0)
-        if rules.resolve_key:
-            if ref.endswith(":"):           
-                ref = resolve_reference(ref[:-1], variable, rules, var=True)
-                ref += ":"
+        if ref.endswith(":"):
+            ref = resolve_reference(ref[:-1], variable, var=True)
+            ref += ":"
         else:
-            ref = resolve_reference(ref, variable, rules, var=True)
-            
-        resolved.append(ref)
-        
-    variable.attrs[name] = ' '.join(resolved)
+            ref = resolve_reference(ref, variable, var=True)
 
-def resolve_pattern_3(name, value, variable, rules):
-    """TODO
+        resolved.append(ref)
+
+    return " ".join(resolved)
+
+
+def resolve_pattern_3(value, variable):
+    """TODO.
 
     Resolve attributes whose values are
-    
+
     * 'key1: var1',
     * 'key1: var1 key2: var2'
 
@@ -630,48 +183,16 @@ def resolve_pattern_3(name, value, variable, rules):
     """
     resolved = []
 
-    ref_type = "variable"
     for ref in value.split():
-        if not ref.endswith(":"):           
-            ref = resolve_reference(ref, variable, rules, var=True)
+        if not ref.endswith(":"):
+            ref = resolve_reference(ref, variable, var=True)
 
         resolved.append(ref)
-        
-    variable.attrs[name] = ' '.join(resolved)
 
-def resolve_pattern_4(name, value, variable, rules):
-    """TODO
+    return " ".join(resolved)
 
-    Resolve attributes whose values are "interpolated_dimension:
-    tie_point_index_variable subsampled_dimension
-    [interpolation_subarea_dimension] [interpolated_dimension: ...]",
-    
-    * 'dim1: var1 dim2'
-    * 'dim1: var1 dim2 dim3'
 
-    E.g. ``te_point_mapping``
-
-    """
-    resolved = []
-
-    ref_type = "variable"
-    for ref in value.split():
-        if ref.endswith(":"):           
-            ref = resolve_reference(ref[:-1], variable, rules, dim=True)
-            ref += ":"
-            ref_type =  "variable"
-        elif ref_type  == "variable":
-            ref = resolve_reference(ref, variable, rules, var=True)
-            ref_type =  "dimension"
-        elif ref_type == "dimension":
-            ref = resolve_reference(ref, variable, rules, dim=True)
-            ref_type =  "dimension"
-
-        resolved.append(ref)
-        
-    variable.attrs[name] = ' '.join(resolved)
-
-def resolve_pattern_3(name, value, variable, rules):
+def resolve_pattern_4(value, variable):
     """Parse a CF cell_methods string.
 
     .. versionadded:: (cfdm) 1.7.0
@@ -702,19 +223,18 @@ def resolve_pattern_3(name, value, variable, rules):
     # Split the cell_methods string into a list of strings ready
     # for parsing. For example:
     #
-    #   'lat: mean (interval: 1 hour)'
+    #   'lat: lon: mean (interval: 1 hour) time: max'
     #
     # would be split up into:
     #
-    #   ['lat:', 'mean', '(interval: 1 hour)']
+    #   ['lat:', 'lon:', 'mean', '(interval: 1 hour)', 'time', 'max']
     # ------------------------------------------------------------
-    pattern = r'\([^)]*\)|\S+'
-    cell_methods = re.findall(pattern, ref)
+    cell_methods = re.findall(r"\([^)]*\)|\S+", value)
 
     previous = "axis"
     for ref in cell_methods:
         if ref.endswith(":"):
-            ref = resolve_reference(ref[:-1], variable, rules, dim=True)
+            ref = resolve_reference(ref[:-1], variable, dim=True)
             resolved.append(ref + ":")
             previous = "axis"
             continue
@@ -725,57 +245,90 @@ def resolve_pattern_3(name, value, variable, rules):
             continue
 
         if previous == "method":
-            if ref == "within":       
+            if ref == "within":
                 resolved.append(ref)
                 previous = "within"
                 continue
-                
-            if ref == "where":       
+
+            if ref == "where":
                 resolved.append(ref)
                 previous = "where"
-                continue                
-    
+                continue
+
         if previous == "within":
             resolved.append(ref)
             previous = "years|days"
             continue
-                
+
         if previous == "years|days" and ref == "over":
             resolved.append(ref)
             previous = "climatological over"
             continue
-                
+
         if previous == "climatological over":
             resolved.append(ref)
             previous = "years|days"
             continue
-                
+
         if previous == "where":
-            ref = resolve_reference(ref, variable, rules, var=True)
+            ref = resolve_reference(ref, variable, var=True)
             resolved.append(ref)
             previous = "type1"
             continue
-                
+
         if previous == "type1" and ref == "over":
             resolved.append(ref)
             previous = "over"
             continue
 
         if previous == "over":
-            ref = resolve_reference(ref, variable, rules, var=True)
+            ref = resolve_reference(ref, variable, var=True)
             resolved.append(ref)
             previous = "type2"
             continue
 
         # Still here?
-#        if ref.startswith("(") and ref.endswith(")"):
+        #        if ref.startswith("(") and ref.endswith(")"):
         resolved.append(ref)
         previous = None
-    
-    variable.attrs[name] = " ".join(resolved)
 
-def resolve_reference(ref, variable, rules, dim=False, var=False,
-                      dim_then_var=True, coordinate=False):
+    return " ".join(resolved)
+
+
+def resolve_pattern_5(value, variable):
+    """TODO.
+
+    Resolve attributes whose values are "interpolated_dimension:
+    tie_point_index_variable subsampled_dimension
+    [interpolation_subarea_dimension] [interpolated_dimension: ...]",
+
+    * 'dim1: var1 dim2'
+    * 'dim1: var1 dim2 dim3'
+
+    E.g. ``te_point_mapping``
+
+    """
+    resolved = []
+
+    ref_type = None
+    for ref in value.split():
+        if ref.endswith(":"):
+            ref = resolve_reference(ref[:-1], variable, dim=True)
+            ref += ":"
+            ref_type = "variable"
+        elif ref_type == "variable":
+            ref = resolve_reference(ref, variable, var=True)
+            ref_type = "dimension"
+        elif ref_type == "dimension":
+            ref = resolve_reference(ref, variable, dim=True)
+            ref_type = "dimension"
+
+        resolved.append(ref)
+
+    return " ".join(resolved)
+
+
+def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True):
     """Resolve a reference.
 
     Resolves the absolute path to a coordinate variable within the
@@ -791,7 +344,7 @@ def resolve_reference(ref, variable, rules, dim=False, var=False,
         variable: `Variable`
             The original variable object containing the reference.
 
-        rules: `FlatteningRules`
+        rules: `Rules`
             The flattening rules that apply to the reference.
 
     :Returns:
@@ -800,7 +353,7 @@ def resolve_reference(ref, variable, rules, dim=False, var=False,
             The absolute path to the reference.
 
     """
-    absolute_ref = None
+    resolved_ref = None
 
     second_search = None
     if dim:
@@ -814,37 +367,128 @@ def resolve_reference(ref, variable, rules, dim=False, var=False,
 
     # Reference is given by relative path
     if "/" in ref:
-        method = "Relative"
-
-        # First tentative as dim OR var
-        absolute_ref = search_by_relative_path(
-            ref, variable, first_search
-        )
+        # First tentative as dim or var
+        resolved_ref = search_by_relative_path(ref, variable, first_search)
 
         # If failed and alternative possible, second tentative
-        if absolute_ref is None and second_search :
-            absolute_ref = search_by_relative_path(
-                ref, variable, second_search 
+        if resolved_ref is None and second_search:
+            resolved_ref = search_by_relative_path(
+                ref, variable, second_search
             )
 
     # Reference is to be searched by proximity
     else:
-        method = "Proximity"
-        absolute_ref = search_by_proximity(
-            ref,
-            variable,
-            first_search
-        )
-        if absolute_ref is None and second_search:
-            absolute_ref = search_by_proximity(
-                ref,
-                variable,,
-                second_search
+        resolved_ref = search_by_proximity(ref, variable, first_search)
+        if resolved_ref is None and second_search:
+            resolved_ref = search_by_proximity(ref, variable, second_search)
 
-            )
-
-    if absolute_ref is not None:
-        return absolute_ref
+    if resolved_ref is not None:
+        return resolved_ref
 
     return ref
 
+
+@dataclass
+class Rules:
+    """Rules for resolving references in a netCDF attribute.
+
+    TODO For a named netCDF attribute, the rules a define how the contents
+    of the attribute are flattened. For instance, it has to be defined
+    that the ``ancillary_variables`` attribute contains the names of
+    other netCDF variables.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    """
+
+    # name: The name of attribute containing the references to be
+    #       resolved
+    name: str
+    # resolver: The function that will do the resolving
+    resolver: Callable
+
+
+# --------------------------------------------------------------------
+# Define the flattening rules for named CF attributes
+# --------------------------------------------------------------------
+resolving_rules = {
+    attr.name: attr
+    for attr in (
+        # ------------------------------------------------------------
+        # Coordinates
+        # ------------------------------------------------------------
+        Rules(name="coordinates", resolver=resolve_pattern_1),
+        # ------------------------------------------------------------
+        # Bounds
+        # ------------------------------------------------------------
+        Rules(name="bounds", resolver=resolve_pattern_1),
+        Rules(name="climatology", resolver=resolve_pattern_1),
+        # ------------------------------------------------------------
+        # Cell methods
+        # ------------------------------------------------------------
+        Rules(name="cell_methods", resolver=resolve_pattern_4),
+        # ------------------------------------------------------------
+        # Cell measures
+        # ------------------------------------------------------------
+        Rules(name="cell_measures", resolver=resolve_pattern_2),
+        # ------------------------------------------------------------
+        # Coordinate references
+        # ------------------------------------------------------------
+        Rules(name="formula_terms", resolver=resolve_pattern_2),
+        Rules(name="grid_mapping", resolver=resolve_pattern_2),
+        # ------------------------------------------------------------
+        # Ancillary variables
+        # ------------------------------------------------------------
+        Rules(name="ancillary_variables", resolver=resolve_pattern_1),
+        # ------------------------------------------------------------
+        # Compression by gathering
+        # ------------------------------------------------------------
+        Rules(name="compress", resolver=resolve_pattern_1b),
+        # ------------------------------------------------------------
+        # Discrete sampling geometries
+        # ------------------------------------------------------------
+        Rules(name="instance_dimension", resolver=resolve_pattern_1b),
+        Rules(name="sample_dimension", resolver=resolve_pattern_1b),
+        # ------------------------------------------------------------
+        # Domain variables
+        # ------------------------------------------------------------
+        Rules(name="dimensions", resolver=resolve_pattern_1b),
+        # ------------------------------------------------------------
+        # Aggregation variables
+        # ------------------------------------------------------------
+        Rules(name="aggregated_dimensions", resolver=resolve_pattern_1b),
+        Rules(name="aggregated_data", resolver=resolve_pattern_2),
+        # ------------------------------------------------------------
+        # Cell geometries
+        # ------------------------------------------------------------
+        Rules(name="geometry", resolver=resolve_pattern_1),
+        Rules(name="interior_ring", resolver=resolve_pattern_1),
+        Rules(name="node_coordinates", resolver=resolve_pattern_1),
+        Rules(name="node_count", resolver=resolve_pattern_1),
+        Rules(name="nodes", resolver=resolve_pattern_1),
+        Rules(name="part_node_count", resolver=resolve_pattern_1),
+        # ------------------------------------------------------------
+        # UGRID variables
+        # ------------------------------------------------------------
+        Rules(name="mesh", resolver=resolve_pattern_1),
+        Rules(name="edge_coordinates", resolver=resolve_pattern_1),
+        Rules(name="face_coordinates", resolver=resolve_pattern_1),
+        Rules(name="edge_node_connectivity", resolver=resolve_pattern_1),
+        Rules(name="face_node_connectivity", resolver=resolve_pattern_1),
+        Rules(name="face_face_connectivity", resolver=resolve_pattern_1),
+        Rules(name="edge_face_connectivity", resolver=resolve_pattern_1),
+        Rules(name="face_edge_connectivity", resolver=resolve_pattern_1),
+        Rules(name="edge_dimension", resolver=resolve_pattern_1b),
+        Rules(name="face_dimension", resolver=resolve_pattern_1b),
+        # ------------------------------------------------------------
+        # Compression by coordinate subsampling
+        # ------------------------------------------------------------
+        Rules(name="coordinate_interpolation", resolver=resolve_pattern_2),
+        Rules(name="tie_point_mapping", resolver=resolve_pattern_5),
+        Rules(name="interpolation_parameters", resolver=resolve_pattern_2),
+        # ------------------------------------------------------------
+        # Quantization
+        # ------------------------------------------------------------
+        Rules(name="quantization", resolver=resolve_pattern_1),
+    )
+}

@@ -165,7 +165,7 @@ class Testp5netcdf(unittest.TestCase):
         cls.filename3 = tmpfile3
 
         cls.p5 = cfdm.p5netcdf.File(tmpfile)
-        #        cls.p3 = cfdm.p5netcdf.File(tmpfile3)
+        cls.p3 = cfdm.p5netcdf.File(tmpfile3)
         cls.n = netCDF4.Dataset(cls.filename, "r")
         cls.n3 = netCDF4.Dataset(cls.filename3, "r")
 

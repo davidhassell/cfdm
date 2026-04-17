@@ -27,19 +27,7 @@ from .constants import (
     NETCDF_QUANTIZATION_PARAMETERS,
 )
 from .p5netcdf import p5netcdf
-
-# from .resolve_references import resolve_references2
-
-# from .dimension import Dimension
-# from .flatten import dataset_flatten
-# from .flatten.config import (
-#    flattener_attribute_map,
-#    flattener_dimension_map,
-#    flattener_separator,
-#    flattener_variable_map,
-# )
-# from .zarr import ZarrDimension
-
+from .resolve_references3 import resolve_references
 
 logger = logging.getLogger(__name__)
 
@@ -545,6 +533,10 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
+        logger.info(
+            f"Reading netCDF dataset: {g['dataset']}\n"
+        )  # pragma: no cover
+
         if g["d_type"] == "CDL":
             # --------------------------------------------------------
             # Convert a CDL file to a local netCDF4 file
@@ -626,7 +618,18 @@ class NetCDFRead(IORead):
 
         g["dataset_open_errors"] = nc._open_log
 
-        #        nc = resolve_references2(nc)
+        if g["debug"]:
+            logger.debug(
+                f"    Input netCDF dataset:\n{nc.dump(display=False)}\n"
+            )  # pragma: no cover
+
+        resolve_references(nc)
+
+        if g["debug"]:
+            logger.debug(
+                "    Input netCDF dataset after reference resolution:\n"
+                f"{nc.dump(display=False)}\n"
+            )  # pragma: no cover
 
         #        # Loop around the netCDF backends until we successfully open
         #        # the file
@@ -1773,14 +1776,6 @@ class NetCDFRead(IORead):
 
             return []
 
-        logger.info(
-            f"Reading netCDF dataset: {g['dataset']}\n"
-        )  # pragma: no cover
-        if debug:
-            logger.debug(
-                f"    Input netCDF dataset:\n{nc.dump(display=False)}\n"
-            )  # pragma: no cover
-
         # ----------------------------------------------------------------
         # Put the file's global attributes into the global
         # 'global_attributes' dictionary
@@ -2099,9 +2094,7 @@ class NetCDFRead(IORead):
                     # container
                     continue
 
-                quantization_ncvar = self._parse_quantization(
-                    ncvar, variable_attributes
-                )
+                quantization_ncvar = self._parse_quantization(ncvar)
 
                 if not quantization_ncvar:
                     # The quantization container has already been
@@ -2571,7 +2564,7 @@ class NetCDFRead(IORead):
         external_variables = read_vars["external_variables"]
         external_files = read_vars["external_files"]
         datasets = read_vars["datasets"]
-        parent_dimension_sizes = read_vars["internal_dimension_sizes"]
+        #        parent_dimension_sizes = read_vars["internal_dimension_sizes"]
 
         found = []
 
@@ -2609,8 +2602,8 @@ class NetCDFRead(IORead):
                     # Error: The external variable exists in more than
                     # one external file
                     external_variables.add(ncvar)
-                    for key in keys:
-                        self.read_vars[key].pop(ncvar)
+                    #                    for key in keys:
+                    self.read_vars["variables"].pop(ncvar)
 
                     self._add_message(
                         None,
@@ -3275,7 +3268,7 @@ class NetCDFRead(IORead):
 
         return geometry_ncvar
 
-    def _parse_quantization(self, parent_ncvar, attributes):
+    def _parse_quantization(self, parent_ncvar):
         """Parse a quantization container variable.
 
         .. versionadded:: (cfdm) 1.12.2.0
@@ -3284,10 +3277,6 @@ class NetCDFRead(IORead):
 
             parent_ncvar: `str`
                 The netCDF variable name of the parent data variable.
-
-            attributes: `dict`
-                All attributes of *all* netCDF variables, keyed by netCDF
-                variable name.
 
         :Returns:
 
@@ -3299,16 +3288,9 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        ncvar = attributes[parent_ncvar]["quantization"]
-        #        quantization_attribute = attributes[parent_ncvar]["quantization"]
-
-        #       parsed_quantization = self._split_string_by_white_space(
-        #           parent_ncvar, quantization_attribute, variables=True
-        #        )
+        ncvar = g["variables"][parent_ncvar].attrs["quantization"]
 
         ok = self._check_quantization(parent_ncvar, ncvar)
-
-        #        ncvar = parsed_quantization[0]
 
         q = g["quantization_variable"].get(ncvar)
         if q is not None:
@@ -3328,7 +3310,7 @@ class NetCDFRead(IORead):
 
         logger.info(
             f"    Quantization variable = {ncvar!r}\n"
-            f"        netCDF attributes: {attributes[ncvar]}"
+            f"        netCDF attributes: {g['variables'][ncvar].attrs}"
         )  # pragma: no cover
 
         if not ok:
@@ -3606,7 +3588,8 @@ class NetCDFRead(IORead):
 
             g["formula_terms"][coord_ncvar]["coord"][term] = ncvar
 
-        bounds_ncvar = g["variable_attributes"][coord_ncvar].get("bounds")
+        # bounds_ncvar = g["variable_attributes"][coord_ncvar].get("bounds")
+        bounds_ncvar = g["variables"][coord_ncvar].attrs.get("bounds")
 
         if bounds_ncvar is None:
             # --------------------------------------------------------
@@ -3618,7 +3601,10 @@ class NetCDFRead(IORead):
             # --------------------------------------------------------
             # Parametric Z coordinate has bounds
             # --------------------------------------------------------
-            bounds_formula_terms = g["variable_attributes"][bounds_ncvar].get(
+            # bounds_formula_terms = g["variable_attributes"][bounds_ncvar].get(
+            #    "formula_terms"
+            # )
+            bounds_formula_terms = g["variables"][bounds_ncvar].attrs.get(
                 "formula_terms"
             )
             if bounds_formula_terms is not None:
@@ -4817,7 +4803,7 @@ class NetCDFRead(IORead):
                     field_ncvar,
                     coord_ncvar,
                     formula_terms,
-                    #                    z_ncdim=g["variable_dimensions"][coord_ncvar][0],
+                    # z_ncdim=g["variable_dimensions"][coord_ncvar][0],
                     z_ncdim=g["variable_dimension_paths"][coord_ncvar][0],
                 )
 
@@ -4932,9 +4918,12 @@ class NetCDFRead(IORead):
                 for x in parsed_grid_mapping:
                     grid_mapping_ncvar, coordinates = list(x.items())[0]
 
-                    parameters = g["variable_attributes"][
+                    # parameters = g["variable_attributes"][
+                    # grid_mapping_ncvar
+                    # ].copy()
+                    parameters = g["variables"][
                         grid_mapping_ncvar
-                    ].copy()
+                    ].attrs.copy()
 
                     # Convert netCDF variable names to internal identifiers
                     coordinates = [
@@ -6775,24 +6764,19 @@ class NetCDFRead(IORead):
             shape = shape[:-1]
             dtype = np.dtype(f"U{strlen}")
 
-        #        dataset = g["variable_datasetname"][ncvar]
+        # dataset = g["variable_datasetname"][ncvar]
         dataset = g["variables"][ncvar].filename
 
-        #        attributes = g["variable_attributes"][ncvar].copy()
         attributes = g["variables"][ncvar].attrs.copy()
         if coord_ncvar is not None:
             # Get the Units from the parent coordinate variable, if
             # they've not already been set.
             if "units" not in attributes:
-                #                units = g["variable_attributes"][coord_ncvar].get("units")
                 units = g["variables"][coord_ncvar].attrs.get("units")
                 if units is not None:
                     attributes["units"] = units
 
             if "calendar" not in attributes:
-                #                calendar = g["variable_attributes"][coord_ncvar].get(
-                #                    "calendar"
-                #                )
                 calendar = g["variables"][coord_ncvar].attrs.get("calendar")
                 if calendar is not None:
                     attributes["calendar"] = calendar
@@ -6814,9 +6798,7 @@ class NetCDFRead(IORead):
             if return_kwargs_only:
                 return kwargs
 
-            #            match g["original_dataset_opened_with"]:
             match g["variables"][ncvar].backend:
-                # case "p5netcdf" | "h5netcdf-pyfive":
                 case "pyfive":
                     # Add the pyfive.Dataset object to the Array
                     # object initialisation
@@ -8000,7 +7982,6 @@ class NetCDFRead(IORead):
                 # Get dimensions from the netCDF variable array
                 #   ncdimensions = g["variable_dimensions"][ncvar]
                 ncdimensions = g["variable_dimension_paths"][ncvar]
-                ##ncdimensions = variable.dimension_paths
             else:
                 # Use the pre-recorded domain variable dimensions
                 ncdimensions = domain_ncdimensions
@@ -9488,7 +9469,7 @@ class NetCDFRead(IORead):
             )
             ok = False
 
-        #        attributes = g["variable_attributes"][ncvar]
+        # attributes = g["variable_attributes"][ncvar]
         attributes = g["variables"][ncvar].attrs
 
         implementation = attributes.get("implementation")

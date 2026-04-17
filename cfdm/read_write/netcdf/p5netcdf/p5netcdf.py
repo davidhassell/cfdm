@@ -107,8 +107,8 @@ class Dimension:
         :Returns:
 
             `str`
-                The absolute netCDF path (e.g. ``'/lat'`` or
-                ``'/group/time'``).
+                The absolute netCDF path, e.g. ``'/lat'`` or
+                ``'/group/time'``.
 
         """
         path = getattr(self, "_path", None)
@@ -589,6 +589,42 @@ class Variable:
             self._size = size
 
         return size
+
+    def chunking(self):
+        """The data chunk shape.
+
+        .. seealso:: `chunks`
+
+        :Returns:
+
+            `tuple` or `None`
+                The chunk shape, e.g. ``(5, 6, 7)``. If the data is
+                contiguous then `None` is returned.
+
+        """
+        chunking = getattr(self, "_chunking", None)
+        if chunking is None:
+            chunks = self.chunks                    
+            match self.backend:
+                case "pyfive" | "zarr" | "h5py":
+                    if chunks is None:
+                        chunking = "contiguous"
+                    else:
+                        chunking = list(chunks)
+                case "netCDF4":
+                    if chunks is None:
+                        if self._var.data_model == 'NETCDF3_CLASSIC':
+                            chunking = None
+                        else:
+                            chunking = "contiguous"
+                    else:
+                        chunking = list(chunks)
+                case  "netcdf_file":
+                    chunking=None
+
+            self._chunking = chunking
+
+        return chunking
 
     def dump(
         self,
