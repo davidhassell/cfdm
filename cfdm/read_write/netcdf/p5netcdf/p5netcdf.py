@@ -6,7 +6,15 @@ from os.path import expanduser, expandvars
 import numpy as np
 
 from .utils import NetCDFError, _parse_attributes
+from .utils_hdf5 import (
+    h5py_open,
+    hdf5_dimension_names,
+    hdf5_parse_group_structure,
+    pyfive_open,
+)
 from .utils_zarr import zarr_open, zarr_parse_group_structure
+
+np.set_printoptions(floatmode="maxprec")
 
 
 class Dimension:
@@ -269,74 +277,6 @@ class Variable:
             f"{self.path}, shape={self.shape}, dimensions={dims}>"
         )
 
-    def _get_dimensions(self):
-        """Get the variable dimension names.
-
-        Raises a `NetCDFError` exception if the DIMENSION_LIST
-        attribute is not appropriately set.
-
-        :Returns:
-
-            `tuple`
-                The dimension names, relative to their parent groups.
-
-        """
-        var_attrs = self._var_attrs
-        match self.backend:
-            case "pyfive" | "h5py":
-                # ----------------------------------------------------
-                # Backend: pyfive
-                # ----------------------------------------------------
-
-                # Case 1: It's a coordinate variable that has the same
-                #         name as its dimension.
-                if var_attrs.get("CLASS") == b"DIMENSION_SCALE":
-                    return (self.name,)
-
-                ndim = self.ndim
-
-                # Case 2: It's a scalar variable with no dimensions
-                if not ndim:
-                    return ()
-
-                # Case 3: It's an N-d variable (N>=1) not covered by
-                #         case 1.
-                dim_list = var_attrs.get("DIMENSION_LIST", ())
-                if len(dim_list) != ndim:
-                    raise NetCDFError(
-                        f"Variable {self.path!r} requires {ndim} "
-                        f"DIMENSION_LIST links, found {len(dim_list)}"
-                    )
-
-                dim_names = []
-
-                for ref in dim_list:
-                    try:
-                        if hasattr(ref, "item"):
-                            ref = ref.item()
-                        elif isinstance(ref, (list, tuple)) and len(ref) > 0:
-                            ref = ref[0]
-
-                        root_grp = self.parent.root._grp
-                        dim_dataset = root_grp[ref]
-                        dim_names.append(dim_dataset.name.split("/")[-1])
-                    except (KeyError, ValueError, TypeError):
-                        continue
-
-                return tuple(dim_names)
-
-            case "netCDF4" | "netcdf_file":
-                # ----------------------------------------------------
-                # netCDF4 | netcdf_file
-                # ----------------------------------------------------
-                return self._var.dimensions
-
-            case "zarr":
-                # ----------------------------------------------------
-                # zarr
-                # ----------------------------------------------------
-                return tuple(dim.name for dim in self.get_dims())
-
     @property
     def attrs(self):
         """The variable attributes.
@@ -427,7 +367,7 @@ class Variable:
         """
         dimensions = getattr(self, "_dimensions", None)
         if dimensions is None:
-            dimensions = self._get_dimensions()
+            dimensions = tuple(dim.name for dim in self.get_dims())
             self._dimensions = dimensions
 
         return dimensions
@@ -708,6 +648,10 @@ class Variable:
                 The dimensions for the variable.
 
         """
+        # Note: This is not called in `__init__`, because for some
+        #       backends (e.g. `zarr`) the `Dimension` objects are
+        #       only available after the entire group and variable
+        #       structure has been parsed.
         dims = getattr(self, "_dims", None)
         if dims is not None:
             return dims
@@ -715,7 +659,7 @@ class Variable:
         match self.backend:
             case "pyfive" | "h5py" | "netcdf_file":
                 dims = []
-                for dim_name in self.dimensions:
+                for dim_name in hdf5_dimension_names(self):
                     # Walk up the tree to find where the dimension is
                     # defined
                     current_group = self.parent
@@ -743,9 +687,10 @@ class Variable:
                 ]
 
             case "zarr":
-                # '_dims' should already have been set by
-                # `zarr_parse_group_structure`
-                pass
+                raise RuntimeError(
+                    "_dims should have already been set to something other "
+                    "than None by the zarr_parse_group_structure function. "
+                )
 
         dims = tuple(dims)
         self._dims = dims
@@ -799,6 +744,13 @@ class Group(Mapping):
 
     __hash__ = None
 
+    # Store classes for creating dimensions, variables and sub-groups.
+    __Dimension = Dimension
+    __Variable = Variable
+    # Note: __Group will be re-set to `Group` after the `Group` class
+    #       has been finished defining itself.
+    __Group = None
+
     def __init__(self, name, parent, root, grp, grp_attrs):
         """**Initialisation**
 
@@ -836,7 +788,7 @@ class Group(Mapping):
         self._dimensions = {}
         self._variables = {}
         self._groups = {}
-        self._parse_group_structure(root)
+        self._parse_group_structure()
 
     def __getitem__(self, key):
         """Get a variable or group.
@@ -950,11 +902,66 @@ class Group(Mapping):
         """Called by the `str` built-in function."""
         return self.dump(display=False, _recursive=False, _structure=True)
 
+    def _create_dimension(self, name, size, isunlimited):
+        """Create a new dimension in this group.
+
+        :Parameters:
+
+             Parameters *name*, *size*, and *isunlimited* are
+             identical those parameter for `Dimension.__init__`.
+
+        :Returns:
+
+            `Dimension`
+                The new dimension.
+
+        """
+        dimension = self.__Dimension(name, size, isunlimited, self)
+        self._dimensions[name] = dimension
+        return dimension
+
+    def _create_group(self, name, grp, grp_attrs):
+        """Create a new sub-group in this group.
+
+        :Parameters:
+
+             Parameters *name*, *grp*, and *grp_attrs* are identical
+             those parameter for `Group.__init__`.
+
+        :Returns:
+
+            `Group`
+                The new group.
+
+        """
+        group = self.__Group(name, self, self.root, grp, grp_attrs)
+        self._groups[name] = group
+        return group
+
+    def _create_variable(self, name, var, var_attrs):
+        """Create a new variable in this group.
+
+        :Parameters:
+
+             Parameters *name*, *var*, and *var_attrs* are identical
+             those parameter for `Variable.__init__`.
+
+        :Returns:
+
+            `Variable`
+                The new variable.
+
+        """
+        variable = self.__Variable(name, self, var, var_attrs)
+        self._variables[name] = variable
+        return variable
+
     def _populate_all(self):
         """TODO."""
         root = self.root
 
         if self.isroot:
+            # Initialise the 'all_*' dictionaries
             root._all_dimensions = {}
             root._all_variables = {}
             root._all_groups = {}
@@ -967,10 +974,11 @@ class Group(Mapping):
 
         root._all_groups[self.path] = self
 
+        # Recursively populate from sub-groups
         for group in self.groups.values():
             group._populate_all()
 
-    def _parse_group_structure(self, root):
+    def _parse_group_structure(self):
         """Parse the group structure.
 
         Parses variables, dimensions, and subgroups, recursively.
@@ -990,102 +998,7 @@ class Group(Mapping):
                 # ----------------------------------------------------
                 # pyfive | h5py
                 # ----------------------------------------------------
-                raw_dims = {}
-                subgroups = []
-                datasets = []
-                dataset_attrs = {}
-
-                # Categorise objects without double-reading items from
-                # the dataset
-                lib = root.lib
-                for name, h5 in self._grp.items():
-                    if isinstance(h5, lib.Group):
-                        subgroups.append((name, h5))
-                    elif isinstance(h5, lib.Dataset):
-                        datasets.append((name, h5))
-
-                # Extract dimension scales (strictly ignoring scalars)
-                for name, var in datasets:
-                    shape = var.shape
-                    attrs = var.attrs
-                    dataset_attrs[name] = attrs
-
-                    if shape and attrs.get("CLASS") == b"DIMENSION_SCALE":
-                        # Get ID: Use `None` if missing to push to end
-                        # of sort
-                        dim_id = attrs.get("_Netcdf4Dimid")
-                        if dim_id is not None:
-                            dim_id = int(dim_id)
-
-                        dim_name = name.split("/")[-1]
-
-                        is_unlimited = False
-                        maxshape = var.maxshape
-                        if maxshape and len(maxshape) > 0:
-                            is_unlimited = maxshape[0] is None
-
-                        raw_dims[dim_name] = {
-                            "id": dim_id,
-                            "size": shape[0],
-                            "is_unlimited": is_unlimited,
-                            "is_stub": (
-                                b"not a netCDF variable"
-                                in attrs.get("NAME", b"")
-                            ),
-                        }
-
-                # Sort and create Dimension objects
-                #
-                # Sorting ensures consistency with netCDF4-python,
-                # which preserves the creation order of its dimensions
-                # in an ordered dictionary.
-                #
-                # We sort by (ID, Name). If ID is `None` (pure HDF5), it's
-                # treated as infinity tqo ensure it appears after the
-                # netCDF-indexed dimensions.
-                sorted_items = sorted(
-                    raw_dims.items(),
-                    key=lambda x: (
-                        x[1]["id"] if x[1]["id"] is not None else float("inf"),
-                        x[0],
-                    ),
-                )
-
-                for name, d_info in sorted_items:
-                    self._dimensions[name] = Dimension(
-                        name=name,
-                        size=d_info["size"],
-                        isunlimited=d_info["is_unlimited"],
-                        parent=self,
-                    )
-
-                # Create variables (skipping internal netCDF stubs)
-                for name, var in datasets:
-                    dim_name = name.split("/")[-1]
-
-                    # If it's in 'raw_dims' and flagged as a stub then
-                    # skip it. Otherwise - whether it's a coordinate
-                    # variable, normal data, or a scalar pretending to
-                    # be a scale - it becomes a Variable.
-                    is_stub = raw_dims.get(dim_name, {}).get("is_stub", False)
-
-                    if not is_stub:
-                        self._variables[name] = Variable(
-                            name=name,
-                            parent=self,
-                            var=var,
-                            var_attrs=dataset_attrs[name],
-                        )
-
-                # Create subgroups
-                for name, grp in subgroups:
-                    self._groups[name] = Group(
-                        name=name,
-                        parent=self,
-                        root=root,
-                        grp=grp,
-                        grp_attrs=grp.attrs,
-                    )
+                hdf5_parse_group_structure(self)
 
             case "netCDF4":
                 # ----------------------------------------------------
@@ -1093,37 +1006,21 @@ class Group(Mapping):
                 # ----------------------------------------------------
                 # Create dimensions in this group
                 for name, dim in self._grp.dimensions.items():
-                    self._dimensions[name] = Dimension(
-                        name=name,
-                        size=dim.size,
-                        isunlimited=dim.isunlimited(),
-                        parent=self,
-                    )
+                    self._create_dimension(name, dim.size, dim.isunlimited())
 
                 # Create variables in this group
                 for name, var in self._grp.variables.items():
                     attrs = {
                         attr: var.getncattr(attr) for attr in var.ncattrs()
                     }
-                    self._variables[name] = Variable(
-                        name=name,
-                        parent=self,
-                        var=var,
-                        var_attrs=attrs,
-                    )
+                    self._create_variable(name, var, attrs)
 
                 # Create subgroups
                 for name, grp in self._grp.groups.items():
                     attrs = {
                         attr: grp.getncattr(attr) for attr in grp.ncattrs()
                     }
-                    self._groups[name] = Group(
-                        name=name,
-                        parent=self,
-                        root=root,
-                        grp=grp,
-                        grp_attrs=attrs,
-                    )
+                    self._create_group(name, grp, attrs)
 
             case "netcdf_file":
                 # ----------------------------------------------------
@@ -1131,29 +1028,17 @@ class Group(Mapping):
                 # ----------------------------------------------------
                 # Create dimensions in this group
                 for name, size in self._grp.dimensions.items():
-                    self._dimensions[name] = Dimension(
-                        name=name,
-                        size=size,
-                        isunlimited=False,
-                        parent=self,
-                    )
+                    self._create_dimension(name, size, isunlimited=False)
 
                 # Create variables in this group
                 for name, var in self._grp.variables.items():
-                    self._variables[name] = Variable(
-                        name=name,
-                        parent=self,
-                        var=var,
-                        var_attrs=var._attributes,
-                    )
+                    self._create_variable(name, var, var._attributes)
 
             case "zarr":
                 # ----------------------------------------------------
                 # zarr
                 # ----------------------------------------------------
-                zarr_parse_group_structure(
-                    self, root, Group, Variable, Dimension
-                )
+                zarr_parse_group_structure(self)
 
     @property
     def attrs(self):
@@ -1398,7 +1283,13 @@ class Group(Mapping):
                 string.
 
         """
-        return self.dump(display, _prefix, _level, _recursive=True, _structure=True)
+        return self.dump(
+            display, _prefix, _level, _recursive=True, _structure=True
+        )
+
+
+# Set __Group to `Group`, now that `Group` has been defined.
+Group._Group__Group = Group
 
 
 class File(Group):
@@ -1434,11 +1325,11 @@ class File(Group):
 
     **Performance**
 
-    `netcdf` is "structure- and attribute-eager", meaning that
-    during `File` instantiation, the entire netCDF-4 group, variable,
-    and dimension structure is parsed; along with all group and
-    variable attributes. Variable data access is always via access to
-    the underlying (subclass of a) `pyfive.Dataset` object. Some
+    `netcdf` is "structure- and attribute-eager", meaning that during
+    `File` instantiation, the entire netCDF-4 group, variable, and
+    dimension structure is parsed; along with all group and variable
+    attributes. Variable data access is always via access to the
+    underlying (subclass of a) `pyfive.Dataset` object. Some
     `Variable` and `Group` properties and methods also access an
     underlying (subclass of a) `pyfive.Dataset` or `pyfive.Group`
     object, but only for the first request, after which the result is
@@ -1606,7 +1497,7 @@ class File(Group):
         """
         if not self._owns_nc:
             return
-        
+
         if self.backend == "netcdf_file":
             # We can't close a scipy.io.netcdf_file instance opened
             # with mmap=True when any variable still exists, or when
@@ -1618,12 +1509,12 @@ class File(Group):
             # this because we know that we've copied all memory mapped
             # data into memory inside `Variable.__getitem__`.
             self._grp._mm_buf = None
-        
+
         try:
             self._grp.close()
         except AttributeError:
             pass
-        
+
     @property
     def all_dimensions(self):
         if getattr(self, "_all_dimensions", None) is None:
@@ -1745,57 +1636,44 @@ class File(Group):
         return nc, nc._attributes
 
     def _open_pyfive(self, dataset):
-        """Open a dataset with `pyfive`
+        """Open a dataset with `pyfive`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
             dataset:
-                May be a `str` or `pathlib.Path` path, a file-like
-                object (such as `io.BufferedReader` or the result of
-                an `fsspec` file system open), a `pyfive.File` object,
-                or a subclass of a `pyfive.File` object.
+                May be a `str` or `pathlib.Path` path, a file-like object
+                (such as `io.BufferedReader` or the result of an `fsspec`
+                file system open).
 
         :Returns:
 
-            `p5netcdf.File`
+            `pyfive.File`
 
         """
-        import pyfive
-
         self._backend = "pyfive"
-        self._lib = pyfive
-        nc = pyfive.File(dataset, mode="r")
-        return nc, nc.attrs
+        return pyfive_open(self, dataset)
 
     def _open_h5py(self, dataset):
-        """Open a dataset with `pyfive`
+        """Open a dataset with `h5py`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
+            root: `p5netcdf.File`
+                The root group.
+
             dataset:
-                May be a `str` or `pathlib.Path` path, a file-like
-                object (such as `io.BufferedReader` or the result of
-                an `fsspec` file system open), a `pyfive.File` object,
-                or a subclass of a `pyfive.File` object.
+                May be a `str` or `pathlib.Path` path, a file-like object
+                (such as `io.BufferedReader` or the result of an `fsspec`
+                file system open).
 
         :Returns:
 
-            `p5netcdf.File`
+            `h5py.File`
 
         """
-        import h5py
-
         self._backend = "h5py"
-        self._lib = h5py
-        nc = h5py.File(
-            dataset,
-            mode="r",
-            rdcc_nbytes=16777216,
-            rdcc_w0=0.75,
-            rdcc_nslots=4133,
-        )
-        return nc, nc.attrs
+        return h5py_open(self, dataset)

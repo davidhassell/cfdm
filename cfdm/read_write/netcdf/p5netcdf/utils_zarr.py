@@ -1,77 +1,39 @@
 from .utils import NetCDFError
 
 
-def zarr_get_dimensions(variable):
-    """Get the variable dimension names.
-
-    Raises a `NetCDFError` exception if the DIMENSION_LIST attribute
-    is not appropriately set.
-
-    :Returns:
-
-        `tuple`
-            The dimension names, relative to their parent groups.
-
-    """
-    # var_to_dims = getattr(variable.root, "_var_to_dims", None)
-    # if var_to_dims is None:
-    #    return
-    return tuple(dim.name for dim in variable.root._var_to_dims[variable.path])
-
-
 def zarr_dtype(variable):
     """The numpy data type of the variable."""
     dtype = variable._var.dtype
     return dtype  # TODO
 
 
-def zarr_dimension_maps(group, dimension_cls):
-    """Populate the dimension map dictionaries.
+def zarr_dimension_maps(group):
+    """Populate the root dimension map dictionaries.
 
-    For the given group and all of its child groups, a mapping of
-    full-path group names to the unique dimensions implied by the
-    variables therein will be added to `_group_to_dims`. For
-    instance::
+    Stores the dictionary of the dimensions defined in *group*, and
+    for all sub-groups. For instance::
 
-       {'/': {},
-        'bounds2': <ZarrDimension: bounds2, size(2)>,
-        'x': <ZarrDimension: x, size(9)>},
-        '/forecast': {'y': <ZarrDimension: y, size(10)>},
-        '/forecast/model': {}}
+       {'/': {'bounds2': <netcdf.Dimension: /bounds2, size=2>},
+        '/forecast': {'lon': <netcdf.Dimension: /forecast/lon, size=8, unlimited>},
+        '/forecast/model': {'lat': <netcdf.Dimension: /forecast/model/lat, size=5>}}
+        '/forecast/model2': {}}
 
+    Stores the tuple of the dimensions for all variables in *group*,
+    and all variables in all sub-groups. For instance::
 
-    For the given group and all of its child groups, a mapping of
-    full-path variables names to their dimensions will be added to
-    `_var_to_dims`. For instance::
+       {'/forecast/lon': (<netcdf.Dimension: /forecast/lon, size=8, unlimited>,),
+        '/forecast/lon_bnds': (<netcdf.Dimension: /forecast/lon, size=8, unlimited>,
+                               <netcdf.Dimension: /bounds2, size=2>),
+        '/forecast/model/lat': (<netcdf.Dimension: /forecast/model/lat, size=5>,),
+        '/forecast/model/lat_bnds': (<netcdf.Dimension: /forecast/model/lat, size=5>,
+                                     <netcdf.Dimension: /bounds2, size=2>),
+        '/forecast/model/q': (<netcdf.Dimension: /forecast/model/lat, size=5>,
+                              <netcdf.Dimension: /forecast/lon, size=8, unlimited>),
+        '/forecast/model2/tas': (<netcdf.Dimension: /forecast/model/lat, size=5>,
+                                 <netcdf.Dimension: /forecast/lon, size=8, unlimited>),
+        '/time': ()}
 
-       {'/latitude_longitude': (),
-        '/x': (<ZarrDimension: x, size(9)>,),
-        '/x_bnds': (<ZarrDimension: x, size(9)>
-                    <ZarrDimension: bounds2, size(2)>),
-        '/forecast/cell_measure': (<ZarrDimension: x, size(9)>,
-                                   <ZarrDimension: y, size(10)>),
-        '/forecast/latitude': (<ZarrDimension: y, size(10)>,
-                               <ZarrDimension: x, size(9)>),
-        '/forecast/longitude': (<ZarrDimension: x, size(9)>,
-                                <ZarrDimension: y, size(10)>),
-        '/forecast/rotated_latitude_longitude': (),
-        '/forecast/time': (),
-        '/forecast/y': (<ZarrDimension: y, size(10)>,),
-        '/forecast/y_bnds': (<ZarrDimension: y, size(10)>,
-                             <ZarrDimension: bounds2, size(2)>),
-        '/forecast/model/ta': (<ZarrDimension: y, size(10)>,
-                               <ZarrDimension: x, size(9)>)}
-
-    **Zarr datasets**
-
-    Populating the `_group_to_dims` dictionary is currently only
-    required for a Zarr grouped dataset, for which this
-    information is not explicitly defined in the format's data
-    model (unlike for netCDF and HDF5 datasets).
-
-    See `dataset_flatten` for details.
-
-    .. versionadded:: (cfdm) 1.13.0.0
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
@@ -86,7 +48,7 @@ def zarr_dimension_maps(group, dimension_cls):
     group_path = group.path
     root = group.root
     group_to_dims = root._group_to_dims
-    var_to_dims = root._var_to_dims
+    variable_to_dims = root._variable_to_dims
     group_dimension_search = (  # root._group_dimension_search
         "closest_ancestor"  # root._group_dimension_search
     )
@@ -103,7 +65,7 @@ def zarr_dimension_maps(group, dimension_cls):
         # Initialise mapping from the variable to its Dimension
         # objects
         var_path = v.path
-        var_to_dims[var_path] = ()
+        variable_to_dims[var_path] = ()
 
         raw_dimension_names = zarr_raw_dimension_names(v)
         if not raw_dimension_names:
@@ -225,25 +187,21 @@ def zarr_dimension_maps(group, dimension_cls):
                     # Must be the root group
                     parent = root
 
-                zarr_dim = dimension_cls(basename, size, False, parent)
+                zarr_dim = parent._create_dimension(basename, size, False)
                 group_to_dims[g][basename] = zarr_dim
 
             # Map the variable to the `Dimension` object
-            var_to_dims[var_path] += (zarr_dim,)
+            variable_to_dims[var_path] += (zarr_dim,)
 
     # ----------------------------------------------------------------
-    # Recursively scan all child groups
+    # Recursively scan all sub-groups
     # ----------------------------------------------------------------
     for g in group.groups.values():
-        zarr_dimension_maps(g, dimension_cls)
+        zarr_dimension_maps(g)
 
 
 def zarr_raw_dimension_names(variable):
     """Return the raw dimension names for a variable.
-
-    Currently this is only required for, and only works for, Zarr
-    variables. An `AttributeError` will be raised if called for any
-    other type of variable.
 
     :Parameters:
 
@@ -253,8 +211,9 @@ def zarr_raw_dimension_names(variable):
     :Returns:
 
         `list` of `str`
-            The variable's raw dimension names. A scalar variable will
-            have an empty list.
+            The raw dimension names stored in the embdedded
+            `zarr.Variable`. A scalar variable will have an empty
+            list.
 
     """
     metadata = variable._var.metadata
@@ -283,9 +242,12 @@ def zarr_raw_dimension_names(variable):
 
 
 def zarr_open(root, dataset):
-    """Return an open `zarr.Group`.
+    """Open a dataset with `zarr`.
 
     :Parameters:
+
+        root: `p5netcdf.File`
+            The root group.
 
         dataset:
             The dataset. May be a string-valued path, a file-like
@@ -303,32 +265,27 @@ def zarr_open(root, dataset):
     return nc, nc.attrs
 
 
-def zarr_parse_group_structure(
-    group, root, group_cls, variable_cls, dimension_cls
-):
-    """TODO."""
+def zarr_parse_group_structure(group):
+    """TODO.
+
+    group: `Group` or `File`
+
+    """
     # Create variables in this group
     for name, var in dict(group._grp.arrays()).items():
-        group._variables[name] = variable_cls(
-            name=name, parent=group, var=var, var_attrs=var.attrs
-        )
+        group._create_variable(name, var, var.attrs)
 
     # Create subgroups
     for name, grp in dict(group._grp.groups()).items():
-        group._groups[name] = group_cls(
-            name=name,
-            parent=group,
-            root=root,
-            grp=grp,
-            grp_attrs=grp.attrs,
-        )
+        group._create_group(name, grp, grp.attrs)
 
-    # Create dimensions in all groups, starting with the root group,
-    # and attach dimensions to each variable.
+    # Starting from the root group, i) create dimensions in all
+    # groups, and ii) attach dimensions to each variable.
     if group.isroot:
+        root = group
         root._group_to_dims = {}
-        root._var_to_dims = {}
-        zarr_dimension_maps(root, dimension_cls)
+        root._variable_to_dims = {}
+        zarr_dimension_maps(root)
 
         for path, dims in root._group_to_dims.items():
             group = root[path]
@@ -336,6 +293,6 @@ def zarr_parse_group_structure(
                 group._dimensions[name] = dim
 
             for name, var in group.variables.items():
-                var._dims = root._var_to_dims[var.path]
+                var._dims = root._variable_to_dims[var.path]
 
-        del root._group_to_dims, root._var_to_dims
+        del root._group_to_dims, root._variable_to_dims

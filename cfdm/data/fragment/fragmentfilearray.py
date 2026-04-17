@@ -27,7 +27,7 @@ class FragmentFileArray(
         # Import fragment classes. Do this here (as opposed to outside
         # the class) to aid subclassing.
         from . import (
-            FragmentH5netcdfArray,
+            FragmentH5pyArray,
             FragmentNetCDF4Array,
             FragmentPyfiveArray,
             FragmentZarrArray,
@@ -37,7 +37,7 @@ class FragmentFileArray(
         instance._FragmentArrays = (
             FragmentPyfiveArray,
             FragmentNetCDF4Array,
-            FragmentH5netcdfArray,
+            FragmentH5pyArray,
             FragmentZarrArray,
         )
         return instance
@@ -145,14 +145,15 @@ class FragmentFileArray(
         """Returns a subspace of the dataset variable.
 
         The method acts as a factory for either a
-        `NetCDF4FragmentArray`, `H5netcdfFragmentArray`, or
-        `UMFragmentArray` class, and it is the result of calling
-        `!_get_array` on the newly created instance that is returned.
+        `PyfiveFragmentArray`, `NetCDF4FragmentArray`,
+        `H5pyFragmentArray`, or `UMFragmentArray` class, and it is the
+        result of calling `!_get_array` on the newly created instance
+        that is returned.
 
-        `H5netcdfFragmentArray` will only be used if
+        `H5pyFragmentArray` will only be used if
         `NetCDF4FragmentArray` returns a `FileNotFoundError`
-        exception; and `UMFragmentArray` will only be used
-        if `H5netcdfFragmentArray` returns an `Exception`.
+        exception; and `UMFragmentArray` will only be used if
+        `H5pyFragmentArray` returns an `Exception`.
 
         .. versionadded:: (cfdm) 1.12.0.0
 
