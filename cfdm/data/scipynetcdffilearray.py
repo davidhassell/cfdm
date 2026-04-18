@@ -65,7 +65,8 @@ class ScipyNetcdfFileArray(IndexMixin, FileArray):
             index = self.index()
 
         dataset, address = self.open()
-        variable = dataset.variables[address]
+#        variable = dataset.variables[address]
+        variable = dataset[address]
 
         # Get the data, applying masking and scaling as required.
         array = netcdf_indexer(
@@ -89,8 +90,8 @@ class ScipyNetcdfFileArray(IndexMixin, FileArray):
         #
         # These actions are necessary to allow the file to be closed.
         # See the docs for `scipy.io.netcdf_file` for details.
-        array = array.copy()
-        del variable
+#        array = array.copy()
+ #       del variable
         self.close(dataset)
 
         return array
@@ -123,6 +124,12 @@ class ScipyNetcdfFileArray(IndexMixin, FileArray):
                 address of the data within the file.
 
         """
-        from scipy.io import netcdf_file
+        from cfdm import p5netcdf
 
-        return super().open(netcdf_file, mode="r", mmap=True, **kwargs)
+        return super().open(
+            p5netcdf.File, mode="r", backend='netcdf_file', **kwargs
+        )
+
+#        from scipy.io import netcdf_file#
+#
+#        return super().open(netcdf_file, mode="r", mmap=True, **kwargs)

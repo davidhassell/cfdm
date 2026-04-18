@@ -697,7 +697,7 @@ class Variable:
             return dims
 
         match self.backend:
-            case "pyfive" | "h5py" | "netcdf_file":
+            case "pyfive" | "h5py":
                 dims = []
                 for dim_name in hdf5_dimension_names(self):
                     # Walk up the tree to find where the dimension is
@@ -726,12 +726,16 @@ class Variable:
                     for ndim in self._var.get_dims()
                 ]
 
+            case "netcdf_file":
+                dimensions = self.root.dimensions
+                dims = [dimensions[dim] for dim in self._var.dimensions]
+                
             case "zarr":
                 raise RuntimeError(
                     "_dims should have already been set to something other "
                     "than None by the zarr_parse_group_structure function. "
                 )
-
+            
         dims = tuple(dims)
         self._dims = dims
         return dims

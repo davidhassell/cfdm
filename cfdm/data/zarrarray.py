@@ -34,10 +34,10 @@ class ZarrArray(IndexMixin, abstract.FileArray):
         if index is None:
             index = self.index()
 
-        zr, address = self.open()
+        dataset, address = self.open()
 
         # Get the variable by name
-        variable = zr[address]
+        variable = dataset[address]
 
         # Get the data, applying masking and scaling as required.
         array = netcdf_indexer(
@@ -118,13 +118,19 @@ class ZarrArray(IndexMixin, abstract.FileArray):
                 variable name of the data within the dataset.
 
         """
-        try:
-            import zarr
-        except ModuleNotFoundError as error:
-            error.msg += (
-                ". Install the 'zarr' package "
-                "(https://pypi.org/project/zarr) to read Zarr datasets"
-            )
-            raise
+        from cfdm import p5netcdf
 
-        return super().open(zarr.open, mode="r", **kwargs)
+        return super().open(
+            p5netcdf.File, mode="r", backend='zarr', **kwargs
+        )
+    
+        #try:
+        #    import zarr
+        #except ModuleNotFoundError as error:
+        #    error.msg += (
+        #        ". Install the 'zarr' package "
+        #        "(https://pypi.org/project/zarr) to read Zarr datasets"
+        #    )
+        #    raise
+        #
+        #return super().open(zarr.open, mode="r", **kwargs)

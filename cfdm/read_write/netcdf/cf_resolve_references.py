@@ -255,7 +255,7 @@ def resolve_pattern_4(value, variable):
     previous_ref = None
     for ref in cell_methods:
         if ref.endswith(":"):
-            ref = resolve_reference(ref[:-1], variable, dim=True)
+            ref = resolve_reference(ref[:-1], variable, dim=True, var=True)
             resolved.append(ref + ":")
             previous_ref = "axis"
             continue

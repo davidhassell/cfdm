@@ -1827,6 +1827,7 @@ class NetCDFRead(IORead):
 
         g["dimensions"] = nc.all_dimensions.copy()
         g["variables"] = nc.all_variables.copy()
+        g["dimensions"] = nc.all_dimensions.copy()
         g["variable_dimension_paths"] = {
             key: var.dimension_paths for key, var in g["variables"].items()
         }
@@ -1880,18 +1881,19 @@ class NetCDFRead(IORead):
         #
         # Identify and parse all list variables
         # ------------------------------------------------------------
-        # for ncvar, dimensions in variable_dimensions.items():
         for ncvar, variable in g["variables"].items():
             dim_paths = g["variable_dimension_paths"][ncvar]
             if len(dim_paths) != 1:
+                # Not a coordinate variable
+                continue
+            
+            if variable.name != g['dimensions'][dim_paths[0]].name:
+                # Not a coordinate variable
                 continue
 
-            if dim_paths[0].split("/")[-1] != (variable.name,):
-                continue
-
-            #            compress = variable_attributes[ncvar].get("compress")
             compress = variable.attrs.get("compress")
             if compress is None:
+                # Not a list variable
                 continue
 
             # This variable is a list variable for gathering arrays
@@ -1999,7 +2001,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         if g["CF>=1.8"]:
             #            for ncvar, attributes in variable_attributes.items():
-            for ncvar, variables in g["variables"].items():
+            for ncvar, variable in g["variables"].items():
                 attributes = variable.attrs
                 if "geometry" not in attributes:
                     # This data variable does not have a geometry
@@ -2944,13 +2946,13 @@ class NetCDFRead(IORead):
             g["variable_geometry"][parent_ncvar] = geometry_ncvar
             return
 
+        geometry_attrs = g["variables"][geometry_ncvar].attrs
         logger.info(
             f"    Geometry container = {geometry_ncvar!r}\n"
-            f"        netCDF attributes: {attributes[geometry_ncvar]}"
+            f"        netCDF attributes: {geometry_attrs}"
         )  # pragma: no cover
 
         #        geometry_type = attributes[geometry_ncvar].get("geometry_type")
-        geometry_attrs = g["variables"][geometry_ncvar].attrs
         geometry_type = geometry_attrs.get("geometry_type")
 
         g["geometries"][geometry_ncvar] = {"geometry_type": geometry_type}
@@ -4099,7 +4101,7 @@ class NetCDFRead(IORead):
         field_ncdimensions = self._ncdimensions(
             field_ncvar, ncdimensions=ncdimensions
         )
-
+#        print ('field_ncdimensions=',field_ncvar, field_ncdimensions)
         #        field_groups = g["variable_groups"][field_ncvar]
         #        field_groups = g["variables"][field_ncvar].groups
 
@@ -4651,12 +4653,15 @@ class NetCDFRead(IORead):
             for node_ncvar in geometry["node_coordinates"]:
                 found = any(
                     [
-                        self.implementation.get_bounds_ncvar(a) == node_ncvar
+                        self._absolute_ncvar(
+                            self.implementation.get_bounds_ncvar(a)
+                        ) == node_ncvar
                         for a in self.implementation.get_auxiliary_coordinates(
                             f
                         ).values()
                     ]
                 )
+
                 # TODO: remove explicit API dependency:
                 # f.auxiliary_coordinates.values()
                 if found:
@@ -5254,7 +5259,8 @@ class NetCDFRead(IORead):
                 continue
 
             #            if g["variable_basename"][ncvar] != g["dimension_basename"][ncdim]:
-            if var.name != g["variable_dimension_paths"][ncvar].split("/")[-1]:
+            # if var.name != g["variable_dimension_paths"][ncvar].split("/")[-1]:
+            if var.name != g["dimensions"][ncdim].name:
                 # This variable does not have the same basename as the
                 # dimension. E.g. if ncdim is '/forecast/lon' and
                 # ncvar is '/forecast/model/lat' then their basenames
@@ -6025,8 +6031,8 @@ class NetCDFRead(IORead):
             # if it is a dimension of its parent coordinate
             # variable. This can sometimes happen if the bounds are
             # node coordinates.)
-            #            if bounds_ncdim not in g["variable_dimensions"].get(ncvar, ()):
-            if bounds_ncdim not in g["variable_dimension_paths"][ncvar]:
+            #  if bounds_ncdim not in g["variable_dimensions"].get(ncvar, ()):
+            if bounds_ncdim not in g["variable_dimension_paths"].get(ncvar, ()):
                 self.implementation.nc_set_dimension(bounds, bounds_ncdim)
 
             # Set the bounds on the parent construct
@@ -7991,7 +7997,7 @@ class NetCDFRead(IORead):
             domain = True
 
         ncdimensions = list(ncdimensions)
-
+        
         ndim = variable.ndim
         if self._is_char(ncvar) and ndim >= 1:
             # Remove the trailing string-length dimension
@@ -8869,6 +8875,7 @@ class NetCDFRead(IORead):
         # Check that the variable's dimensions span a subset of the
         # parent variable's dimensions (allowing for char variables
         # with a trailing dimension)
+
         if not self._dimensions_are_subset(
             coord_ncvar,
             self._ncdimensions(coord_ncvar, parent_ncvar=parent_ncvar),
@@ -12538,11 +12545,16 @@ class NetCDFRead(IORead):
         return "unknown"
 
     def _absolute_ncvar(self, x):
+        """TODO"""
         try:
             ncvar = self.implementation.nc_get_variable(x)
         except Exception:  # TODO
+            # 'x' is a string
             ncvar = x
-
+            
+        if ncvar is None:
+            return
+        
         if not ncvar.startswith("/"):
             ncvar = f"/{ncvar}"
 

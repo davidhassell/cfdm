@@ -31,10 +31,16 @@ def _remove_tmpfiles():
 
 atexit.register(_remove_tmpfiles)
 
+#netcdf_backends = (
+#    "netCDF4",
+#    "h5netcdf-pyfive",
+#    "h5netcdf-h5py",
+#    "netcdf_file",
+#)
 netcdf_backends = (
+    "pyfive",
+    "h5py",
     "netCDF4",
-    "h5netcdf-pyfive",
-    "h5netcdf-h5py",
     "netcdf_file",
 )
 
@@ -97,8 +103,8 @@ class netcdf_indexerTest(unittest.TestCase):
             nc = netCDF4.Dataset(tmpfile, "r")
             nc.set_auto_maskandscale(True)
             nc.set_always_mask(True)
-
             f = cfdm.read(tmpfile, netcdf_backend=backend)
+
             for g in f:
                 ncvar = g.nc_get_variable()
                 n = nc.variables[ncvar]

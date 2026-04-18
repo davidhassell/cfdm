@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from copy import deepcopy
 from os import sep
 from os.path import join
@@ -211,7 +212,7 @@ class FileArray(Array):
             self.get_storage_options(),
         )
 
-    def _get_array(self, index=None):
+    def _get_array(self, index=None, use_lock=None):
         """Returns a subspace of the dataset variable.
 
         The subspace is defined by the `index` attributes, and is
@@ -646,11 +647,10 @@ class FileArray(Array):
         return self.array
 
     def _attributes(self, var):
-        """Get the netCDF variable attributes.
+        """Get the variable attributes.
 
         If the attributes have not been set, then they are retrieved
-        from the netCDF variable *var* and stored in `{{class}}`
-        instance for fast future access.
+        from the *var* and cached for fast future access.
 
         .. versionadded:: (cfdm) 1.12.0.0
 
@@ -658,8 +658,8 @@ class FileArray(Array):
 
         :Parameters:
 
-            var:
-                The netCDF variable.
+            var: `p5netcdf.Variable`
+                The variable.
 
         :Returns:
 
@@ -668,9 +668,16 @@ class FileArray(Array):
                 of the cached dictionary.
 
         """
-        raise NotImplementedError(
-            f"Must implement {self.__class__.__name__}._attributes"
-        )  # pragma: no cover
+        attributes = self._get_component("attributes", None)
+        if attributes is None:
+            attributes = var.attrs.copy()
+            self._set_component("attributes", attributes, copy=False)
+
+        return attributes
+
+#        raise NotImplementedError(
+#            f"Must implement {self.__class__.__name__}._attributes"
+#        )  # pragma: no cover
 
     def get_unpack(self):
         """Whether or not to automatically unpack the data.

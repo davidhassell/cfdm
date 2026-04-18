@@ -71,16 +71,18 @@ class PyfiveArray(IndexMixin, FileArray):
         if variable is None:
             # The variable has not been provided, so get it.
             dataset, address = self.open()
-            dataset0 = dataset
+#            dataset0 = dataset
+#
+#            groups, address = self.get_groups(address)
+#            if groups:
+#                dataset = self._group(dataset, groups)
+#
+#            variable = dataset.variables[address]
 
-            groups, address = self.get_groups(address)
-            if groups:
-                dataset = self._group(dataset, groups)
+            variable = dataset[address]
 
-            variable = dataset.variables[address]
-
-            # Cache the variable
-            self._set_component("variable", variable, copy=False)
+##            # Cache the variable
+#            self._set_component("variable", variable, copy=False)
 
         # Get the data, applying masking and scaling as required.
         array = netcdf_indexer(
@@ -95,7 +97,7 @@ class PyfiveArray(IndexMixin, FileArray):
         array = array[index]
 
         if dataset is not None:
-            self.close(dataset0)
+            self.close(dataset)
 
         return array
 
@@ -201,13 +203,19 @@ class PyfiveArray(IndexMixin, FileArray):
                 within the file.
 
         """
-        import h5netcdf
+        from cfdm import p5netcdf
 
         return super().open(
-            h5netcdf.File,
-            mode="r",
-            decode_vlen_strings=True,
-            backend="pyfive",
-            phony_dims="sort",
-            **kwargs
+            p5netcdf.File, mode="r", backend='pyfive', **kwargs
         )
+
+#        import h5netcdf
+#
+#        return super().open(
+#            h5netcdf.File,
+#            mode="r",
+#            decode_vlen_strings=True,
+#            backend="pyfive",
+#            phony_dims="sort",
+#            **kwargs
+#        )

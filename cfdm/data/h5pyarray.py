@@ -85,14 +85,14 @@ class H5pyArray(IndexMixin, abstract.FileArray):
         #       file.
         with self._lock:
             dataset, address = self.open()
-            dataset0 = dataset
+#            dataset0 = dataset
 
-            groups, address = self.get_groups(address)
-            if groups:
-                dataset = self._group(dataset, groups)
+#            groups, address = self.get_groups(address)
+#            if groups:
+#                dataset = self._group(dataset, groups)#
 
             # Get the variable by netCDF name
-            variable = dataset.variables[address]
+            variable = dataset[address]
 
             # Get the data, applying masking and scaling as required.
             array = netcdf_indexer(
@@ -106,7 +106,7 @@ class H5pyArray(IndexMixin, abstract.FileArray):
             )
             array = array[index]
 
-            self.close(dataset0)
+            self.close(dataset)
 
         return array
 
@@ -214,6 +214,6 @@ class H5pyArray(IndexMixin, abstract.FileArray):
                 within the file.
 
         """
-        from h5py import File
+        from cfdm import p5netcdf
 
-        return super().open(File, mode="r", decode_vlen_strings=True, **kwargs)
+        return super().open(p5netcdf.File, mode="r", backend='h5py', **kwargs)

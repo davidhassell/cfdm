@@ -240,7 +240,7 @@ class FunctionsTest(unittest.TestCase):
                 g = cfdm.read(temp_file, verbose=1)
 
                 self.assertEqual(len(g), 1)
-                self.assertTrue(f.equals(g[0], verbose=3))
+                self.assertTrue(f.equals(g[0], verbose=1))
 
         with self.assertRaises(Exception):
             cfdm.example_field(top + 1)

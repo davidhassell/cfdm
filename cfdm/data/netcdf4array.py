@@ -26,33 +26,33 @@ class NetCDF4Array(IndexMixin, abstract.FileArray):
         """
         return netcdf_lock
 
-    def _attributes(self, var):
-        """Get the netCDF variable attributes.
-
-        If the attributes have not been set, then they are retrieved
-        from the netCDF variable *var* and stored for fast future
-        access.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            var: `netCDF4.Variable`
-                The netCDF variable.
-
-        :Returns:
-
-            `dict`
-                The attributes. The returned attributes are not a copy
-                of the cached dictionary.
-
-        """
-        attributes = self._get_component("attributes", None)
-        if attributes is None:
-            attributes = {attr: var.getncattr(attr) for attr in var.ncattrs()}
-            self._set_component("attributes", attributes, copy=False)
-
-        return attributes
+#    def _attributes(self, var):
+#        """Get the netCDF variable attributes.
+#
+#        If the attributes have not been set, then they are retrieved
+#        from the netCDF variable *var* and stored for fast future
+#        access.
+#
+#        .. versionadded:: (cfdm) NEXTVERSION
+#
+#        :Parameters:
+#
+#            var: `netCDF4.Variable`
+#                The netCDF variable.
+#
+#        :Returns:
+#
+#            `dict`
+#                The attributes. The returned attributes are not a copy
+#                of the cached dictionary.
+#
+#        """
+#        attributes = self._get_component("attributes", None)
+#        if attributes is None:
+#            attributes = {attr: var.getncattr(attr) for attr in var.ncattrs()}
+#            self._set_component("attributes", attributes, copy=False)
+#
+#        return attributes
 
     def _get_array(self, index=None):
         """Returns a subspace of the dataset variable.
@@ -80,26 +80,29 @@ class NetCDF4Array(IndexMixin, abstract.FileArray):
         # Note: We need to lock because netCDF-C is about to access
         #       the file.
         with self._lock:
-            netcdf, address = self.open()
-            dataset = netcdf
+#            netcdf, address = self.open()
+#            dataset = netcdf
+#
+#            groups, address = self.get_groups(address)
+#            if groups:
+#                # Traverse the group structure, if there is one (CF>=1.8).
+#                netcdf = self._group(netcdf, groups)
+#
+#            if isinstance(address, str):
+#                # Get the variable by netCDF name
+#                variable = netcdf.variables[address]
+#            else:
+#                # Get the variable by netCDF integer ID
+#                for variable in netcdf.variables.values():
+#                    if variable._varid == address:
+#                        break
 
-            groups, address = self.get_groups(address)
-            if groups:
-                # Traverse the group structure, if there is one (CF>=1.8).
-                netcdf = self._group(netcdf, groups)
-
-            if isinstance(address, str):
-                # Get the variable by netCDF name
-                variable = netcdf.variables[address]
-            else:
-                # Get the variable by netCDF integer ID
-                for variable in netcdf.variables.values():
-                    if variable._varid == address:
-                        break
+            dataset, address = self.open()
+            variable = dataset[address]
 
             # Get the data, applying masking and scaling as required.
             array = netcdf_indexer(
-                variable,
+                variable._var,
                 mask=self.get_mask(),
                 unpack=self.get_unpack(),
                 always_masked_array=False,
@@ -110,7 +113,7 @@ class NetCDF4Array(IndexMixin, abstract.FileArray):
             array = array[index]
 
             self.close(dataset)
-            del netcdf, dataset
+#            del netcdf, dataset
 
         if not self.ndim:
             # Hmm netCDF4 has a thing for making scalar size 1, 1d
@@ -222,6 +225,12 @@ class NetCDF4Array(IndexMixin, abstract.FileArray):
                 address of the data within the file.
 
         """
-        import netCDF4
+    
+        from cfdm import p5netcdf
 
-        return super().open(netCDF4.Dataset, mode="r", **kwargs)
+        return super().open(
+            p5netcdf.File, mode="r", backend='netCDF4', **kwargs
+        )
+#    import netCDF4
+#
+ #       return super().open(netCDF4.Dataset, mode="r", **kwargs)
