@@ -21,13 +21,12 @@ from cfdm.functions import abspath, is_log_level_debug, is_log_level_detail
 
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
+from .cf_resolve_references import resolve_references
 from .constants import (
     CF_QUANTIZATION_PARAMETERS,
     NETCDF_MAGIC_NUMBERS,
     NETCDF_QUANTIZATION_PARAMETERS,
 )
-from .p5netcdf import p5netcdf
-from .resolve_references3 import resolve_references
 
 logger = logging.getLogger(__name__)
 
@@ -531,6 +530,8 @@ class NetCDFRead(IORead):
         >>> r.dataset_open('file.nc')
 
         """
+        from .p5netcdf import p5netcdf
+
         g = self.read_vars
 
         logger.info(
@@ -1423,8 +1424,7 @@ class NetCDFRead(IORead):
             # Must use `zarr` for Zarr and Kerchunk datasets
             netcdf_backend = ("zarr",)
         elif d_type == "pyfive.File":
-            # Must use `p5netcdf` for pyfive.File-like datasets
-            netcdf_backend = None  # ("p5netcdf",)
+            netcdf_backend = None
         elif netcdf_backend is None:
             # By default, try netCDF backends in the following order.
             #
@@ -5352,7 +5352,8 @@ class NetCDFRead(IORead):
             True
 
         """
-        datatype = self._dtype(self.read_vars["variables"][ncvar])
+        #        datatype = self._dtype(self.read_vars["variables"][ncvar])
+        datatype = self.read_vars["variables"][ncvar].dtype
         return datatype == str or datatype.kind in "OSUT"
 
     def _is_char(self, ncvar):
@@ -5375,7 +5376,8 @@ class NetCDFRead(IORead):
         True
 
         """
-        datatype = self._dtype(self.read_vars["variables"][ncvar])
+        #        datatype = self._dtype(self.read_vars["variables"][ncvar])
+        datatype = self.read_vars["variables"][ncvar].dtype
         return datatype is not str and datatype.kind in "SU"
 
     def _has_identity(self, construct, identity):
@@ -6739,7 +6741,8 @@ class NetCDFRead(IORead):
         if variable is None:
             return None
 
-        dtype = self._dtype(variable)
+        #        dtype = self._dtype(variable)
+        dtype = variable.dtype
         if dtype is str or dtype.kind == "O":
             # netCDF string types have a dtype of `str`, which needs
             # to be reset as a numpy.dtype, but we don't know what
@@ -6749,11 +6752,9 @@ class NetCDFRead(IORead):
         if dtype is not None and unpacked_dtype is not False:
             dtype = np.result_type(dtype, unpacked_dtype)
 
-        #       ndim = self._ndim(variable)
         ndim = variable.ndim
         shape = variable.shape
         size = variable.size
-        #        size = prod(shape)
 
         if size < 2:
             size = int(size)
@@ -8300,19 +8301,10 @@ class NetCDFRead(IORead):
 
         # Deal with strings
         #        match g["original_dataset_opened_with"]:
-        match g["variables"][ncvar].backend:
-            #            case "p5netcdf" | "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+        variable = g["variables"][ncvar]
+        match variable.backend:
             case "pyfive" | "h5py" | "netCDF4":
                 if array.dtype is None:
-                    if g["has_groups"]:
-                        group, name = self._netCDF4_group(
-                            g["variable_grouped_dataset"][ncvar], ncvar
-                        )
-                        variable = group.variables.get(name)
-                    else:
-                        variable = g["variables"].get(ncvar)
-
-                    #                    array = self._index(variable, Ellipsis)
                     array = variable[...]
 
                     string_type = isinstance(array, str)
@@ -8337,6 +8329,7 @@ class NetCDFRead(IORead):
                         array = np.ma.masked_values(array, "")
 
             case "zarr":
+                # TODO - is array an Array, here? Does this work?
                 if array.dtype == np.dtypes.StringDType():
                     array = array.astype("O", copy=False).astype(
                         "U", copy=False
@@ -8999,7 +8992,6 @@ class NetCDFRead(IORead):
         g = self.read_vars
 
         if not parsed_grid_mapping:
-            print(9449)
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
@@ -9008,7 +9000,7 @@ class NetCDFRead(IORead):
                 conformance="5.6.requirement.1",
             )
             return False
-        print(99)
+
         ok = True
         for x in parsed_grid_mapping:
             grid_mapping_ncvar, values = list(x.items())[0]
@@ -9584,7 +9576,6 @@ class NetCDFRead(IORead):
             # variable OR to multiple variables with associated
             # coordinate variables (CF>=1.7)
             out = self._parse_x(parent_ncvar, string, keys_are_variables=True)
-            print(string, "out = ", out)
         else:
             # The grid mapping attribute may only point to a single
             # netCDF variable (CF<=1.6)
@@ -9680,7 +9671,6 @@ class NetCDFRead(IORead):
 
         m = re.match(pat_all, string)
         if m is None:
-            print(string, 1111111111)
             return []
 
         sole_mapping = m.group("sole_mapping")
@@ -11373,53 +11363,28 @@ class NetCDFRead(IORead):
     #                    case 2:
     #                        # Zarr v2
     #                        return tuple(var.attrs["_ARRAY_DIMENSIONS"])
-
-    def _ndim(self, var):
-        """Return the size of a variable's array.
-
-        .. versionaddede:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-               `zarr.Array`
-
-        :Returns:
-
-            `int`
-                The array size.
-
-        """
-        try:
-            # p5netcdf, h5netcdf, netCDF4, zarr
-            return var.ndim
-        except AttributeError:
-            # scipy
-            return len(var.shape)
-
-    def _dtype(self, var):
-        """Return the data type of a dataset variable.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-               `zarr.Array`
-
-        :Returns:
-
-                The variable's data type as a `numpy.dtype` object,
-                unless the variable is a VLEN string, in which case
-                the data type will be `str`.
-
-        """
-        return var.dtype
-
+    #
+    #    def _dtype(self, var):
+    #        """Return the data type of a dataset variable.
+    #
+    #        .. versionadded:: (cfdm) NEXTVERSION
+    #
+    #        :Parameters:
+    #
+    #            var:
+    #                The variable. One of `netCDF4.Variable`,
+    #               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
+    #               `zarr.Array`
+    #
+    #        :Returns:
+    #
+    #                The variable's data type as a `numpy.dtype` object,
+    #                unless the variable is a VLEN string, in which case
+    #                the data type will be `str`.
+    #
+    #        """
+    #        return var.dtype
+    #
     #        try:
     #            # p5netcdf, h5netcdf, netCDF4, zarr
     #            dtype = var.dtype
@@ -12396,8 +12361,7 @@ class NetCDFRead(IORead):
         None, (12, 324, 432)
 
         """
-
-        # TODO - shat about external ..... just add to g["variables"]
+        # TODO - what about external ..... just add to g["variables"]
         var = self.read_vars["variables"][ncvar]
         #        g = self.read_vars
         #        if g["original_dataset_opened_with"] != "zarr":

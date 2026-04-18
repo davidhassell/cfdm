@@ -24,7 +24,8 @@ def resolve_references(f):
             attrs[name] = resolver(attrs[name], variable)
 
 
-def search_by_relative_path(ref, variable, search_type):
+def search_by_absolute_or_relative_path(ref, variable, search_type):
+    """TODO."""
     g = variable.group()
     parts = ref.split("/")
     path = "/".join(parts[:-1])
@@ -61,11 +62,10 @@ def search_by_proximity(ref, variable, search_type):
 
         g = g.parent
 
-    return coordinate_search_by_proximity(ref, variable)
-
 
 def coordinate_search_by_proximity(ref, variable):
-    # find the local apex group - the ancestor group that contains a
+    """TODO."""
+    # Find the local apex group: The ancestor group that contains a
     # dimension with the same name as the variable
     g = variable.group()
     dim = None
@@ -78,13 +78,23 @@ def coordinate_search_by_proximity(ref, variable):
         depth += 1
         g = g.parent
 
-    if dim is None:
+    local_apex_group = g
+    if local_apex_group is None:
         return
 
-    return search_for_coordinate_from_local_apex(ref, g, depth)
+    return lateral_search(ref, local_apex_group, depth)
 
 
-def search_for_coordinate_from_local_apex(ref, group, depth):
+def lateral_search(ref, group, depth):
+    """TODO.
+
+    Performs a lateral search starting in *group* and proceeding to
+    *depth* layers of sub-groups. If *depth* is less than 0 then no
+    search is done; if *depth* is 0, only *group* is searched; if
+    *depth* is 1 then direct sub-groups are also searched; if *depth* is
+    2 then direct sub-groups of those sub-groups are also searched; etc.
+
+    """
     if depth < 0:
         # Not found in the tree from 'group' down to the given depth
         return
@@ -103,7 +113,7 @@ def search_for_coordinate_from_local_apex(ref, group, depth):
             # Found
             return var.path
 
-        path = search_for_coordinate_from_local_apex(ref, g, depth - 1)
+        path = lateral_search(ref, g, depth - 1)
         if path is not None:
             # Found
             return path
@@ -114,10 +124,12 @@ def search_for_coordinate_from_local_apex(ref, group, depth):
 def resolve_pattern_1(value, variable):
     """TODO.
 
-    Resolve attributes whose values are
+    Resolve references in an attribute whose value has one of the
+    following patterns:
+
     * ''
-    * 'var1'
-    * 'var1 var2'
+    * 'var'
+    * 'var var'
 
     E.g. ``coordinates``, ``ancillary_variables``,
     ``edge_node_connectivity``
@@ -132,10 +144,12 @@ def resolve_pattern_1(value, variable):
 def resolve_pattern_1b(value, variable):
     """TODO.
 
-    Resolve attributes whose values are
+    Resolve references in an attribute whose value has one of the
+    following patterns:
+
     * ''
-    * 'dim1'
-    * 'dim1 dim2'
+    * 'dim'
+    * 'dim dim'
 
     E.g. ``dimensions``, ``face_dimension``
 
@@ -149,19 +163,21 @@ def resolve_pattern_1b(value, variable):
 def resolve_pattern_2(value, variable):
     """TODO.
 
-    Resolve attributes whose values are
+    Resolve references in an attribute whose value has one of the
+    following patterns:
 
-    * 'var1: var2',
-    * 'var1: var2 var3',
-    * 'var1: var2 var3: var4 var5',
+    * ''
+    * 'key: var'
+    * 'key: var key: var'
+
+    E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
+    ``interpolation_parameters``
 
     """
     resolved = []
+
     for ref in value.split():
-        if ref.endswith(":"):
-            ref = resolve_reference(ref[:-1], variable, var=True)
-            ref += ":"
-        else:
+        if not ref.endswith(":"):
             ref = resolve_reference(ref, variable, var=True)
 
         resolved.append(ref)
@@ -172,19 +188,24 @@ def resolve_pattern_2(value, variable):
 def resolve_pattern_3(value, variable):
     """TODO.
 
-    Resolve attributes whose values are
+    Resolve references in an attribute whose value has one of the
+    following patterns:
 
-    * 'key1: var1',
-    * 'key1: var1 key2: var2'
+    * ''
+    * 'var: var'
+    * 'var: var var'
+    * 'var: var var: var var'
+    * 'var: var var var: var var'
 
-    E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
-    ``interpolation_parameters``
+    E.g. ``grid_mapping``
 
     """
     resolved = []
-
     for ref in value.split():
-        if not ref.endswith(":"):
+        if ref.endswith(":"):
+            ref = resolve_reference(ref[:-1], variable, var=True)
+            ref += ":"
+        else:
             ref = resolve_reference(ref, variable, var=True)
 
         resolved.append(ref)
@@ -227,70 +248,70 @@ def resolve_pattern_4(value, variable):
     #
     # would be split up into:
     #
-    #   ['lat:', 'lon:', 'mean', '(interval: 1 hour)', 'time', 'max']
+    #   ['lat:', 'lon:', 'mean', '(interval: 1 hour)', 'time:', 'max']
     # ------------------------------------------------------------
     cell_methods = re.findall(r"\([^)]*\)|\S+", value)
 
-    previous = "axis"
+    previous_ref = None
     for ref in cell_methods:
         if ref.endswith(":"):
             ref = resolve_reference(ref[:-1], variable, dim=True)
             resolved.append(ref + ":")
-            previous = "axis"
+            previous_ref = "axis"
             continue
 
-        if previous == "axis":
+        if previous_ref == "axis":
             resolved.append(ref)
-            previous = "method"
+            previous_ref = "method"
             continue
 
-        if previous == "method":
+        if previous_ref == "method":
             if ref == "within":
                 resolved.append(ref)
-                previous = "within"
+                previous_ref = "climatological within"
                 continue
 
             if ref == "where":
                 resolved.append(ref)
-                previous = "where"
+                previous_ref = "where"
                 continue
 
-        if previous == "within":
+        if previous_ref == "climatological within":
             resolved.append(ref)
-            previous = "years|days"
+            previous_ref = "years|days"
             continue
 
-        if previous == "years|days" and ref == "over":
+        if previous_ref == "years|days" and ref == "over":
             resolved.append(ref)
-            previous = "climatological over"
+            previous_ref = "climatological over"
             continue
 
-        if previous == "climatological over":
+        if previous_ref == "climatological over":
             resolved.append(ref)
-            previous = "years|days"
+            previous_ref = "years|days"
             continue
 
-        if previous == "where":
+        if previous_ref == "where":
             ref = resolve_reference(ref, variable, var=True)
             resolved.append(ref)
-            previous = "type1"
+            previous_ref = "type1"
             continue
 
-        if previous == "type1" and ref == "over":
+        if previous_ref == "type1" and ref == "over":
             resolved.append(ref)
-            previous = "over"
+            previous_ref = "over"
             continue
 
-        if previous == "over":
+        if previous_ref == "over":
             ref = resolve_reference(ref, variable, var=True)
             resolved.append(ref)
-            previous = "type2"
+            previous_ref = "type2"
             continue
 
         # Still here?
         #        if ref.startswith("(") and ref.endswith(")"):
         resolved.append(ref)
-        previous = None
+        previous_ref = None
 
     return " ".join(resolved)
 
@@ -298,30 +319,31 @@ def resolve_pattern_4(value, variable):
 def resolve_pattern_5(value, variable):
     """TODO.
 
-    Resolve attributes whose values are "interpolated_dimension:
-    tie_point_index_variable subsampled_dimension
-    [interpolation_subarea_dimension] [interpolated_dimension: ...]",
+    Resolve references in an attribute whose value has one of the
+    following patterns:
 
-    * 'dim1: var1 dim2'
-    * 'dim1: var1 dim2 dim3'
+    * ''
+    * 'dim: var dim'
+    * 'dim: var dim dim: var dim'
+    * 'dim: var dim dim dim: var dim dim'
 
-    E.g. ``te_point_mapping``
+    E.g. ``tie_point_mapping``
 
     """
     resolved = []
 
-    ref_type = None
+    next_ref = None
     for ref in value.split():
         if ref.endswith(":"):
             ref = resolve_reference(ref[:-1], variable, dim=True)
             ref += ":"
-            ref_type = "variable"
-        elif ref_type == "variable":
+            next_ref = "variable"
+        elif next_ref == "variable":
             ref = resolve_reference(ref, variable, var=True)
-            ref_type = "dimension"
-        elif ref_type == "dimension":
+            next_ref = "dimension"
+        elif next_ref == "dimension":
             ref = resolve_reference(ref, variable, dim=True)
-            ref_type = "dimension"
+            next_ref = "dimension"
 
         resolved.append(ref)
 
@@ -368,11 +390,13 @@ def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True):
     # Reference is given by relative path
     if "/" in ref:
         # First tentative as dim or var
-        resolved_ref = search_by_relative_path(ref, variable, first_search)
+        resolved_ref = search_by_absolute_or_relative_path(
+            ref, variable, first_search
+        )
 
         # If failed and alternative possible, second tentative
         if resolved_ref is None and second_search:
-            resolved_ref = search_by_relative_path(
+            resolved_ref = search_by_absolute_or_relative_path(
                 ref, variable, second_search
             )
 
@@ -435,7 +459,7 @@ resolving_rules = {
         # Coordinate references
         # ------------------------------------------------------------
         Rules(name="formula_terms", resolver=resolve_pattern_2),
-        Rules(name="grid_mapping", resolver=resolve_pattern_2),
+        Rules(name="grid_mapping", resolver=resolve_pattern_3),
         # ------------------------------------------------------------
         # Ancillary variables
         # ------------------------------------------------------------
@@ -483,7 +507,7 @@ resolving_rules = {
         # ------------------------------------------------------------
         # Compression by coordinate subsampling
         # ------------------------------------------------------------
-        Rules(name="coordinate_interpolation", resolver=resolve_pattern_2),
+        Rules(name="coordinate_interpolation", resolver=resolve_pattern_3),
         Rules(name="tie_point_mapping", resolver=resolve_pattern_5),
         Rules(name="interpolation_parameters", resolver=resolve_pattern_2),
         # ------------------------------------------------------------

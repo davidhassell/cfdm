@@ -291,12 +291,15 @@ class Variable:
 
     @property
     def backend(self):
-        """The TODO variable attributes.
+        """The name of the library package that provides the backend.
+
+        .. seealso:: `lib`
 
         :Returns:
 
-            `dict`
-                The attribute values, keyed by their names.
+            `str`
+                The name of the library package that provides the
+                backend.
 
         """
         return self._backend
@@ -412,12 +415,13 @@ class Variable:
 
     @property
     def lib(self):
-        """The TODO variable attributes.
+        """The library package that provides the backend.
+
+        .. seealso:: `backend`
 
         :Returns:
 
-            `dict`
-                The attribute values, keyed by their names.
+                The library package that provides the backend.
 
         """
         return self._lib
@@ -604,7 +608,7 @@ class Variable:
         """
         chunking = getattr(self, "_chunking", None)
         if chunking is None:
-            chunks = self.chunks                    
+            chunks = self.chunks
             match self.backend:
                 case "pyfive" | "zarr" | "h5py":
                     if chunks is None:
@@ -613,14 +617,14 @@ class Variable:
                         chunking = list(chunks)
                 case "netCDF4":
                     if chunks is None:
-                        if self._var.data_model == 'NETCDF3_CLASSIC':
+                        if self._var.data_model == "NETCDF3_CLASSIC":
                             chunking = None
                         else:
                             chunking = "contiguous"
                     else:
                         chunking = list(chunks)
-                case  "netcdf_file":
-                    chunking=None
+                case "netcdf_file":
+                    chunking = None
 
             self._chunking = chunking
 
@@ -1090,12 +1094,15 @@ class Group(Mapping):
 
     @property
     def backend(self):
-        """The TODO variable attributes.
+        """The name of the library package that provides the backend.
+
+        .. seealso:: `lib`
 
         :Returns:
 
-            `dict`
-                The attribute values, keyed by their names.
+            `str`
+                The name of the library package that provides the
+                backend.
 
         """
         return self._backend
@@ -1138,11 +1145,13 @@ class Group(Mapping):
 
     @property
     def lib(self):
-        """TODO.
+        """The library package that provides the backend.
+
+        .. seealso:: `backend`
 
         :Returns:
 
-        TODO
+                The library package that provides the backend.
 
         """
         return self._lib
@@ -1553,6 +1562,7 @@ class File(Group):
 
     @property
     def all_dimensions(self):
+        """TODO."""
         if getattr(self, "_all_dimensions", None) is None:
             self._populate_all()
 
@@ -1560,6 +1570,7 @@ class File(Group):
 
     @property
     def all_groups(self):
+        """TODO."""
         if getattr(self, "_all_groups", None) is None:
             self._populate_all()
 
@@ -1567,6 +1578,7 @@ class File(Group):
 
     @property
     def all_variables(self):
+        """TODO."""
         if getattr(self, "_all_variables", None) is None:
             self._populate_all()
 
