@@ -222,7 +222,7 @@ def zarr_raw_dimension_names(variable):
         case 3:
             dimensions = metadata.dimension_names
         case 2:
-            dimensions = metadata.attrs.get("_ARRAY_DIMENSIONS")
+            dimensions = metadata.attributes.get("_ARRAY_DIMENSIONS")
         case _:
             raise NetCDFError(
                 f"Can't parse a Zarr v{zarr_format} dataset. "

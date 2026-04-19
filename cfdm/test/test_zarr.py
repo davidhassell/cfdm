@@ -94,6 +94,9 @@ class read_writeTest(unittest.TestCase):
             "geometry_4.nc",
             "string_char.nc",
         ):
+            geometry_4.nc - written zarr includes gri_mapping variable on geometry_container as [] ....
+            tmpdir1 = 'tmpdir1'
+            print('\n\n',filename)
             n = cfdm.read(filename)
             cfdm.write(n, tmpdir1, fmt="ZARR3")
             z = cfdm.read(tmpdir1)

@@ -71,18 +71,18 @@ class PyfiveArray(IndexMixin, FileArray):
         if variable is None:
             # The variable has not been provided, so get it.
             dataset, address = self.open()
-#            dataset0 = dataset
-#
-#            groups, address = self.get_groups(address)
-#            if groups:
-#                dataset = self._group(dataset, groups)
-#
-#            variable = dataset.variables[address]
+            #            dataset0 = dataset
+            #
+            #            groups, address = self.get_groups(address)
+            #            if groups:
+            #                dataset = self._group(dataset, groups)
+            #
+            #            variable = dataset.variables[address]
 
             variable = dataset[address]
 
-##            # Cache the variable
-#            self._set_component("variable", variable, copy=False)
+        # Cache the variable
+        # self._set_component("variable", variable, copy=False)
 
         # Get the data, applying masking and scaling as required.
         array = netcdf_indexer(
@@ -206,8 +206,9 @@ class PyfiveArray(IndexMixin, FileArray):
         from cfdm import p5netcdf
 
         return super().open(
-            p5netcdf.File, mode="r", backend='pyfive', **kwargs
+            p5netcdf.File, mode="r", backend="pyfive", **kwargs
         )
+
 
 #        import h5netcdf
 #

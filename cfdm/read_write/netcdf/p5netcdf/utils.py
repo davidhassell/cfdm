@@ -6,7 +6,7 @@ _IGNORED_ATTRS = {
     "NAME",
     "REFERENCE_LIST",
     "DIMENSION_LIST",
-    "DIMENSION_LABELS",
+    "DIMENSION_LABELS","_ARRAY_DIMENSIONS"
 }
 _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
@@ -41,7 +41,7 @@ def _format_attr(lib, value):
 
             The formatted attribute value adhering to netCDF-4.
 
-    """
+    """    
     # Handle strings/bytes immediately
     if isinstance(value, (bytes, np.bytes_)):
         return value.decode("utf-8")

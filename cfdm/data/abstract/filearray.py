@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from copy import deepcopy
 from os import sep
 from os.path import join
@@ -675,9 +674,9 @@ class FileArray(Array):
 
         return attributes
 
-#        raise NotImplementedError(
-#            f"Must implement {self.__class__.__name__}._attributes"
-#        )  # pragma: no cover
+    #        raise NotImplementedError(
+    #            f"Must implement {self.__class__.__name__}._attributes"
+    #        )  # pragma: no cover
 
     def get_unpack(self):
         """Whether or not to automatically unpack the data.

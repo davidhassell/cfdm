@@ -53,7 +53,7 @@ class ZarrArray(IndexMixin, abstract.FileArray):
         # Set the attributes, if they haven't been set already.
         self._set_attributes(variable)
 
-        self.close(zr)
+        self.close(dataset)
 
         return array
 
@@ -120,17 +120,15 @@ class ZarrArray(IndexMixin, abstract.FileArray):
         """
         from cfdm import p5netcdf
 
-        return super().open(
-            p5netcdf.File, mode="r", backend='zarr', **kwargs
-        )
-    
-        #try:
+        return super().open(p5netcdf.File, mode="r", backend="zarr", **kwargs)
+
+        # try:
         #    import zarr
-        #except ModuleNotFoundError as error:
+        # except ModuleNotFoundError as error:
         #    error.msg += (
         #        ". Install the 'zarr' package "
         #        "(https://pypi.org/project/zarr) to read Zarr datasets"
         #    )
         #    raise
         #
-        #return super().open(zarr.open, mode="r", **kwargs)
+        # return super().open(zarr.open, mode="r", **kwargs)

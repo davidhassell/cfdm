@@ -729,13 +729,13 @@ class Variable:
             case "netcdf_file":
                 dimensions = self.root.dimensions
                 dims = [dimensions[dim] for dim in self._var.dimensions]
-                
+
             case "zarr":
                 raise RuntimeError(
                     "_dims should have already been set to something other "
                     "than None by the zarr_parse_group_structure function. "
                 )
-            
+
         dims = tuple(dims)
         self._dims = dims
         return dims
@@ -1309,6 +1309,24 @@ class Group(Mapping):
 
         return out
 
+    def issubgroup(self, other):
+        """Return True if the group is a subgroup of, or is, 'other'.
+
+        'other' should be another Group (or File) object.
+
+        """
+        if self is other:
+            return True
+
+        parent = self.parent
+        while parent is not None:
+            if parent is other:
+                return True
+
+            parent = parent.parent
+
+        return False
+
     def structure(
         self,
         display=True,
@@ -1462,7 +1480,7 @@ class File(Group):
             except TypeError:
                 # Likely file-like or directory-like object
                 pass
-
+            
             nc = None
             open_log = []
             for name, func in open_functions.items():
@@ -1475,7 +1493,7 @@ class File(Group):
                 else:
                     open_log.append(f"{name}:\nSuccessfully opened")
                     break
-
+                
             self._open_log = open_log
             if nc is None:
                 try:
@@ -1527,7 +1545,7 @@ class File(Group):
                 case "netCDF4":
                     filename = self._grp.filepath()
                 case "zarr":
-                    filename = str(self._grp.store_path)
+                    filename = self._grp.store_path
 
             self._filename = filename
 
@@ -1563,7 +1581,7 @@ class File(Group):
             self._grp.close()
         except AttributeError:
             pass
-
+    
     @property
     def all_dimensions(self):
         """TODO."""
@@ -1618,7 +1636,7 @@ class File(Group):
 
         out = "\n".join(
             (
-                self.filename,
+                str(self.filename),
                 super().dump(False, _prefix, _level, _recursive, _structure),
             )
         )

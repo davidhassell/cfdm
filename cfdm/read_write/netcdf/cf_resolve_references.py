@@ -17,21 +17,25 @@ class AttributeParsingError(Exception):
 def resolve_references(f):
     """TODO."""
     resolvable_attributes = set(resolving_rules)
+    f.dump()
     for variable in f.all_variables.values():
         attrs = variable.attrs
         for name in resolvable_attributes.intersection(attrs):
+            print(variable.name , name, repr(attrs[name] ))
             resolver = resolving_rules[name].resolver
             attrs[name] = resolver(attrs[name], variable)
+            print ('                ', repr(attrs[name] ))
 
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
     """TODO."""
-    g = variable.group()
+    g = variable.parent
     parts = ref.split("/")
     path = "/".join(parts[:-1])
     try:
         g = g[path]
     except KeyError:
+        #
         return
 
     name = parts[-1]
@@ -44,13 +48,31 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
     if x is not None:
         return x.path
 
+    # Still here? Then the reference was not resolvable, so return
+    #             `None`.
 
-def search_by_proximity(ref, variable, search_type):
+
+def search_by_proximity(ref, variable, search_type, dimension=None):
     """TODO."""
-    if search_type == "var" and variable.dimensions == (ref,):
-        return coordinate_search_by_proximity(ref, variable)
+    if search_type == "var":
+        if dimension is None and ref in variable.dimensions:
+            coordinate = True
+        elif dimension is not None:
+            if ref != dimension.name:
+                return
 
-    g = variable.group()
+            if not dimension.group().issubgroup(variable.group()):
+                return
+
+            coordinate = True
+        else:
+            coordinate = False
+
+        if coordinate:
+            # 'ref' references a coordinate variabale
+            return coordinate_search_by_proximity(ref, variable)
+
+    g = variable.parent
     while g is not None:
         if search_type == "dim":
             x = g.dimensions.get(ref)
@@ -62,12 +84,15 @@ def search_by_proximity(ref, variable, search_type):
 
         g = g.parent
 
+    # Still here? Then the reference was not resolvable, so return
+    #             `None`.
+
 
 def coordinate_search_by_proximity(ref, variable):
     """TODO."""
     # Find the local apex group: The ancestor group that contains a
     # dimension with the same name as the variable
-    g = variable.group()
+    g = variable.parent
     dim = None
     depth = 0
     while g is not None:
@@ -89,10 +114,12 @@ def lateral_search(ref, group, depth):
     """TODO.
 
     Performs a lateral search starting in *group* and proceeding to
-    *depth* layers of sub-groups. If *depth* is less than 0 then no
-    search is done; if *depth* is 0, only *group* is searched; if
-    *depth* is 1 then direct sub-groups are also searched; if *depth* is
-    2 then direct sub-groups of those sub-groups are also searched; etc.
+    *depth* layers of sub-groups. If *depth* is 0, only *group* is
+    searched; if *depth* is 1 then direct sub-groups are also searched;
+    if *depth* is 2 then direct sub-groups of those sub-groups are also
+    searched; etc.
+
+    If *depth* is less than 0 then no search is done.
 
     """
     if depth < 0:
@@ -118,7 +145,8 @@ def lateral_search(ref, group, depth):
             # Found
             return path
 
-    # Not found in the tree from 'group' down to the given depth
+    # Still here? Then the reference was not resolvable, so return
+    #             `None`.
 
 
 def resolve_pattern_1(value, variable):
@@ -197,10 +225,11 @@ def resolve_pattern_3(value, variable):
     * 'var: var var: var var'
     * 'var: var var var: var var'
 
-    E.g. ``grid_mapping``
+    E.g. ``grid_mapping``, ``coordinate_interpolation``
 
     """
     resolved = []
+    print('         ', value, variable.attrs)
     for ref in value.split():
         if ref.endswith(":"):
             ref = resolve_reference(ref[:-1], variable, var=True)
@@ -255,7 +284,9 @@ def resolve_pattern_4(value, variable):
     previous_ref = None
     for ref in cell_methods:
         if ref.endswith(":"):
-            ref = resolve_reference(ref[:-1], variable, dim=True, var=True)
+            ref = resolve_reference(
+                ref[:-1], variable, dim=True, var=True, dim_then_var=True
+            )
             resolved.append(ref + ":")
             previous_ref = "axis"
             continue
@@ -375,8 +406,6 @@ def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True):
             The absolute path to the reference.
 
     """
-    resolved_ref = None
-
     second_search = None
     if dim:
         if var:
@@ -387,28 +416,27 @@ def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True):
     else:
         first_search = "var"
 
-    # Reference is given by relative path
+    resolved_ref = None
     if "/" in ref:
-        # First tentative as dim or var
+        # Reference is to be searched by absolute or relative path
         resolved_ref = search_by_absolute_or_relative_path(
             ref, variable, first_search
         )
-
-        # If failed and alternative possible, second tentative
         if resolved_ref is None and second_search:
             resolved_ref = search_by_absolute_or_relative_path(
                 ref, variable, second_search
             )
-
-    # Reference is to be searched by proximity
     else:
+        # Reference is to be searched by proximity
         resolved_ref = search_by_proximity(ref, variable, first_search)
         if resolved_ref is None and second_search:
             resolved_ref = search_by_proximity(ref, variable, second_search)
 
     if resolved_ref is not None:
+        # Return the resoved reference
         return resolved_ref
 
+    # Reference couldn't be resolved, so return it unchanged.
     return ref
 
 
