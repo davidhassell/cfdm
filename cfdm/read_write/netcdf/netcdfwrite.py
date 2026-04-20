@@ -370,6 +370,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         match g["backend"]:
             case "h5netcdf-h5py":
+                print('here', ncvar, attributes)
                 attributes = attributes.copy()
                 for key, value in attributes.items():
                     if isinstance(value, str):
@@ -2933,9 +2934,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 parameters[term] = value
 
+            print('geomtry parameters =', ncvar, parameters)
             if not g["dry_run"]:
                 self._set_attributes(parameters, ncvar)
 
+            print('geomtry parameters =', ncvar, parameters)
             # Update the 'seen' dictionary
             g["seen"][id(ref)] = {
                 "variable": ref,
