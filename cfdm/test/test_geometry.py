@@ -191,9 +191,9 @@ class GeometryTest(unittest.TestCase):
             self.assertFalse(coord.has_part_node_count())
             self.assertFalse(coord.has_interior_ring())
 
-        cfdm.write(f, tempfile, Conventions="CF-" + VN, verbose=False)
+        cfdm.write(f, tempfile, Conventions="CF-" + VN)
 
-        f2 = cfdm.read(tempfile, verbose=False)
+        f2 = cfdm.read(tempfile)
 
         self.assertEqual(len(f2), 2)
 

@@ -23,25 +23,28 @@ class AttributeParsingError(Exception):
     pass
 
 
-def _format_attr(lib, value):
+def _format_attr(attr, value, lib):
     """Format an attribute according to netCDF-4.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        lib:
-            The library that created the variable or group that owns
-            the attribute value.
+        attr: `str`
+            The name of the attribute.
 
         value:
             The raw attribute value.
+
+        lib:
+            The library that created the variable or group that owns
+            the attribute value.
 
     :Returns:
 
             The formatted attribute value adhering to netCDF-4.
 
-    """    
+    """
     # Handle strings/bytes immediately
     if isinstance(value, (bytes, np.bytes_)):
         return value.decode("utf-8")
@@ -51,7 +54,7 @@ def _format_attr(lib, value):
             dtype = value.dtype
             if dtype.kind in "SUT":
                 return ""
-
+            
             return np.array([], dtype=value)
     except AttributeError:
         pass
@@ -144,7 +147,7 @@ def _parse_attributes(obj, raw_attributes):
     """
     lib = obj.lib
     return {
-        k: _format_attr(lib, v)
+        k: _format_attr(k, v, lib)
         for k, v in raw_attributes.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }

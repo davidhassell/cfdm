@@ -2908,8 +2908,7 @@ class NetCDFRead(IORead):
                 The netCDF variable name of the parent data variable.
 
             attributes: `dict`
-                All attributes of *all* netCDF variables, keyed by netCDF
-                variable name.
+                TODOx
 
         :Returns:
 
@@ -2948,7 +2947,7 @@ class NetCDFRead(IORead):
             f"        netCDF attributes: {geometry_attrs}"
         )  # pragma: no cover
 
-        #        geometry_type = attributes[geometry_ncvar].get("geometry_type")
+        # geometry_type = attributes[geometry_ncvar].get("geometry_type")
         geometry_type = geometry_attrs.get("geometry_type")
 
         g["geometries"][geometry_ncvar] = {"geometry_type": geometry_type}
@@ -3024,7 +3023,7 @@ class NetCDFRead(IORead):
         node_dimension = node_dim.path
 
         logger.info(
-            f"        node_dimension = {node_dim!r}"
+            f"        node_dimension = {node_dimension}"
         )  # pragma: no cover
 
         if node_count is None:
@@ -3090,7 +3089,7 @@ class NetCDFRead(IORead):
             self._set_ragged_contiguous_parameters(
                 elements_per_instance=nodes_per_geometry,
                 sample_dimension=node_dimension,
-                element_dimension="node",
+                element_dimension="/node",
                 instance_dimension=geometry_dimension,
             )
         else:
@@ -3982,7 +3981,9 @@ class NetCDFRead(IORead):
         variable = g["variables"][field_ncvar]
         variable_attrs = variable.attrs
         group_attrs = variable.group().attrs
+        print(variable_attrs, group_attrs, 'g',  g["global_attributes"])
         for k, v in g["global_attributes"].items():
+            print (k, v, x)
             if (
                 #                k not in g["variable_attributes"][field_ncvar]
                 #                and k not in g["variable_group_attributes"][field_ncvar]

@@ -17,14 +17,11 @@ class AttributeParsingError(Exception):
 def resolve_references(f):
     """TODO."""
     resolvable_attributes = set(resolving_rules)
-    f.dump()
     for variable in f.all_variables.values():
         attrs = variable.attrs
         for name in resolvable_attributes.intersection(attrs):
-            print(variable.name , name, repr(attrs[name] ))
             resolver = resolving_rules[name].resolver
             attrs[name] = resolver(attrs[name], variable)
-            print ('                ', repr(attrs[name] ))
 
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
@@ -163,10 +160,15 @@ def resolve_pattern_1(value, variable):
     ``edge_node_connectivity``
 
     """
-    resolved = [
-        resolve_reference(x, variable, var=True) for x in value.split()
-    ]
-    return " ".join(resolved)
+    try:
+        resolved = [
+            resolve_reference(x, variable, var=True) for x in value.split()
+        ]
+    except AttributeError:
+        # 'value' is not a string
+        return value
+    else:
+        return " ".join(resolved)
 
 
 def resolve_pattern_1b(value, variable):
@@ -182,10 +184,15 @@ def resolve_pattern_1b(value, variable):
     E.g. ``dimensions``, ``face_dimension``
 
     """
-    resolved = [
-        resolve_reference(x, variable, dim=True) for x in value.split()
-    ]
-    return " ".join(resolved)
+    try:
+        resolved = [
+            resolve_reference(x, variable, dim=True) for x in value.split()
+        ]
+    except AttributeError:
+        # 'value' is not a string
+        return value
+    else:
+        return " ".join(resolved)
 
 
 def resolve_pattern_2(value, variable):
@@ -202,15 +209,18 @@ def resolve_pattern_2(value, variable):
     ``interpolation_parameters``
 
     """
-    resolved = []
+    try:
+        resolved = []
+        for ref in value.split():
+            if not ref.endswith(":"):
+                ref = resolve_reference(ref, variable, var=True)
+                
+            resolved.append(ref)
 
-    for ref in value.split():
-        if not ref.endswith(":"):
-            ref = resolve_reference(ref, variable, var=True)
-
-        resolved.append(ref)
-
-    return " ".join(resolved)
+    except AttributeError:
+        return value
+    else:
+        return " ".join(resolved)
 
 
 def resolve_pattern_3(value, variable):
@@ -227,43 +237,41 @@ def resolve_pattern_3(value, variable):
 
     E.g. ``grid_mapping``, ``coordinate_interpolation``
 
+    :Returns:
+
+        `str`
+
+             The resolved string. If *value* was not a string, then it
+             it returned unchanged.
+
     """
-    resolved = []
-    print('         ', value, variable.attrs)
-    for ref in value.split():
-        if ref.endswith(":"):
-            ref = resolve_reference(ref[:-1], variable, var=True)
-            ref += ":"
-        else:
-            ref = resolve_reference(ref, variable, var=True)
-
-        resolved.append(ref)
-
-    return " ".join(resolved)
+    try:
+        resolved = []
+        for ref in value.split():
+            if ref.endswith(":"):
+                ref = resolve_reference(ref[:-1], variable, var=True)
+                ref += ":"
+            else:
+                ref = resolve_reference(ref, variable, var=True)
+    
+            resolved.append(ref)
+    except AttributeError:
+        # 'value' is not a string
+        return value
+    else:
+        return " ".join(resolved)
 
 
 def resolve_pattern_4(value, variable):
-    """Parse a CF cell_methods string.
+    """Resolve references in a cell_methods attribute.
 
-    .. versionadded:: (cfdm) 1.7.0
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        cell_methods_string: `str`
-            A CF cell methods string.
-
-        field_ncvar: `str`, optional
-            The netCDF name of the data variable that contains the
-            cell methods.
-
     :Returns:
 
-        `list` of `dict`
-
-    **Examples**
-
-    >>> c = parse_cell_methods('t: minimum within years '
-    ...                        't: mean over ENSO years)')
+        `str`
 
     """
     import re
@@ -279,7 +287,11 @@ def resolve_pattern_4(value, variable):
     #
     #   ['lat:', 'lon:', 'mean', '(interval: 1 hour)', 'time:', 'max']
     # ------------------------------------------------------------
-    cell_methods = re.findall(r"\([^)]*\)|\S+", value)
+    try:
+        cell_methods = re.findall(r"\([^)]*\)|\S+", value)
+    except TypeError:
+        # 'value' is not a string
+        return value
 
     previous_ref = None
     for ref in cell_methods:
@@ -361,24 +373,27 @@ def resolve_pattern_5(value, variable):
     E.g. ``tie_point_mapping``
 
     """
-    resolved = []
-
-    next_ref = None
-    for ref in value.split():
-        if ref.endswith(":"):
-            ref = resolve_reference(ref[:-1], variable, dim=True)
-            ref += ":"
-            next_ref = "variable"
-        elif next_ref == "variable":
-            ref = resolve_reference(ref, variable, var=True)
-            next_ref = "dimension"
-        elif next_ref == "dimension":
-            ref = resolve_reference(ref, variable, dim=True)
-            next_ref = "dimension"
-
-        resolved.append(ref)
-
-    return " ".join(resolved)
+    try:
+        resolved = []        
+        next_ref = None
+        for ref in value.split():
+            if ref.endswith(":"):
+                ref = resolve_reference(ref[:-1], variable, dim=True)
+                ref += ":"
+                next_ref = "variable"
+            elif next_ref == "variable":
+                ref = resolve_reference(ref, variable, var=True)
+                next_ref = "dimension"
+            elif next_ref == "dimension":
+                ref = resolve_reference(ref, variable, dim=True)
+                next_ref = "dimension"
+    
+            resolved.append(ref)
+    except AttributeError:
+        # 'value' is not a string
+        return value
+    else:
+        return " ".join(resolved)
 
 
 def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True):
