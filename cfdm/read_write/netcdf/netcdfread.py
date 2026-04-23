@@ -21,7 +21,11 @@ from cfdm.functions import abspath, is_log_level_debug, is_log_level_detail
 
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
-from .cf_resolve_references import resolve_references, search_by_proximity, resolve_reference
+from .cf_resolve_references import (
+    resolve_reference,
+    resolve_references,
+    search_by_proximity,
+)
 from .constants import (
     CF_QUANTIZATION_PARAMETERS,
     NETCDF_MAGIC_NUMBERS,
@@ -1840,10 +1844,11 @@ class NetCDFRead(IORead):
         # dataset (excluding any external variables)
         g["internal_variables"] = set(g["variables"])
 
-        print( nc.all_variables)
-        print( nc.all_dimensions)
-        import         pprint
-        print('astart')
+        print(nc.all_variables)
+        print(nc.all_dimensions)
+        import pprint
+
+        print("astart")
         pprint.pprint(g["variables"])
         # Now that all of the variables have been scanned, customise
         # the read parameters.
@@ -2152,7 +2157,8 @@ class NetCDFRead(IORead):
         all_fields_or_domains = {}
         domain = g["domain"]
 
-        import         pprint
+        import pprint
+
         pprint.pprint(g["variables"])
         for ncvar in g["variables"]:
             if ncvar in g["do_not_create_field"] or ncvar in g["mesh"]:
@@ -2604,16 +2610,16 @@ class NetCDFRead(IORead):
             self.read_vars = read_vars
 
             datasets.append(external_read_vars["nc"])
-            
+
             for ncvar in external_variables.copy():
                 original_ncvar = ncvar
                 for e_var in external_read_vars["variables"].values():
                     ncvar = resolve_reference(ncvar, e_var, var=True)
                     if ncvar != original_ncvar:
                         break
-            
-                self.read_vars['external_variable_map'][original_ncvar] = ncvar
-                
+
+                self.read_vars["external_variable_map"][original_ncvar] = ncvar
+
                 if ncvar not in external_read_vars["internal_variables"]:
                     # The external variable name is not in this
                     # external file
@@ -2686,8 +2692,10 @@ class NetCDFRead(IORead):
                     #                        self.read_vars[key][ncvar] = external_read_vars[key][
                     #                            ncvar
                     #                        ]
-                    for key in ( "variables", "variable_dimension_paths"):
-                        self.read_vars[key][ncvar] = external_read_vars[key][ncvar]
+                    for key in ("variables", "variable_dimension_paths"):
+                        self.read_vars[key][ncvar] = external_read_vars[key][
+                            ncvar
+                        ]
 
                     # Remove this ncvar from the set of external variables
                     external_variables.remove(original_ncvar)
@@ -3926,7 +3934,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         field_properties = g["global_attributes"].copy()
         parent = g["variables"][field_ncvar].group()
-        if  not  parent.isroot:            
+        if not parent.isroot:
             field_properties.update(parent.attrs)
         #        if g["has_groups"]:
         #            field_properties.update(
@@ -3980,7 +3988,7 @@ class NetCDFRead(IORead):
             f = self.implementation.initialise_Domain()
 
         self.implementation.set_properties(f, field_properties, copy=True)
-        
+
         if field and not g["mask"]:
             # --------------------------------------------------------
             # Masking has been turned off, so make sure that there is
@@ -3991,7 +3999,7 @@ class NetCDFRead(IORead):
             self._set_default_FillValue(f, field_ncvar)
 
         # Store the netCDF variable name of the field/domain
-        print('field_ncvar=',field_ncvar)
+        print("field_ncvar=", field_ncvar)
         self.implementation.nc_set_variable(f, field_ncvar)
 
         # ------------------------------------------------------------
@@ -4001,7 +4009,7 @@ class NetCDFRead(IORead):
         variable = g["variables"][field_ncvar]
         variable_attrs = variable.attrs
         parent = variable.group()
-        if parent.isroot:            
+        if parent.isroot:
             group_attrs = {}
         else:
             group_attrs = parent.attrs
@@ -4115,7 +4123,7 @@ class NetCDFRead(IORead):
         field_ncdimensions = self._ncdimensions(
             field_ncvar, ncdimensions=ncdimensions
         )
-        #        print ('field_ncdimensions=',field_ncvar, field_ncdimensions)
+        # print ('field_ncdimensions=',field_ncvar, field_ncdimensions)
         #        field_groups = g["variable_groups"][field_ncvar]
         #        field_groups = g["variables"][field_ncvar].groups
 
@@ -5056,7 +5064,7 @@ class NetCDFRead(IORead):
         measures = self.implementation.del_property(f, "cell_measures", None)
         if measures is not None:
             parsed_cell_measures = self._parse_x(field_ncvar, measures)
-           
+
             cf_compliant = self._check_cell_measures(
                 field_ncvar, measures, parsed_cell_measures
             )
@@ -5065,7 +5073,7 @@ class NetCDFRead(IORead):
                 for x in parsed_cell_measures:
                     measure, ncvars = list(x.items())[0]
                     ncvar = ncvars[0]
-                    ncvar = g['external_variable_map'].get(ncvar, ncvar)
+                    ncvar = g["external_variable_map"].get(ncvar, ncvar)
 
                     # Set the domain axes for the cell measure
                     axes = self._get_domain_axes(ncvar, allow_external=True)
@@ -6084,7 +6092,7 @@ class NetCDFRead(IORead):
             self.implementation.set_data(cell_measure, data, copy=False)
 
         # Store the original file names
-        filename = getattr(g["variables"].get(ncvar), 'filename', None)
+        filename = getattr(g["variables"].get(ncvar), "filename", None)
         self.implementation.set_original_filenames(
             #            cell_measure, g["variable_datasetname"].get(ncvar)
             cell_measure,
@@ -8566,7 +8574,7 @@ class NetCDFRead(IORead):
                 continue
 
             ncvar = values[0]
-            ncvar = g['external_variable_map'].get(ncvar, ncvar)
+            ncvar = g["external_variable_map"].get(ncvar, ncvar)
 
             unknown_external = ncvar in external_variables
 

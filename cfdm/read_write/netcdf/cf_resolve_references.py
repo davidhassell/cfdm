@@ -23,13 +23,14 @@ def resolve_references(f):
             resolver = resolving_rules[name].resolver
             attrs[name] = resolver(attrs[name], variable)
 
-    #global_attrs = f.root.attrs
-    #print(222222, global_attrs)
-    #for name in resolvable_attributes.intersection(global_attrs):
+    # global_attrs = f.root.attrs
+    # print(222222, global_attrs)
+    # for name in resolvable_attributes.intersection(global_attrs):
     #    resolver = resolving_rules[name].resolver
     #    global_attrs[name] = resolver(global_attrs[name], variable)
-    #    
-    #print(22222299, global_attrs)
+    #
+    # print(22222299, global_attrs)
+
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
     """TODO."""
@@ -65,7 +66,7 @@ def search_by_proximity(ref, variable, search_type, dimension=None):
             if ref != dimension.name:
                 return
 
-            if not dimension.group().issubgroup(variable.group()):
+            if not dimension.group().is_ancestor_group(variable.group()):
                 return
 
             coordinate = True
@@ -125,6 +126,14 @@ def lateral_search(ref, group, depth):
 
     If *depth* is less than 0 then no search is done.
 
+    :Parameters:
+
+        ref: `str`
+
+        group: `p5netcdf.Group`
+
+        depth: `int`
+
     """
     if depth < 0:
         # Not found in the tree from 'group' down to the given depth
@@ -138,7 +147,7 @@ def lateral_search(ref, group, depth):
     if not depth:
         return
 
-    for g in group.groups():
+    for g in group.groups.values():
         var = g.variables.get(ref)
         if var is not None:
             # Found
@@ -221,7 +230,7 @@ def resolve_pattern_2(value, variable):
         for ref in value.split():
             if not ref.endswith(":"):
                 ref = resolve_reference(ref, variable, var=True)
-                
+
             resolved.append(ref)
 
     except AttributeError:
@@ -260,7 +269,7 @@ def resolve_pattern_3(value, variable):
                 ref += ":"
             else:
                 ref = resolve_reference(ref, variable, var=True)
-    
+
             resolved.append(ref)
     except AttributeError:
         # 'value' is not a string
@@ -381,7 +390,7 @@ def resolve_pattern_5(value, variable):
 
     """
     try:
-        resolved = []        
+        resolved = []
         next_ref = None
         for ref in value.split():
             if ref.endswith(":"):
@@ -394,7 +403,7 @@ def resolve_pattern_5(value, variable):
             elif next_ref == "dimension":
                 ref = resolve_reference(ref, variable, dim=True)
                 next_ref = "dimension"
-    
+
             resolved.append(ref)
     except AttributeError:
         # 'value' is not a string
@@ -514,10 +523,10 @@ resolving_rules = {
         # Ancillary variables
         # ------------------------------------------------------------
         Rules(name="ancillary_variables", resolver=resolve_pattern_1),
-#        # ------------------------------------------------------------
-#        # External variables
-#        # ------------------------------------------------------------
-#        Rules(name="external_variables", resolver=resolve_pattern_1),
+        #        # ------------------------------------------------------------
+        #        # External variables
+        #        # ------------------------------------------------------------
+        #        Rules(name="external_variables", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Compression by gathering
         # ------------------------------------------------------------

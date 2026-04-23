@@ -6,7 +6,8 @@ _IGNORED_ATTRS = {
     "NAME",
     "REFERENCE_LIST",
     "DIMENSION_LIST",
-    "DIMENSION_LABELS","_ARRAY_DIMENSIONS"
+    "DIMENSION_LABELS",
+    "_ARRAY_DIMENSIONS",
 }
 _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
@@ -54,7 +55,7 @@ def _format_attr(attr, value, lib):
             dtype = value.dtype
             if dtype.kind in "SUT":
                 return ""
-            
+
             return np.array([], dtype=value)
     except AttributeError:
         pass

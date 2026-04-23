@@ -403,6 +403,8 @@ class GroupsTest(unittest.TestCase):
         """Test the dimensions of hierarchical groups."""
         f = self.f0.copy()
 
+        ungrouped_file4 = 'ungrouped_file.nc'
+        grouped_file4 = 'grouped_file.nc'
         ungrouped_file = ungrouped_file4
         grouped_file = grouped_file4
 
@@ -501,18 +503,16 @@ class GroupsTest(unittest.TestCase):
         # ------------------------------------------------------------
         f.nc_set_variable_groups(["forecast", "model"])
 
-        grouped_file5  = 'grouped_file.nc'
         grouped_file = grouped_file5
         cfdm.write(f, grouped_file5)
 
         h = cfdm.read(grouped_file, netcdf_backend="netCDF4")
-        print(h)
         self.assertEqual(len(h), 1)
         h = h[0]
         self.assertTrue(f.equals(h))
 
         # Check that h5netcdf reads the file correctly
-        h5 = cfdm.read(grouped_file) #, netcdf_backend="h5netcdf-pyfive")
+        h5 = cfdm.read(grouped_file)  # , netcdf_backend="h5netcdf-pyfive")
         self.assertEqual(len(h5), 1)
         self._check_h5netcdf_groups(h5[0], h)
 

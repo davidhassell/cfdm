@@ -118,13 +118,13 @@ class Dimension:
                 path = f"/{self.name}"
             else:
                 path = f"{parent.path}/{self.name}"
-            #parent = self.parent
-            #if parent.isroot:
+            # parent = self.parent
+            # if parent.isroot:
             #    path = ""
-            #else:
+            # else:
             #    path = parent.path
             #
-            #path += f"/{self.name}"
+            # path += f"/{self.name}"
             self._path = path
 
         return path
@@ -520,23 +520,23 @@ class Variable:
                 path = f"/{self.name}"
             else:
                 path = f"{parent.path}/{self.name}"
-            
-#            match self.backend:
-#                case "pyfive" | "zarr" | "h5py":
-#                    path = self._var.name
-#                case "netCDF4":
-#                    parent = self.parent
-#                    if parent.isroot:
-#                        path = ""
-#                    else:
-#                        path = parent.path
-#
-#                    path += f"/{self.name}"
-#                    if not path.startswith('/'):
-#                        path = f"/{path}"
-#                        
-#                case "netcdf_file":
-#                    path = f"/{self.name}"
+
+            #            match self.backend:
+            #                case "pyfive" | "zarr" | "h5py":
+            #                    path = self._var.name
+            #                case "netCDF4":
+            #                    parent = self.parent
+            #                    if parent.isroot:
+            #                        path = ""
+            #                    else:
+            #                        path = parent.path
+            #
+            #                    path += f"/{self.name}"
+            #                    if not path.startswith('/'):
+            #                        path = f"/{path}"
+            #
+            #                case "netcdf_file":
+            #                    path = f"/{self.name}"
 
             self._path = path
 
@@ -1323,21 +1323,38 @@ class Group(Mapping):
 
         return out
 
-    def issubgroup(self, other):
+    def is_sub_group(self, other):
         """Return True if the group is a subgroup of, or is, 'other'.
 
         'other' should be another Group (or File) object.
 
         """
-        if self is other:
-            return True
-
-        parent = self.parent
-        while parent is not None:
-            if parent is other:
+        group = self
+        while group is not None:
+            if group is other:
                 return True
 
-            parent = parent.parent
+            try:
+                group = group.parent
+            except AttributeError:
+                return False
+
+        return False
+
+    def is_ancestor_group(self, other):
+        """Return True if the group is an ancestor of, or is, 'other'.
+
+        'other' should be another Group (or File) object.
+
+        """
+        while other is not None:
+            if self is other:
+                return True
+
+            try:
+                other = other.parent
+            except AttributeError:
+                return False
 
         return False
 
@@ -1494,7 +1511,7 @@ class File(Group):
             except TypeError:
                 # Likely file-like or directory-like object
                 pass
-            
+
             nc = None
             open_log = []
             for name, func in open_functions.items():
@@ -1507,7 +1524,7 @@ class File(Group):
                 else:
                     open_log.append(f"{name}:\nSuccessfully opened")
                     break
-                
+
             self._open_log = open_log
             if nc is None:
                 try:
@@ -1595,7 +1612,7 @@ class File(Group):
             self._grp.close()
         except AttributeError:
             pass
-    
+
     @property
     def all_dimensions(self):
         """TODO."""

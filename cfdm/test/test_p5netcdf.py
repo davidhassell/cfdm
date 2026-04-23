@@ -1054,6 +1054,40 @@ class Testp5netcdf(unittest.TestCase):
         group = self.p5["/forecast/model"]
         self.assertIs(group.parent, self.p5["/forecast"])
 
+    def test_p5netcdf_Group_is_sub_group(self):
+        """Test Group.is_sub_group."""
+        self.assertTrue(self.p5.is_sub_group(self.p5))
+        self.assertTrue(self.p5["forecast"].is_sub_group(self.p5["forecast"]))
+        self.assertTrue(self.p5["forecast"].is_sub_group(self.p5))
+        self.assertTrue(self.p5["forecast/model"].is_sub_group(self.p5))
+        self.assertTrue(
+            self.p5["forecast/model"].is_sub_group(self.p5["forecast"])
+        )
+
+        self.assertFalse(self.p5.is_sub_group(self.p5["forecast"]))
+        self.assertFalse(self.p5.is_sub_group(self.p5["forecast/model"]))
+        self.assertFalse(
+            self.p5["forecast"].is_sub_group(self.p5["forecast/model"])
+        )
+
+    def test_p5netcdf_Group_is_ancestor_group(self):
+        """Test Group.is_ancestor_group."""
+        self.assertTrue(self.p5.is_ancestor_group(self.p5))
+        self.assertTrue(self.p5.is_ancestor_group(self.p5["forecast"]))
+        self.assertTrue(self.p5.is_ancestor_group(self.p5["forecast/model"]))
+        self.assertTrue(
+            self.p5["forecast"].is_ancestor_group(self.p5["forecast"])
+        )
+        self.assertTrue(
+            self.p5["forecast"].is_ancestor_group(self.p5["forecast/model"])
+        )
+
+        self.assertFalse(self.p5["forecast"].is_ancestor_group(self.p5))
+        self.assertFalse(self.p5["forecast/model"].is_ancestor_group(self.p5))
+        self.assertFalse(
+            self.p5["forecast/model"].is_ancestor_group(self.p5["forecast"])
+        )
+
 
 #    def test_p5netcdf_netcdf3_attributes(self):
 #        """Check that netCDF3 attributes are parsed correctly."""
