@@ -230,7 +230,7 @@ class read_writeTest(unittest.TestCase):
             )
 
         # Append isn't avaialable for some backends
-        for backend in ("h5netcdf-h5py", "zarr"):
+        for backend in ("h5py", "zarr"):
             with self.assertRaises(ValueError):
                 cfdm.write(self.f0, tmpfile, mode="a", netcdf_backend=backend)
 
@@ -762,7 +762,7 @@ class read_writeTest(unittest.TestCase):
     def test_read_write_string(self):
         """Test the `string` keyword argument to `read` and `write`."""
         fN = cfdm.read(self.string_filename, netcdf_backend="netCDF4")
-        fH = cfdm.read(self.string_filename, netcdf_backend="h5netcdf-pyfive")
+        fH = cfdm.read(self.string_filename, netcdf_backend="pyfive")
 
         n = int(len(fN) / 2)
 
@@ -771,7 +771,7 @@ class read_writeTest(unittest.TestCase):
             self.assertTrue(fN[i].data.equals(fN[j].data, verbose=3))
             self.assertTrue(fN[j].data.equals(fN[i].data, verbose=3))
 
-        # Check that netCDF4 and h5netcdf give the same results
+        # Check that netCDF4 and pyfive give the same results
         for i, j in zip(fN, fH):
             self.assertTrue(i.data.equals(j.data))
 
@@ -1165,6 +1165,7 @@ class read_writeTest(unittest.TestCase):
     def test_read_dask_chunks(self):
         """Test the 'dask_chunks' keyword of cfdm.read."""
         f = self.f0.copy()
+        tmpfile ='tmpfile.nc'
         f.coordinate("latitude").axis = "Y"
         cfdm.write(f, tmpfile)
 
@@ -1232,7 +1233,7 @@ class read_writeTest(unittest.TestCase):
         f = self.f0
         cfdm.write(f, tmpfile)
 
-        f = cfdm.read(tmpfile, netcdf_backend="h5netcdf-pyfive")[0]
+        f = cfdm.read(tmpfile, netcdf_backend="pyfive")[0]
         for d in (f.data.todict(), f.coordinate("longitude").data.todict()):
             on_disk = False
             for v in d.values():

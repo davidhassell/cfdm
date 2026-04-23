@@ -2739,3 +2739,30 @@ def _DEPRECATION_ERROR_FUNCTION(
         f"Function {func!r} has been deprecated at version {version} and is "
         f"no longer available{removed_at}. {message}"
     )
+
+def _DEPRECATION_ERROR_FUNCTION_KWARGS(
+    func,
+    kwargs=None,
+    message="",
+    version=None,
+        removed_at="",
+):
+    """Error handling for deprecated function kwargs.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    """
+    if removed_at:
+        removed_at = f" and will be removed at version {removed_at}"
+
+    # Unsafe to set mutable '{}' as default in the func signature.
+    if kwargs is None:  # distinguish from falsy '{}'
+        kwargs = {}
+
+    for key in kwargs.keys():
+        raise DeprecationError(
+            f"Keyword {key!r} of function '{func}' has been deprecated at "
+            f"version {version} and is no longer available{removed_at}. "
+            f"{message}"
+        )
+

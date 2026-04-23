@@ -8,18 +8,18 @@ def zarr_dtype(variable):
 
 
 def zarr_dimension_maps(group):
-    """Populate the root dimension map dictionaries.
+    """Populate the dimension map dictionaries in the root group.
 
-    Stores the dictionary of the dimensions defined in *group*, and
-    for all sub-groups. For instance::
+    Stores the dimensions defined in *group* and all of its sub-groups
+    recursively. For instance::
 
        {'/': {'bounds2': <netcdf.Dimension: /bounds2, size=2>},
         '/forecast': {'lon': <netcdf.Dimension: /forecast/lon, size=8, unlimited>},
         '/forecast/model': {'lat': <netcdf.Dimension: /forecast/model/lat, size=5>}}
         '/forecast/model2': {}}
 
-    Stores the tuple of the dimensions for all variables in *group*,
-    and all variables in all sub-groups. For instance::
+    Stores the tuple of the dimensions for all variables in *group*
+    and its sub-groups recursively. For instance::
 
        {'/forecast/lon': (<netcdf.Dimension: /forecast/lon, size=8, unlimited>,),
         '/forecast/lon_bnds': (<netcdf.Dimension: /forecast/lon, size=8, unlimited>,

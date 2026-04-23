@@ -210,6 +210,7 @@ class UGRIDTest(unittest.TestCase):
             f = ugrid[cell]
             cfdm.write(f, tmpfile)
             g = cfdm.read(tmpfile)
+
             self.assertEqual(len(g), 1)
             self.assertTrue(g[0].equals(f))
 

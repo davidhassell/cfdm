@@ -1289,7 +1289,7 @@ class NetCDFRead(IORead):
 
                 .. versionadded:: (cfdm) 1.11.2.0
 
-            group_dimension_search: `str`, optional
+            group_dimension_search: Deprecated at version NEXTVERSION
                 How to interpret a group dimension name that has no
                 path. See `cfdm.read` for details.
 
@@ -1437,16 +1437,16 @@ class NetCDFRead(IORead):
             #       updated.
             netcdf_backend = (
                 "pyfive",  # netCDF-4
+                "netcdf_file",  # netCDF-3
                 "h5py",  # netCDF-4
                 "netCDF4",  # netCDF-3 and netCDF-4
-                "netcdf_file",  # netCDF-3
             )
         else:
             valid_netcdf_backends = (
                 "pyfive",
+                "netcdf_file",
                 "h5py",
                 "netCDF4",
-                "netcdf_file",
                 "zarr",
             )
             if isinstance(netcdf_backend, str):
@@ -1665,8 +1665,8 @@ class NetCDFRead(IORead):
             "valid_properties": set(("valid_min", "valid_max", "valid_range")),
             # Assume a priori that the dataset does not have a group
             # structure
-            "has_groups": False,
-            "group_dimension_search": group_dimension_search,
+#            "has_groups": False,
+#            "group_dimension_search": group_dimension_search,
             # Keep a list of flattened dataset names
             "flat_datasets": [],
             # --------------------------------------------------------
@@ -1833,9 +1833,13 @@ class NetCDFRead(IORead):
         # for parent file and any external datasets)
         g["datasets"] = [nc]
 
+        
         g["dimensions"] = nc.all_dimensions.copy()
         g["variables"] = nc.all_variables.copy()
         g["dimensions"] = nc.all_dimensions.copy()
+
+        # Store dimension paths for each variable. We may modify these
+        # to TODO
         g["variable_dimension_paths"] = {
             key: var.dimension_paths for key, var in g["variables"].items()
         }
@@ -1844,12 +1848,11 @@ class NetCDFRead(IORead):
         # dataset (excluding any external variables)
         g["internal_variables"] = set(g["variables"])
 
-        print(nc.all_variables)
-        print(nc.all_dimensions)
-        import pprint
-
-        print("astart")
-        pprint.pprint(g["variables"])
+#        print(nc.all_variables)
+#        print(nc.all_dimensions)
+#        import pprint
+#
+#        pprint.pprint(g["variables"])
         # Now that all of the variables have been scanned, customise
         # the read parameters.
         self._customise_read_vars()
@@ -2157,9 +2160,9 @@ class NetCDFRead(IORead):
         all_fields_or_domains = {}
         domain = g["domain"]
 
-        import pprint
-
-        pprint.pprint(g["variables"])
+#        import pprint
+#
+#        pprint.pprint(g["variables"])
         for ncvar in g["variables"]:
             if ncvar in g["do_not_create_field"] or ncvar in g["mesh"]:
                 continue
@@ -3841,12 +3844,12 @@ class NetCDFRead(IORead):
                  appropriate full message about it being missing.
 
         """
-        if self.read_vars["has_groups"]:
-            message = (message0, "is not locatable in the group hierarchy")
-            if ncvar.startswith("REF_NOT_FOUND:_"):
-                ncvar = ncvar.replace("REF_NOT_FOUND:_", "", 1)
-        else:
-            message = (message0, "is not in file")
+        #if self.read_vars["has_groups"]:
+        #    message = (message0, "is not locatable in the group hierarchy")
+        #    if ncvar.startswith("REF_NOT_FOUND:_"):
+        #        ncvar = ncvar.replace("REF_NOT_FOUND:_", "", 1)
+        #else:
+        message = (message0, "is not in file")
 
         return ncvar, message
 
@@ -4035,14 +4038,14 @@ class NetCDFRead(IORead):
         #                    x[k] = None
         #
         #            self.implementation.nc_set_group_attributes(f, x)
-        x = g["variables"][field_ncvar].attrs
-        if x:
-            x = x.copy()
-            for k, v in g["variables"][field_ncvar].group().attrs.items():
-                if k not in g["variables"][field_ncvar].attrs:
-                    x[k] = None
-
-            self.implementation.nc_set_group_attributes(f, x)
+        if not parent.isroot:
+            group_attrs = parent.attrs.copy()
+            if group_attrs:
+                for k, v in group_attrs.items():
+                    if k not in variable.attrs:
+                        group_attrs[k] = None
+                        
+                self.implementation.nc_set_group_attributes(f, group_attrs)
 
         # ------------------------------------------------------------
         # Remove the field/domain construct's "geometry" property,
@@ -4779,6 +4782,7 @@ class NetCDFRead(IORead):
         # (CF>=1.11)
         # ------------------------------------------------------------
         if ugrid:
+            print(111, mesh.cell_connectivities)
             for cell_connectivity in mesh.cell_connectivities.get(
                 location, ()
             ):
@@ -9795,6 +9799,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         cell_connectivites = {}
         for location in locations:
+            print(location, cell_connectivites)
             conns = self._ugrid_create_cell_connectivities(
                 mesh_ncvar, None, mesh, location
             )
@@ -10271,6 +10276,7 @@ class NetCDFRead(IORead):
         if connectivity_ncvar is None:
             return []
 
+        print('here0')
         if not self._ugrid_check_connectivity_variable(
             parent_ncvar,
             mesh.mesh_ncvar,
@@ -10278,7 +10284,7 @@ class NetCDFRead(IORead):
             connectivity_attr,
         ):
             return []
-
+        print('here')
         # CF properties
         # properties = self.read_vars["variable_attributes"][connectivity_ncvar]
         properties = g["variables"][connectivity_ncvar].attrs.copy()
@@ -10921,6 +10927,7 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
+        print(1)
         ok = True
         if connectivity_ncvar is None:
             self._add_message(
@@ -10932,7 +10939,9 @@ class NetCDFRead(IORead):
             ok = False
             return ok
 
+        print(12, connectivity_ncvar, g["internal_variables"])
         if connectivity_ncvar not in g["internal_variables"]:
+            print('qqqqq')
             connectivity_ncvar, message = self._missing_variable(
                 connectivity_ncvar, f"{connectivity_attr} variable"
             )
@@ -10947,6 +10956,7 @@ class NetCDFRead(IORead):
             )
             ok = False
             return ok
+        print(123)
 
         parent_ncdims = self._ncdimensions(parent_ncvar)
         connectivity_ncdims = self._ncdimensions(connectivity_ncvar)[0]
@@ -10966,6 +10976,7 @@ class NetCDFRead(IORead):
             )
             ok = False
 
+        print(1234)
         return ok
 
     #    def _dataset_has_groups(self, nc):
@@ -11741,9 +11752,18 @@ class NetCDFRead(IORead):
                     chunks.append(dask_chunks[key])
                     continue
 
+                # Allow a relative name for a dimension in the root
+                # group
+                if ncdim.count('/') == 1:
+                    key = f"ncdim%{ncdim[1:]}"
+                    if key in dask_chunks:
+                        chunks.append(dask_chunks[key])
+                        continue
+
                 found_coord_attr = False
-                dim_coord_attrs = attributes.get(ncdim)
-                if dim_coord_attrs is not None:
+                dim_coord = g["variables"].get(ncdim)
+                if dim_coord is not None:
+                    dim_coord_attrs = dim_coord.attrs
                     for attr in ("standard_name", "axis"):
                         key = dim_coord_attrs.get(attr)
                         if key in dask_chunks:

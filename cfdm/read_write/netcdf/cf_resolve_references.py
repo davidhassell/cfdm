@@ -129,10 +129,20 @@ def lateral_search(ref, group, depth):
     :Parameters:
 
         ref: `str`
+            The name of the refernece to be resolved (e.g. ``'lat'``).
 
         group: `p5netcdf.Group`
+            The group containing the variable that has the attribute
+            which contains the reference.
 
         depth: `int`
+
+
+    :Returns:
+
+        `str` or `None`
+            The reolved reference (e.g. ``'/lat'``). If the reference
+            could not be resolved, then `None` is returned.
 
     """
     if depth < 0:
@@ -523,10 +533,6 @@ resolving_rules = {
         # Ancillary variables
         # ------------------------------------------------------------
         Rules(name="ancillary_variables", resolver=resolve_pattern_1),
-        #        # ------------------------------------------------------------
-        #        # External variables
-        #        # ------------------------------------------------------------
-        #        Rules(name="external_variables", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Compression by gathering
         # ------------------------------------------------------------
@@ -558,13 +564,15 @@ resolving_rules = {
         # UGRID variables
         # ------------------------------------------------------------
         Rules(name="mesh", resolver=resolve_pattern_1),
+        Rules(name="node_coordinates", resolver=resolve_pattern_1),
         Rules(name="edge_coordinates", resolver=resolve_pattern_1),
         Rules(name="face_coordinates", resolver=resolve_pattern_1),
         Rules(name="edge_node_connectivity", resolver=resolve_pattern_1),
-        Rules(name="face_node_connectivity", resolver=resolve_pattern_1),
-        Rules(name="face_face_connectivity", resolver=resolve_pattern_1),
+        Rules(name="edge_edge_connectivity", resolver=resolve_pattern_1),
         Rules(name="edge_face_connectivity", resolver=resolve_pattern_1),
+        Rules(name="face_node_connectivity", resolver=resolve_pattern_1),
         Rules(name="face_edge_connectivity", resolver=resolve_pattern_1),
+        Rules(name="face_face_connectivity", resolver=resolve_pattern_1),
         Rules(name="edge_dimension", resolver=resolve_pattern_1b),
         Rules(name="face_dimension", resolver=resolve_pattern_1b),
         # ------------------------------------------------------------

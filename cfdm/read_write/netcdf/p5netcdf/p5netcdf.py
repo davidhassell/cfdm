@@ -326,12 +326,14 @@ class Variable:
             match self.backend:
                 case "pyfive" | "zarr" | "h5py":
                     chunks = self._var.chunks
+                    
                 case "netCDF4":
                     chunks = self._var.chunking()
                     if chunks == "contiguous":
                         chunks = None
                     elif chunks is not None:
                         chunks = tuple(chunks)
+                        
                 case "netcdf_file":
                     chunks = None
 
@@ -628,6 +630,7 @@ class Variable:
                         chunking = "contiguous"
                     else:
                         chunking = list(chunks)
+                        
                 case "netCDF4":
                     if chunks is None:
                         if self._var.data_model == "NETCDF3_CLASSIC":
@@ -636,6 +639,7 @@ class Variable:
                             chunking = "contiguous"
                     else:
                         chunking = list(chunks)
+                        
                 case "netcdf_file":
                     chunking = None
 
@@ -1481,6 +1485,8 @@ class File(Group):
         if mode != "r":
             raise ValueError("mode must be 'r'. Got: mode={mode!r}")
 
+        open_log = []
+        
         if isinstance(dataset, pyfive.File):
             nc = dataset
             attrs = dataset.attrs
@@ -1509,11 +1515,10 @@ class File(Group):
                 # Try to expand `str` or `pathlib.Path`
                 dataset = expanduser(expandvars(dataset))
             except TypeError:
-                # Likely file-like or directory-like object
+                # Likely a file-like or directory-like object
                 pass
 
             nc = None
-            open_log = []
             for name, func in open_functions.items():
                 try:
                     nc, attrs = func(dataset)
@@ -1525,7 +1530,6 @@ class File(Group):
                     open_log.append(f"{name}:\nSuccessfully opened")
                     break
 
-            self._open_log = open_log
             if nc is None:
                 try:
                     # Rewind file-like
@@ -1543,6 +1547,8 @@ class File(Group):
             # The opened dataset is owned internally
             self._owns_nc = True
 
+        self._open_log = open_log
+            
         # ------------------------------------------------------------
         # Initialise the group structure
         # ------------------------------------------------------------

@@ -130,7 +130,7 @@ class GroupsTest(unittest.TestCase):
 
         grouped_file = grouped_file1
 
-        h = cfdm.read(grouped_file, netcdf_backend="h5netcdf-pyfive")
+        h = cfdm.read(grouped_file) #, netcdf_backend="h5netcdf-pyfive")
         self.assertEqual(len(h), 1)
 
         h = h[0]
@@ -189,7 +189,7 @@ class GroupsTest(unittest.TestCase):
         self.assertTrue(f.equals(h, verbose=2))
 
         # Check that h5netcdf reads the file correctly
-        h5 = cfdm.read(grouped_file, netcdf_backend="h5netcdf-pyfive")
+        h5 = cfdm.read(grouped_file) #, netcdf_backend="h5netcdf-pyfive")
         self.assertEqual(len(h5), 1)
         self._check_h5netcdf_groups(h5[0], h)
 
@@ -321,8 +321,8 @@ class GroupsTest(unittest.TestCase):
         h = h[0]
         self.assertTrue(f.equals(h, verbose=2))
 
-        # Check that h5netcdf reads the file correctly
-        h5 = cfdm.read(grouped_file, netcdf_backend="h5netcdf-pyfive")
+        # Check that h5py reads the file correctly
+        h5 = cfdm.read(grouped_file, netcdf_backend="h5py")
         self.assertEqual(len(h5), 1)
         self._check_h5netcdf_groups(h5[0], h)
 
@@ -394,8 +394,8 @@ class GroupsTest(unittest.TestCase):
         h = h[0]
         self.assertTrue(f.equals(h, verbose=2))
 
-        # Check that h5netcdf reads the file correctly
-        h5 = cfdm.read(grouped_file, netcdf_backend="h5netcdf-pyfive")
+        # Check that h5py reads the file correctly
+        h5 = cfdm.read(grouped_file, netcdf_backend="h5py")
         self.assertEqual(len(h5), 1)
         self._check_h5netcdf_groups(h5[0], h)
 
@@ -403,8 +403,6 @@ class GroupsTest(unittest.TestCase):
         """Test the dimensions of hierarchical groups."""
         f = self.f0.copy()
 
-        ungrouped_file4 = 'ungrouped_file.nc'
-        grouped_file4 = 'grouped_file.nc'
         ungrouped_file = ungrouped_file4
         grouped_file = grouped_file4
 
@@ -412,6 +410,7 @@ class GroupsTest(unittest.TestCase):
         g = cfdm.read(ungrouped_file, verbose=1)
         self.assertEqual(len(g), 1)
         g = g[0]
+
         self.assertTrue(f.equals(g, verbose=3))
 
         # ------------------------------------------------------------
@@ -469,8 +468,8 @@ class GroupsTest(unittest.TestCase):
         h = h[0]
         self.assertTrue(f.equals(h, verbose=3))
 
-        # Check that h5netcdf reads the file correctly
-        h5 = cfdm.read(grouped_file, netcdf_backend="h5netcdf-pyfive")
+        # Check that h5py reads the file correctly
+        h5 = cfdm.read(grouped_file, netcdf_backend="h5py")
         self.assertEqual(len(h5), 1)
         self._check_h5netcdf_groups(h5[0], h)
 
