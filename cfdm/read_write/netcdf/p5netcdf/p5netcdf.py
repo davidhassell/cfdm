@@ -113,14 +113,18 @@ class Dimension:
         """
         path = getattr(self, "_path", None)
         if path is None:
-
             parent = self.parent
             if parent.isroot:
-                path = ""
+                path = f"/{self.name}"
             else:
-                path = parent.path
-
-            path += f"/{self.name}"
+                path = f"{parent.path}/{self.name}"
+            #parent = self.parent
+            #if parent.isroot:
+            #    path = ""
+            #else:
+            #    path = parent.path
+            #
+            #path += f"/{self.name}"
             self._path = path
 
         return path
@@ -511,19 +515,28 @@ class Variable:
         """
         path = getattr(self, "_path", None)
         if path is None:
-            match self.backend:
-                case "pyfive" | "zarr" | "h5py":
-                    path = self._var.name
-                case "netCDF4":
-                    parent = self.parent
-                    if parent.isroot:
-                        path = ""
-                    else:
-                        path = parent.path
-
-                    path += f"/{self.name}"
-                case "netcdf_file":
-                    path = f"/{self.name}"
+            parent = self.parent
+            if parent.isroot:
+                path = f"/{self.name}"
+            else:
+                path = f"{parent.path}/{self.name}"
+            
+#            match self.backend:
+#                case "pyfive" | "zarr" | "h5py":
+#                    path = self._var.name
+#                case "netCDF4":
+#                    parent = self.parent
+#                    if parent.isroot:
+#                        path = ""
+#                    else:
+#                        path = parent.path
+#
+#                    path += f"/{self.name}"
+#                    if not path.startswith('/'):
+#                        path = f"/{path}"
+#                        
+#                case "netcdf_file":
+#                    path = f"/{self.name}"
 
             self._path = path
 
@@ -1014,6 +1027,7 @@ class Group(Mapping):
             root._all_dimensions[dimension.path] = dimension
 
         for variable in self._variables.values():
+            print(variable.path)
             root._all_variables[variable.path] = variable
 
         root._all_groups[self.path] = self
@@ -1199,10 +1213,10 @@ class Group(Mapping):
         path = getattr(self, "_path", None)
         if path is None:
             match self.backend:
-                case "pyfive" | "netCDF4" | "zarr" | "h5py":
+                case "pyfive" | "zarr" | "h5py":
                     path = self._grp.name
-                case "netcdf_file":
-                    path = "/"
+                case "netCDF4":
+                    path = self._grp.path
 
             self._path = path
 

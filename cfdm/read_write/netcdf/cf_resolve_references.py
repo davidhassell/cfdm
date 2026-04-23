@@ -23,6 +23,13 @@ def resolve_references(f):
             resolver = resolving_rules[name].resolver
             attrs[name] = resolver(attrs[name], variable)
 
+    #global_attrs = f.root.attrs
+    #print(222222, global_attrs)
+    #for name in resolvable_attributes.intersection(global_attrs):
+    #    resolver = resolving_rules[name].resolver
+    #    global_attrs[name] = resolver(global_attrs[name], variable)
+    #    
+    #print(22222299, global_attrs)
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
     """TODO."""
@@ -507,6 +514,10 @@ resolving_rules = {
         # Ancillary variables
         # ------------------------------------------------------------
         Rules(name="ancillary_variables", resolver=resolve_pattern_1),
+#        # ------------------------------------------------------------
+#        # External variables
+#        # ------------------------------------------------------------
+#        Rules(name="external_variables", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Compression by gathering
         # ------------------------------------------------------------
