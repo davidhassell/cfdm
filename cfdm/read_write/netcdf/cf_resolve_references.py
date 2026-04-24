@@ -22,14 +22,6 @@ def resolve_references(f):
         for name in resolvable_attributes.intersection(attrs):
             attrs[name] = resolve_attribute(name, attrs[name], variable)
 
-    # global_attrs = f.root.attrs
-    # print(222222, global_attrs)
-    # for name in resolvable_attributes.intersection(global_attrs):
-    #    resolver = resolving_rules[name].resolver
-    #    global_attrs[name] = resolver(global_attrs[name], variable)
-    #
-    # print(22222299, global_attrs)
-
 
 def resolve_attribute(attr, attr_value, variable):
     rules = resolving_rules[attr]
@@ -56,14 +48,13 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
     if x is not None:
         return x.path
 
-    # Still here? Then the reference was not resolvable, so return
-    #             `None`.
-
-
 def search_by_proximity(ref, variable, search_type, coord=False):
     """TODO."""
     local_apex_group = None
-    if coord and search_type == "var":
+
+    coord = coord and search_type == "var" and ref in variable.dimensions
+    if coord:
+        # Find the local apex group
         g = variable.parent
         dim = None
         depth = 0
@@ -76,77 +67,31 @@ def search_by_proximity(ref, variable, search_type, coord=False):
             g = g.parent
     
         local_apex_group = g
-    
+
     g = variable.parent
     while g is not None:
-        print(g._path)
         if search_type == "dim":
             x = g.dimensions.get(ref)
         else:
             x = g.variables.get(ref)
 
-        if x is not None:
-            print ('OOOPPs1', g.path)
+        if coord:
+            if x is not None and x.dimensions == (ref,):
+                return x.path
+        elif x is not None:
             return x.path
-
+            
         if g is local_apex_group:
             break
         
         g = g.parent
-
+        
     if local_apex_group is None:
-        print ('OOOPPs')
         return
     
     # Still here? Then 'ref' is a coordinate variable, so do a lateral
     #             search from the local apex group.
-    print( '    searcjin local_apex_group', local_apex_group.path)
     return coordinate_lateral_search(ref, local_apex_group, depth)
-
-def ssscoordinate_lateral_search(ref, variable):
-    """TODO."""
-    # Find the local apex group: The ancestor group that contains a
-    # dimension with the same name as the variable
-    g = variable.parent
-    dim = None
-    depth = 0
-    while g is not None:
-        dim = g.dimensions.get(ref)
-        if dim is not None:
-            break
-
-        depth += 1
-        g = g.parent
-
-    local_apex_group = g
-    if local_apex_group is None:
-        return
-    
-    print('DEPTH', ref, local_apex_group.path, depth)
-    return lateral_search(ref, local_apex_group, depth=None)
-
-
-#def coordinate_search_by_proximity(ref, variable):
-#    """TODO."""
-#    # Find the local apex group: The ancestor group that contains a
-#    # dimension with the same name as the variable
-#    g = variable.parent
-#    dim = None
-#    depth = 0
-#    while g is not None:
-#        dim = g.dimensions.get(ref)
-#        if dim is not None:
-#            break
-#
-#        depth += 1
-#        g = g.parent
-#
-#    local_apex_group = g
-#    if local_apex_group is None:
-#        return
-#    print('DEPTH', ref, local_apex_group.path, depth)
-#    return lateral_search(ref, local_apex_group, depth)
-
 
 def coordinate_lateral_search(ref, group, depth):
     """TODO.
@@ -201,10 +146,6 @@ def coordinate_lateral_search(ref, group, depth):
             # Found
             return path
 
-    # Still here? Then the reference was not resolvable, so return
-    #             `None`.
-
-
 def resolve_pattern_1(value, variable, coord=False):
     """TODO.
 
@@ -212,8 +153,8 @@ def resolve_pattern_1(value, variable, coord=False):
     following patterns:
 
     * ''
-    * 'var'
-    * 'var var'
+    * 'var1'
+    * 'var1 var2'
 
     E.g. ``coordinates``, ``ancillary_variables``,
     ``edge_node_connectivity``
@@ -238,8 +179,8 @@ def resolve_pattern_1b(value, variable, coord=False):
     following patterns:
 
     * ''
-    * 'dim'
-    * 'dim dim'
+    * 'dim1'
+    * 'dim1 dim2'
 
     E.g. ``dimensions``, ``face_dimension``
 
@@ -262,8 +203,10 @@ def resolve_pattern_2(value, variable, coord=False):
     following patterns:
 
     * ''
-    * 'key: var'
-    * 'key: var key: var'
+    * 'key1: var1'
+    * 'key1: var1 key2: var2'
+    * 'key1: var1 var2'
+    * 'key1: var1 var2 key2: var3'
 
     E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
     ``interpolation_parameters``
@@ -290,12 +233,12 @@ def resolve_pattern_3(value, variable, coord=False):
     following patterns:
 
     * ''
-    * 'var: var'
-    * 'var: var var'
-    * 'var: var var: var var'
-    * 'var: var var var: var var'
-    * 'var: var: var"
-    * 'var: var: var var: var"
+    * 'var1: var2'
+    * 'var1: var2 var3'
+    * 'var1: var2 var3: var4 var5'
+    * 'var1: var2 var3 var4: var5 var6'
+    * 'var1: var2: var3"
+    * 'var1: var2: var3 var4: var5"
 
     E.g. ``grid_mapping``, ``coordinate_interpolation``
 
@@ -310,13 +253,12 @@ def resolve_pattern_3(value, variable, coord=False):
     try:
         resolved = []
         for ref in value.split():
-            print(value, '----',ref)
             if ref.endswith(":"):
                 ref = resolve_reference(ref[:-1], variable, var=True, coord=coord)
                 ref += ":"
             else:
                 ref = resolve_reference(ref, variable, var=True, coord=coord)
-            print(ref)
+
             resolved.append(ref)
     except AttributeError:
         # 'value' is not a string
@@ -429,9 +371,9 @@ def resolve_pattern_5(value, variable, coord=False):
     following patterns:
 
     * ''
-    * 'dim: var dim'
-    * 'dim: var dim dim: var dim'
-    * 'dim: var dim dim dim: var dim dim'
+    * 'dim1: var1 dim2'
+    * 'dim1: var1 dim2 dim3: var2 dim4'
+    * 'dim1: var1 dim2 dim3 dim4: var2 dim5 dim6'
 
     E.g. ``tie_point_mapping``
 

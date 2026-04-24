@@ -4143,7 +4143,6 @@ class NetCDFRead(IORead):
                         "dimension_coordinate", field_ncvar, ncvar
                     )
                 else:
-                    print('create_dim NORM', ncvar)
                     coord = self._create_dimension_coordinate(
                         field_ncvar, ncvar, f
                     )
@@ -4544,13 +4543,12 @@ class NetCDFRead(IORead):
             f, "coordinate_interpolation", None
         )
         tie_point_ncvars = g["tie_point_ncvar"].get(field_ncvar, ())
-        print('                 AAAAAAAAAAAAAAAAAAAA',string, tie_point_ncvars )
         coordinates = {}
         for ncvar in tie_point_ncvars:
             ok = self._check_tie_point_coordinates(field_ncvar, ncvar, string)
             if not ok:
                 continue
-            print(g[                "axis_to_ncdim"])
+
             # Find out if the coordinates are to be dimension or
             # auxiliary coordinate constructs
             axes = self._get_domain_axes(ncvar, parent_ncvar=field_ncvar)
@@ -4564,7 +4562,6 @@ class NetCDFRead(IORead):
             # variable (and therefore could have used different tie
             # point indices).
             if is_dimension_coordinate:
-                print('create_dim', ncvar)
                 coord = self._create_dimension_coordinate(
                     field_ncvar, ncvar, f
                 )
@@ -4783,7 +4780,6 @@ class NetCDFRead(IORead):
         # (CF>=1.11)
         # ------------------------------------------------------------
         if ugrid:
-            print(111, mesh.cell_connectivities)
             for cell_connectivity in mesh.cell_connectivities.get(
                 location, ()
             ):
@@ -5234,7 +5230,7 @@ class NetCDFRead(IORead):
             ncvar: `str`
                 The
 
-            ncdim: `p5netcdf.Dimension`
+            dim: `p5netcdf.Dimension`
 
         :Returns:
 
@@ -5259,10 +5255,10 @@ class NetCDFRead(IORead):
                 ref
             ] == (dim.path,):
                 return ref
-        print('search p')
+
         # Still here? The search by proximity, or by lateral search.
         return search_by_proximity(
-            name, g["variables"][field_ncvar], "var", coord=True
+            name, g["variables"][field_ncvar], "var" , coord=True
         )
 
     def _is_char_or_string(self, ncvar):
@@ -6227,9 +6223,6 @@ class NetCDFRead(IORead):
 
         # Set the name of netCDF subsampled dimension that is spanned
         # by the tie point index variable
-        print('subarea_ncdim1=', subarea_ncdim)
-        print('ncvar1=', ncvar)
-        print('ncdim1=', ncdim)
         self.implementation.nc_set_subsampled_dimension(
             variable, ncdim  # self._ncdim_abspath(ncdim)
         )
@@ -7465,7 +7458,7 @@ class NetCDFRead(IORead):
         # /lon: /bilinear /time: /linear" becomes ["/lat:", "/lon:",
         # "/bilinear", "/time:", "/linear"]
         coordinate_interpolation = self._split_string_by_white_space(string)
-        print( coordinate_interpolation )
+
         # Convert the components to a dictionary keyed by
         # interpolation variable name. E.g. ["lat:", "lon:",
         # "bilinear", "time:", "linear"] becomes {"bilinear": ["lat",
@@ -7484,18 +7477,17 @@ class NetCDFRead(IORead):
             tie_point_coordinates.extend(coords)
 
             coords = []
-        print(c_i)
+
         coordinate_interpolation = c_i
 
         ok = self._check_coordinate_interpolation(
             parent_ncvar, string, coordinate_interpolation
         )
         if not ok:
-            print('NOT OK')
             return
 
         g["tie_point_ncvar"][parent_ncvar] = tie_point_coordinates
-        print(111)
+
         # Record the interpolation variable contents
         for interpolation_ncvar, coords in coordinate_interpolation.items():
             if interpolation_ncvar in g["interpolation"]:
@@ -7660,7 +7652,7 @@ class NetCDFRead(IORead):
                         # Do not create field/domain constructs from
                         # bounds tie point variables
                         g["do_not_create_field"].add(bounds_ncvar)
-#        print(                          g["compression"])
+
     def _create_formula_terms_ref(self, f, key, coord, formula_terms):
         """Create a formula terms coordinate reference.
 

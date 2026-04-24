@@ -282,6 +282,22 @@ class Variable:
         )
 
     @property
+    def __orthogonal_indexing__(self):
+        """Flag to indicate whether indexing is orthogonal.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
+        orthogonal_indexing = getattr(self, "_orthogonal_indexing", None)
+        if orthogonal_indexing is None:
+            orthogonal_indexing = getattr(
+                self._var, "__orthogonal_indexing__", False
+            )
+            self._orthogonal_indexing = orthogonal_indexing
+            
+        return orthogonal_indexing
+
+    @property
     def attrs(self):
         """The variable attributes.
 
@@ -1215,11 +1231,9 @@ class Group(Mapping):
         """
         path = getattr(self, "_path", None)
         if path is None:
-            print(self.backend)
             match self.backend:
                 case "pyfive" | "zarr" | "h5py":
                     path = self._grp.name
-                    print('_______________', path)
                 case "netCDF4":
                     path = self._grp.path
                 case "netcdf_file":
@@ -1793,7 +1807,9 @@ class File(Group):
         self._backend = "netCDF4"
         self._lib = netCDF4
         nc = netCDF4.Dataset(filename, mode="r")
-        return nc, {attr: nc.getncattr(attr) for attr in nc.ncattrs()}
+        nc.set_auto_maskandscale(False)
+        attrs = {attr: nc.getncattr(attr) for attr in nc.ncattrs()}
+        return nc, attrs
 
     def _open_netcdf_file(self, filename):
         """Return an open `scipy.io.netcdf_file`.
@@ -1815,7 +1831,8 @@ class File(Group):
         self._backend = "netcdf_file"
         self._lib = netcdf_file
         nc = netcdf_file(filename, mode="r", mmap=True)
-        return nc, nc._attributes
+        attrs = nc._attributes
+        return nc, attrs
 
     def _open_pyfive(self, dataset):
         """Open a dataset with `pyfive`.
