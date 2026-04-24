@@ -5221,7 +5221,7 @@ class NetCDFRead(IORead):
         # Return the finished field/domain
         return f
 
-    def _find_coordinate_variable(self, ncvar, dim):
+    def _find_coordinate_variable(self, field_ncvar, dim):
         """Find a coordinate variable for a data-dimension combination.
 
         Find a Unidata coordinate variable for a particular CF-netCDF
@@ -5253,7 +5253,7 @@ class NetCDFRead(IORead):
         name = dim.name
 
         # Check for variables named by the 'coordinates' attribute
-        coordinates = g["variables"][ncvar].attrs.get("coordinates")
+        coordinates = g["variables"][field_ncvar].attrs.get("coordinates")
         for ref in self._split_string_by_white_space(coordinates):
             if ref.split("/")[-1] == name and g["variable_dimension_paths"][
                 ref
@@ -5262,8 +5262,8 @@ class NetCDFRead(IORead):
         print('search p')
         # Still here? The search by proximity, or by lateral search.
         return search_by_proximity(
-            name, g["variables"][ncvar], "var") #, dimension=dim
-        #)
+            name, g["variables"][field_ncvar], "var", coord=True
+        )
 
     def _is_char_or_string(self, ncvar):
         """True if the netCDf variable has string or char datatype.
