@@ -61,9 +61,9 @@ def search_by_proximity(ref, variable, search_type, dimension=None):
     """TODO."""
     if search_type == "var":
         if dimension is None and ref in variable.dimensions:
+            print(9999999, ref, variable.dimensions)
             coordinate = True
         elif dimension is not None:
-            print('ref', ref,  dimension.name)
             if ref != dimension.name:
                 return
 
@@ -112,7 +112,7 @@ def coordinate_search_by_proximity(ref, variable):
     local_apex_group = g
     if local_apex_group is None:
         return
-
+    print('DEPTH', ref, local_apex_group.path, depth)
     return lateral_search(ref, local_apex_group, depth)
 
 
@@ -151,7 +151,8 @@ def lateral_search(ref, group, depth):
         return
 
     var = group.variables.get(ref)
-    if var is not None:
+    if var is not None and var.dimensions == (ref,):
+        print(var.dimensions, (ref,))
         # Found
         return var.path
 
@@ -160,7 +161,7 @@ def lateral_search(ref, group, depth):
 
     for g in group.groups.values():
         var = g.variables.get(ref)
-        if var is not None:
+        if var is not None and  var.dimensions == (ref,):
             # Found
             return var.path
 

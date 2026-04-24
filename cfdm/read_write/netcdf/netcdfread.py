@@ -4544,13 +4544,13 @@ class NetCDFRead(IORead):
             f, "coordinate_interpolation", None
         )
         tie_point_ncvars = g["tie_point_ncvar"].get(field_ncvar, ())
-
+        print(tie_point_ncvars )
         coordinates = {}
         for ncvar in tie_point_ncvars:
             ok = self._check_tie_point_coordinates(field_ncvar, ncvar, string)
             if not ok:
                 continue
-
+            print(g[                "axis_to_ncdim"])
             # Find out if the coordinates are to be dimension or
             # auxiliary coordinate constructs
             axes = self._get_domain_axes(ncvar, parent_ncvar=field_ncvar)
@@ -5259,11 +5259,11 @@ class NetCDFRead(IORead):
                 ref
             ] == (dim.path,):
                 return ref
-
+        print('search p')
         # Still here? The search by proximity, or by lateral search.
         return search_by_proximity(
-            name, g["variables"][ncvar], "var", dimension=dim
-        )
+            name, g["variables"][ncvar], "var") #, dimension=dim
+        #)
 
     def _is_char_or_string(self, ncvar):
         """True if the netCDf variable has string or char datatype.
