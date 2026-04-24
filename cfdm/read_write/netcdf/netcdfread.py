@@ -4544,7 +4544,7 @@ class NetCDFRead(IORead):
             f, "coordinate_interpolation", None
         )
         tie_point_ncvars = g["tie_point_ncvar"].get(field_ncvar, ())
-        print(tie_point_ncvars )
+        print('                 AAAAAAAAAAAAAAAAAAAA',string, tie_point_ncvars )
         coordinates = {}
         for ncvar in tie_point_ncvars:
             ok = self._check_tie_point_coordinates(field_ncvar, ncvar, string)

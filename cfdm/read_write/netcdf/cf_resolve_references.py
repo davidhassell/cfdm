@@ -59,24 +59,22 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
 
 def search_by_proximity(ref, variable, search_type, dimension=None):
     """TODO."""
-    if search_type == "var":
-        if dimension is None and ref in variable.dimensions:
-            print(9999999, ref, variable.dimensions)
-            coordinate = True
-        elif dimension is not None:
-            if ref != dimension.name:
-                return
-
-            if not dimension.group().is_ancestor_group(variable.group()):
-                return
-
-            coordinate = True
-        else:
-            coordinate = False
-
-        if coordinate:
-            # 'ref' references a coordinate variabale
-            return coordinate_search_by_proximity(ref, variable)
+    coordinate_var = False
+    if search_type == "var" and ref in variable.dimensions:
+        coordinate_var = True
+#        if dimension is None and ref in variable.dimensions:
+#            print(9999999, ref, variable.dimensions)
+#            coordinate = True
+#        elif dimension is not None:
+#            if ref != dimension.name:
+#                return
+#
+#            if not dimension.group().is_ancestor_group(variable.group()):
+#                return
+#
+#            coordinate = True
+#        else:
+#            coordinate = False
 
     g = variable.parent
     while g is not None:
@@ -90,8 +88,35 @@ def search_by_proximity(ref, variable, search_type, dimension=None):
 
         g = g.parent
 
+    if coordinate_var:
+        # 'ref' references a coordinate variabale
+        return coordinate_lateral_search(ref, variable)
+
     # Still here? Then the reference was not resolvable, so return
     #             `None`.
+
+
+def coordinate_lateral_search(ref, variable):
+    """TODO."""
+    # Find the local apex group: The ancestor group that contains a
+    # dimension with the same name as the variable
+    g = variable.parent
+    dim = None
+    depth = 0
+    while g is not None:
+        dim = g.dimensions.get(ref)
+        if dim is not None:
+            break
+
+        depth += 1
+        g = g.parent
+
+    local_apex_group = g
+    if local_apex_group is None:
+        return
+    
+    print('DEPTH', ref, local_apex_group.path, depth)
+    return lateral_search(ref, local_apex_group, depth)
 
 
 def coordinate_search_by_proximity(ref, variable):
@@ -262,6 +287,8 @@ def resolve_pattern_3(value, variable):
     * 'var: var var'
     * 'var: var var: var var'
     * 'var: var var var: var var'
+    * 'var: var: var"
+    * 'var: var: var var: var"
 
     E.g. ``grid_mapping``, ``coordinate_interpolation``
 
@@ -276,12 +303,13 @@ def resolve_pattern_3(value, variable):
     try:
         resolved = []
         for ref in value.split():
+            print(value, '----',ref)
             if ref.endswith(":"):
                 ref = resolve_reference(ref[:-1], variable, var=True)
                 ref += ":"
             else:
                 ref = resolve_reference(ref, variable, var=True)
-
+            print(ref)
             resolved.append(ref)
     except AttributeError:
         # 'value' is not a string
