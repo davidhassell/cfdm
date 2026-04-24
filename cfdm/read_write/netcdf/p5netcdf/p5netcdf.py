@@ -1215,11 +1215,15 @@ class Group(Mapping):
         """
         path = getattr(self, "_path", None)
         if path is None:
+            print(self.backend)
             match self.backend:
                 case "pyfive" | "zarr" | "h5py":
                     path = self._grp.name
+                    print('_______________', path)
                 case "netCDF4":
                     path = self._grp.path
+                case "netcdf_file":
+                    path = '/'
 
             self._path = path
 

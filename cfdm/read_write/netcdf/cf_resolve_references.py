@@ -79,12 +79,14 @@ def search_by_proximity(ref, variable, search_type, coord=False):
     
     g = variable.parent
     while g is not None:
+        print(g._path)
         if search_type == "dim":
             x = g.dimensions.get(ref)
         else:
             x = g.variables.get(ref)
 
         if x is not None:
+            print ('OOOPPs1', g.path)
             return x.path
 
         if g is local_apex_group:
@@ -93,10 +95,12 @@ def search_by_proximity(ref, variable, search_type, coord=False):
         g = g.parent
 
     if local_apex_group is None:
+        print ('OOOPPs')
         return
     
     # Still here? Then 'ref' is a coordinate variable, so do a lateral
     #             search from the local apex group.
+    print( '    searcjin local_apex_group', local_apex_group.path)
     return coordinate_lateral_search(ref, local_apex_group, depth)
 
 def ssscoordinate_lateral_search(ref, variable):
