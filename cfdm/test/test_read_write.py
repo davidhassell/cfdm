@@ -617,7 +617,6 @@ class read_writeTest(unittest.TestCase):
         f = cfdm.read(self.filename)[0]
         for fmt in self.netcdf_fmts:
             domain_axes = f.domain_axes()
-
             domain_axes["domainaxis0"].nc_set_unlimited(True)
             cfdm.write(f, tmpfile, fmt=fmt, cfa=None)
 
@@ -768,6 +767,7 @@ class read_writeTest(unittest.TestCase):
 
         for i in range(0, n):
             j = i + n
+            print(fN[i].array, fN[j].array)
             self.assertTrue(fN[i].data.equals(fN[j].data, verbose=3))
             self.assertTrue(fN[j].data.equals(fN[i].data, verbose=3))
 
@@ -1165,7 +1165,7 @@ class read_writeTest(unittest.TestCase):
     def test_read_dask_chunks(self):
         """Test the 'dask_chunks' keyword of cfdm.read."""
         f = self.f0.copy()
-        tmpfile ='tmpfile.nc'
+        tmpfile = "tmpfile.nc"
         f.coordinate("latitude").axis = "Y"
         cfdm.write(f, tmpfile)
 

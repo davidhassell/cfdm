@@ -7,7 +7,6 @@ from os.path import expanduser, expandvars, isdir, join
 from cfdm.decorators import _manage_log_level_via_verbosity
 from cfdm.functions import abspath, is_log_level_info
 
-from ..functions import _DEPRECATION_ERROR_FUNCTION_KWARGS
 from .abstract import ReadWrite
 from .exceptions import DatasetTypeError
 from .netcdf import NetCDFRead
@@ -197,7 +196,7 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.12.0.0
 
-        group_dimension_search: Deprecated at version NEXTVERSION
+        {{read group_dimension_search: `str`, optional}}
 
             .. versionadded:: (cfdm) 1.13.0.0
 
@@ -269,13 +268,6 @@ class read(ReadWrite):
         .. versionadded:: (cfdm) 1.12.2.0
 
         """
-        if group_dimension_search != "closest_ancestor":
-            _DEPRECATION_ERROR_FUNCTION_KWARGS(
-                "cfdm.read",
-                {"group_dimension_search": group_dimension_search},
-                removed_at="1.15.0.0",
-            )  # pragma: no cover
-
         kwargs = locals()
         kwargs.update(kwargs.pop("kwargs"))
 
@@ -633,6 +625,7 @@ class read(ReadWrite):
                         "dataset_type",
                         "cdl_string",
                         "extra_read_vars",
+                        "group_dimension_search",
                     )
                 }
 

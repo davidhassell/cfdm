@@ -2740,12 +2740,13 @@ def _DEPRECATION_ERROR_FUNCTION(
         f"no longer available{removed_at}. {message}"
     )
 
+
 def _DEPRECATION_ERROR_FUNCTION_KWARGS(
     func,
     kwargs=None,
     message="",
     version=None,
-        removed_at="",
+    removed_at="",
 ):
     """Error handling for deprecated function kwargs.
 
@@ -2765,4 +2766,3 @@ def _DEPRECATION_ERROR_FUNCTION_KWARGS(
             f"version {version} and is no longer available{removed_at}. "
             f"{message}"
         )
-

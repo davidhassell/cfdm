@@ -1289,7 +1289,7 @@ class NetCDFRead(IORead):
 
                 .. versionadded:: (cfdm) 1.11.2.0
 
-            group_dimension_search: Deprecated at version NEXTVERSION
+            group_dimension_search: `str`, optional
                 How to interpret a group dimension name that has no
                 path. See `cfdm.read` for details.
 
@@ -1665,8 +1665,8 @@ class NetCDFRead(IORead):
             "valid_properties": set(("valid_min", "valid_max", "valid_range")),
             # Assume a priori that the dataset does not have a group
             # structure
-#            "has_groups": False,
-#            "group_dimension_search": group_dimension_search,
+            #            "has_groups": False,
+            "group_dimension_search": group_dimension_search,
             # Keep a list of flattened dataset names
             "flat_datasets": [],
             # --------------------------------------------------------
@@ -1833,7 +1833,6 @@ class NetCDFRead(IORead):
         # for parent file and any external datasets)
         g["datasets"] = [nc]
 
-        
         g["dimensions"] = nc.all_dimensions.copy()
         g["variables"] = nc.all_variables.copy()
         g["dimensions"] = nc.all_dimensions.copy()
@@ -1848,11 +1847,11 @@ class NetCDFRead(IORead):
         # dataset (excluding any external variables)
         g["internal_variables"] = set(g["variables"])
 
-#        print(nc.all_variables)
-#        print(nc.all_dimensions)
-#        import pprint
-#
-#        pprint.pprint(g["variables"])
+        #        print(nc.all_variables)
+        #        print(nc.all_dimensions)
+        #        import pprint
+        #
+        #        pprint.pprint(g["variables"])
         # Now that all of the variables have been scanned, customise
         # the read parameters.
         self._customise_read_vars()
@@ -2160,9 +2159,9 @@ class NetCDFRead(IORead):
         all_fields_or_domains = {}
         domain = g["domain"]
 
-#        import pprint
-#
-#        pprint.pprint(g["variables"])
+        #        import pprint
+        #
+        #        pprint.pprint(g["variables"])
         for ncvar in g["variables"]:
             if ncvar in g["do_not_create_field"] or ncvar in g["mesh"]:
                 continue
@@ -3844,11 +3843,11 @@ class NetCDFRead(IORead):
                  appropriate full message about it being missing.
 
         """
-        #if self.read_vars["has_groups"]:
+        # if self.read_vars["has_groups"]:
         #    message = (message0, "is not locatable in the group hierarchy")
         #    if ncvar.startswith("REF_NOT_FOUND:_"):
         #        ncvar = ncvar.replace("REF_NOT_FOUND:_", "", 1)
-        #else:
+        # else:
         message = (message0, "is not in file")
 
         return ncvar, message
@@ -4044,7 +4043,7 @@ class NetCDFRead(IORead):
                 for k, v in group_attrs.items():
                     if k not in variable.attrs:
                         group_attrs[k] = None
-                        
+
                 self.implementation.nc_set_group_attributes(f, group_attrs)
 
         # ------------------------------------------------------------
@@ -4126,7 +4125,7 @@ class NetCDFRead(IORead):
         field_ncdimensions = self._ncdimensions(
             field_ncvar, ncdimensions=ncdimensions
         )
-        # print ('field_ncdimensions=',field_ncvar, field_ncdimensions)
+        print ('field_ncdimensions=',field_ncvar, field_ncdimensions)
         #        field_groups = g["variable_groups"][field_ncvar]
         #        field_groups = g["variables"][field_ncvar].groups
 
@@ -4134,7 +4133,7 @@ class NetCDFRead(IORead):
             ncvar = self._find_coordinate_variable(
                 field_ncvar, g["dimensions"].get(ncdim)
             )
-
+            print('found ncvar', ncvar, ncdim)
             if ncvar is not None:
                 # There is a Unidata coordinate variable for this
                 # dimension, so create a domain axis and dimension
@@ -4144,6 +4143,7 @@ class NetCDFRead(IORead):
                         "dimension_coordinate", field_ncvar, ncvar
                     )
                 else:
+                    print('create_dim NORM', ncvar)
                     coord = self._create_dimension_coordinate(
                         field_ncvar, ncvar, f
                     )
@@ -4178,7 +4178,7 @@ class NetCDFRead(IORead):
 
                 # Set unlimited status of axis
                 #                if g["dimension_isunlimited"][ncdim]:
-                if g["dimensions"][ncdim].isunlimited:
+                if g["dimensions"][ncdim].isunlimited():
                     self.implementation.nc_set_unlimited_axis(f, axis)
 
                 ncvar_to_key[ncvar] = dim
@@ -4205,7 +4205,7 @@ class NetCDFRead(IORead):
                 # Set unlimited status of axis
                 try:
                     #                    if g["dimension_isunlimited"][ncdim]:
-                    if g["dimension"][ncdim].isunlimited:
+                    if g["dimension"][ncdim].isunlimited():
                         self.implementation.nc_set_unlimited_axis(f, axis)
                 except KeyError:
                     # This dimension is not in the netCDF file (as
@@ -4564,6 +4564,7 @@ class NetCDFRead(IORead):
             # variable (and therefore could have used different tie
             # point indices).
             if is_dimension_coordinate:
+                print('create_dim', ncvar)
                 coord = self._create_dimension_coordinate(
                     field_ncvar, ncvar, f
                 )
@@ -6185,16 +6186,16 @@ class NetCDFRead(IORead):
                 The netCDF name of the tie point index variable.
 
                 *Parameter example:*
-                  ``ncvar='x_indices'``
+                  ``ncvar='/x_indices'``
 
             ncdim: `str`
                 The netCDF name of the tie point index variable's
                 subsampled dimension.
 
                 *Parameter example:*
-                  ``ncdim='tp_xc'``
+                  ``ncdim='/tp_xc'``
 
-            subarea_ncdim: `str`
+            subarea_ncdim: `str` or `None`
                 The netCDF name of the interpolation subarea dimension
                 associated with the subsampled dimension.
 
@@ -6226,6 +6227,9 @@ class NetCDFRead(IORead):
 
         # Set the name of netCDF subsampled dimension that is spanned
         # by the tie point index variable
+        print('subarea_ncdim1=', subarea_ncdim)
+        print('ncvar1=', ncvar)
+        print('ncdim1=', ncdim)
         self.implementation.nc_set_subsampled_dimension(
             variable, ncdim  # self._ncdim_abspath(ncdim)
         )
@@ -7457,11 +7461,11 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        # Separate the attribute string into components. E.g. "lat:
-        # lon: bilinear time: linear" becomes ["lat:", "lon:",
-        # "bilinear", "time:", "linear"]
+        # Separate the attribute string into components. E.g. "/lat:
+        # /lon: /bilinear /time: /linear" becomes ["/lat:", "/lon:",
+        # "/bilinear", "/time:", "/linear"]
         coordinate_interpolation = self._split_string_by_white_space(string)
-
+        print( coordinate_interpolation )
         # Convert the components to a dictionary keyed by
         # interpolation variable name. E.g. ["lat:", "lon:",
         # "bilinear", "time:", "linear"] becomes {"bilinear": ["lat",
@@ -7480,17 +7484,18 @@ class NetCDFRead(IORead):
             tie_point_coordinates.extend(coords)
 
             coords = []
-
+        print(c_i)
         coordinate_interpolation = c_i
 
         ok = self._check_coordinate_interpolation(
             parent_ncvar, string, coordinate_interpolation
         )
         if not ok:
+            print('NOT OK')
             return
 
         g["tie_point_ncvar"][parent_ncvar] = tie_point_coordinates
-
+        print(111)
         # Record the interpolation variable contents
         for interpolation_ncvar, coords in coordinate_interpolation.items():
             if interpolation_ncvar in g["interpolation"]:
@@ -7618,7 +7623,7 @@ class NetCDFRead(IORead):
                     )
                     size = n_subsampled_dims * 2
                     bounds_ncdim = self._new_ncdimension(
-                        f"bounds{size}", size=size, use_existing_new=True
+                        f"/bounds{size}", size=size, use_existing_new=True
                     )
 
                 for ncdim in coord_ncdims:
@@ -7655,7 +7660,7 @@ class NetCDFRead(IORead):
                         # Do not create field/domain constructs from
                         # bounds tie point variables
                         g["do_not_create_field"].add(bounds_ncvar)
-
+#        print(                          g["compression"])
     def _create_formula_terms_ref(self, f, key, coord, formula_terms):
         """Create a formula terms coordinate reference.
 
@@ -9799,7 +9804,6 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         cell_connectivites = {}
         for location in locations:
-            print(location, cell_connectivites)
             conns = self._ugrid_create_cell_connectivities(
                 mesh_ncvar, None, mesh, location
             )
@@ -10276,7 +10280,6 @@ class NetCDFRead(IORead):
         if connectivity_ncvar is None:
             return []
 
-        print('here0')
         if not self._ugrid_check_connectivity_variable(
             parent_ncvar,
             mesh.mesh_ncvar,
@@ -10284,7 +10287,7 @@ class NetCDFRead(IORead):
             connectivity_attr,
         ):
             return []
-        print('here')
+
         # CF properties
         # properties = self.read_vars["variable_attributes"][connectivity_ncvar]
         properties = g["variables"][connectivity_ncvar].attrs.copy()
@@ -10927,7 +10930,6 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        print(1)
         ok = True
         if connectivity_ncvar is None:
             self._add_message(
@@ -10939,9 +10941,7 @@ class NetCDFRead(IORead):
             ok = False
             return ok
 
-        print(12, connectivity_ncvar, g["internal_variables"])
         if connectivity_ncvar not in g["internal_variables"]:
-            print('qqqqq')
             connectivity_ncvar, message = self._missing_variable(
                 connectivity_ncvar, f"{connectivity_attr} variable"
             )
@@ -10956,7 +10956,6 @@ class NetCDFRead(IORead):
             )
             ok = False
             return ok
-        print(123)
 
         parent_ncdims = self._ncdimensions(parent_ncvar)
         connectivity_ncdims = self._ncdimensions(connectivity_ncvar)[0]
@@ -10976,7 +10975,6 @@ class NetCDFRead(IORead):
             )
             ok = False
 
-        print(1234)
         return ok
 
     #    def _dataset_has_groups(self, nc):
@@ -11743,7 +11741,6 @@ class NetCDFRead(IORead):
             if not dask_chunks:
                 return "auto"
 
-            attributes = g["variables"][ncvar].attrs
             chunks = []
             # for ncdim in g["variable_dimensions"][ncvar]:
             for ncdim in g["variable_dimension_paths"][ncvar]:
@@ -11754,7 +11751,7 @@ class NetCDFRead(IORead):
 
                 # Allow a relative name for a dimension in the root
                 # group
-                if ncdim.count('/') == 1:
+                if ncdim.count("/") == 1:
                     key = f"ncdim%{ncdim[1:]}"
                     if key in dask_chunks:
                         chunks.append(dask_chunks[key])

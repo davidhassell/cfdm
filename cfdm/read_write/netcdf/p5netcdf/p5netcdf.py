@@ -326,14 +326,14 @@ class Variable:
             match self.backend:
                 case "pyfive" | "zarr" | "h5py":
                     chunks = self._var.chunks
-                    
+
                 case "netCDF4":
                     chunks = self._var.chunking()
                     if chunks == "contiguous":
                         chunks = None
                     elif chunks is not None:
                         chunks = tuple(chunks)
-                        
+
                 case "netcdf_file":
                     chunks = None
 
@@ -630,7 +630,7 @@ class Variable:
                         chunking = "contiguous"
                     else:
                         chunking = list(chunks)
-                        
+
                 case "netCDF4":
                     if chunks is None:
                         if self._var.data_model == "NETCDF3_CLASSIC":
@@ -639,7 +639,7 @@ class Variable:
                             chunking = "contiguous"
                     else:
                         chunking = list(chunks)
-                        
+
                 case "netcdf_file":
                     chunking = None
 
@@ -1031,7 +1031,6 @@ class Group(Mapping):
             root._all_dimensions[dimension.path] = dimension
 
         for variable in self._variables.values():
-            print(variable.path)
             root._all_variables[variable.path] = variable
 
         root._all_groups[self.path] = self
@@ -1446,7 +1445,15 @@ class File(Group):
 
     _netcdf = True
 
-    def __init__(self, dataset, mode="r", backend=None):
+    def __init__(
+        self,
+        dataset,
+        mode="r",
+        backend=None,
+        pyfive_options=None,
+        h5py_options=None,
+        zarr_dimension_search="closest_ancestor",
+    ):
         """**Initialisation**
 
         :Parameters:
@@ -1479,14 +1486,78 @@ class File(Group):
                 empty dictionary. Ignored if *dataset* is already a
                 (subclass of a) `pyfive.File` object.
 
+            h5py_options: `dict` or `None`, optional
+                Keyword arguments that are passed to `h5py.File` to
+                be used when opening a netCDF-4 *dataset*. Setting to
+                `None` (the default) is equivalent to providing an
+                empty dictionary.
+
+            zarr_dimension_search: `str`, optional
+                How to interpret a Zarr or Kerchunk dimension name
+                that contains no group-separator characters, such as
+                ``dim`` (as opposed to ``group/dim``, ``/group/dim``,
+                ``../dim``, etc.).
+
+                For a Zarr or Kerchunk dataset, setting this parameter
+                may be necessary for the correct interpretation of the
+                dataset in the event that its dimensions are named in
+                a manner that is inconsistent with CF rules defined by
+                the CF conventions (section 2.7 Groups).
+
+                The *zarr_dimension_search* parameter must be one of:
+
+                * ``'closest_ancestor'``
+
+                  This is the default and is the behaviour defined by
+                  the CF conventions (section 2.7 Groups).
+
+                  Assume that the sub-group dimension is the same as
+                  the dimension with the same name and size in an
+                  ancestor group, if one exists. If multiple such
+                  dimensions exist, then the correspondence is with
+                  the dimension in the ancestor group that is
+                  **closest** to the sub-group (i.e. that is furthest
+                  away from the root group).
+
+                * ``'furthest_ancestor'``
+
+                  This behaviour is different to that defined by the
+                  CF conventions (section 2.7 Groups).
+
+                  Assume that the sub-group dimension is the same as
+                  the one with the same name and size in an ancestor
+                  group, if one exists. If multiple such dimensions
+                  exist, then the correspondence is with the dimension
+                  in the ancestor group that is **furthest away** from
+                  the sub-group (i.e. that is closest to the root
+                  group).
+
+                * ``'local'``
+
+                  This behaviour is different to that defined by the
+                  CF conventions (section 2.7 Groups).
+
+                  Assume that the sub-group dimension is different to
+                  any with the same name and size in all ancestor
+                  groups.
+
         """
         import pyfive
 
         if mode != "r":
             raise ValueError("mode must be 'r'. Got: mode={mode!r}")
 
+        self._open_options = {}
+        if h5py_options:
+            self._open_options["h5py"] = h5py_options
+
+        if pyfive_options:
+            self._open_options["pyfive"] = pyfive_options
+
+        self._zarr_dimension_search = zarr_dimension_search
+
         open_log = []
-        
+
         if isinstance(dataset, pyfive.File):
             nc = dataset
             attrs = dataset.attrs
@@ -1548,7 +1619,7 @@ class File(Group):
             self._owns_nc = True
 
         self._open_log = open_log
-            
+
         # ------------------------------------------------------------
         # Initialise the group structure
         # ------------------------------------------------------------

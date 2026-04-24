@@ -756,6 +756,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             if unlimited:
                 # Create an unlimited dimension
                 size = None
+                print('AAAA', parent_group, ncdim, size)
                 try:
                     self._createDimension(parent_group, ncdim, size)
                 except RuntimeError as error:

@@ -174,7 +174,8 @@ def pyfive_open(root, dataset):
     """
     import pyfive
 
-    nc = pyfive.File(dataset, mode="r")
+    options = root._open_options.get(root.backend, {})
+    nc = pyfive.File(dataset, mode="r", **options)
     root._lib = pyfive
     return nc, nc.attrs
 
@@ -201,12 +202,7 @@ def h5py_open(root, dataset):
     """
     import h5py
 
-    nc = h5py.File(
-        dataset,
-        mode="r",
-        rdcc_nbytes=16777216,
-        rdcc_w0=0.75,
-        rdcc_nslots=4133,
-    )
+    options = root._open_options.get(root.backend, {})
+    nc = h5py.File(dataset, mode="r", **options)
     root._lib = h5py
     return nc, nc.attrs

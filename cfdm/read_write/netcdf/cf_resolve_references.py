@@ -63,6 +63,7 @@ def search_by_proximity(ref, variable, search_type, dimension=None):
         if dimension is None and ref in variable.dimensions:
             coordinate = True
         elif dimension is not None:
+            print('ref', ref,  dimension.name)
             if ref != dimension.name:
                 return
 
@@ -581,6 +582,7 @@ resolving_rules = {
         Rules(name="coordinate_interpolation", resolver=resolve_pattern_3),
         Rules(name="tie_point_mapping", resolver=resolve_pattern_5),
         Rules(name="interpolation_parameters", resolver=resolve_pattern_2),
+        Rules(name="bounds_tie_points", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Quantization
         # ------------------------------------------------------------

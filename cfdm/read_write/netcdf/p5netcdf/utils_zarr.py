@@ -49,9 +49,7 @@ def zarr_dimension_maps(group):
     root = group.root
     group_to_dims = root._group_to_dims
     variable_to_dims = root._variable_to_dims
-    group_dimension_search = (  # root._group_dimension_search
-        "closest_ancestor"  # root._group_dimension_search
-    )
+    group_dimension_search = root._zarr_dimension_search
 
     # Initialise the mapping from this group to its `Dimension`
     # objects. Use 'setdefault' because a previous call to
