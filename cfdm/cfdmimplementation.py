@@ -2674,6 +2674,24 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("PyfiveArray")
         return cls(**kwargs)
 
+    def initialise_P5netcdfArray(self, **kwargs):
+        """Return a `P5netcdfArray` instance.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Initialisation parameters to pass to the new instance.
+
+        :Returns:
+
+            `P5netcdfArray`
+
+        """
+        cls = self.get_class("P5netcdfArray")
+        return cls(**kwargs)
+
     def initialise_ZarrArray(self, **kwargs):
         """Return a `ZarrArray` instance.
 
@@ -4111,6 +4129,7 @@ _implementation = CFDMImplementation(
     BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
     H5netcdfArray=H5netcdfArray,
+    P5netcdfArray=P5netcdfArray,
     H5pyArray=H5pyArray,
     NetCDF4Array=NetCDF4Array,
     ScipyNetcdfFileArray=ScipyNetcdfFileArray,
@@ -4160,6 +4179,7 @@ def implementation():
      'Data': <class 'cfdm.data.data.Data'>,
      'GatheredArray': <class 'cfdm.data.gatheredarray.GatheredArray'>,
      'H5netcdfArray': <class 'cfdm.data.h5netcdfarray.H5netcdfArray'>,
+     'P5netcdfArray': <class 'cfdm.data.p5netcdfarray.P5netcdfArray'>,
      'H5pyArray': <class 'cfdm.data.h5pyarray.H5pyArray'>,
      'NetCDF4Array': <class 'cfdm.data.netcdf4array.NetCDF4Array'>,
      'ScipyNetcdfFileArray': <class 'cfdm.data.scipynetcdffilearray.ScipyNetcdfFileArray'>,

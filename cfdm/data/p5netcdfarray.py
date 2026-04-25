@@ -27,7 +27,6 @@ class DatasetArray(IndexMixin, abstract.Array):
         attributes=None,
         storage_protocol=None,
         storage_options=None,
-            fmt=None,
             backend=None,
         variable=None,
         source=None,
@@ -46,8 +45,8 @@ class DatasetArray(IndexMixin, abstract.Array):
             dtype: `numpy.dtype`, optional
                 The data type of the array. May be `None` if is not
                 known. This may differ from the data type of the
-                array in the dataset.
-
+                array in the
+        
             shape: `tuple`, optional
                 The shape of the dataset array.
 
@@ -130,11 +129,6 @@ class DatasetArray(IndexMixin, abstract.Array):
                 storage_options = None
 
             try:
-                fmt = source._get_component("fmt", None)
-            except AttributeError:
-                fmt = None
-
-            try:
                 backend = source._get_component("backend", None)
             except AttributeError:
                 backend = None
@@ -168,10 +162,10 @@ class DatasetArray(IndexMixin, abstract.Array):
         if attributes is not None:
             self._set_component("attributes", attributes, copy=copy)
 
-        if fmt is not None:
-            self._set_component("fmt", fmt, copy=False)
-
         if variable is not None:
+            if backend is None:
+                backend = variable.backend
+                
             self._set_component("variable", variable, copy=False)
 
         # By default, close the netCDF file after data array access
@@ -224,7 +218,13 @@ class DatasetArray(IndexMixin, abstract.Array):
         .. versionadded:: (cfdm) 1.11.2.0
 
         """
-        return netcdf_lock
+        match self.backend:
+            case None | "netCDF4" | "h5py":
+                return netcdf_lock
+            case _:
+                return nullcontext()
+                
+#        return netcdf_lock
 
     def _attributes(self, var):
         """Get the variable attributes.
@@ -278,13 +278,7 @@ class DatasetArray(IndexMixin, abstract.Array):
         if index is None:
             index = self.index()
 
-        match self.backend:
-            case "netCDF4" | "h5py" | None:
-                lock = self._lock
-            case _:
-                lock = nullcontext()
-                
-        with lock:
+        with self._lock:
             dataset = None
             variable = self.get_variable(None)
             if variable is None:                
@@ -303,7 +297,7 @@ class DatasetArray(IndexMixin, abstract.Array):
             )
             array = array[index]
 
-            if dataset is not None:
+            if dataset is not None or variable.root.is_local():
                 self.close(dataset)
 
         return array
@@ -757,14 +751,6 @@ class DatasetArray(IndexMixin, abstract.Array):
                 except ValueError:
                     dataset = abspath(dataset)
 
-        try:
-            dataset = p5netcdf.File(dataset, mode="r", backend=self.backend)
-        except p5netcdf.NetCDFError:
-            raise FileNotFoundError(f"No such dataset: {dataset}")
-        except Exception as error:
-            raise RuntimeError(f"{error}: {dataset}")
-
+        dataset = p5netcdf.File(dataset, mode="r", backend=self.backend)
         self._set_component('backend', dataset.backend, copy=False)
-        
-        # Successfully opened a dataset, so return.
         return dataset

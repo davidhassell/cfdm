@@ -5,6 +5,7 @@ from os.path import expanduser, expandvars
 
 import numpy as np
 
+from .locks import netcdf_lock
 from .utils import NetCDFError, _parse_attributes
 from .utils_hdf5 import (
     h5py_open,
@@ -421,21 +422,6 @@ class Variable:
         return dtype
 
     @property
-    def filename(self):
-        """The TODOvariable dimensions.
-
-        .. seealso:: `get_dims`
-
-        :Returns:
-
-            `tuple`
-                The dimension names, in the order of the data array
-                dimensions.
-
-        """
-        return self.root.filename
-
-    @property
     def lib(self):
         """The library package that provides the backend.
 
@@ -663,6 +649,7 @@ class Variable:
 
         return chunking
 
+
     def dump(
         self,
         display=True,
@@ -786,6 +773,19 @@ class Variable:
         """
         return self._parent
 
+    def lock(self):
+        lock  = getattr(self, "_lock", None)
+        if lock is None:
+            match self.backend:
+                case "netCDF4" | "h5py" | None:
+                    lock = netcdf_lock
+                case _:
+                    lock = nullcontext()
+                
+            self._lock = lock
+
+        return lock
+    
     def structure(
         self,
         display=True,
@@ -1667,10 +1667,13 @@ class File(Group):
         if filename is None:
             match self.backend:
                 case "pyfive" | "h5py" | "netcdf_file":
+                    # TODO what happens in pfive/necdf_file when input
+                    # is file-like?
                     filename = self._grp.filename
                 case "netCDF4":
                     filename = self._grp.filepath()
                 case "zarr":
+                    # TODO is not string, stringify
                     filename = self._grp.store_path
 
             self._filename = filename
@@ -1772,6 +1775,29 @@ class File(Group):
 
         return out
 
+    def is_local(self):
+        """The TODO
+
+        :Returns:
+
+            `str`
+                TODO:
+        
+
+        """
+        is_local = getattr(self, "_is_local", None)
+        if is_local is None:
+            from uritools import urisplit
+
+            scheme = urisplit(self.filename).scheme
+            if isinstance(scheme, tuple):
+                scheme = scheme[0]
+
+            is_local = scheme in (None, "file", "local")         
+            self._is_local = is_local
+
+        return is_local
+    
     def _open_zarr(self, dataset):
         """Return an open `zarr.Group`.
 
@@ -1783,11 +1809,12 @@ class File(Group):
 
         :Returns:
 
-            `zarr.Group`
+            `zarr.Group`, `dict`
 
         """
         self._backend = "zarr"
-        return zarr_open(self, dataset)
+        nc, attrs = zarr_open(self, dataset)
+        return nc, attrs
 
     def _open_netCDF4(self, filename):
         """Return an open `netCDF4.Dataset`.
@@ -1799,7 +1826,7 @@ class File(Group):
 
         :Returns:
 
-            `netCDF4.Dataset`
+            `netCDF4.Dataset`, `dict`
 
         """
         import netCDF4
@@ -1823,7 +1850,7 @@ class File(Group):
 
         :Returns:
 
-            `scipy.io.netcdf_file`
+            `scipy.io.netcdf_file`, `dict`
 
         """
         from scipy.io import netcdf_file
@@ -1848,11 +1875,12 @@ class File(Group):
 
         :Returns:
 
-            `pyfive.File`
+            `pyfive.File`, `dict`
 
         """
         self._backend = "pyfive"
-        return pyfive_open(self, dataset)
+        nc, attrs = pyfive_open(self, dataset)
+        return nc, attrs
 
     def _open_h5py(self, dataset):
         """Open a dataset with `h5py`.
@@ -1871,8 +1899,9 @@ class File(Group):
 
         :Returns:
 
-            `h5py.File`
+            `h5py.File`, `dict`
 
         """
         self._backend = "h5py"
-        return h5py_open(self, dataset)
+        nc, attrs = h5py_open(self, dataset)
+        return nc, attrs

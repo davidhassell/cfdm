@@ -600,7 +600,7 @@ class NetCDFRead(IORead):
         nc = None
         try:
             nc = p5netcdf.File(dataset, backend=g["netcdf_backend"])
-        except p5netcdf.NetCDFError as error:
+        except Exception as error:
             if cdl_filename is not None:
                 error = (
                     f"{dataset} was created from CDL file {cdl_filename}\n\n"
@@ -612,11 +612,11 @@ class NetCDFRead(IORead):
                 and g["dataset_representation"] == "path"
             ):
                 # As a last resort, try opening an http dataset with
-                # opendap
+                # opendap via netCDF4
                 try:
                     nc = p5netcdf.File(original_dataset, backend="netCDF4")
-                except p5netcdf.NetCDFError as error2:
-                    error = f"{error}\n\n{error2}"
+                except Exception as error_opendap:
+                    error = f"{error}\n\n{error_opendap}"
 
             if nc is None:
                 raise DatasetTypeError(error)
@@ -6696,9 +6696,9 @@ class NetCDFRead(IORead):
             dtype = np.dtype(f"U{strlen}")
 
         # dataset = g["variable_datasetname"][ncvar]
-        dataset = g["variables"][ncvar].filename
+        dataset = variable.filename
 
-        attributes = g["variables"][ncvar].attrs.copy()
+        attributes = variable.attrs.copy()
         if coord_ncvar is not None:
             # Get the Units from the parent coordinate variable, if
             # they've not already been set.
@@ -6722,6 +6722,7 @@ class NetCDFRead(IORead):
             "attributes": attributes,
             "storage_protocol": g["file_system_protocol"],
             "storage_options": g["file_system_storage_options"],
+            "backend": variable.backend,
         }
 
         if not self._cfa_is_aggregation_variable(ncvar):
@@ -6729,28 +6730,34 @@ class NetCDFRead(IORead):
             if return_kwargs_only:
                 return kwargs
 
-            match g["variables"][ncvar].backend:
-                case "pyfive":
-                    # Add the pyfive.Dataset object to the Array
-                    # object initialisation
-                    kwargs["variable"] = variable._var
-                    array = self.implementation.initialise_PyfiveArray(
-                        **kwargs
-                    )
-                case "h5py":
-                    array = self.implementation.initialise_H5pyArray(**kwargs)
-                case "netCDF4":
-                    array = self.implementation.initialise_NetCDF4Array(
-                        **kwargs
-                    )
-                case "zarr":
-                    array = self.implementation.initialise_ZarrArray(**kwargs)
-                case "netcdf_file":
-                    array = (
-                        self.implementation.initialise_ScipyNetcdfFileArray(
-                            **kwargs
-                        )
-                    )
+            if  variable.backend == "pyfive":
+                kwargs["variable"] = variable
+
+            array = self.implementation.initialise_P5netcdfArray(
+                **kwargs
+            )
+#            match g["variables"][ncvar].backend:a
+#                case "pyfive":
+#                    # Add the pyfive.Dataset object to the Array
+#                    # object initialisation
+#                    kwargs["variable"] = variable._var
+#                    array = self.implementation.initialise_PyfiveArray(
+#                        **kwargs
+#                    )
+#                case "h5py":
+#                    array = self.implementation.initialise_H5pyArray(**kwargs)
+#                case "netCDF4":
+#                    array = self.implementation.initialise_NetCDF4Array(
+#                        **kwargs
+#                    )
+#                case "zarr":
+#                    array = self.implementation.initialise_ZarrArray(**kwargs)
+#                case "netcdf_file":
+#                    array = (
+#                        self.implementation.initialise_ScipyNetcdfFileArray(
+#                            **kwargs
+#                        )
+#                    )
 
             return array, kwargs
 

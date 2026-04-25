@@ -5,7 +5,7 @@ import numpy as np
 
 from ..functions import dirname
 from . import abstract
-from .fragment import FragmentFileArray, FragmentUniqueValueArray
+from .fragment import FragmentP5netcdfArray, FragmentUniqueValueArray
 from .netcdfindexer import netcdf_indexer
 from .utils import chunk_locations, chunk_positions
 
@@ -17,18 +17,23 @@ class AggregatedArray(abstract.FileArray):
 
     """
 
-    def __new__(cls, *args, **kwargs):
-        """Store fragment array classes.
+    __FragmentArray = {
+        "uri": FragmentP5netcdfArray,
+        "unique_value": FragmentUniqueValueArray,
+    }
 
-        .. versionadded:: (cfdm) 1.12.0.0
-
-        """
-        instance = super().__new__(cls)
-        instance._FragmentArray = {
-            "uri": FragmentFileArray,
-            "unique_value": FragmentUniqueValueArray,
-        }
-        return instance
+   #def __new__(cls, *args, **kwargs):
+   #    """Store fragment array classes.
+   #
+   #    .. versionadded:: (cfdm) 1.12.0.0
+   #
+   #    """
+   #    instance = super().__new__(cls)
+   #    instance._FragmentArray = {
+   #        "uri": FragmentP5netcdfArray,
+   #        "unique_value": FragmentUniqueValueArray,
+   #    }
+   #    return instance
 
     def __init__(
         self,
@@ -694,7 +699,7 @@ class AggregatedArray(abstract.FileArray):
         import dask.array as da
         from dask.array.core import getter
         from dask.base import tokenize
-        from uritools import isuri, uricompose
+        from uritools import isuri, uricompose, urisplit
 
         name = (f"{self.__class__.__name__}-{tokenize(self)}",)
 
@@ -720,7 +725,7 @@ class AggregatedArray(abstract.FileArray):
         chunks = self.subarray_shapes(chunks)
 
         try:
-            FragmentArray = self._FragmentArray[fragment_type]
+            FragmentArray = self.__FragmentArray[fragment_type]
         except KeyError:
             raise ValueError(
                 "Can't get fragment array class for unknown "
@@ -740,13 +745,19 @@ class AggregatedArray(abstract.FileArray):
             kwargs.pop("map", None)
 
             if fragment_type == "uri":
-                kwargs["filename"] = kwargs.pop("uri")
+                filename = kwargs.pop("uri")
+                protocol = urisplit(filename).scheme
+                if isinstance(protocol, tuple):
+                    protocol = protocol[0]
+                    
+                kwargs["filename"] = filename
                 kwargs["address"] = kwargs.pop("identifier")
+                kwargs["storage_protocol"] = protocol
                 kwargs["storage_options"] = storage_options
                 kwargs["aggregation_file_directory"] = (
                     aggregation_file_directory
                 )
-
+                
             fragment = FragmentArray(
                 dtype=dtype,
                 shape=fragment_shape,
