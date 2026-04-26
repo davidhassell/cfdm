@@ -25,6 +25,7 @@ class FileArray(Array):
         attributes=None,
         storage_protocol=None,
         storage_options=None,
+            backend=None,
         variable=None,
         source=None,
         copy=True,
@@ -62,6 +63,10 @@ class FileArray(Array):
                 .. versionadded:: (cfdm) NEXTVERSION
 
             {{init storage_options: `dict` or `None`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{init backend: `str` or `None`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -131,6 +136,11 @@ class FileArray(Array):
                 storage_options = None
 
             try:
+                backend = source._get_component("backend", None)
+            except AttributeError:
+                backend = None
+
+            try:
                 variable = source._get_component("variable", None)
             except AttributeError:
                 variable = None
@@ -161,6 +171,9 @@ class FileArray(Array):
 
         if variable is not None:
             self._set_component("variable", variable, copy=False)
+
+        if backend is None:
+            self._set_component("backend", backend, copy=False)
 
         # By default, close the netCDF file after data array access
         self._set_component("close", True, copy=False)
@@ -294,6 +307,29 @@ class FileArray(Array):
         """
         return self._get_component("address", default)
 
+    def get_backend(self, default=AttributeError()):
+        """TODO The name of the file containing the array.
+
+        If there are multiple files then an `AttributeError` is
+        raised by default.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            default: optional
+                Return *default* if the address has not been set.
+
+                {{default Exception}}
+
+        :Returns:
+
+            `str`
+                The file name.
+
+        """
+        return self._get_component("backend", default)
+
     def file_directory(self, normalise=False, default=AttributeError()):
         """The file directory.
 
@@ -407,7 +443,21 @@ class FileArray(Array):
         None
 
         """
-        return self._get_component("storage_protocol", None)
+        from uritools import urisplit
+
+        protocol = self._get_component("storage_protocol", None)
+        if protocol is None:
+            
+            protocol = urisplit(self.get_filename()).scheme
+            if isinstance(protocol, tuple):
+                protocol = protocol[0]
+                
+            if protocol is None:
+                protocol = "file"
+                
+        self._set_component("storage_protocol", protocol, copy=False)
+
+        return protocol
 
     def get_storage_options(self):
         """Return the file system options.
@@ -515,7 +565,7 @@ class FileArray(Array):
             dataset = func(filename, *args, **kwargs)
         except FileNotFoundError:
             raise FileNotFoundError(f"No such file: {filename}")
-        except RuntimeError as error:
+        except Exception as error:
             raise RuntimeError(f"{error}: {filename}")
 
         # Successfully opened a dataset, so return.
@@ -667,17 +717,10 @@ class FileArray(Array):
                 of the cached dictionary.
 
         """
-        attributes = self._get_component("attributes", None)
-        if attributes is None:
-            attributes = var.attrs.copy()
-            self._set_component("attributes", attributes, copy=False)
-
-        return attributes
-
-    #        raise NotImplementedError(
-    #            f"Must implement {self.__class__.__name__}._attributes"
-    #        )  # pragma: no cover
-
+        raise NotImplementedError(
+            f"Must implement {self.__class__.__name__}._attributes"
+        )  # pragma: no cover
+    
     def get_unpack(self):
         """Whether or not to automatically unpack the data.
 

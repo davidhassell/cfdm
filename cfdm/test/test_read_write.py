@@ -1237,7 +1237,8 @@ class read_writeTest(unittest.TestCase):
         for d in (f.data.todict(), f.coordinate("longitude").data.todict()):
             on_disk = False
             for v in d.values():
-                if isinstance(v, cfdm.PyfiveArray):
+                print(type(v))
+                if isinstance(v, cfdm.P5netcdfArray):
                     on_disk = True
 
             self.assertTrue(on_disk)

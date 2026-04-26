@@ -33,6 +33,7 @@ from .data import (
     Data,
     GatheredArray,
     H5netcdfArray,
+    P5netcdfArray,
     H5pyArray,
     NetCDF4Array,
     PointTopologyArray,

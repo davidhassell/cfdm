@@ -31,6 +31,7 @@ from .scipynetcdffilearray import ScipyNetcdfFileArray
 from .netcdf4array import NetCDF4Array
 from .netcdfindexer import netcdf_indexer
 from .numpyarray import NumpyArray
+from .p5netcdfarray import P5netcdfArray
 from .pointtopologyarray import PointTopologyArray
 from .pyfivearray import PyfiveArray
 from .raggedcontiguousarray import RaggedContiguousArray

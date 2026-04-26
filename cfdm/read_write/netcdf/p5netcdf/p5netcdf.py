@@ -379,6 +379,23 @@ class Variable:
         return paths
 
     @property
+    def dataset_name(self):
+        """TODO The name of the file on disk.
+
+        :Returns:
+
+            `str`
+                The filename of the dataset.
+
+        """
+        filename = getattr(self, "_dataset_name", None)
+        if filename is None:
+            filename = self.root.dataset_name
+            self._dataset_name = filename
+
+        return filename
+
+    @property
     def dimensions(self):
         """The variable dimensions.
 
@@ -1654,7 +1671,7 @@ class File(Group):
         self.close()
 
     @property
-    def filename(self):
+    def dataset_name(self):
         """The name of the file on disk.
 
         :Returns:
@@ -1663,7 +1680,7 @@ class File(Group):
                 The filename of the dataset.
 
         """
-        filename = getattr(self, "_filename", None)
+        filename = getattr(self, "_dataset_name", None)
         if filename is None:
             match self.backend:
                 case "pyfive" | "h5py" | "netcdf_file":
@@ -1676,9 +1693,21 @@ class File(Group):
                     # TODO is not string, stringify
                     filename = self._grp.store_path
 
-            self._filename = filename
+            self._dataset_name = filename
 
         return filename
+
+    @property
+    def filename(self):
+        """The name of the dataset on disk.
+
+        :Returns:
+
+            `str`
+                The dataset of the dataset.
+
+        """
+        return self.dataset_name
 
     def close(self):
         """Close the dataset.

@@ -5,7 +5,7 @@ import numpy as np
 
 from ..functions import dirname
 from . import abstract
-from .fragment import FragmentP5netcdfArray, FragmentUniqueValueArray
+from .fragment import FragmentFileArray, FragmentUniqueValueArray
 from .netcdfindexer import netcdf_indexer
 from .utils import chunk_locations, chunk_positions
 
@@ -18,7 +18,7 @@ class AggregatedArray(abstract.FileArray):
     """
 
     __FragmentArray = {
-        "uri": FragmentP5netcdfArray,
+        "uri": FragmentFileArray,
         "unique_value": FragmentUniqueValueArray,
     }
 
@@ -30,7 +30,7 @@ class AggregatedArray(abstract.FileArray):
    #    """
    #    instance = super().__new__(cls)
    #    instance._FragmentArray = {
-   #        "uri": FragmentP5netcdfArray,
+   #        "uri": FragmentFileArray,
    #        "unique_value": FragmentUniqueValueArray,
    #    }
    #    return instance
@@ -46,6 +46,7 @@ class AggregatedArray(abstract.FileArray):
         attributes=None,
         storage_protocol=None,
         storage_options=None,
+        backend=None,
         source=None,
         copy=True,
     ):
