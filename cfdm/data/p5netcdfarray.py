@@ -184,7 +184,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
         .. versionadded:: (cfdm) 1.11.2.0
 
         """        
-        match self.get_backend(None):
+        match self.get_backend():
             case "netCDF4" | "h5py" | None:
                 return netcdf_lock
             case _:
@@ -309,6 +309,6 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
         from cfdm import p5netcdf
 
         return super().open(
-            p5netcdf.File, mode="r", backend=self.get_backend(None), **kwargs
+            p5netcdf.File, mode="r", backend=self.get_backend(), **kwargs
         )
 

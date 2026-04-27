@@ -307,7 +307,7 @@ class FileArray(Array):
         """
         return self._get_component("address", default)
 
-    def get_backend(self, default=AttributeError()):
+    def get_backend(self):
         """TODO The name of the file containing the array.
 
         If there are multiple files then an `AttributeError` is
@@ -328,7 +328,7 @@ class FileArray(Array):
                 The file name.
 
         """
-        return self._get_component("backend", default)
+        return self._get_component("backend", None)
 
     def file_directory(self, normalise=False, default=AttributeError()):
         """The file directory.

@@ -283,16 +283,13 @@ class FragmentFileArray(
         None
 
         """
-        from uritools.parse import uriparse
+        from uritools import urisplit
 
         protocol = self._get_component("storage_protocol", None)
         if protocoal is None:
-            protocol = uriparse(self.get_filename()).scheme
+            protocol = urisplit(self.get_filename()).scheme
             if isinstance(protocol, tuple):
                 protocol = protocol[0]
-                
-            if protocol is None:
-                protocol = "file"
                 
         self._set_component("storage_protocol", protocol, copy=False)
 

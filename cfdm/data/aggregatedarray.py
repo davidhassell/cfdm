@@ -707,6 +707,7 @@ class AggregatedArray(abstract.FileArray):
         dtype = self.dtype
         fragment_array = self.get_fragment_array(copy=False)
         storage_options = self.get_storage_options()
+        backend = self.get_backend()
         fragment_type = self.get_fragment_type()
         aggregated_attributes = self.get_attributes()
         unpack = self.get_unpack()
@@ -755,6 +756,7 @@ class AggregatedArray(abstract.FileArray):
                 kwargs["address"] = kwargs.pop("identifier")
                 kwargs["storage_protocol"] = protocol
                 kwargs["storage_options"] = storage_options
+                kwargs["backend"] = backend
                 kwargs["aggregation_file_directory"] = (
                     aggregation_file_directory
                 )
