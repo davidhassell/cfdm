@@ -25,8 +25,9 @@ def resolve_references(f):
 
 def resolve_attribute(attr, attr_value, variable):
     rules = resolving_rules[attr]
-    return  rules.resolver(attr_value, variable, coord=rules.coord)
-    
+    return rules.resolver(attr_value, variable, coord=rules.coord)
+
+
 def search_by_absolute_or_relative_path(ref, variable, search_type):
     """TODO."""
     g = variable.parent
@@ -48,6 +49,7 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
     if x is not None:
         return x.path
 
+
 def search_by_proximity(ref, variable, search_type, coord=False):
     """TODO."""
     local_apex_group = None
@@ -62,10 +64,10 @@ def search_by_proximity(ref, variable, search_type, coord=False):
             dim = g.dimensions.get(ref)
             if dim is not None:
                 break
-    
+
             depth += 1
             g = g.parent
-    
+
         local_apex_group = g
 
     g = variable.parent
@@ -80,18 +82,19 @@ def search_by_proximity(ref, variable, search_type, coord=False):
                 return x.path
         elif x is not None:
             return x.path
-            
+
         if g is local_apex_group:
             break
-        
+
         g = g.parent
-        
+
     if local_apex_group is None:
         return
-    
+
     # Still here? Then 'ref' is a coordinate variable, so do a lateral
     #             search from the local apex group.
     return coordinate_lateral_search(ref, local_apex_group, depth)
+
 
 def coordinate_lateral_search(ref, group, depth):
     """TODO.
@@ -137,7 +140,7 @@ def coordinate_lateral_search(ref, group, depth):
 
     for g in group.groups.values():
         var = g.variables.get(ref)
-        if var is not None and  var.dimensions == (ref,):
+        if var is not None and var.dimensions == (ref,):
             # Found
             return var.path
 
@@ -145,6 +148,7 @@ def coordinate_lateral_search(ref, group, depth):
         if path is not None:
             # Found
             return path
+
 
 def resolve_pattern_1(value, variable, coord=False):
     """TODO.
@@ -254,7 +258,9 @@ def resolve_pattern_3(value, variable, coord=False):
         resolved = []
         for ref in value.split():
             if ref.endswith(":"):
-                ref = resolve_reference(ref[:-1], variable, var=True, coord=coord)
+                ref = resolve_reference(
+                    ref[:-1], variable, var=True, coord=coord
+                )
                 ref += ":"
             else:
                 ref = resolve_reference(ref, variable, var=True, coord=coord)
@@ -302,7 +308,12 @@ def resolve_pattern_4(value, variable, coord=False):
     for ref in cell_methods:
         if ref.endswith(":"):
             ref = resolve_reference(
-                ref[:-1], variable, dim=True, var=True, dim_then_var=True, coord=coord
+                ref[:-1],
+                variable,
+                dim=True,
+                var=True,
+                dim_then_var=True,
+                coord=coord,
             )
             resolved.append(ref + ":")
             previous_ref = "axis"
@@ -401,7 +412,9 @@ def resolve_pattern_5(value, variable, coord=False):
         return " ".join(resolved)
 
 
-def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True, coord=False):
+def resolve_reference(
+    ref, variable, dim=False, var=False, dim_then_var=True, coord=False
+):
     """Resolve a reference.
 
     Resolves the absolute path to a coordinate variable within the
@@ -448,9 +461,13 @@ def resolve_reference(ref, variable, dim=False, var=False, dim_then_var=True, co
             )
     else:
         # Reference is to be searched by proximity
-        resolved_ref = search_by_proximity(ref, variable, first_search, coord=coord)
+        resolved_ref = search_by_proximity(
+            ref, variable, first_search, coord=coord
+        )
         if resolved_ref is None and second_search:
-            resolved_ref = search_by_proximity(ref, variable, second_search, coord=coord)
+            resolved_ref = search_by_proximity(
+                ref, variable, second_search, coord=coord
+            )
 
     if resolved_ref is not None:
         # Return the resoved reference
@@ -491,8 +508,7 @@ resolving_rules = {
         # ------------------------------------------------------------
         # Coordinates
         # ------------------------------------------------------------
-        Rules(name="coordinates", resolver=resolve_pattern_1,
-              coord=True),
+        Rules(name="coordinates", resolver=resolve_pattern_1, coord=True),
         # ------------------------------------------------------------
         # Bounds
         # ------------------------------------------------------------

@@ -4128,7 +4128,8 @@ class NetCDFRead(IORead):
         field_ncdimensions = self._ncdimensions(
             field_ncvar, ncdimensions=ncdimensions
         )
-        print ('field_ncdimensions=',field_ncvar, field_ncdimensions)
+        print("field_ncdimensions=", field_ncvar, field_ncdimensions)
+        print("   dataset=", repr(g["dataset"]))
         #        field_groups = g["variable_groups"][field_ncvar]
         #        field_groups = g["variables"][field_ncvar].groups
 
@@ -4136,7 +4137,7 @@ class NetCDFRead(IORead):
             ncvar = self._find_coordinate_variable(
                 field_ncvar, g["dimensions"].get(ncdim)
             )
-            print('found ncvar', ncvar, ncdim)
+            print("found ncvar", ncvar, ncdim)
             if ncvar is not None:
                 # There is a Unidata coordinate variable for this
                 # dimension, so create a domain axis and dimension
@@ -5261,7 +5262,7 @@ class NetCDFRead(IORead):
 
         # Still here? The search by proximity, or by lateral search.
         return search_by_proximity(
-            name, g["variables"][field_ncvar], "var" , coord=True
+            name, g["variables"][field_ncvar], "var", coord=True
         )
 
     def _is_char_or_string(self, ncvar):
@@ -5888,7 +5889,7 @@ class NetCDFRead(IORead):
             self.implementation.set_original_filenames(
                 #            c, g["variable_datasetname"].get(ncvar, g["dataset"])
                 c,
-                var.dataset_name,  # TODO
+                var.dataset,  # TODO
             )
 
         # ------------------------------------------------------------
@@ -5940,7 +5941,7 @@ class NetCDFRead(IORead):
             self.implementation.set_original_filenames(
                 # bounds, g["variable_datasetname"][bounds_ncvar]
                 bounds,
-                bounds_var.dataset_name,
+                bounds_var.dataset,
             )
             # Store the netCDF variable name
             self.implementation.nc_set_variable(bounds, bounds_ncvar)
@@ -6166,7 +6167,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            param, g["variable_datasetname"][ncvar]
             param,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6247,7 +6248,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6319,7 +6320,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6393,7 +6394,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6450,7 +6451,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6501,7 +6502,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6546,7 +6547,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             # variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6600,7 +6601,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            variable, g["variable_datasetname"][ncvar]
             variable,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6699,7 +6700,7 @@ class NetCDFRead(IORead):
             dtype = np.dtype(f"U{strlen}")
 
         # dataset = g["variable_datasetname"][ncvar]
-        dataset = variable.dataset_name
+        dataset = variable.dataset
 
         attributes = variable.attrs.copy()
         if coord_ncvar is not None:
@@ -6732,35 +6733,33 @@ class NetCDFRead(IORead):
             if return_kwargs_only:
                 return kwargs
 
-            kwargs["backend"]= variable.backend
-            if  variable.backend == "pyfive":
+            kwargs["backend"] = variable.backend
+            if variable.backend == "pyfive":
                 kwargs["variable"] = variable
 
-            array = self.implementation.initialise_P5netcdfArray(
-                **kwargs
-            )
-#            match g["variables"][ncvar].backend:a
-#                case "pyfive":
-#                    # Add the pyfive.Dataset object to the Array
-#                    # object initialisation
-#                    kwargs["variable"] = variable._var
-#                    array = self.implementation.initialise_PyfiveArray(
-#                        **kwargs
-#                    )
-#                case "h5py":
-#                    array = self.implementation.initialise_H5pyArray(**kwargs)
-#                case "netCDF4":
-#                    array = self.implementation.initialise_NetCDF4Array(
-#                        **kwargs
-#                    )
-#                case "zarr":
-#                    array = self.implementation.initialise_ZarrArray(**kwargs)
-#                case "netcdf_file":
-#                    array = (
-#                        self.implementation.initialise_ScipyNetcdfFileArray(
-#                            **kwargs
-#                        )
-#                    )
+            array = self.implementation.initialise_P5netcdfArray(**kwargs)
+            #            match g["variables"][ncvar].backend:a
+            #                case "pyfive":
+            #                    # Add the pyfive.Dataset object to the Array
+            #                    # object initialisation
+            #                    kwargs["variable"] = variable._var
+            #                    array = self.implementation.initialise_PyfiveArray(
+            #                        **kwargs
+            #                    )
+            #                case "h5py":
+            #                    array = self.implementation.initialise_H5pyArray(**kwargs)
+            #                case "netCDF4":
+            #                    array = self.implementation.initialise_NetCDF4Array(
+            #                        **kwargs
+            #                    )
+            #                case "zarr":
+            #                    array = self.implementation.initialise_ZarrArray(**kwargs)
+            #                case "netcdf_file":
+            #                    array = (
+            #                        self.implementation.initialise_ScipyNetcdfFileArray(
+            #                            **kwargs
+            #                        )
+            #                    )
 
             return array, kwargs
 
@@ -7254,7 +7253,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            field_ancillary, g["variable_datasetname"][ncvar]
             field_ancillary,
-            g["variables"][ncvar].dataset_name,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -10092,7 +10091,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            bounds, g["variable_datasetname"][node_ncvar]
             bounds,
-            g["variables"][node_ncvar].dataset_name,
+            g["variables"][node_ncvar].dataset,
         )
 
         error = self.implementation.set_bounds(aux, bounds, copy=False)
@@ -10217,7 +10216,7 @@ class NetCDFRead(IORead):
         self.implementation.set_original_filenames(
             #            domain_topology, self.read_vars["dataset"]
             domain_topology,
-            g["variables"][connectivity_ncvar].dataset_name,
+            g["variables"][connectivity_ncvar].filename,
         )
 
         index_set = mesh.index_set
@@ -10330,7 +10329,7 @@ class NetCDFRead(IORead):
         self.implementation.nc_set_variable(connectivity, connectivity_ncvar)
         self.implementation.set_original_filenames(
             connectivity,
-            g["variables"][connectivity_ncvar].dataset_name,
+            g["variables"][connectivity_ncvar].dataset,
         )
 
         index_set = mesh.index_set
@@ -11484,7 +11483,7 @@ class NetCDFRead(IORead):
         #        storage_chunks = self._variable_chunksizes(variable)
         variable = g["variables"][ncvar]
         storage_chunks = variable.chunks
-
+        
         ndim = array.ndim
         if (
             storage_chunks is not None

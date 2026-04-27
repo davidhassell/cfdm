@@ -22,18 +22,18 @@ class AggregatedArray(abstract.FileArray):
         "unique_value": FragmentUniqueValueArray,
     }
 
-   #def __new__(cls, *args, **kwargs):
-   #    """Store fragment array classes.
-   #
-   #    .. versionadded:: (cfdm) 1.12.0.0
-   #
-   #    """
-   #    instance = super().__new__(cls)
-   #    instance._FragmentArray = {
-   #        "uri": FragmentFileArray,
-   #        "unique_value": FragmentUniqueValueArray,
-   #    }
-   #    return instance
+    # def __new__(cls, *args, **kwargs):
+    #    """Store fragment array classes.
+    #
+    #    .. versionadded:: (cfdm) 1.12.0.0
+    #
+    #    """
+    #    instance = super().__new__(cls)
+    #    instance._FragmentArray = {
+    #        "uri": FragmentFileArray,
+    #        "unique_value": FragmentUniqueValueArray,
+    #    }
+    #    return instance
 
     def __init__(
         self,
@@ -482,6 +482,7 @@ class AggregatedArray(abstract.FileArray):
         # Create the base chunks.
         chunks = []
         ndim = self.ndim
+
         for dim, (n_fragments, size) in enumerate(
             zip(self.get_fragment_array_shape(), self.shape)
         ):
@@ -751,7 +752,7 @@ class AggregatedArray(abstract.FileArray):
                 protocol = urisplit(filename).scheme
                 if isinstance(protocol, tuple):
                     protocol = protocol[0]
-                    
+
                 kwargs["filename"] = filename
                 kwargs["address"] = kwargs.pop("identifier")
                 kwargs["storage_protocol"] = protocol
@@ -760,7 +761,7 @@ class AggregatedArray(abstract.FileArray):
                 kwargs["aggregation_file_directory"] = (
                     aggregation_file_directory
                 )
-                
+
             fragment = FragmentArray(
                 dtype=dtype,
                 shape=fragment_shape,

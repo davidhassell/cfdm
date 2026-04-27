@@ -295,7 +295,7 @@ class Variable:
                 self._var, "__orthogonal_indexing__", False
             )
             self._orthogonal_indexing = orthogonal_indexing
-            
+
         return orthogonal_indexing
 
     @property
@@ -341,7 +341,7 @@ class Variable:
         chunks = getattr(self, "_chunks", None)
         if chunks is None:
             match self.backend:
-                case "pyfive" | "zarr" | "h5py":
+                case "pyfive" | "h5py":
                     chunks = self._var.chunks
 
                 case "netCDF4":
@@ -353,6 +353,11 @@ class Variable:
 
                 case "netcdf_file":
                     chunks = None
+                    
+                case "zarr":
+                    chunks = self._var.chunks
+                    if not chunks:
+                        chunks = None
 
             self._chunks = chunks
 
@@ -379,7 +384,7 @@ class Variable:
         return paths
 
     @property
-    def dataset_name(self):
+    def dataset(self):
         """TODO The name of the file on disk.
 
         :Returns:
@@ -388,12 +393,12 @@ class Variable:
                 The filename of the dataset.
 
         """
-        filename = getattr(self, "_dataset_name", None)
-        if filename is None:
-            filename = self.root.dataset_name
-            self._dataset_name = filename
+        dataset = getattr(self, "_dataset", None)
+        if dataset is None:
+            dataset = self.root.dataset
+            self._dataset = dataset
 
-        return filename
+        return dataset
 
     @property
     def dimensions(self):
@@ -437,6 +442,23 @@ class Variable:
             self._dtype = dtype
 
         return dtype
+
+    @property
+    def filename(self):
+        """TODO The name of the file on disk.
+
+        :Returns:
+
+            `str`
+                The filename of the dataset.
+
+        """
+        filename = getattr(self, "_filename", None)
+        if filename is None:
+            filename = self.root.filename
+            self._filename = filename
+
+        return filename
 
     @property
     def lib(self):
@@ -666,7 +688,6 @@ class Variable:
 
         return chunking
 
-
     def dump(
         self,
         display=True,
@@ -791,18 +812,18 @@ class Variable:
         return self._parent
 
     def lock(self):
-        lock  = getattr(self, "_lock", None)
+        lock = getattr(self, "_lock", None)
         if lock is None:
             match self.backend:
                 case "netCDF4" | "h5py" | None:
                     lock = netcdf_lock
                 case _:
                     lock = nullcontext()
-                
+
             self._lock = lock
 
         return lock
-    
+
     def structure(
         self,
         display=True,
@@ -1254,7 +1275,7 @@ class Group(Mapping):
                 case "netCDF4":
                     path = self._grp.path
                 case "netcdf_file":
-                    path = '/'
+                    path = "/"
 
             self._path = path
 
@@ -1596,12 +1617,22 @@ class File(Group):
         if isinstance(dataset, pyfive.File):
             nc = dataset
             attrs = dataset.attrs
+            self._dataset = dataset.filename
             self._backend = "pyfive"
             self._lib = pyfive
             # The opened dataset is owned externally
             self._owns_nc = False
 
         else:
+            try:
+                # Try to expand `str` or `pathlib.Path`
+                dataset = expanduser(expandvars(dataset))
+            except TypeError:
+                # Likely a file-like or directory-like object
+                pass
+
+            self._dataset = dataset
+
             # Map backend names to dataset-open functions
             open_functions = {
                 "pyfive": self._open_pyfive,
@@ -1610,19 +1641,11 @@ class File(Group):
                 "zarr": self._open_zarr,
                 "h5py": self._open_h5py,
             }
-
             if backend is not None:
                 if isinstance(backend, str):
                     backend = (backend,)
 
                 open_functions = {b: open_functions[b] for b in backend}
-
-            try:
-                # Try to expand `str` or `pathlib.Path`
-                dataset = expanduser(expandvars(dataset))
-            except TypeError:
-                # Likely a file-like or directory-like object
-                pass
 
             nc = None
             for name, func in open_functions.items():
@@ -1671,7 +1694,27 @@ class File(Group):
         self.close()
 
     @property
-    def dataset_name(self):
+    def dataset(self):
+        """The name of the file on disk.
+
+        :Returns:
+
+            `str`
+                The filename of the dataset.
+
+        """
+        return self._dataset
+
+    @property
+    def filename(self):
+        """The name of the dataset on disk.
+
+        :Returns:
+
+            `str`
+                The dataset of the dataset.
+
+        """
         """The name of the file on disk.
 
         :Returns:
@@ -1691,23 +1734,11 @@ class File(Group):
                     filename = self._grp.filepath()
                 case "zarr":
                     # TODO is not string, stringify
-                    filename = self._grp.store_path
+                    filename = str(self._grp.store_path)
 
             self._dataset_name = filename
 
         return filename
-
-    @property
-    def filename(self):
-        """The name of the dataset on disk.
-
-        :Returns:
-
-            `str`
-                The dataset of the dataset.
-
-        """
-        return self.dataset_name
 
     def close(self):
         """Close the dataset.
@@ -1805,13 +1836,12 @@ class File(Group):
         return out
 
     def is_local(self):
-        """The TODO
+        """The TODO.
 
         :Returns:
 
             `str`
                 TODO:
-        
 
         """
         is_local = getattr(self, "_is_local", None)
@@ -1822,11 +1852,11 @@ class File(Group):
             if isinstance(scheme, tuple):
                 scheme = scheme[0]
 
-            is_local = scheme in (None, "file", "local")         
+            is_local = scheme in (None, "file", "local")
             self._is_local = is_local
 
         return is_local
-    
+
     def _open_zarr(self, dataset):
         """Return an open `zarr.Group`.
 

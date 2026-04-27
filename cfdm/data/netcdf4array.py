@@ -82,12 +82,12 @@ class NetCDF4Array(IndexMixin, abstract.FileArray):
         with self._lock:
             netcdf, address = self.open()
             dataset = netcdf
-            
+
             groups, address = self.get_groups(address)
             if groups:
                 # Traverse the group structure, if there is one (CF>=1.8).
                 netcdf = self._group(netcdf, groups)
-            
+
             if isinstance(address, str):
                 # Get the variable by netCDF name
                 variable = netcdf.variables[address]

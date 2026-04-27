@@ -5,7 +5,6 @@ from cfdm.functions import abspath
 from ..abstract import FileArray
 from ..mixin import IndexMixin
 from .fragmentp5netcdfarray import FragmentP5netcdfArray
-
 from .mixin import FragmentArrayMixin
 
 
@@ -19,10 +18,10 @@ class FragmentFileArray(
     .. versionadded:: (cfdm) 1.12.0.0
 
     """
-    
+
     __FragmentArrays = (FragmentP5netcdfArray,)
 
-    #def __new__(cls, *args, **kwargs):
+    # def __new__(cls, *args, **kwargs):
     #    """Store fragment classes.
     #
     #    .. versionadded:: (cfdm) 1.12.0.0
@@ -55,6 +54,7 @@ class FragmentFileArray(
         shape=None,
         storage_protocol=None,
         storage_options=None,
+        backend=None,
         unpack_aggregated_data=True,
         aggregated_attributes=None,
         aggregation_file_directory=None,
@@ -107,6 +107,7 @@ class FragmentFileArray(
             attributes=None,
             storage_protocol=storage_protocol,
             storage_options=storage_options,
+            backend=backend,
             source=source,
             copy=copy,
         )
@@ -286,11 +287,11 @@ class FragmentFileArray(
         from uritools import urisplit
 
         protocol = self._get_component("storage_protocol", None)
-        if protocoal is None:
+        if protocol is None:
             protocol = urisplit(self.get_filename()).scheme
             if isinstance(protocol, tuple):
                 protocol = protocol[0]
-                
+
         self._set_component("storage_protocol", protocol, copy=False)
 
         return protocol

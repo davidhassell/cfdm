@@ -25,7 +25,7 @@ class FileArray(Array):
         attributes=None,
         storage_protocol=None,
         storage_options=None,
-            backend=None,
+        backend=None,
         variable=None,
         source=None,
         copy=True,
@@ -222,6 +222,7 @@ class FileArray(Array):
             self.get_attributes(copy=False),
             self.get_storage_protocol(),
             self.get_storage_options(),
+            self.get_backend(),
         )
 
     def _get_array(self, index=None, use_lock=None):
@@ -447,15 +448,13 @@ class FileArray(Array):
 
         protocol = self._get_component("storage_protocol", None)
         if protocol is None:
-            
-            protocol = urisplit(self.get_filename()).scheme
-            if isinstance(protocol, tuple):
-                protocol = protocol[0]
-                
-            if protocol is None:
-                protocol = "file"
-                
-        self._set_component("storage_protocol", protocol, copy=False)
+            filename = self.get_filename()
+            if isinstance(filename, str):
+                protocol = urisplit(filename).scheme
+                if isinstance(protocol, tuple):
+                    protocol = protocol[0]
+
+                self._set_component("storage_protocol", protocol, copy=False)
 
         return protocol
 
@@ -720,7 +719,7 @@ class FileArray(Array):
         raise NotImplementedError(
             f"Must implement {self.__class__.__name__}._attributes"
         )  # pragma: no cover
-    
+
     def get_unpack(self):
         """Whether or not to automatically unpack the data.
 
