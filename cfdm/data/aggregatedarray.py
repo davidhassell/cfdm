@@ -44,9 +44,12 @@ class AggregatedArray(abstract.FileArray):
         unpack=True,
         fragment_array=None,
         attributes=None,
-        storage_protocol=None,
-        storage_options=None,
+        #        storage_protocol=None,
+        #        storage_options=None,
+        filesystem=None,
         backend=None,
+        fragment_filesystem=None,
+        fragment_backend=None,
         source=None,
         copy=True,
     ):
@@ -89,6 +92,14 @@ class AggregatedArray(abstract.FileArray):
 
             {{init storage_options: `dict` or `None`, optional}}
 
+            {{init filesystem: optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{init backend: `None` or (sequence of) `str`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
             {{init attributes: `dict` or `None`, optional}}
 
                 If *attributes* is `None`, the default, then the
@@ -107,8 +118,10 @@ class AggregatedArray(abstract.FileArray):
             mask=True,
             unpack=unpack,
             attributes=attributes,
-            storage_protocol=storage_protocol,
-            storage_options=storage_options,
+            #            storage_protocol=storage_protocol,
+            #            storage_options=storage_options,
+            filesystem=filesystem,
+            backend=backend,
             source=source,
             copy=copy,
         )
@@ -133,6 +146,14 @@ class AggregatedArray(abstract.FileArray):
                 fragment_type = source.get_fragment_type()
             except AttributeError:
                 fragment_type = None
+            try:
+                fragment_filesystem = source.get_fragment_filesystem()
+            except AttributeError:
+                fragment_filesystem = None
+            try:
+                fragment_backend = source.get_fragment_backend()
+            except AttributeError:
+                fragment_backend = None
         else:
             if filename is not None:
                 (
@@ -153,6 +174,11 @@ class AggregatedArray(abstract.FileArray):
         )
         self._set_component("fragment_array", fragment_array, copy=False)
         self._set_component("fragment_type", fragment_type, copy=False)
+
+        self._set_component(
+            "fragment_filesystem", fragment_filesystem, copy=False
+        )
+        self._set_component("fragment_backend", fragment_backend, copy=False)
 
     def __getitem__(self, index):
         """Return a subspace.
@@ -416,6 +442,78 @@ class AggregatedArray(abstract.FileArray):
             for i, size in enumerate(self.get_fragment_array_shape())
             if size > 1
         ]
+
+    def get_fragment_backend(self):
+        """Get the aggregation data dictionary TODO.
+
+        The aggregation data dictionary contains the definitions of
+        the fragments and the instructions on how to aggregate them.
+        The keys are indices of the fragment array dimensions,
+        e.g. ``(1, 0, 0, 0)``.
+
+        .. versionadded:: (cfdm) 1.12.0.0
+
+         .. seealso:: `get_fragment_type`,
+                      `get_fragment_array_shape`,
+                      `get_fragmented_dimensions`
+
+        :Parameters:
+
+            copy: `bool`, optional
+                Whether or not to return a copy of the aggregation
+                dictionary. By default a deep copy is returned.
+
+                .. warning:: If False then changing the returned
+                             dictionary in-place will change the
+                             aggregation dictionary stored in the
+                             {{class}} instance, **as well as in any
+                             copies of it**.
+
+        :Returns:
+
+            `dict`
+                The aggregation data dictionary.
+
+        **Examples**
+
+        """
+        return self._get_component("fragment_backend", None)
+
+    def get_fragment_filesystem(self):
+        """TODO et the aggregation data dictionary.
+
+        The aggregation data dictionary contains the definitions of
+        the fragments and the instructions on how to aggregate them.
+        The keys are indices of the fragment array dimensions,
+        e.g. ``(1, 0, 0, 0)``.
+
+        .. versionadded:: (cfdm) 1.12.0.0
+
+         .. seealso:: `get_fragment_type`,
+                      `get_fragment_array_shape`,
+                      `get_fragmented_dimensions`
+
+        :Parameters:
+
+            copy: `bool`, optional
+                Whether or not to return a copy of the aggregation
+                dictionary. By default a deep copy is returned.
+
+                .. warning:: If False then changing the returned
+                             dictionary in-place will change the
+                             aggregation dictionary stored in the
+                             {{class}} instance, **as well as in any
+                             copies of it**.
+
+        :Returns:
+
+            `dict`
+                The aggregation data dictionary.
+
+        **Examples**
+
+        """
+        return self._get_component("fragment_filesystem", None)
 
     def subarray_shapes(self, shapes):
         """Create the subarray shapes.
@@ -707,8 +805,10 @@ class AggregatedArray(abstract.FileArray):
 
         dtype = self.dtype
         fragment_array = self.get_fragment_array(copy=False)
-        storage_options = self.get_storage_options()
-        backend = self.get_backend()
+        #        storage_options = self.get_storage_options()
+        #        backend = self.get_backend()
+        fragment_filesystem = self.get_fragment_filesystem()
+        fragment_backend = self.get_fragment_backend()
         fragment_type = self.get_fragment_type()
         aggregated_attributes = self.get_attributes()
         unpack = self.get_unpack()
@@ -755,9 +855,10 @@ class AggregatedArray(abstract.FileArray):
 
                 kwargs["filename"] = filename
                 kwargs["address"] = kwargs.pop("identifier")
-                kwargs["storage_protocol"] = protocol
-                kwargs["storage_options"] = storage_options
-                kwargs["backend"] = backend
+                #                kwargs["storage_protocol"] = protocol
+                #                kwargs["storage_options"] = storage_options
+                kwargs["filesystem"] = fragment_filesystem
+                kwargs["backend"] = fragment_backend
                 kwargs["aggregation_file_directory"] = (
                     aggregation_file_directory
                 )

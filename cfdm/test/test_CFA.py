@@ -327,7 +327,7 @@ class CFATest(unittest.TestCase):
             getattr(nc.variables["q"], "aggregated_data", None)
         )
         nc.close()
-
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         cfdm.write(
             g,
             cfa_file,

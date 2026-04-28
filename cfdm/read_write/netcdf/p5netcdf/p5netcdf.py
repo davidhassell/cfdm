@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from contextlib import nullcontext
 from itertools import chain
 from math import prod
 from os.path import expanduser, expandvars
@@ -353,7 +354,7 @@ class Variable:
 
                 case "netcdf_file":
                     chunks = None
-                    
+
                 case "zarr":
                     chunks = self._var.chunks
                     if not chunks:
@@ -1526,7 +1527,7 @@ class File(Group):
                 `pyfive.File` object is automatically created
                 internally. E.g ``nc = p5netcdf.File('file.nc')`` is
                 equivalent to ``py5 = pyfive.File('file.nc'); nc =
-                p5netcdf.File(py5)`` (see `close`).
+                p5netcdf.File(py5)`` (see the `close` method).
 
             mode: `str`, optional
                 The access mode used when using `pyfive.File` to open
@@ -1534,6 +1535,29 @@ class File(Group):
                 (read-only), and this is the default. Ignored if
                 *dataset* is already a (subclass of a) `pyfive.File`
                 object.
+
+            backend: `None` or (sequence of) `str`, optional
+                Which library or libraries to use for reading the
+                dataset. An attempt to open the dataset is made by the
+                given backends in the order given, stopping after the
+                first successful read.
+
+                The available backends are:
+
+                =================  ======================
+                Backend            Library
+                =================  ======================
+                ``'pyfive'``       `pyfive`
+                ``'zarr'``         `zarr`
+                ``'netCDF4'``      `netCDF4`
+                ``'netcdf_file'``  `scipy.io.netcdf_file`
+                ``'h5py'``         `h5py`
+                =================  ======================
+
+                By default *backend* is `None`, which is equivalent to
+                providing the ordered sequence of backends:
+
+                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
 
             pyfive_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `pyfive.File` to
@@ -1622,6 +1646,10 @@ class File(Group):
             self._lib = pyfive
             # The opened dataset is owned externally
             self._owns_nc = False
+            try:
+                protocol = nc._fh.fs.protocol
+            except AttributeError:
+                protocol=None
 
         else:
             try:
@@ -1629,16 +1657,19 @@ class File(Group):
                 dataset = expanduser(expandvars(dataset))
             except TypeError:
                 # Likely a file-like or directory-like object
-                pass
+                try:
+                    protocol = dataset.fs.protocol
+                except AttributeError:
+                    protocol=None
 
             self._dataset = dataset
 
             # Map backend names to dataset-open functions
             open_functions = {
                 "pyfive": self._open_pyfive,
-                "netcdf_file": self._open_netcdf_file,
-                "netCDF4": self._open_netCDF4,
                 "zarr": self._open_zarr,
+                "netCDF4": self._open_netCDF4,
+                "netcdf_file": self._open_netcdf_file,
                 "h5py": self._open_h5py,
             }
             if backend is not None:
@@ -1678,6 +1709,11 @@ class File(Group):
 
         self._open_log = open_log
 
+        if isinstance(protocol, tuple):
+            protocol = protocol[0]
+
+        self._protocol = protocol
+        
         # ------------------------------------------------------------
         # Initialise the group structure
         # ------------------------------------------------------------
@@ -1835,6 +1871,10 @@ class File(Group):
 
         return out
 
+    @property
+    def protocol(self):
+        return self._protocol
+    
     def is_local(self):
         """The TODO.
 
@@ -1846,13 +1886,7 @@ class File(Group):
         """
         is_local = getattr(self, "_is_local", None)
         if is_local is None:
-            from uritools import urisplit
-
-            scheme = urisplit(self.filename).scheme
-            if isinstance(scheme, tuple):
-                scheme = scheme[0]
-
-            is_local = scheme in (None, "file", "local")
+            is_local = self.protocol in (None, "file", "local")
             self._is_local = is_local
 
         return is_local

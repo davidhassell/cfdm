@@ -1309,6 +1309,45 @@ _docstring_substitution_definitions = {
                   'scaleway-secretkey...', 'endpoint_url':
                   'https://s3.fr-par.scw.cloud', 'client_kwargs':
                   {'region_name': 'fr-par'}}``""",
+    # init filesystem
+    "{{init filesystem: optional}}": """filesystem: optional
+                A pre-authenticated filesystem object (for example an
+                `fsspec` filesystem instance) to use for opening
+                *dataset*. When the dataset is given as a string, it
+                is treated as a path understood by *filesystem* and
+                the dataset will be opened by calling
+                ``filesystem.open(dataset, 'rb')``, the result of
+                which will be passed to the backend(s) (see the
+                *backend* parameter).
+
+                If `None` (the default) then *dataset*, regardless of
+                its type, is passed unchanged to the backend(s).
+
+                If *dataset* is not a string then *filesystem* is
+                ignored.""",
+    # init backend
+    "{{init backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
+                Which library or libraries to use for reading the
+                dataset. An attempt to open the dataset is made by the
+                given backends in the order given, stopping after the
+                first successful read.
+
+                The available backends are:
+
+                =================  ======================
+                Backend            Library
+                =================  ======================
+                ``'pyfive'``       `pyfive`
+                ``'zarr'``         `zarr`
+                ``'netCDF4'``      `netCDF4`
+                ``'netcdf_file'``  `scipy.io.netcdf_file`
+                ``'h5py'``         `h5py`
+                =================  ======================
+
+                By default *backend* is `None`, which is equivalent to
+                providing the ordered sequence of backends:
+
+                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``""",
     # _force_mask_hardness
     "{{_force_mask_hardness: `bool`, optional}}": """_force_mask_hardness: `bool`, optional
                 If True (the default) then force the mask hardness of

@@ -184,6 +184,14 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.12.0.0
 
+        {{read cfa_filesystem: optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        {{read cfa_backend: (sequence of) `str`, optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
         {{read to_memory: (sequence of) `str`, optional}}
 
             .. versionadded:: (cfdm) 1.12.0.0
@@ -252,6 +260,8 @@ class read(ReadWrite):
         store_dataset_shards=True,
         cfa=None,
         cfa_write=None,
+        cfa_filesystem=None,
+        cfa_backend=None,
         to_memory=False,
         squeeze=False,
         unsqueeze=False,
@@ -619,6 +629,8 @@ class read(ReadWrite):
                         "store_dataset_shards",
                         "cfa",
                         "cfa_write",
+                        "cfa_filesystem",
+                        "cfa_backend",
                         "to_memory",
                         "squeeze",
                         "unsqueeze",

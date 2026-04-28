@@ -114,32 +114,32 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertTrue((n.mask == array1.mask).all())
         self.assertTrue((n == array1).all())
 
-    def test_NetCDF4Array_get_storage_options(self):
-        """Test NetCDF4Array get_storage_options."""
-        n = cfdm.NetCDF4Array(filename="filename.nc")
-        self.assertEqual(n.get_storage_options(), {})
-
-        n = cfdm.NetCDF4Array(
-            filename="filename.nc", storage_options={"anon": True}
-        )
-        self.assertEqual(n.get_storage_options(), {"anon": True})
-
-        n = cfdm.NetCDF4Array(
-            filename="s3://store/filename.nc", storage_options={"anon": True}
-        )
-        self.assertEqual(
-            n.get_storage_options(),
-            {"anon": True},
-        )
-
-        n = cfdm.NetCDF4Array(
-            filename="s3://store/filename.nc",
-            storage_options={"anon": True, "endpoint_url": None},
-        )
-        self.assertEqual(
-            n.get_storage_options(),
-            {"anon": True, "endpoint_url": None},
-        )
+    #    def test_NetCDF4Array_get_storage_options(self):
+    #        """Test NetCDF4Array get_storage_options."""
+    #        n = cfdm.NetCDF4Array(filename="filename.nc")
+    #        self.assertEqual(n.get_storage_options(), {})
+    #
+    #        n = cfdm.NetCDF4Array(
+    #            filename="filename.nc", storage_options={"anon": True}
+    #        )
+    #        self.assertEqual(n.get_storage_options(), {"anon": True})
+    #
+    #        n = cfdm.NetCDF4Array(
+    #            filename="s3://store/filename.nc", storage_options={"anon": True}
+    #        )
+    #        self.assertEqual(
+    #            n.get_storage_options(),
+    #            {"anon": True},
+    #        )
+    #
+    #        n = cfdm.NetCDF4Array(
+    #            filename="s3://store/filename.nc",
+    #            storage_options={"anon": True, "endpoint_url": None},
+    #        )
+    #        self.assertEqual(
+    #            n.get_storage_options(),
+    #            {"anon": True, "endpoint_url": None},
+    #        )
 
     def test_NetCDF4Array_get_attributes(self):
         """Test NetCDF4Array get_attributes."""
@@ -350,19 +350,20 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertEqual(a.dtype, np.dtype("int32"))
         self.assertTrue((a == f.array.astype("int32")).all())
 
-    def test_NetCDF4Array_storage_protocol(self):
-        """Test NetCDF4Array "storage_protocol" methods."""
-        n = cfdm.NetCDF4Array("file.nc", "tas")
-        self.assertIsNone(n.get_storage_protocol())
-        self.assertFalse(n.has_remote_storage_protocol())
 
-        n = cfdm.NetCDF4Array("file.nc", "tas", storage_protocol="local")
-        self.assertEqual(n.get_storage_protocol(), "local")
-        self.assertFalse(n.has_remote_storage_protocol())
-
-        n = cfdm.NetCDF4Array("file.nc", "tas", storage_protocol="s3")
-        self.assertEqual(n.get_storage_protocol(), "s3")
-        self.assertTrue(n.has_remote_storage_protocol())
+#    def test_NetCDF4Array_storage_protocol(self):
+#        """Test NetCDF4Array "storage_protocol" methods."""
+#        n = cfdm.NetCDF4Array("file.nc", "tas")
+#        self.assertIsNone(n.get_storage_protocol())
+#        self.assertFalse(n.has_remote_storage_protocol())
+#
+#        n = cfdm.NetCDF4Array("file.nc", "tas", storage_protocol="local")
+#        self.assertEqual(n.get_storage_protocol(), "local")
+#        self.assertFalse(n.has_remote_storage_protocol())
+#
+#        n = cfdm.NetCDF4Array("file.nc", "tas", storage_protocol="s3")
+#        self.assertEqual(n.get_storage_protocol(), "s3")
+#        self.assertTrue(n.has_remote_storage_protocol())
 
 
 if __name__ == "__main__":

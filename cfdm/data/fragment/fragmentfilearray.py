@@ -52,8 +52,9 @@ class FragmentFileArray(
         address=None,
         dtype=None,
         shape=None,
-        storage_protocol=None,
-        storage_options=None,
+        #        storage_protocol=None,
+        #        storage_options=None,
+        filesystem=None,
         backend=None,
         unpack_aggregated_data=True,
         aggregated_attributes=None,
@@ -92,6 +93,14 @@ class FragmentFileArray(
 
             {{init storage_options: `dict` or `None`, optional}}
 
+            {{init filesystem: optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{init backend: `None` or (sequence of) `str`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
@@ -105,8 +114,9 @@ class FragmentFileArray(
             mask=True,
             unpack=True,
             attributes=None,
-            storage_protocol=storage_protocol,
-            storage_options=storage_options,
+            #            storage_protocol=storage_protocol,
+            #            storage_options=storage_options,
+            filesystem=filesystem,
             backend=backend,
             source=source,
             copy=copy,
@@ -261,37 +271,38 @@ class FragmentFileArray(
 
         return filename
 
-    def get_storage_protocol(self):
-        """The file system protocol.
 
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        .. seeaslo:: `has_remote_storage_protocol`, `get_storage_options`
-
-        :Returns:
-
-            `None` or str`
-                The file system protocol. If `None` the the file
-                system is the local file system.
-
-        **Examples**
-
-        >>> a.get_storage_protocol()
-        's3'
-        >>> a.get_storage_protocol()
-        'file'
-        >>> print(a.get_storage_protocol())
-        None
-
-        """
-        from uritools import urisplit
-
-        protocol = self._get_component("storage_protocol", None)
-        if protocol is None:
-            protocol = urisplit(self.get_filename()).scheme
-            if isinstance(protocol, tuple):
-                protocol = protocol[0]
-
-        self._set_component("storage_protocol", protocol, copy=False)
-
-        return protocol
+#   def get_storage_protocol(self):
+#       """The file system protocol.
+#
+#       .. versionadded:: (cfdm) NEXTVERSION
+#
+#       .. seeaslo:: `has_remote_storage_protocol`, `get_storage_options`
+#
+#       :Returns:
+#
+#           `None` or str`
+#               The file system protocol. If `None` the the file
+#               system is the local file system.
+#
+#       **Examples**
+#
+#       >>> a.get_storage_protocol()
+#       's3'
+#       >>> a.get_storage_protocol()
+#       'file'
+#       >>> print(a.get_storage_protocol())
+#       None
+#
+#       """
+#       from uritools import urisplit
+#
+#       protocol = self._get_component("storage_protocol", None)
+#       if protocol is None:
+#           protocol = urisplit(self.get_filename()).scheme
+#           if isinstance(protocol, tuple):
+#               protocol = protocol[0]
+#
+#       self._set_component("storage_protocol", protocol, copy=False)
+#
+#       return protocol

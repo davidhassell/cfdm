@@ -1,8 +1,7 @@
-from copy import deepcopy
 from os import sep
 from os.path import join
 
-from cfdm.functions import abspath, dirname
+from cfdm.functions import _DEPRECATION_ERROR_METHOD, abspath, dirname
 
 from . import Array
 
@@ -23,8 +22,7 @@ class FileArray(Array):
         mask=True,
         unpack=True,
         attributes=None,
-        storage_protocol=None,
-        storage_options=None,
+        filesystem=None,
         backend=None,
         variable=None,
         source=None,
@@ -66,7 +64,11 @@ class FileArray(Array):
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{init backend: `str` or `None`, optional}}
+            {{init filesystem: optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{init backend: `None` or (sequence of) `str`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -81,6 +83,10 @@ class FileArray(Array):
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
+
+            storage_protocol: Deprecated at version NEXTVERSION
+
+            storage_options: Deprecated at version NEXTVERSION
 
         """
         super().__init__(source=source, copy=copy)
@@ -122,18 +128,9 @@ class FileArray(Array):
                 attributes = None
 
             try:
-                storage_protocol = source._get_component(
-                    "storage_protocol", None
-                )
+                filesystem = source._get_component("filesystem", None)
             except AttributeError:
-                storage_protocol = None
-
-            try:
-                storage_options = source._get_component(
-                    "storage_options", None
-                )
-            except AttributeError:
-                storage_options = None
+                filesystem = None
 
             try:
                 backend = source._get_component("backend", None)
@@ -158,21 +155,16 @@ class FileArray(Array):
         self._set_component("mask", bool(mask), copy=False)
         self._set_component("unpack", bool(unpack), copy=False)
 
-        if storage_protocol is not None:
-            self._set_component(
-                "storage_protocol", storage_protocol, copy=False
-            )
-
-        if storage_options is not None:
-            self._set_component("storage_options", storage_options, copy=copy)
-
         if attributes is not None:
             self._set_component("attributes", attributes, copy=copy)
 
         if variable is not None:
             self._set_component("variable", variable, copy=False)
 
-        if backend is None:
+        if filesystem is not None:
+            self._set_component("filesystem", filesystem, copy=False)
+
+        if backend is not None:
             self._set_component("backend", backend, copy=False)
 
         # By default, close the netCDF file after data array access
@@ -220,8 +212,7 @@ class FileArray(Array):
             self.get_mask(),
             self.get_unpack(),
             self.get_attributes(copy=False),
-            self.get_storage_protocol(),
-            self.get_storage_options(),
+            self.get_filesystem(),
             self.get_backend(),
         )
 
@@ -399,13 +390,17 @@ class FileArray(Array):
                 default, f"{self.__class__.__name__} has no file name"
             )
 
-        if normalise and not self.has_remote_storage_protocol():
-            try:
+        if normalise and isinstance(filename, str):
+            protocol = None
+            filesystem = self.get_filesystem()
+            if filesystem is not None:
+                protocol = getattr(filesystem, "protocol", "")
+                if isinstance(protocol, tuple):
+                    protocol = protocol[0]
+
+            # Only a normalise local name
+            if protocol in (None, "file", "local"):
                 filename = abspath(filename)
-            except TypeError:
-                # filename is not a string (e.g. file handle, kerchunk
-                # mapper, etc.)
-                pass
 
         return filename
 
@@ -444,22 +439,15 @@ class FileArray(Array):
         None
 
         """
-        from uritools import urisplit
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "get_storage_protocol",
+            version="NEXTVERSION",
+            removed_at="1.14.0.0",
+        )
 
-        protocol = self._get_component("storage_protocol", None)
-        if protocol is None:
-            filename = self.get_filename()
-            if isinstance(filename, str):
-                protocol = urisplit(filename).scheme
-                if isinstance(protocol, tuple):
-                    protocol = protocol[0]
-
-                self._set_component("storage_protocol", protocol, copy=False)
-
-        return protocol
-
-    def get_storage_options(self):
-        """Return the file system options.
+    def get_filesystem(self):
+        """Return the TODO file system options.
 
         .. versionadded:: (cfdm) 1.12.0.0
 
@@ -473,6 +461,30 @@ class FileArray(Array):
 
             parsed_filename: `urllib.parse.ParseResult`, optional
                 Removed at versiokn NEXTVERSION
+
+        :Returns:
+
+            filesystem or `None`
+                The storage options.
+
+        **Examples**
+
+        >>> f.get_storage_options()
+        {}
+
+        >>> f.get_storage_options()
+        {'key': 'scaleway-api-key...',
+         'secret': 'scaleway-secretkey...',
+         'endpoint_url': 'https://s3.fr-par.scw.cloud',
+         'client_kwargs': {'region_name': 'fr-par'}}
+
+        """
+        return self._get_component("filesystem", None)
+
+    def get_storage_options(self):
+        """Return the file system options.
+
+        .. versionadded:: (cfdm) 1.12.0.0
 
         :Returns:
 
@@ -491,13 +503,12 @@ class FileArray(Array):
          'client_kwargs': {'region_name': 'fr-par'}}
 
         """
-        storage_options = self._get_component("storage_options", None)
-        if not storage_options:
-            storage_options = {}
-        else:
-            storage_options = deepcopy(storage_options)
-
-        return storage_options
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "get_storage_options",
+            version="NEXTVERSION",
+            removed_at="1.14.0.0",
+        )
 
     def get_variable(self, default=AttributeError()):
         """Get the open dataset variable object for the data.
@@ -540,25 +551,37 @@ class FileArray(Array):
         """
         filename = self.get_filename(normalise=True)
         if isinstance(filename, str):
-            if self.has_remote_storage_protocol():
+            filesystem = self.get_filesystem()
+            if filesystem is None:
+                try:
+                    filename = abspath(filename, uri=False)
+                except ValueError:
+                    filename = abspath(filename)
+            else:
+                # For an s3 file we need to stip off the scheme and
+                # authority, if they're present.
                 from urllib.parse import urlparse
-
-                import fsspec
 
                 url = urlparse(filename)
                 if url.scheme == "s3":
                     filename = url.path[1:]
 
-                fs = fsspec.filesystem(
-                    protocol=self.get_storage_protocol(),
-                    **self.get_storage_options(),
-                )
-                filename = fs.open(filename, "rb")
-            else:
                 try:
-                    filename = abspath(filename, uri=False)
-                except ValueError:
-                    filename = abspath(filename)
+                    filename = filesystem.open(filename, "rb")
+                except AttributeError:
+                    raise AttributeError(
+                        f"Can't open {self.get_filename(normalise=True)!r}. "
+                        f"The file system object {filesystem!r} does not "
+                        "have an 'open' method. Please provide a valid "
+                        "file system object (e.g. a (subclass of an) "
+                        "fsspec.filesystem instance)."
+                    )
+                except Exception as error:
+                    raise RuntimeError(
+                        "Failed to open "
+                        f"{self.get_filename(normalise=True)!r} using the "
+                        f"file system object {filesystem!r}: {error}"
+                    ) from error
 
         try:
             dataset = func(filename, *args, **kwargs)
@@ -747,7 +770,12 @@ class FileArray(Array):
                 otherwise `False`.
 
         """
-        return self.get_storage_protocol() not in (None, "file", "local")
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "has_remote_storage_protocol",
+            version="NEXTVERSION",
+            removed_at="1.14.0.0",
+        )
 
     def replace_filename(self, filename):
         """Replace the file location.

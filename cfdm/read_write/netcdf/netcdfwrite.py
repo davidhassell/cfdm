@@ -191,6 +191,10 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     # given role.
                     return ncdim
 
+        # Remove the leading / for names in the root group
+        if base.startswith("/") and base.count("/") == 1:
+            base = base[1:]
+
         if base in existing_names:
             counter = g.setdefault("count_" + base, 1)
 
@@ -756,7 +760,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             if unlimited:
                 # Create an unlimited dimension
                 size = None
-                print("AAAA", parent_group, ncdim, size)
                 try:
                     self._createDimension(parent_group, ncdim, size)
                 except RuntimeError as error:
@@ -6646,7 +6649,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             dim = "i"
 
         map_ncdimensions = tuple(map_ncdimensions)
-
         feature_ncvar = self._cfa_write_fragment_array_variable(
             f_map,
             aggregated_data.get(feature, f"fragment_{feature}"),

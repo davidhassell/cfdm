@@ -94,9 +94,6 @@ class read_writeTest(unittest.TestCase):
             "geometry_4.nc",
             "string_char.nc",
         ):
-            #            geometry_4.nc - written zarr includes gri_mapping variable on geometry_container as [] ....
-            tmpdir1 = "tmpdir1"
-            print("\n\n", filename)
             n = cfdm.read(filename)
             cfdm.write(n, tmpdir1, fmt="ZARR3")
             z = cfdm.read(tmpdir1)
@@ -142,8 +139,6 @@ class read_writeTest(unittest.TestCase):
         """Test CF aggregation in Zarr."""
         f = self.f0
 
-        tmpfile1 = 'tmpfile1.nc'
-        tmpdir1 = 'tmpdir1'
         cfdm.write(f, tmpdir1, fmt="ZARR3")
         cfdm.write(f, tmpfile1, fmt="NETCDF4")
 
@@ -153,8 +148,6 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(z.equals(f))
         self.assertTrue(z.equals(n))
 
-        tmpfile2 = 'tmpfile2.nc'
-        tmpdir2= 'tmpdir2'
         cfdm.write(z, tmpdir2, fmt="ZARR3", cfa="field")
         cfdm.write(n, tmpfile2, fmt="NETCDF4", cfa="field")
 
