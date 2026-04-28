@@ -558,17 +558,22 @@ class NetCDFRead(IORead):
                     f"{error}"
                 )
 
-            protocol = filesystem.protocol
-            if isinstance(protocol, tuple):
-                protocol = protocol[0]
-
-            if protocol in ("http", "https") and representation == "path":
-                # As a last resort, try opening an http dataset with
-                # opendap via netCDF4
+            # As a last resort, try opening an http dataset with
+            # opendap via netCDF4
+            if filesystem is not None and representation == "path":
                 try:
-                    nc = p5netcdf.File(original_dataset, backend="netCDF4")
-                except Exception as error_opendap:
-                    error = f"{error}\n\n{error_opendap}"
+                    protocol = filesystem.protocol
+                except AttributeError:
+                    protocol = None
+                else:
+                    if isinstance(protocol, tuple):
+                        protocol = protocol[0]
+
+                if protocol in ("http", "https"):
+                    try:
+                        nc = p5netcdf.File(original_dataset, backend="netCDF4")
+                    except Exception as error_opendap:
+                        error = f"{error}\n\n{error_opendap}"
 
             if nc is None:
                 raise DatasetTypeError(error)

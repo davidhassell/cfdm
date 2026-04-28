@@ -558,6 +558,9 @@ class FileArray(Array):
                 except ValueError:
                     filename = abspath(filename)
             else:
+                # ----------------------------------------------------
+                # Open the dataset in the filesystem
+                # ----------------------------------------------------
                 # For an s3 file we need to stip off the scheme and
                 # authority, if they're present.
                 from urllib.parse import urlparse
@@ -583,14 +586,8 @@ class FileArray(Array):
                         f"file system object {filesystem!r}: {error}"
                     ) from error
 
-        try:
-            dataset = func(filename, *args, **kwargs)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"No such file: {filename}")
-        except Exception as error:
-            raise RuntimeError(f"{error}: {filename}")
+        dataset = func(filename, *args, **kwargs)
 
-        # Successfully opened a dataset, so return.
         return dataset, self.get_address()
 
     def replace_directory(self, old=None, new=None, normalise=False):

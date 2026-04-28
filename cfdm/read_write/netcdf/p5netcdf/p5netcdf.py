@@ -1,12 +1,11 @@
 from collections.abc import Mapping
-from contextlib import nullcontext
 from itertools import chain
 from math import prod
 from os.path import expanduser, expandvars
 
 import numpy as np
 
-from .locks import netcdf_lock
+from .locks import netcdf_lock, no_lock
 from .utils import NetCDFError, _parse_attributes
 from .utils_hdf5 import (
     h5py_open,
@@ -812,18 +811,33 @@ class Variable:
         """
         return self._parent
 
-    def lock(self):
-        lock = getattr(self, "_lock", None)
-        if lock is None:
-            match self.backend:
-                case "netCDF4" | "h5py" | None:
-                    lock = netcdf_lock
-                case _:
-                    lock = nullcontext()
-
-            self._lock = lock
-
-        return lock
+#    def lock(self):
+#        """Return a lock for dataset array access.
+#
+#        .. versionadded:: (cfdm) NEXTVERSION
+#
+#        :Returns:
+#
+#            `threading.Lock` or `contextlib.nullcontext`
+#                For those backends which require it (i.e. 'netCDF4'
+#                and 'h5py'), returns a `threading.Lock` object that
+#                prevents concurrent reads of the dataset.
+#
+#                For all other backends, the returned lock is a
+#                `contextlib.nullcontext` object whcih does no locking.
+#
+#        """
+#        lock = getattr(self, "_lock", None)
+#        if lock is None:
+#            match self.backend:
+#                case "netCDF4" | "h5py" | None:
+#                    lock = netcdf_lock
+#                case _:
+#                    lock = no_lock
+#
+#            self._lock = lock
+#
+#        return lock
 
     def structure(
         self,
@@ -1641,26 +1655,41 @@ class File(Group):
         if isinstance(dataset, pyfive.File):
             nc = dataset
             attrs = dataset.attrs
-            self._dataset = dataset.filename
+            self._dataset = dataset._fh
             self._backend = "pyfive"
             self._lib = pyfive
             # The opened dataset is owned externally
             self._owns_nc = False
+            # Try to find the storage protocol from the pyfive object
             try:
                 protocol = nc._fh.fs.protocol
             except AttributeError:
-                protocol=None
+                protocol = None
+            else:
+                if isinstance(protocol, tuple):
+                    protocol = protocol[0]
 
         else:
             try:
                 # Try to expand `str` or `pathlib.Path`
                 dataset = expanduser(expandvars(dataset))
             except TypeError:
-                # Likely a file-like or directory-like object
+                # Find the storage protocol from a file-like or
+                # directory-like object
                 try:
                     protocol = dataset.fs.protocol
                 except AttributeError:
-                    protocol=None
+                    protocol = None
+                else:
+                    if isinstance(protocol, tuple):
+                        protocol = protocol[0]
+            else:
+                # Find the storage protocol from a path
+                from urllib.parse import urlparse
+
+                protocol = urlparse(dataset).scheme
+                if not protocol:
+                    protocol = None
 
             self._dataset = dataset
 
@@ -1708,12 +1737,8 @@ class File(Group):
             self._owns_nc = True
 
         self._open_log = open_log
-
-        if isinstance(protocol, tuple):
-            protocol = protocol[0]
-
         self._protocol = protocol
-        
+
         # ------------------------------------------------------------
         # Initialise the group structure
         # ------------------------------------------------------------
@@ -1731,12 +1756,10 @@ class File(Group):
 
     @property
     def dataset(self):
-        """The name of the file on disk.
+        """The input dataset.
 
-        :Returns:
-
-            `str`
-                The filename of the dataset.
+        If the input dataset was (a subclass of) a `pyfive.File`
+        object, then the underlying file-lik object is returned.
 
         """
         return self._dataset
@@ -1759,22 +1782,22 @@ class File(Group):
                 The filename of the dataset.
 
         """
-        filename = getattr(self, "_dataset_name", None)
-        if filename is None:
+        dataset_name = getattr(self, "_dataset_name", None)
+        if dataset_name is None:
             match self.backend:
                 case "pyfive" | "h5py" | "netcdf_file":
                     # TODO what happens in pfive/necdf_file when input
                     # is file-like?
-                    filename = self._grp.filename
+                    dataset_name = self._grp.filename
                 case "netCDF4":
-                    filename = self._grp.filepath()
+                    dataset_name = self._grp.filepath()
                 case "zarr":
                     # TODO is not string, stringify
-                    filename = str(self._grp.store_path)
+                    dataset_name = str(self._grp.store_path)
 
-            self._dataset_name = filename
+            self._dataset_name = dataset_name
 
-        return filename
+        return dataset_name
 
     def close(self):
         """Close the dataset.
@@ -1873,10 +1896,11 @@ class File(Group):
 
     @property
     def protocol(self):
+        """TODO."""
         return self._protocol
-    
+
     def is_local(self):
-        """The TODO.
+        """Whether or not the dataset is localhe TODO.
 
         :Returns:
 

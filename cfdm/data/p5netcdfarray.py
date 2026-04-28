@@ -1,8 +1,7 @@
 import logging
-from contextlib import nullcontext
 
 from . import abstract
-from .locks import netcdf_lock
+from .locks import netcdf_lock, no_lock
 from .mixin import IndexMixin
 from .netcdfindexer import netcdf_indexer
 
@@ -16,179 +15,28 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
     """
 
-    #    def __init__(
-    #        self,
-    #        filename=None,
-    #        address=None,
-    #        dtype=None,
-    #        shape=None,
-    #        mask=True,
-    #        unpack=True,
-    #        attributes=None,
-    #        storage_protocol=None,
-    #        storage_options=None,
-    #            backend=None,
-    #        variable=None,
-    #        source=None,
-    #        copy=True,
-    #    ):
-    #        """**Initialisation**
-    #
-    #        :Parameters:
-    #
-    #            filename: (sequence of `str`), optional
-    #                The location of the dataset containing the array.
-    #
-    #            address: (sequence of `str`), optional
-    #                How to find the array in the dataset.
-    #
-    #            dtype: `numpy.dtype`, optional
-    #                The data type of the array. May be `None` if is not
-    #                known. This may differ from the data type of the
-    #                array in the
-    #
-    #            shape: `tuple`, optional
-    #                The shape of the dataset array.
-    #
-    #            {{init mask: `bool`, optional}}
-    #
-    #            {{init unpack: `bool`, optional}}
-    #
-    #            {{init attributes: `dict` or `None`, optional}}
-    #
-    #                If *attributes* is `None`, the default, then the
-    #                attributes will be set from those in the dataset
-    #                during the first `__getitem__` call.
-    #
-    #            {{init storage_protocol: `None` or `str`, optional}}
-    #
-    #
-    #            {{init storage_options: `dict` or `None`, optional}}
-    #
-    #            variable: optional
-    #                An open dataset variable object. Setting *variable*
-    #                does not replace the need for the *filename* and
-    #                *address* parameters, instead it complements them by
-    #                allowing faster data access.
-    #
-    #            {{init source: optional}}
-    #
-    #            {{init copy: `bool`, optional}}
-    #
-    #        """
-    #        super().__init__(source=source, copy=copy)
-    #
-    #        if source is not None:
-    #            try:
-    #                shape = source._get_component("shape", None)
-    #            except AttributeError:
-    #                shape = None
-    #
-    #            try:
-    #                filename = source._get_component("filename", None)
-    #            except AttributeError:
-    #                filename = None
-    #
-    #            try:
-    #                address = source._get_component("address", None)
-    #            except AttributeError:
-    #                address = None
-    #
-    #            try:
-    #                dtype = source._get_component("dtype", None)
-    #            except AttributeError:
-    #                dtype = None
-    #
-    #            try:
-    #                mask = source._get_component("mask", True)
-    #            except AttributeError:
-    #                mask = True
-    #
-    #            try:
-    #                unpack = source._get_component("unpack", True)
-    #            except AttributeError:
-    #                unpack = True
-    #
-    #            try:
-    #                attributes = source._get_component("attributes", None)
-    #            except AttributeError:
-    #                attributes = None
-    #
-    #            try:
-    #                storage_protocol = source._get_component(
-    #                    "storage_protocol", None
-    #                )
-    #            except AttributeError:
-    #                storage_protocol = None
-    #
-    #            try:
-    #                storage_options = source._get_component(
-    #                    "storage_options", None
-    #                )
-    #            except AttributeError:
-    #                storage_options = None
-    #
-    #            try:
-    #                backend = source._get_component("backend", None)
-    #            except AttributeError:
-    #                backend = None
-    #
-    #            try:
-    #                variable = source._get_component("variable", None)
-    #            except AttributeError:
-    #                variable = None
-    #
-    #        if shape is not None:
-    #            self._set_component("shape", shape, copy=False)
-    #
-    #        if filename is not None:
-    #            self._set_component("filename", filename, copy=False)
-    #
-    #        if address is not None:
-    #            self._set_component("address", address, copy=False)
-    #
-    #        self._set_component("dtype", dtype, copy=False)
-    #        self._set_component("mask", bool(mask), copy=False)
-    #        self._set_component("unpack", bool(unpack), copy=False)
-    #
-    #        if storage_protocol is not None:
-    #            self._set_component(
-    #                "storage_protocol", storage_protocol, copy=False
-    #            )
-    #
-    #        if storage_options is not None:
-    #            self._set_component("storage_options", storage_options, copy=copy)
-    #
-    #        if attributes is not None:
-    #            self._set_component("attributes", attributes, copy=copy)
-    #
-    #        if variable is not None:
-    #            if backend is None:
-    #                backend = variable.backend
-    #
-    #            self._set_component("variable", variable, copy=False)
-    #
-    #        # By default, close the netCDF file after data array access
-    #        self._set_component("close", True, copy=False)
-    #
-    #        self._set_component("backend", backend, copy=False)
-
     @property
     def _lock(self):
-        """Return the lock used for netCDF file access.
+        """Return a lock for dataset array access.
 
-        TODO Returns a lock object that prevents concurrent reads of netCDF
-        files, which are not currently supported by `h5netcdf` with
-        the `h5py` backend.
+        .. versionadded:: (cfdm) NEXTVERSION
 
-        .. versionadded:: (cfdm) 1.11.2.0
+        :Returns:
+
+            `threading.Lock` or `contextlib.nullcontext`
+                For those backends which require it (i.e. 'netCDF4'
+                and 'h5py'), returns a `threading.Lock` object that
+                prevents concurrent reads of the dataset.
+
+                For all other backends, the returned lock is a
+                `contextlib.nullcontext` object whcih does no locking.
 
         """
         match self.get_backend():
             case "netCDF4" | "h5py" | None:
                 return netcdf_lock
             case _:
-                return nullcontext()
+                return no_lock
 
     def _attributes(self, var):
         """Get the variable attributes.
@@ -264,6 +112,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
             if dataset is not None:
                 self.close(dataset)
             else:
+                # Close the dataset if it is local
                 dataset = variable.root
                 if dataset.is_local():
                     self.close(dataset)
