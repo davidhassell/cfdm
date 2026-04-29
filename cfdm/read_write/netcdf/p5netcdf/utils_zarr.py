@@ -2,7 +2,11 @@ from .utils import NetCDFError
 
 
 def zarr_dtype(variable):
-    """The numpy data type of the variable."""
+    """The numpy data type of the variable.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    """
     dtype = variable._var.dtype
     return dtype  # TODO
 
@@ -13,24 +17,24 @@ def zarr_dimension_maps(group):
     Stores the dimensions defined in *group* and all of its sub-groups
     recursively. For instance::
 
-       {'/': {'bounds2': <netcdf.Dimension: /bounds2, size=2>},
-        '/forecast': {'lon': <netcdf.Dimension: /forecast/lon, size=8, unlimited>},
-        '/forecast/model': {'lat': <netcdf.Dimension: /forecast/model/lat, size=5>}}
+       {'/': {'bounds2': <p5netcdf.Dimension: /bounds2, size=2>},
+        '/forecast': {'lon': <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>},
+        '/forecast/model': {'lat': <p5netcdf.Dimension: /forecast/model/lat, size=5>}}
         '/forecast/model2': {}}
 
     Stores the tuple of the dimensions for all variables in *group*
     and its sub-groups recursively. For instance::
 
-       {'/forecast/lon': (<netcdf.Dimension: /forecast/lon, size=8, unlimited>,),
-        '/forecast/lon_bnds': (<netcdf.Dimension: /forecast/lon, size=8, unlimited>,
-                               <netcdf.Dimension: /bounds2, size=2>),
-        '/forecast/model/lat': (<netcdf.Dimension: /forecast/model/lat, size=5>,),
-        '/forecast/model/lat_bnds': (<netcdf.Dimension: /forecast/model/lat, size=5>,
-                                     <netcdf.Dimension: /bounds2, size=2>),
-        '/forecast/model/q': (<netcdf.Dimension: /forecast/model/lat, size=5>,
-                              <netcdf.Dimension: /forecast/lon, size=8, unlimited>),
-        '/forecast/model2/tas': (<netcdf.Dimension: /forecast/model/lat, size=5>,
-                                 <netcdf.Dimension: /forecast/lon, size=8, unlimited>),
+       {'/forecast/lon': (<p5netcdf.Dimension: /forecast/lon, size=8, unlimited>,),
+        '/forecast/lon_bnds': (<p5netcdf.Dimension: /forecast/lon, size=8, unlimited>,
+                               <p5netcdf.Dimension: /bounds2, size=2>),
+        '/forecast/model/lat': (<p5netcdf.Dimension: /forecast/model/lat, size=5>,),
+        '/forecast/model/lat_bnds': (<p5netcdf.Dimension: /forecast/model/lat, size=5>,
+                                     <p5netcdf.Dimension: /bounds2, size=2>),
+        '/forecast/model/q': (<p5netcdf.Dimension: /forecast/model/lat, size=5>,
+                              <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>),
+        '/forecast/model2/tas': (<p5netcdf.Dimension: /forecast/model/lat, size=5>,
+                                 <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>),
         '/time': ()}
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -201,6 +205,8 @@ def zarr_dimension_maps(group):
 def zarr_raw_dimension_names(variable):
     """Return the raw dimension names for a variable.
 
+    .. versionadded:: (cfdm) NEXTVERSION
+
     :Parameters:
 
         var: `Variable`
@@ -239,8 +245,10 @@ def zarr_raw_dimension_names(variable):
     return dimensions
 
 
-def zarr_open(root, dataset):
+def zarr_open(dataset, options):
     """Open a dataset with `zarr`.
+
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
@@ -253,20 +261,28 @@ def zarr_open(root, dataset):
 
     :Returns:
 
-        `zarr.Group`
+        `zarr.Group`, `dict`, library
 
     """
     import zarr
 
-    nc = zarr.open(dataset, mode="r")
-    root._lib = zarr
-    return nc, nc.attrs
+    nc = zarr.open(dataset, mode="r", **options)
+    return nc, nc.attrs, zarr
 
 
 def zarr_parse_group_structure(group):
-    """TODO.
+    """Parse the group structure for the `zarr` backend.
 
-    group: `Group` or `File`
+    Parses variables, dimensions, and sub-groups, recursively.
+
+    :Parameters:
+
+        group: `Group` or `File`
+            The group to be parsed.
+
+    :Returns:
+
+        `None`
 
     """
     # Create variables in this group
@@ -279,7 +295,7 @@ def zarr_parse_group_structure(group):
 
     # Starting from the root group, i) create dimensions in all
     # groups, and ii) attach dimensions to each variable.
-    if group.isroot:
+    if group.is_root:
         root = group
         root._group_to_dims = {}
         root._variable_to_dims = {}

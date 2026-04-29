@@ -109,13 +109,9 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
             )
             array = array[index]
 
-            if dataset is not None:
-                self.close(dataset)
-            else:
-                # Close the dataset if it is local
-                dataset = variable.root
-                if dataset.is_local():
-                    self.close(dataset)
+            # Close the dataset if it is local
+            if variable.is_local:
+                self.close(variable.root)
 
         return array
 

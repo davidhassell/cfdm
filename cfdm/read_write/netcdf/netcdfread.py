@@ -547,10 +547,13 @@ class NetCDFRead(IORead):
 
         g["storage_options"] = storage_options
 
-        print(repr(dataset))
         nc = None
         try:
-            nc = p5netcdf.File(dataset, backend=g["netcdf_backend"])
+            nc = p5netcdf.File(
+                dataset,
+                backend=g["netcdf_backend"],
+                metadata_strategy="maximal",
+            )
         except Exception as error:
             if cdl_filename is not None:
                 error = (
@@ -3610,7 +3613,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         field_properties = g["global_attributes"].copy()
         parent = g["variables"][field_ncvar].group()
-        if not parent.isroot:
+        if not parent.is_root:
             field_properties.update(parent.attrs)
 
         field_properties.update(g["variables"][field_ncvar].attrs)
@@ -3679,7 +3682,7 @@ class NetCDFRead(IORead):
         variable = g["variables"][field_ncvar]
         variable_attrs = variable.attrs
         parent = variable.group()
-        if parent.isroot:
+        if parent.is_root:
             group_attrs = {}
         else:
             group_attrs = parent.attrs
@@ -3698,7 +3701,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Store the data/domain variable's group-level attributes
         # ------------------------------------------------------------
-        if not parent.isroot:
+        if not parent.is_root:
             group_attrs = parent.attrs.copy()
             if group_attrs:
                 for k, v in group_attrs.items():

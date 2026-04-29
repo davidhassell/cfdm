@@ -2,34 +2,76 @@ from dataclasses import dataclass
 from typing import Callable
 
 
-class NetCDFError(Exception):
-    """Error raised when file can't be viewed as netCDF."""
+def resolve_references(dataset):
+    """Resolve all references in a dataset.
 
-    pass
+    .. versionadded:: (cfdm) NEXTVERSION
 
+    :Parameters:
 
-class AttributeParsingError(Exception):
-    """TODO."""
+        dataset: `p5netcdf.File`
+            The dataset, which will have its attribute dictionaries
+            updated in-place.
 
-    pass
+    :Returns:
 
+        `None`
 
-def resolve_references(f):
-    """TODO."""
+    """
     resolvable_attributes = set(resolving_rules)
-    for variable in f.all_variables.values():
+    for variable in dataset.all_variables.values():
         attrs = variable.attrs
         for name in resolvable_attributes.intersection(attrs):
             attrs[name] = resolve_attribute(name, attrs[name], variable)
 
 
 def resolve_attribute(attr, attr_value, variable):
+    """Resolve all references in a single attribute.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Parameters:
+
+        attr: `str`
+            The attribute name.
+
+        attr_value:
+            The attribute value.
+
+        variable: `p5netcdf.Variable`
+            The parent variable.
+
+    :Returns:
+
+            The resolved attribute.
+
+    """
     rules = resolving_rules[attr]
     return rules.resolver(attr_value, variable, coord=rules.coord)
 
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
-    """TODO."""
+    """TODO.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Parameters:
+
+        ref: `str`
+            The reference to be searched for.
+
+        variable: `p5netcdf.Variable`
+            The parent variable.
+
+        search_type: `str`
+            The type of variable being searched for. Either ``'dim'``
+            or ``'var'``.
+
+    :Returns:
+
+            The resolved attribute.
+
+    """
     g = variable.parent
     parts = ref.split("/")
     path = "/".join(parts[:-1])
@@ -51,7 +93,30 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
 
 
 def search_by_proximity(ref, variable, search_type, coord=False):
-    """TODO."""
+    """TODO.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Parameters:
+
+        ref: `str`
+            The reference to be searched for.
+
+        variable: `p5netcdf.Variable`
+            The parent variable.
+
+        search_type: `str`
+            The type of variable being searched for. Either ``'dim'``
+            or ``'var'``.
+
+        coord: `bool`, optional
+            True if the reference is a Unidata coordinate variable.
+
+    :Returns:
+
+         `str` or `None`
+
+    """
     local_apex_group = None
 
     coord = coord and search_type == "var" and ref in variable.dimensions
@@ -106,6 +171,8 @@ def coordinate_lateral_search(ref, group, depth):
     searched; etc.
 
     If *depth* is less than 0 then no search is done.
+
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
@@ -163,35 +230,13 @@ def resolve_pattern_1(value, variable, coord=False):
     E.g. ``coordinates``, ``ancillary_variables``,
     ``edge_node_connectivity``
 
+    .. versionadded:: (cfdm) NEXTVERSION
+
     """
     try:
         resolved = [
             resolve_reference(x, variable, var=True, coord=coord)
             for x in value.split()
-        ]
-    except AttributeError:
-        # 'value' is not a string
-        return value
-    else:
-        return " ".join(resolved)
-
-
-def resolve_pattern_1b(value, variable, coord=False):
-    """TODO.
-
-    Resolve references in an attribute whose value has one of the
-    following patterns:
-
-    * ''
-    * 'dim1'
-    * 'dim1 dim2'
-
-    E.g. ``dimensions``, ``face_dimension``
-
-    """
-    try:
-        resolved = [
-            resolve_reference(x, variable, dim=True) for x in value.split()
         ]
     except AttributeError:
         # 'value' is not a string
@@ -207,6 +252,32 @@ def resolve_pattern_2(value, variable, coord=False):
     following patterns:
 
     * ''
+    * 'dim1'
+    * 'dim1 dim2'
+
+    E.g. ``dimensions``, ``face_dimension``
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    """
+    try:
+        resolved = [
+            resolve_reference(x, variable, dim=True) for x in value.split()
+        ]
+    except AttributeError:
+        # 'value' is not a string
+        return value
+    else:
+        return " ".join(resolved)
+
+
+def resolve_pattern_3(value, variable, coord=False):
+    """TODO.
+
+    Resolve references in an attribute whose value has one of the
+    following patterns:
+
+    * ''
     * 'key1: var1'
     * 'key1: var1 key2: var2'
     * 'key1: var1 var2'
@@ -214,6 +285,8 @@ def resolve_pattern_2(value, variable, coord=False):
 
     E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
     ``interpolation_parameters``
+
+    .. versionadded:: (cfdm) NEXTVERSION
 
     """
     try:
@@ -230,7 +303,7 @@ def resolve_pattern_2(value, variable, coord=False):
         return " ".join(resolved)
 
 
-def resolve_pattern_3(value, variable, coord=False):
+def resolve_pattern_4(value, variable, coord=False):
     """TODO.
 
     Resolve references in an attribute whose value has one of the
@@ -245,6 +318,8 @@ def resolve_pattern_3(value, variable, coord=False):
     * 'var1: var2: var3 var4: var5"
 
     E.g. ``grid_mapping``, ``coordinate_interpolation``
+
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Returns:
 
@@ -273,7 +348,7 @@ def resolve_pattern_3(value, variable, coord=False):
         return " ".join(resolved)
 
 
-def resolve_pattern_4(value, variable, coord=False):
+def resolve_pattern_5(value, variable, coord=False):
     """Resolve references in a cell_methods attribute.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -375,7 +450,7 @@ def resolve_pattern_4(value, variable, coord=False):
     return " ".join(resolved)
 
 
-def resolve_pattern_5(value, variable, coord=False):
+def resolve_pattern_6(value, variable, coord=False):
     """TODO.
 
     Resolve references in an attribute whose value has one of the
@@ -387,6 +462,8 @@ def resolve_pattern_5(value, variable, coord=False):
     * 'dim1: var1 dim2 dim3 dim4: var2 dim5 dim6'
 
     E.g. ``tie_point_mapping``
+
+    .. versionadded:: (cfdm) NEXTVERSION
 
     """
     try:
@@ -415,12 +492,12 @@ def resolve_pattern_5(value, variable, coord=False):
 def resolve_reference(
     ref, variable, dim=False, var=False, dim_then_var=True, coord=False
 ):
-    """Resolve a reference.
+    """Resolve a single reference.
 
     Resolves the absolute path to a coordinate variable within the
     group structure.
 
-    .. versionadded:: (cfdm) 1.11.2.0
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
@@ -493,9 +570,9 @@ class Rules:
     # name: The name of attribute containing the references to be
     #       resolved
     name: str
-    # resolver: The function that will do the resolving
+    # resolver: The function that will do the reference resolving
     resolver: Callable
-    # TODO
+    # coord: True if the references are Unidata coordinate variables
     coord: bool = False
 
 
@@ -517,16 +594,16 @@ resolving_rules = {
         # ------------------------------------------------------------
         # Cell methods
         # ------------------------------------------------------------
-        Rules(name="cell_methods", resolver=resolve_pattern_4),
+        Rules(name="cell_methods", resolver=resolve_pattern_5),
         # ------------------------------------------------------------
         # Cell measures
         # ------------------------------------------------------------
-        Rules(name="cell_measures", resolver=resolve_pattern_2),
+        Rules(name="cell_measures", resolver=resolve_pattern_3),
         # ------------------------------------------------------------
         # Coordinate references
         # ------------------------------------------------------------
-        Rules(name="formula_terms", resolver=resolve_pattern_2),
-        Rules(name="grid_mapping", resolver=resolve_pattern_3),
+        Rules(name="formula_terms", resolver=resolve_pattern_3),
+        Rules(name="grid_mapping", resolver=resolve_pattern_4),
         # ------------------------------------------------------------
         # Ancillary variables
         # ------------------------------------------------------------
@@ -534,21 +611,21 @@ resolving_rules = {
         # ------------------------------------------------------------
         # Compression by gathering
         # ------------------------------------------------------------
-        Rules(name="compress", resolver=resolve_pattern_1b),
+        Rules(name="compress", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Discrete sampling geometries
         # ------------------------------------------------------------
-        Rules(name="instance_dimension", resolver=resolve_pattern_1b),
-        Rules(name="sample_dimension", resolver=resolve_pattern_1b),
+        Rules(name="instance_dimension", resolver=resolve_pattern_2),
+        Rules(name="sample_dimension", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Domain variables
         # ------------------------------------------------------------
-        Rules(name="dimensions", resolver=resolve_pattern_1b),
+        Rules(name="dimensions", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Aggregation variables
         # ------------------------------------------------------------
-        Rules(name="aggregated_dimensions", resolver=resolve_pattern_1b),
-        Rules(name="aggregated_data", resolver=resolve_pattern_2),
+        Rules(name="aggregated_dimensions", resolver=resolve_pattern_2),
+        Rules(name="aggregated_data", resolver=resolve_pattern_3),
         # ------------------------------------------------------------
         # Cell geometries
         # ------------------------------------------------------------
@@ -571,14 +648,14 @@ resolving_rules = {
         Rules(name="face_node_connectivity", resolver=resolve_pattern_1),
         Rules(name="face_edge_connectivity", resolver=resolve_pattern_1),
         Rules(name="face_face_connectivity", resolver=resolve_pattern_1),
-        Rules(name="edge_dimension", resolver=resolve_pattern_1b),
-        Rules(name="face_dimension", resolver=resolve_pattern_1b),
+        Rules(name="edge_dimension", resolver=resolve_pattern_2),
+        Rules(name="face_dimension", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Compression by coordinate subsampling
         # ------------------------------------------------------------
-        Rules(name="coordinate_interpolation", resolver=resolve_pattern_3),
-        Rules(name="tie_point_mapping", resolver=resolve_pattern_5),
-        Rules(name="interpolation_parameters", resolver=resolve_pattern_2),
+        Rules(name="coordinate_interpolation", resolver=resolve_pattern_4),
+        Rules(name="tie_point_mapping", resolver=resolve_pattern_6),
+        Rules(name="interpolation_parameters", resolver=resolve_pattern_3),
         Rules(name="bounds_tie_points", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Quantization

@@ -60,7 +60,7 @@ def hdf5_dimension_names(variable):
 
 
 def hdf5_parse_group_structure(group):
-    """Parse the group structure.
+    """Parse the group structure for the `pyfive` and `h5py` backends.
 
     Parses variables, dimensions, and sub-groups, recursively.
 
@@ -81,7 +81,7 @@ def hdf5_parse_group_structure(group):
 
     # Categorise objects without double-reading items from the HDF5
     # dataset
-    lib = group._lib
+    lib = group.lib
     for name, h5 in group._grp.items():
         if isinstance(h5, lib.Group):
             subgroups[name] = h5
@@ -155,7 +155,7 @@ def hdf5_parse_group_structure(group):
         group._create_group(name, grp, grp.attrs)
 
 
-def pyfive_open(root, dataset):
+def pyfive_open(dataset, options):
     """Open a dataset with `pyfive`.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -169,18 +169,16 @@ def pyfive_open(root, dataset):
 
     :Returns:
 
-        `pyfive.File`
+        `pyfive.File`, `dict`, library
 
     """
     import pyfive
 
-    options = root._open_options.get(root.backend, {})
     nc = pyfive.File(dataset, mode="r", **options)
-    root._lib = pyfive
-    return nc, nc.attrs
+    return nc, nc.attrs, pyfive
 
 
-def h5py_open(root, dataset):
+def h5py_open(dataset, options):
     """Open a dataset with `h5py`.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -197,12 +195,10 @@ def h5py_open(root, dataset):
 
     :Returns:
 
-        `h5py.File`
+        `h5py.File`, `dict`, library
 
     """
     import h5py
 
-    options = root._open_options.get(root.backend, {})
     nc = h5py.File(dataset, mode="r", **options)
-    root._lib = h5py
-    return nc, nc.attrs
+    return nc, nc.attrs, h5py

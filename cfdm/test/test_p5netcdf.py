@@ -299,7 +299,7 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_File__repr__(self):
         """Test File.__repr__."""
         self.assertEqual(
-            repr(self.p5), "<netcdf.File: 1 dimension, 1 variable, 1 group>"
+            repr(self.p5), "<p5netcdf.File: 1 dimension, 1 variable, 1 group>"
         )
 
     def test_p5netcdf_File__str__(self):
@@ -307,13 +307,13 @@ class Testp5netcdf(unittest.TestCase):
         self.assertEqual(
             str(self.p5),
             f"""{self.p5.filename}
-<netcdf.File: 1 dimension, 1 variable, 1 group>
+<p5netcdf.File: 1 dimension, 1 variable, 1 group>
     Dimensions:
-        bounds2: <netcdf.Dimension: /bounds2, size=2>
+        bounds2: <p5netcdf.Dimension: /bounds2, size=2>
     Variables:
-        time: <netcdf.Variable: /time, shape=(), dimensions=()>
+        time: <p5netcdf.Variable: /time, shape=(), dimensions=()>
     Groups:
-        forecast: <netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>""",
+        forecast: <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>""",
         )
 
     def test_p5netcdf_File_mode(self):
@@ -331,44 +331,44 @@ class Testp5netcdf(unittest.TestCase):
         self.assertEqual(
             self.p5.dump(display=False),
             f"""{self.p5.filename}
-<netcdf.File: 1 dimension, 1 variable, 1 group>
+<p5netcdf.File: 1 dimension, 1 variable, 1 group>
     Attributes:
         Conventions: 'CF-1.13'
         global_attr_1: np.float64(3.14)
         global_attr_2: 'foo'
     Dimensions:
-        bounds2: <netcdf.Dimension: /bounds2, size=2>
+        bounds2: <p5netcdf.Dimension: /bounds2, size=2>
     Variables:
-        time: <netcdf.Variable: /time, shape=(), dimensions=()>
+        time: <p5netcdf.Variable: /time, shape=(), dimensions=()>
             Attributes:
                 units: 'days since 2018-12-01'
                 standard_name: 'time'
     Groups:
-        forecast: <netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>
+        forecast: <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>
             Dimensions:
-                lon: <netcdf.Dimension: /forecast/lon, size=8, unlimited>
+                lon: <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>
             Variables:
-                lon_bnds: <netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
-                lon: <netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
+                lon_bnds: <p5netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
+                lon: <p5netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
                     Attributes:
                         units: 'degrees_east'
                         standard_name: 'longitude'
                         bounds: '/forecast/lon_bnds'
             Groups:
-                model: <netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
+                model: <p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
                     Attributes:
                         group_attr_1: np.int64(12)
                         group_attr_2: 'bar'
                     Dimensions:
-                        lat: <netcdf.Dimension: /forecast/model/lat, size=5>
+                        lat: <p5netcdf.Dimension: /forecast/model/lat, size=5>
                     Variables:
-                        lat_bnds: <netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
-                        lat: <netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
+                        lat_bnds: <p5netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
+                        lat: <p5netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
                             Attributes:
                                 units: 'degrees_north'
                                 standard_name: 'latitude'
                                 bounds: '/forecast/model/lat_bnds'
-                        q: <netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>
+                        q: <p5netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>
                             Attributes:
                                 list7: array([2, 3])
                                 int: np.int64(49)
@@ -426,6 +426,16 @@ class Testp5netcdf(unittest.TestCase):
         """Test File.filename."""
         self.assertEqual(self.filename, self.filename)
 
+    def test_p5netcdf_File_backend(self):
+        """Test File.backend."""
+        self.assertEqual(self.p5.backend, "pyfive")
+        self.assertEqual(self.p3.backend, "netCDF4")
+
+    def test_p5netcdf_File_lib(self):
+        """Test File.lib."""
+        self.assertIs(self.p5.lib, pyfive)
+        self.assertIs(self.p3.lib, netCDF4)
+
     def test_p5netcdf_File_enter_exit(self):
         """Test File in context manager."""
         with cfdm.p5netcdf.File(self.filename, backend="pyfive") as p:
@@ -444,12 +454,12 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_Dimension__repr__(self):
         """Test Dimension.__repr__."""
         dim = self.p5.dimensions["bounds2"]
-        self.assertEqual(repr(dim), "<netcdf.Dimension: /bounds2, size=2>")
+        self.assertEqual(repr(dim), "<p5netcdf.Dimension: /bounds2, size=2>")
 
         dim = self.p5["forecast"].dimensions["lon"]
         self.assertEqual(
             repr(dim),
-            "<netcdf.Dimension: /forecast/lon, size=8, unlimited>",
+            "<p5netcdf.Dimension: /forecast/lon, size=8, unlimited>",
         )
 
     def test_p5netcdf_Dimension_size(self):
@@ -526,23 +536,33 @@ class Testp5netcdf(unittest.TestCase):
         dim = group.dimensions["lat"]
         self.assertIs(dim.parent, group)
 
+    def test_p5netcdf_Dimension_backend(self):
+        """Test Dimension.backend."""
+        self.assertEqual(self.p5.dimensions["bounds2"].backend, "pyfive")
+        self.assertEqual(self.p3.dimensions["bounds2"].backend, "netCDF4")
+
+    def test_p5netcdf_Dimension_lib(self):
+        """Test Dimension.lib."""
+        self.assertIs(self.p5.dimensions["bounds2"].lib, pyfive)
+        self.assertIs(self.p3.dimensions["bounds2"].lib, netCDF4)
+
     def test_p5netcdf_Variable__repr__(self):
         """Test Variable.__repr__."""
         var = self.p5["time"]
         self.assertEqual(
-            repr(var), "<netcdf.Variable: /time, shape=(), dimensions=()>"
+            repr(var), "<p5netcdf.Variable: /time, shape=(), dimensions=()>"
         )
 
         var = self.p5["forecast/lon"]
         self.assertEqual(
             repr(var),
-            "<netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>",
+            "<p5netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>",
         )
 
         var = self.p5["/forecast/model/q"]
         self.assertEqual(
             repr(var),
-            "<netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>",
+            "<p5netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>",
         )
 
     def test_p5netcdf_Variable_maxshape(self):
@@ -703,68 +723,68 @@ class Testp5netcdf(unittest.TestCase):
         """Test Group.__repr__."""
         self.assertEqual(
             repr(self.p5["/forecast"]),
-            "<netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>",
+            "<p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>",
         )
 
         self.assertEqual(
             repr(self.p5["/forecast/model"]),
-            "<netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>",
+            "<p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>",
         )
 
     def test_p5netcdf_Group__str__(self):
         """Test Group.__str__."""
         self.assertEqual(
             str(self.p5["/forecast"]),
-            """forecast: <netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>
+            """forecast: <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>
     Dimensions:
-        lon: <netcdf.Dimension: /forecast/lon, size=8, unlimited>
+        lon: <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>
     Variables:
-        lon_bnds: <netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
-        lon: <netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
+        lon_bnds: <p5netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
+        lon: <p5netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
     Groups:
-        model: <netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>""",
+        model: <p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>""",
         )
 
         self.assertEqual(
             str(self.p5["/forecast/model"]),
-            """model: <netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
+            """model: <p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
     Dimensions:
-        lat: <netcdf.Dimension: /forecast/model/lat, size=5>
+        lat: <p5netcdf.Dimension: /forecast/model/lat, size=5>
     Variables:
-        lat_bnds: <netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
-        lat: <netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
-        q: <netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>""",
+        lat_bnds: <p5netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
+        lat: <p5netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
+        q: <p5netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>""",
         )
 
     def test_p5netcdf_Group_dump(self):
         """Test Group.dump."""
         self.assertEqual(
             self.p5["/forecast"].dump(display=False),
-            """forecast: <netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>
+            """forecast: <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>
     Dimensions:
-        lon: <netcdf.Dimension: /forecast/lon, size=8, unlimited>
+        lon: <p5netcdf.Dimension: /forecast/lon, size=8, unlimited>
     Variables:
-        lon_bnds: <netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
-        lon: <netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
+        lon_bnds: <p5netcdf.Variable: /forecast/lon_bnds, shape=(8, 2), dimensions=(/forecast/lon, /bounds2)>
+        lon: <p5netcdf.Variable: /forecast/lon, shape=(8,), dimensions=(/forecast/lon,)>
             Attributes:
                 units: 'degrees_east'
                 standard_name: 'longitude'
                 bounds: '/forecast/lon_bnds'
     Groups:
-        model: <netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
+        model: <p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
             Attributes:
                 group_attr_1: np.int64(12)
                 group_attr_2: 'bar'
             Dimensions:
-                lat: <netcdf.Dimension: /forecast/model/lat, size=5>
+                lat: <p5netcdf.Dimension: /forecast/model/lat, size=5>
             Variables:
-                lat_bnds: <netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
-                lat: <netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
+                lat_bnds: <p5netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
+                lat: <p5netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
                     Attributes:
                         units: 'degrees_north'
                         standard_name: 'latitude'
                         bounds: '/forecast/model/lat_bnds'
-                q: <netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>
+                q: <p5netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>
                     Attributes:
                         list7: array([2, 3])
                         int: np.int64(49)
@@ -807,20 +827,20 @@ class Testp5netcdf(unittest.TestCase):
 
         self.assertEqual(
             self.p5["/forecast/model"].dump(display=False),
-            """model: <netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
+            """model: <p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>
     Attributes:
         group_attr_1: np.int64(12)
         group_attr_2: 'bar'
     Dimensions:
-        lat: <netcdf.Dimension: /forecast/model/lat, size=5>
+        lat: <p5netcdf.Dimension: /forecast/model/lat, size=5>
     Variables:
-        lat_bnds: <netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
-        lat: <netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
+        lat_bnds: <p5netcdf.Variable: /forecast/model/lat_bnds, shape=(5, 2), dimensions=(/forecast/model/lat, /bounds2)>
+        lat: <p5netcdf.Variable: /forecast/model/lat, shape=(5,), dimensions=(/forecast/model/lat,)>
             Attributes:
                 units: 'degrees_north'
                 standard_name: 'latitude'
                 bounds: '/forecast/model/lat_bnds'
-        q: <netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>
+        q: <p5netcdf.Variable: /forecast/model/q, shape=(5, 8), dimensions=(/forecast/model/lat, /forecast/lon)>
             Attributes:
                 list7: array([2, 3])
                 int: np.int64(49)
@@ -1174,20 +1194,20 @@ class Testp5netcdf(unittest.TestCase):
 #        self.assertEqual(
 #            self.p3.dump(display=False),
 #            f"""{self.p3.filename}
-# File: <netcdf.File: 3 dimensions, 6 variables, 0 groups>
+# File: <p5netcdf.File: 3 dimensions, 6 variables, 0 groups>
 #    Attributes:
 #        Conventions: 'CF-1.13'
 #    Dimensions:
-#        lat: <netcdf.Dimension: /lat, size=5>
-#        bounds2: <netcdf.Dimension: /bounds2, size=2>
-#        lon: <netcdf.Dimension: /lon, size=8>
+#        lat: <p5netcdf.Dimension: /lat, size=5>
+#        bounds2: <p5netcdf.Dimension: /bounds2, size=2>
+#        lon: <p5netcdf.Dimension: /lon, size=8>
 #    Variables:
-#        lat_bnds: <netcdf.Variable: /lat_bnds, shape=(5, 2), dimensions=(/lat, /bounds2)>
-#        lat: <netcdf.Variable: /lat, shape=(5,), dimensions=(/lat,)>
-#        lon_bnds: <netcdf.Variable: /lon_bnds, shape=(8, 2), dimensions=(/lon, /bounds2)>
-#        lon: <netcdf.Variable: /lon, shape=(8,), dimensions=(/lon,)>
-#        time: <netcdf.Variable: /time, shape=(), dimensions=()>
-#        q: <netcdf.Variable: /q, shape=(5, 8), dimensions=(/lat, /lon)>""",
+#        lat_bnds: <p5netcdf.Variable: /lat_bnds, shape=(5, 2), dimensions=(/lat, /bounds2)>
+#        lat: <p5netcdf.Variable: /lat, shape=(5,), dimensions=(/lat,)>
+#        lon_bnds: <p5netcdf.Variable: /lon_bnds, shape=(8, 2), dimensions=(/lon, /bounds2)>
+#        lon: <p5netcdf.Variable: /lon, shape=(8,), dimensions=(/lon,)>
+#        time: <p5netcdf.Variable: /time, shape=(), dimensions=()>
+#        q: <p5netcdf.Variable: /q, shape=(5, 8), dimensions=(/lat, /lon)>""",
 #        )
 
 
