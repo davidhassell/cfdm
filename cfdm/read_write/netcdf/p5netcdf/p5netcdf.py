@@ -155,8 +155,6 @@ class Mixin:
     def parent(self):
         """The parent group.
 
-        This is an alias for `group`.
-
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `group`
@@ -180,7 +178,7 @@ class Mixin:
 
         """
         try:
-            return self._protocol
+            return self.root._protocol
         except AttributeError:
             raise AttributeError(
                 "Could not determine the file system protocol"
@@ -215,8 +213,8 @@ class Mixin:
         :Returns:
 
             `bool`
-                `True` if the backend allow thread-safe dataset
-                access, otherwise `False`.
+                `True` if the backend library allows thread-safe
+                dataset access, otherwise `False`.
 
         """
         thread_safe = getattr(self.root, "_thread_safe", None)
@@ -225,24 +223,6 @@ class Mixin:
             self.root._thread_safe = thread_safe
 
         return thread_safe
-
-    def group(self):
-        """The parent group.
-
-        This is an alias for `parent`.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        .. seealso:: `parent`
-
-        :Returns:
-
-            `Group` or `File` or `None`
-                The parent group, or `None` if there is no parent
-                group.
-
-        """
-        return self.parent
 
     def structure(
         self,
@@ -347,7 +327,7 @@ class Dimension(Mixin):
 
     @property
     def path(self):
-        """The full absolute path of the dimension.
+        """The absolute path of the dimension.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -356,7 +336,7 @@ class Dimension(Mixin):
         :Returns:
 
             `str`
-                The absolute netCDF path, e.g. ``'/lat'`` or
+                The absolute path of the dimension, e.g. ``'/lat'`` or
                 ``'/group/time'``.
 
         """
@@ -430,6 +410,8 @@ class Dimension(Mixin):
 
     def group(self):
         """The parent group that defines this dimension.
+
+        This is an alias for `parent`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -743,7 +725,7 @@ class Variable(Mixin):
 
     @property
     def path(self):
-        """The full absolute path of the variable.
+        """The absolute path of the variable.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -752,8 +734,8 @@ class Variable(Mixin):
         :Returns:
 
             `str`
-                The absolute netCDF path (e.g. ``'/time'`` or
-                ``'/group/latitude'``).
+                The absolute path of the variable, e.g. ``'/time'`` or
+                ``'/group/latitude'``.
 
         """
         path = getattr(self, "_path", None)
@@ -777,7 +759,7 @@ class Variable(Mixin):
         :Returns:
 
             `tuple` of `int`
-                The dimension lengths (e.g. ``(12, 96, 73)``).
+                The dimension lengths, e.g. ``(12, 96, 73)``.
 
         """
         shape = getattr(self, "_shape", None)
@@ -923,6 +905,23 @@ class Variable(Mixin):
 
         return out
 
+    def group(self):
+        """The parent group that defines this variable.
+
+        This is an alias for `parent`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `parent`
+
+        :Returns:
+
+            `Group` or `File`
+                The parent group.
+
+        """
+        return self._parent
+
     def get_dims(self):
         """Return the dimensions of the variable.
 
@@ -980,8 +979,9 @@ class Variable(Mixin):
 
             case "zarr":
                 raise RuntimeError(
-                    "_dims should have already been set to something other "
-                    "than None by the zarr_parse_group_structure function"
+                    "self._dims should have already been set to something "
+                    "other than None by the zarr_parse_group_structure "
+                    "function"
                 )
 
         dims = tuple(dims)
@@ -1322,7 +1322,7 @@ class Group(Mixin, Mapping):
 
     @property
     def groups(self):
-        """The sub-groups.
+        """The sub-groups defined in this group.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1364,26 +1364,27 @@ class Group(Mixin, Mapping):
 
     @property
     def path(self):
-        """The full absolute path of the group.
+        """The absolute path of the group.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             `str`
-                The absolute netCDF path (e.g. ``'/'``, ``'/model'``,
-                or ``'/group/forecast'``).
+                The absolute path of the group, e.g. ``'/'``,
+                ``'/model'``, or ``'/group/forecast'``.
 
         """
         path = getattr(self, "_path", None)
         if path is None:
-            match self.backend:
-                case "pyfive" | "zarr" | "h5py":
-                    path = self._grp.name
-                case "netCDF4":
-                    path = self._grp.path
-                case "netcdf_file":
-                    path = "/"
+            if self.is_root:
+                path = "/"
+            else:
+                path = self.name
+                parent = self.parent
+                while parent is not None:
+                    path = f"{parent.name}/{path}"
+                    parent = parent.parent
 
             self._path = path
 
@@ -1391,7 +1392,7 @@ class Group(Mixin, Mapping):
 
     @property
     def variables(self):
-        """The dimensions defined in this group.
+        """The variables defined in this group.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -2133,11 +2134,6 @@ class File(Group):
             `None`
 
         """
-        # Execute `Group` methods that might access the dataset and
-        # which have not already been run via `Group.__init__`.
-        for group in self.all_groups.values():
-            group.path
-
         # Execute `Variable` methods that might access the dataset and
         # which have not already been run via `Variable.__init__`.
         for variable in self.all_variables.values():
