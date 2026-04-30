@@ -182,7 +182,7 @@ def pyfive_open(dataset, options):
 
              An exception is raised if the library can't interpret the
              dataset definition.
-    
+
         options: `dict`
             Additional keyword parameters to pass to `pyfive.File`.
 
@@ -219,7 +219,7 @@ def h5py_open(dataset, options):
 
              An exception is raised if the library can't interpret the
              dataset definition.
-    
+
         options: `dict`
             Additional keyword parameters to pass to `h5py.File`.
 

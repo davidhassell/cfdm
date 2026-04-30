@@ -48,7 +48,7 @@ def netCDF4_open(dataset, options):
 
              An exception is raised if the library can't interpret the
              dataset definition.
-    
+
         options: `dict`
             Additional keyword parameters to pass to
             `netCDF4.Dataset`.
@@ -135,7 +135,7 @@ def netcdf_file_close(root):
 
     It is assumed, but not checked, that the backend is indeed
     `netcdf_file`.
-    
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:

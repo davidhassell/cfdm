@@ -18,12 +18,6 @@ class NetCDFError(Exception):
     pass
 
 
-class AttributeParsingError(Exception):
-    """TODO."""
-
-    pass
-
-
 def _format_attr(attr, value, lib):
     """Format an attribute according to netCDF-4.
 

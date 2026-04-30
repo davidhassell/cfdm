@@ -740,7 +740,7 @@ class Variable(Mixin):
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `size`, `shape`
-        
+
         :Returns:
 
             `int`
@@ -788,7 +788,7 @@ class Variable(Mixin):
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `ndim`, `size`, `maxshape`
-        
+
         :Returns:
 
             `tuple` of `int`
@@ -837,7 +837,7 @@ class Variable(Mixin):
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `ndim`, `shape`
-        
+
         :Returns:
 
             `int`
@@ -1680,14 +1680,14 @@ class File(Group):
                 * `pyfive.File`-like (`pyfive.File` or a subclass of
                                       `pyfive.File`)
 
-                Note that::
+                   Note that::
 
-                   >>> nc = p5netcdf.File('file.nc', backend='pyfive')
+                      >>> nc = p5netcdf.File('file.nc', backend='pyfive')
 
-                is identical to::
+                   is identical to::
 
-                   >>> py5 = pyfive.File('file.nc')
-                   >>> nc = p5netcdf.File(py5)
+                      >>> py5 = pyfive.File('file.nc')
+                      >>> nc = p5netcdf.File(py5)
 
             mode: `str`, optional
                 The access mode used when using `pyfive.File` to open
@@ -1697,8 +1697,8 @@ class File(Group):
             backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading the
                 dataset. An attempt to open the dataset is made by the
-                given backends in the order given, stopping after the
-                first successful read.
+                given backends in their order given, stopping after
+                the first successful read.
 
                 The available backends are:
 
@@ -1718,48 +1718,49 @@ class File(Group):
                 ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
 
             metadata_strategy: `str`, optional
-                The strategy used for retrieving metadata from the
-                dataset, and caching it, during the initial parsing of
-                the *dataset*. Must be one of:
+                The strategy used for retrieving, via the backend
+                library, metadata from the dataset during the initial
+                parsing of the dataset, and caching it. Must be one
+                of:
 
                 * ``'minimal'``
 
                   This is the default. Only the minimum amount of
                   metadata required to parse the dataset is retrieved
-                  from the dataset and cached. This includes, for
-                  instance, all of the variable and group attributes,
-                  but may (depending on the backend library) exclude
-                  the variable shapes.
-
+                  from the dataset and cached. For instance, this
+                  includes all variable and group attributes, but may
+                  exclude (depending on the backend library) the
+                  variable shapes.
 
                 * ``'maximal'``
 
-                  All relevant metadata is retrieved from the dataset
+                  All required metadata is retrieved from the dataset
                   and cached. The dataset then does not need to
                   revisited except to access the variable data arrays.
 
                 Maximal metadata retrieval can also be applied to an
-                existing `File` instance with its
+                existing `File` instance with the
                 `cache_maximal_metadata` method.
 
             pyfive_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `pyfive.File` to
-                be used when opening a netCDF-4 *dataset*. Setting to
+                be used when opening a netCDF-4 dataset. Setting to
                 `None` (the default) is equivalent to providing an
                 empty dictionary. Ignored if *dataset* is already a
                 (subclass of a) `pyfive.File` object.
 
             h5py_options: `dict` or `None`, optional
-                Keyword arguments that are passed to `h5py.File` to
-                be used when opening a netCDF-4 *dataset*. Setting to
+                Keyword arguments that are passed to `h5py.File` to be
+                used when opening a netCDF-4 dataset. Setting to
                 `None` (the default) is equivalent to providing an
                 empty dictionary.
 
             zarr_dimension_search: `str`, optional
-                How to interpret a Zarr or Kerchunk dimension name
-                that contains no group-separator characters, such as
-                ``dim`` (as opposed to ``group/dim``, ``/group/dim``,
-                ``../dim``, etc.).
+                How to interpret a Zarr or Kerchunk dataset dimension
+                name that contains no group-separator characters, such
+                as ``dim`` (as opposed to ``group/dim``,
+                ``/group/dim``, ``../dim``, etc.). Ignored for other
+                dataset types.
 
                 For a Zarr or Kerchunk dataset, setting this parameter
                 may be necessary for the correct interpretation of the
@@ -1808,7 +1809,7 @@ class File(Group):
                  Set the verbosity. If *verbose* is less than ``1``
                  then there is no verbose output; more output is
                  produced for progressively larger values of
-                 *verbose*. Values of ``3`` and higher produce the
+                 *verbose*. Values of ``4`` and higher produce the
                  same maximally verbose output.
 
         """
@@ -1817,12 +1818,12 @@ class File(Group):
         if mode != "r":
             raise ValueError("mode must be 'r'. Got: mode={mode!r}")
 
-        _open_options = {}
+        open_options = {}
         if h5py_options:
-            _open_options["h5py"] = h5py_options
+            open_options["h5py"] = h5py_options
 
         if pyfive_options:
-            _open_options["pyfive"] = pyfive_options
+            open_options["pyfive"] = pyfive_options
 
         self._zarr_dimension_search = zarr_dimension_search
 
@@ -1920,7 +1921,7 @@ class File(Group):
 
             nc = None
             for backend, func in open_functions.items():
-                options = _open_options.get(backend, {})
+                options = open_options.get(backend, {})
                 try:
                     nc, attrs, lib = func(dataset, options)
                 except Exception as error:
@@ -1992,7 +1993,10 @@ class File(Group):
         if verbose >= 1:
             self.open_log()
 
-        if verbose >= 3:
+        if verbose >= 4:
+            print()
+            self.dump(data=True)
+        elif verbose >= 3:
             print()
             self.dump()
         elif verbose >= 2:
@@ -2093,8 +2097,8 @@ class File(Group):
     def close(self):
         """Close the dataset.
 
-        Closes the underlying netCDF dataset, but not if it is not
-        owned by this `File` instance.
+        Closes the underlying netCDF dataset, but only if owned by
+        this `File` instance.
 
         .. versionadded:: (cfdm) NEXTVERSION
 

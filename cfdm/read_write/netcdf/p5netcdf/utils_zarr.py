@@ -1,5 +1,6 @@
 from .utils import NetCDFError
 
+
 # --------------------------------------------------------------------
 # zarr
 # --------------------------------------------------------------------
@@ -155,7 +156,7 @@ def zarr_dimension_maps(group):
                 except KeyError:
                     raise NetCDFError(
                         "Zarr dimension name {name!r} couldn't be found "
-g                        "in the group hierarchy"
+                        "in the group hierarchy"
                     )
 
             # Look for an existing Dimension
@@ -260,7 +261,7 @@ def zarr_open(dataset, options):
 
         options: `dict`
             Additional keyword parameters to pass to `zarr.open`.
-    
+
     :Returns:
 
         (`zarr.Group`, `dict`, library)
