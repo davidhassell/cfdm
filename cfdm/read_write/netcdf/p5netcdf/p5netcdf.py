@@ -113,7 +113,7 @@ class Mixin:
 
     @property
     def is_local(self):
-        """Whether the input dataset is on the local file system.
+        """Whether the dataset is on the local file system.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -122,23 +122,24 @@ class Mixin:
         :Returns:
 
             `bool` or `None`
-                `True` if the input dataset is on the local file
-                system, `False` otherwise.
+                `True` if the dataset is on the local file system
+                (i.e. `protocol` is `None`, ``'file'`` or
+                ``'local'``), `False` otherwise.
 
-                When the input dataset is provided as a file-like,
-                directory-like, or `pyfive.File`-like object, it is
-                generally possible to glean whether or not the
-                underlying dataset is on the local file system, but in
-                those cases when it is not possible, `is_local` will
-                return `None` (and `protocol` will raise an
-                `AttributeError`).
+                It is usually possible to ascertain the file system
+                protocol from the input dataset, but in those cases
+                when it is not possible, `is_local` will return `None`
+                and `protocol` will raise an `AttributeError`.
 
         """
         return self.root._is_local
 
     @property
     def lib(self):
-        """The library that provides the backend.
+        """The backend library.
+
+        The backend library is the interface to the dataset, and
+        provides access to the dataset contents.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -170,19 +171,28 @@ class Mixin:
 
     @property
     def protocol(self):
-        """TODO.
+        """The file system protocol for the dataset.
+
+        It is usually possible to ascertain the file system protocol
+        from the input dataset, but in those cases when it is not
+        possible, `protocol` will raise an `AttributeError` and
+        `is_local` will return `None`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `is_local`
 
+        :Returns:
+
+            `str` or `None`
+                The file system protocol. If `None`, ``'file'`` or
+                ``'local'``, then the file system is local.
+
         """
         try:
             return self.root._protocol
         except AttributeError:
-            raise AttributeError(
-                "Could not determine the file system protocol"
-            )
+            raise AttributeError("Can't determine the file system protocol")
 
     @property
     def root(self):
@@ -230,7 +240,11 @@ class Mixin:
         _prefix=None,
         _level=0,
     ):
-        """A structural description.
+        """A purely structural description.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `dump`
 
         :Parameters:
 
@@ -248,7 +262,11 @@ class Mixin:
 
         """
         return self.dump(
-            display, _prefix, _level, _recursive=True, _structure=True
+            display=display,
+            _prefix=_prefix,
+            _level=_level,
+            _recursive=True,
+            _structure=True,
         )
 
 
@@ -320,7 +338,7 @@ class Dimension(Mixin):
         :Returns:
 
             `str`
-                The relative netCDF name (e.g. ``'time'``).
+                The relative name (e.g. ``'time'``).
 
         """
         return self._name
@@ -376,7 +394,13 @@ class Dimension(Mixin):
     ):
         """A full description of the dimension.
 
+        The full description includes the full group, variable and
+        dimension structure, with all variable, group and global
+        attributes. No variable data arrays are shown..
+
         .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `structure`
 
         :Parameters:
 
@@ -402,11 +426,10 @@ class Dimension(Mixin):
         lines = [f"{i0}{_prefix}{self!r}"]
 
         out = "\n".join(lines)
-        if display:
-            print(out)
-            return
+        if not display:
+            return out
 
-        return out
+        print(out)
 
     def group(self):
         """The parent group that defines this dimension.
@@ -568,11 +591,11 @@ class Variable(Mixin):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `chunks`
+        .. seealso:: `shards`, `chunking`
 
         :Returns:
 
-            `tuple` or `None`
+            `None` or `tuple` of `int`
                 The chunk shape, e.g. ``(5, 6, 7)``. If the data is
                 contiguous then `None` is returned.
 
@@ -658,7 +681,6 @@ class Variable(Mixin):
             match self.backend:
                 case "pyfive" | "zarr" | "netCDF4" | "h5py":
                     dtype = self._var.dtype
-                    # TODO zarr dtype is endianny
                 case "netcdf_file":
                     dtype = netcdf_file_dtype(self)
 
@@ -674,6 +696,8 @@ class Variable(Mixin):
         """The maximum dimension lengths of the variable.
 
         .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `shape`
 
         :Returns:
 
@@ -704,7 +728,7 @@ class Variable(Mixin):
         :Returns:
 
             `str`
-                The relative netCDF name (e.g. ``'latitude'``).
+                The relative  name (e.g. ``'latitude'``).
 
         """
         return self._name
@@ -715,13 +739,20 @@ class Variable(Mixin):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `size`, `shape`
+        
         :Returns:
 
             `int`
                 The number of dimensions.
 
         """
-        return len(self.shape)
+        ndim = getattr(self, "_ndim", None)
+        if ndim is None:
+            ndim = len(self.shape)
+            self._ndim = ndim
+
+        return ndim
 
     @property
     def path(self):
@@ -756,6 +787,8 @@ class Variable(Mixin):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `ndim`, `size`, `maxshape`
+        
         :Returns:
 
             `tuple` of `int`
@@ -771,17 +804,20 @@ class Variable(Mixin):
 
     @property
     def shards(self):
-        """The TODO dimension lengths of the variable.
+        """The data shard shape.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `chunks`, `chunking`
+
         :Returns:
 
-            `tuple` of `int`
-                The dimension lengths (e.g. ``(12, 96, 73)``).
+            `None` or `tuple` of `int`
+                The shard shape (e.g. ``(12, 96, 73)``) for a sharded
+                Zarr variable, or `None` for a non-sharded Zarr
+                variable or a variable in a non-Zarr dataset.
 
         """
-
         if hasattr(self, "_shards"):
             return self._shards
 
@@ -800,6 +836,8 @@ class Variable(Mixin):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `ndim`, `shape`
+        
         :Returns:
 
             `int`
@@ -818,7 +856,7 @@ class Variable(Mixin):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `chunks`
+        .. seealso:: `chunks`, `shards`
 
         :Returns:
 
@@ -856,6 +894,7 @@ class Variable(Mixin):
     def dump(
         self,
         display=True,
+        data=False,
         _prefix=None,
         _level=0,
         _recursive=True,
@@ -865,11 +904,18 @@ class Variable(Mixin):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `structure`
+
         :Parameters:
 
             display: `bool`, optional
                 If False then return the description as a string. By
                 default the description is printed.
+
+            data: `bool`, optional
+                If True then include a summary of the variable's data
+                array. If False (the default) then don't include a
+                data summary.
 
         :Returns:
 
@@ -882,28 +928,42 @@ class Variable(Mixin):
         """
         indent = self._Mixin__indent
         i0 = indent * _level
+        i1 = indent * (_level + 1)
+        i2 = indent * (_level + 2)
 
         if _prefix is None:
             _prefix = f"{self.name}: "
 
         lines = [f"{i0}{_prefix}{self!r}"]
 
+        if _structure:
+            data = False
+
+        if data:
+            # Set numpy linewidth
+            linewidth0 = np.get_printoptions()["linewidth"]
+            np.set_printoptions(linewidth=len(lines[0]))
+
         # Attributes
         if not _structure and self.attrs:
-            i1 = indent * (_level + 1)
-            i2 = indent * (_level + 2)
-
             lines.append(f"{i1}Attributes:")
             lines.extend(
                 f"{i2}{name}: {value!r}" for name, value in self.attrs.items()
             )
 
-        out = "\n".join(lines)
-        if display:
-            print(out)
-            return
+        if data:
+            lines.append(f"{i1}Data:")
+            lines.append(
+                f"{i2}{np.array2string(self[...], separator=', ', prefix=i2)}"
+            )
+            # Reset numpy linewidth
+            np.set_printoptions(linewidth=linewidth0)
 
-        return out
+        out = "\n".join(lines)
+        if not display:
+            return out
+
+        print(out)
 
     def group(self):
         """The parent group that defines this variable.
@@ -1357,7 +1417,7 @@ class Group(Mixin, Mapping):
         :Returns:
 
             `str`
-                The relative netCDF name (e.g. ``'subgroup'``).
+                The relative name (e.g. ``'subgroup'``).
 
         """
         return self._name
@@ -1380,11 +1440,11 @@ class Group(Mixin, Mapping):
             if self.is_root:
                 path = "/"
             else:
-                path = self.name
                 parent = self.parent
-                while parent is not None:
-                    path = f"{parent.name}/{path}"
-                    parent = parent.parent
+                if parent.is_root:
+                    path = f"/{self.name}"
+                else:
+                    path = f"{parent.path}/{self.name}"
 
             self._path = path
 
@@ -1407,6 +1467,7 @@ class Group(Mixin, Mapping):
     def dump(
         self,
         display=True,
+        data=False,
         _prefix=None,
         _level=0,
         _recursive=True,
@@ -1416,11 +1477,18 @@ class Group(Mixin, Mapping):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `structure`
+
         :Parameters:
 
             display: `bool`, optional
                 If False then return the description as a string. By
                 default the description is printed.
+
+            data: `bool`, optional
+                If True then include a summary of each variable's data
+                array. If False (the default) then don't include these
+                data summaries.
 
         :Returns:
 
@@ -1459,7 +1527,7 @@ class Group(Mixin, Mapping):
         if self.variables:
             lines.append(f"{i1}Variables:")
             lines.extend(
-                f"{var.dump(display=False, _level=_level + 2, _structure=_structure)}"
+                f"{var.dump(display=False, data=data, _level=_level + 2, _structure=_structure)}"
                 for name, var in self.variables.items()
             )
 
@@ -1468,7 +1536,7 @@ class Group(Mixin, Mapping):
             lines.append(f"{i1}Groups:")
             if _recursive:
                 lines.extend(
-                    f"{group.dump(display=False, _level=_level + 2, _recursive=True, _structure=_structure)}"
+                    f"{group.dump(display=False, data=data, _level=_level + 2, _recursive=True, _structure=_structure)}"
                     for group in self.groups.values()
                 )
             else:
@@ -1478,11 +1546,10 @@ class Group(Mixin, Mapping):
                 )
 
         out = "\n".join(lines)
-        if display:
-            print(out)
-            return
+        if not display:
+            return out
 
-        return out
+        print(out)
 
     def is_sub_group(self, other):
         """Return True if the group is a subgroup of, or is, 'other'.
@@ -1600,9 +1667,8 @@ class File(Group):
         :Parameters:
 
             dataset:
-                The definition of the netCDF dataset to be read.
-
-                May be one of:
+                The definition of the netCDF dataset to be read. One
+                of:
 
                 * string-like (such as `str` or `pathlib.Path`)
 
@@ -1776,7 +1842,7 @@ class File(Group):
             # The opened dataset is owned externally
             self._owns_nc = False
 
-            # Attempt to set the dataset name and file system protocol
+            # Attempt to get the dataset name and file system protocol
             try:
                 # fsspec file-like
                 dataset_name = dataset._fh.path
@@ -1800,7 +1866,7 @@ class File(Group):
             # --------------------------------------------------------
             # Input string-like, file-like, or directory-like
             # --------------------------------------------------------
-            # Attempt to set the dataset name and protocol
+            # Attempt to get the dataset name and protocol
             try:
                 # string-like: Expand tilde and environment variables
                 dataset = expanduser(expandvars(dataset))
@@ -1817,7 +1883,6 @@ class File(Group):
                             # fsspec kerchunk dictionary-like
                             dataset_name = dataset.fs.storage_options.get("fo")
                         except AttributeError:
-                            # Can't find dataset name
                             pass
                     else:
                         # BinaryIO
@@ -2052,6 +2117,7 @@ class File(Group):
     def dump(
         self,
         display=True,
+        data=False,
         _prefix=None,
         _level=0,
         _recursive=True,
@@ -2061,11 +2127,18 @@ class File(Group):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `structure`
+
         :Parameters:
 
             display: `bool`, optional
                 If False then return the description as a string. By
                 default the description is printed.
+
+            data: `bool`, optional
+                If True then include a summary of each variable's data
+                array. If False (the default) then don't include these
+                data summaries.
 
         :Returns:
 
@@ -2082,14 +2155,21 @@ class File(Group):
         out = "\n".join(
             (
                 self.filename,
-                super().dump(False, _prefix, _level, _recursive, _structure),
+                super().dump(
+                    display=False,
+                    data=data,
+                    _prefix=_prefix,
+                    _level=_level,
+                    _recursive=_recursive,
+                    _structure=_structure,
+                ),
             )
         )
-        if display:
-            print(out)
-            return
 
-        return out
+        if not display:
+            return out
+
+        print(out)
 
     def open_log(self, display=True):
         """The dataset-open log.

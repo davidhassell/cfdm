@@ -13,7 +13,7 @@ _IGNORED_PREFIXES = ("_Netcdf4", "_nc", "_NC")
 
 
 class NetCDFError(Exception):
-    """Error raised when file can't be viewed as netCDF."""
+    """Error raised when dataset can't be viewed as netCDF."""
 
     pass
 
@@ -38,12 +38,12 @@ def _format_attr(attr, value, lib):
             The raw attribute value.
 
         lib:
-            The library that created the variable or group that owns
-            the attribute value.
+            The backend library that created the variable or group
+            that owns the attribute value.
 
     :Returns:
 
-            The formatted attribute value adhering to netCDF-4.
+            The formatted attribute value according to netCDF-4.
 
     """
     # Handle strings/bytes immediately
@@ -138,12 +138,12 @@ def _parse_attributes(obj, raw_attrs):
             The object that owns the raw attributes.
 
         raw_attrs: `dict`
-            The raw attributes value from the file.
+            The raw attributes from the dataset.
 
     :Returns:
 
         `dict`
-            The formatted attributes
+            The attributes formatted according to netCDF-4.
 
     """
     lib = obj.lib

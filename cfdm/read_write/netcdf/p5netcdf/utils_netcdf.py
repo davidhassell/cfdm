@@ -32,22 +32,32 @@ def netCDF4_parse_group_structure(group):
 
 
 def netCDF4_open(dataset, options):
-    """Open a dataset with `pyfive`.
+    """Open a dataset with `netCDF4` library.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
         dataset:
-            May be a `str` or `pathlib.Path` path, a file-like object
-            (such as `io.BufferedReader` or the result of an `fsspec`
-            file system open).
+            The definition of the netCDF dataset to be read. One of:
+
+            * string-like (such as `str` or `pathlib.Path`)
+            * file-like (such as `io.BufferedReader` or the result
+                         of an `fsspec` file system open)
+            * directory-like (such as `fsspec.mapping.FSMap`)
+
+             An exception is raised if the library can't interpret the
+             dataset definition.
+    
+        options: `dict`
+            Additional keyword parameters to pass to
+            `netCDF4.Dataset`.
 
     :Returns:
 
-        3-`tuple`
-
-    `netCDF4.Dataset`, `dict`, library
+        (`netCDF4.Dataset`, `dict`, library)
+            The opened dataset, the dataset's global attributes, and
+            the `netCDF4` library itself.
 
     """
     import netCDF4
@@ -86,23 +96,31 @@ def netcdf_file_parse_group_structure(group):
 
 
 def netcdf_file_open(dataset, options):
-    """Open a dataset with `h5py`.
+    """Open a dataset with `netcdf_file` library.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        root: `p5netcdf.File`
-            The root group.
-
         dataset:
-            May be a `str` or `pathlib.Path` path, a file-like object
-            (such as `io.BufferedReader` or the result of an `fsspec`
-            file system open).
+            The definition of the netCDF dataset to be read. One of:
+
+            * string-like (such as `str` or `pathlib.Path`)
+            * file-like (such as `io.BufferedReader` or the result
+                         of an `fsspec` file system open)
+            * directory-like (such as `fsspec.mapping.FSMap`)
+
+             An exception is raised if the library can't interpret the
+             dataset definition.
+
+        options: `dict`
+            Additional keyword parameters to pass to `netcdf_file`.
 
     :Returns:
 
-        `scipy.io.netcdf_file`, `dict`, library
+        (`scipy.io.netcdf_file`, `dict`, library)
+            The opened dataset, the dataset's global attributes, and
+            the `netcdf_file` library itself.
 
     """
     from scipy.io import netcdf_file
@@ -113,8 +131,11 @@ def netcdf_file_open(dataset, options):
 
 
 def netcdf_file_close(root):
-    """TODO Open a dataset with `h5py`.
+    """Close the dataset opened with `netcdf_file`.
 
+    It is assumed, but not checked, that the backend is indeed
+    `netcdf_file`.
+    
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
@@ -142,8 +163,11 @@ def netcdf_file_close(root):
 
 
 def netcdf_file_dtype(variable):
-    """TODO Open a dataset with `h5py`.
+    """The numpy data type of variable opened with `netcdf_file`.
 
+    It is assumed, but not checked, that the backend is indeed
+    `netcdf_file`.
+    
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:

@@ -1,16 +1,8 @@
 from .utils import NetCDFError
 
-
-def zarr_dtype(variable):
-    """The numpy data type of the variable.
-
-    .. versionadded:: (cfdm) NEXTVERSION
-
-    """
-    dtype = variable._var.dtype
-    return dtype  # TODO
-
-
+# --------------------------------------------------------------------
+# zarr
+# --------------------------------------------------------------------
 def zarr_dimension_maps(group):
     """Populate the dimension map dictionaries in the root group.
 
@@ -161,7 +153,10 @@ def zarr_dimension_maps(group):
                 try:
                     g = group[g].path
                 except KeyError:
-                    raise NetCDFError("Bad dimension name TODO")
+                    raise NetCDFError(
+                        "Zarr dimension name {name!r} couldn't be found "
+                        "in the group hierarchy"
+                    )
 
             # TODO
             zarr_dim = None
@@ -246,22 +241,31 @@ def zarr_raw_dimension_names(variable):
 
 
 def zarr_open(dataset, options):
-    """Open a dataset with `zarr`.
+    """Open a dataset with `zarr` library.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        root: `p5netcdf.File`
-            The root group.
-
         dataset:
-            The dataset. May be a string-valued path, a file-like
-            object, or a directory-like object.
+            The definition of the netCDF dataset to be read. One of:
 
+            * string-like (such as `str` or `pathlib.Path`)
+            * file-like (such as `io.BufferedReader` or the result
+                         of an `fsspec` file system open)
+            * directory-like (such as `fsspec.mapping.FSMap`)
+
+             An exception is raised if the library can't interpret the
+             dataset definition.
+
+        options: `dict`
+            Additional keyword parameters to pass to `zarr.open`.
+    
     :Returns:
 
-        `zarr.Group`, `dict`, library
+        (`zarr.Group`, `dict`, library)
+            The opened dataset, the dataset's global attributes, and
+            the `zarr` library itself.
 
     """
     import zarr

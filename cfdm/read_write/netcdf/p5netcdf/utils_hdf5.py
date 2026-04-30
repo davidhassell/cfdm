@@ -1,6 +1,9 @@
 from .utils import NetCDFError
 
 
+# --------------------------------------------------------------------
+# pyfive | h5py
+# --------------------------------------------------------------------
 def hdf5_dimension_names(variable):
     """Get the variable dimension names.
 
@@ -159,21 +162,35 @@ def hdf5_parse_group_structure(group):
         group._create_group(name, grp, grp.attrs)
 
 
+# --------------------------------------------------------------------
+# pyfive
+# --------------------------------------------------------------------
 def pyfive_open(dataset, options):
-    """Open a dataset with `pyfive`.
+    """Open a dataset with `pyfive` library.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
         dataset:
-            May be a `str` or `pathlib.Path` path, a file-like object
-            (such as `io.BufferedReader` or the result of an `fsspec`
-            file system open).
+            The definition of the netCDF dataset to be read. One of:
+
+            * string-like (such as `str` or `pathlib.Path`)
+            * file-like (such as `io.BufferedReader` or the result
+                         of an `fsspec` file system open)
+            * directory-like (such as `fsspec.mapping.FSMap`)
+
+             An exception is raised if the library can't interpret the
+             dataset definition.
+    
+        options: `dict`
+            Additional keyword parameters to pass to `pyfive.File`.
 
     :Returns:
 
-        `pyfive.File`, `dict`, library
+        (`pyfive.File`, `dict`, library)
+            The opened dataset, the dataset's global attributes, and
+            the `pyfive` library itself.
 
     """
     import pyfive
@@ -182,24 +199,35 @@ def pyfive_open(dataset, options):
     return nc, nc.attrs, pyfive
 
 
+# --------------------------------------------------------------------
+# h5py
+# --------------------------------------------------------------------
 def h5py_open(dataset, options):
-    """Open a dataset with `h5py`.
+    """Open a dataset with the `h5py` library.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        root: `p5netcdf.File`
-            The root group.
-
         dataset:
-            May be a `str` or `pathlib.Path` path, a file-like object
-            (such as `io.BufferedReader` or the result of an `fsspec`
-            file system open).
+            The definition of the netCDF dataset to be read. One of:
+
+            * string-like (such as `str` or `pathlib.Path`)
+            * file-like (such as `io.BufferedReader` or the result
+                         of an `fsspec` file system open)
+            * directory-like (such as `fsspec.mapping.FSMap`)
+
+             An exception is raised if the library can't interpret the
+             dataset definition.
+    
+        options: `dict`
+            Additional keyword parameters to pass to `h5py.File`.
 
     :Returns:
 
-        `h5py.File`, `dict`, library
+        (`h5py.File`, `dict`, library)
+            The opened dataset, the dataset's global attributes, and
+            the `h5py` library itself.
 
     """
     import h5py
