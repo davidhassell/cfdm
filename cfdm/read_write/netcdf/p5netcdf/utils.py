@@ -121,7 +121,7 @@ def _format_attr(attr, value, lib):
     return np.array(value)
 
 
-def _parse_attributes(obj, raw_attributes):
+def _parse_attributes(obj, raw_attrs):
     """Format raw attributes attributes according to netCDF-4.
 
     * Strings return as pure Python strings.
@@ -137,7 +137,7 @@ def _parse_attributes(obj, raw_attributes):
         obj: `Group` or `Variable`
             The object that owns the raw attributes.
 
-        raw_attributes: `dict`
+        raw_attrs: `dict`
             The raw attributes value from the file.
 
     :Returns:
@@ -149,6 +149,6 @@ def _parse_attributes(obj, raw_attributes):
     lib = obj.lib
     return {
         k: _format_attr(k, v, lib)
-        for k, v in raw_attributes.items()
+        for k, v in raw_attrs.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }

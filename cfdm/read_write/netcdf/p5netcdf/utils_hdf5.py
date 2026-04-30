@@ -78,6 +78,7 @@ def hdf5_parse_group_structure(group):
     subgroups = {}
     datasets = {}
     dataset_attrs = {}
+    dataset_shape = {}
 
     # Categorise objects without double-reading items from the HDF5
     # dataset
@@ -93,6 +94,7 @@ def hdf5_parse_group_structure(group):
         shape = var.shape
         attrs = var.attrs
         dataset_attrs[name] = attrs
+        dataset_shape[name] = shape
 
         if shape and attrs.get("CLASS") == b"DIMENSION_SCALE":
             # Get ID: Use `None` if missing to push to end of sort
@@ -146,7 +148,9 @@ def hdf5_parse_group_structure(group):
         is_stub = raw_dims.get(dim_name, {}).get("is_stub", False)
 
         if not is_stub:
-            group._create_variable(name, var, dataset_attrs[name])
+            group._create_variable(
+                name, var, dataset_attrs[name], shape=dataset_shape[name]
+            )
 
     # ----------------------------------------------------------------
     # Recursively create subgroups

@@ -287,7 +287,7 @@ def zarr_parse_group_structure(group):
     """
     # Create variables in this group
     for name, var in dict(group._grp.arrays()).items():
-        group._create_variable(name, var, var.attrs)
+        group._create_variable(name, var, var.attrs, var.shape)
 
     # Create subgroups
     for name, grp in dict(group._grp.groups()).items():

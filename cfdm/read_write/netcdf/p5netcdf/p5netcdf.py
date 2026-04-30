@@ -68,7 +68,7 @@ class Mixin:
         :Returns:
 
             string-like or file-like or directory-like or `pyfive.File`-like
-                The dataset deinition.
+                The dataset definition.
 
         """
         return self.root._dataset
@@ -126,12 +126,12 @@ class Mixin:
                 system, `False` otherwise.
 
                 When the input dataset is provided as a file-like,
-                directory-like, or (subclass of a) `pyfive.File`
-                object, it is generally possible to glean whether or
-                not the underlying dataset is on the local file
-                system, but in those cases when it is not possible,
-                `is_local` will return `None` (and `protocol` will
-                raise an `AttributeError`).
+                directory-like, or `pyfive.File`-like object, it is
+                generally possible to glean whether or not the
+                underlying dataset is on the local file system, but in
+                those cases when it is not possible, `is_local` will
+                return `None` (and `protocol` will raise an
+                `AttributeError`).
 
         """
         return self.root._is_local
@@ -250,7 +250,7 @@ class Mixin:
         _prefix=None,
         _level=0,
     ):
-        """A full description of the `Group`.
+        """A structural description.
 
         :Parameters:
 
@@ -310,6 +310,8 @@ class Dimension(Mixin):
         Returns the length of the dimension when interrogated by the
         builtin `len` function.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         """
         return self.size
 
@@ -317,6 +319,8 @@ class Dimension(Mixin):
         """Called by the `repr` built-in function.
 
         x.__repr__() <==> repr(x)
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         """
         unlimited = ", unlimited" if self.isunlimited() else ""
@@ -328,6 +332,8 @@ class Dimension(Mixin):
     @property
     def name(self):
         """The name of the dimension in its parent group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `path`
 
@@ -342,6 +348,8 @@ class Dimension(Mixin):
     @property
     def path(self):
         """The full absolute path of the dimension.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `name`
 
@@ -368,6 +376,8 @@ class Dimension(Mixin):
     def size(self):
         """The size of the dimension.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `int`
@@ -385,6 +395,8 @@ class Dimension(Mixin):
         _structure=False,
     ):
         """A full description of the dimension.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
@@ -419,6 +431,8 @@ class Dimension(Mixin):
     def group(self):
         """The parent group that defines this dimension.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         .. seealso:: `parent`
 
         :Returns:
@@ -431,6 +445,8 @@ class Dimension(Mixin):
 
     def isunlimited(self):
         """Whether the dimension is unlimited.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -451,7 +467,7 @@ class Variable(Mixin):
 
     __hash__ = None
 
-    def __init__(self, name, parent, var, var_attrs):
+    def __init__(self, name, parent, var, var_attrs, shape=None):
         """**Initialisation**
 
         :Parameters:
@@ -460,14 +476,19 @@ class Variable(Mixin):
                 The name of the variable in its parent group.
 
             parent: `Group` or `File`
-                The parent group containing this variable.
+                The parent group in which this variable is defined.
 
             var:
-                The underlying (subclass of) `pyfive.Dataset` or
-                `scipy.io.netcdf_variable` object.
+                The underlying dataset variable object provided by the
+                backend library.
 
             var_attrs: `dict`
                 The raw attributes of *var*.
+
+            shape: `None` or `tuple` of `int`, optional
+                The shape of the variable's data array. If `None` (the
+                default) then the shape is retrieved later from *var*,
+                if required.
 
         """
         self._name = name
@@ -475,9 +496,15 @@ class Variable(Mixin):
         self._parent = parent
         self._var_attrs = var_attrs
         self._attrs = _parse_attributes(self, var_attrs)
+        if shape is not None:
+            self._shape = shape
 
     def __getitem__(self, indices):
-        """Return a subspace of the data array defined by indices."""
+        """Return a subspace of the data array defined by indices.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         array = self._var[indices]
         if self.backend == "netcdf_file":
             # Need to copy the numpy array returned by
@@ -488,7 +515,11 @@ class Variable(Mixin):
         return array
 
     def __len__(self):
-        """The size of leading data array dimension."""
+        """The size of leading data array dimension.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         shape = self.shape
         if shape:
             return shape[0]
@@ -499,6 +530,8 @@ class Variable(Mixin):
         """Called by the `repr` built-in function.
 
         x.__repr__() <==> repr(x)
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         """
         # Resolve the dimension objects to get their full paths
@@ -537,6 +570,8 @@ class Variable(Mixin):
     def attrs(self):
         """The variable attributes.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `dict`
@@ -548,6 +583,8 @@ class Variable(Mixin):
     @property
     def chunks(self):
         """The data chunk shape.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `chunks`
 
@@ -587,6 +624,8 @@ class Variable(Mixin):
     def dimension_paths(self):
         """The variable dimensions.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         .. seealso:: `dimensions`, `get_dims`
 
         :Returns:
@@ -607,6 +646,8 @@ class Variable(Mixin):
     def dimensions(self):
         """The variable dimensions.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         .. seealso:: `get_dims`
 
         :Returns:
@@ -625,7 +666,11 @@ class Variable(Mixin):
 
     @property
     def dtype(self):
-        """The numpy data type of the variable."""
+        """The numpy data type of the variable.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         dtype = getattr(self, "_dtype", None)
         if dtype is None:
             match self.backend:
@@ -645,6 +690,8 @@ class Variable(Mixin):
     @property
     def maxshape(self):
         """The maximum dimension lengths of the variable.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -668,6 +715,8 @@ class Variable(Mixin):
     def name(self):
         """The name of the variable in its parent group.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         .. seealso:: `path`
 
         :Returns:
@@ -682,6 +731,8 @@ class Variable(Mixin):
     def ndim(self):
         """The number of dimensions for the variable.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `int`
@@ -693,6 +744,8 @@ class Variable(Mixin):
     @property
     def path(self):
         """The full absolute path of the variable.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `name`
 
@@ -719,6 +772,8 @@ class Variable(Mixin):
     def shape(self):
         """The dimension lengths of the variable.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `tuple` of `int`
@@ -735,6 +790,8 @@ class Variable(Mixin):
     @property
     def shards(self):
         """The TODO dimension lengths of the variable.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -759,6 +816,8 @@ class Variable(Mixin):
     def size(self):
         """The total number of elements in the variable's data.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `int`
@@ -774,6 +833,8 @@ class Variable(Mixin):
 
     def chunking(self):
         """The data chunk shape.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `chunks`
 
@@ -820,6 +881,8 @@ class Variable(Mixin):
     ):
         """A full description of the variable.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Parameters:
 
             display: `bool`, optional
@@ -862,6 +925,8 @@ class Variable(Mixin):
 
     def get_dims(self):
         """Return the dimensions of the variable.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `dimensions`
 
@@ -958,8 +1023,8 @@ class Group(Mixin, Mapping):
                 The root group.
 
             grp:
-                The underlying (subclass of) `pyfive.Group`, (subclass
-                of) `pyfive.File`, or `scipy.io.netcdf_file` object.
+                The underlying group object provided by the
+                backend library.
 
             grp_attrs: `dict`
                 The raw attributes of *grp*.
@@ -985,6 +1050,8 @@ class Group(Mixin, Mapping):
         include ``.`` (current group) and ``..`` (parent group)
         elements. A trailing ``/`` in the path is ignored. An empty
         path (``''``) is equivalent to ``'/'``.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         """
         if key == "":
@@ -1058,15 +1125,27 @@ class Group(Mixin, Mapping):
         return current
 
     def __iter__(self):
-        """The variables and sub-groups."""
+        """The variables and sub-groups.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         return chain(self.groups, self.variables)
 
     def __len__(self):
-        """The number of variables and sub-groups."""
+        """The number of variables and sub-groups.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         return len(self.variables) + len(self.groups)
 
     def __repr__(self):
-        """Called by the `repr` built-in function."""
+        """Called by the `repr` built-in function.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         pd = "" if len(self.dimensions) == 1 else "s"
         pv = "" if len(self.variables) == 1 else "s"
         pg = "" if len(self.groups) == 1 else "s"
@@ -1087,16 +1166,22 @@ class Group(Mixin, Mapping):
         )
 
     def __str__(self):
-        """Called by the `str` built-in function."""
+        """Called by the `str` built-in function.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         return self.dump(display=False, _recursive=False, _structure=True)
 
     def _create_dimension(self, name, size, isunlimited):
         """Create a new dimension in this group.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Parameters:
 
              Parameters *name*, *size*, and *isunlimited* are
-             identical those parameter for `Dimension.__init__`.
+             identical those parameters for `Dimension.__init__`.
 
         :Returns:
 
@@ -1111,10 +1196,12 @@ class Group(Mixin, Mapping):
     def _create_group(self, name, grp, grp_attrs):
         """Create a new sub-group in this group.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Parameters:
 
              Parameters *name*, *grp*, and *grp_attrs* are identical
-             those parameter for `Group.__init__`.
+             those parameters for `Group.__init__`.
 
         :Returns:
 
@@ -1126,13 +1213,15 @@ class Group(Mixin, Mapping):
         self._groups[name] = group
         return group
 
-    def _create_variable(self, name, var, var_attrs):
+    def _create_variable(self, name, var, var_attrs, shape=None):
         """Create a new variable in this group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
-             Parameters *name*, *var*, and *var_attrs* are identical
-             those parameter for `Variable.__init__`.
+             Parameters *name*, *var*, *var_attrs*, and *shape* are
+             identical those parameters for `Variable.__init__`.
 
         :Returns:
 
@@ -1140,7 +1229,7 @@ class Group(Mixin, Mapping):
                 The new variable.
 
         """
-        variable = self.__Variable(name, self, var, var_attrs)
+        variable = self.__Variable(name, self, var, var_attrs, shape)
         self._variables[name] = variable
         return variable
 
@@ -1207,6 +1296,8 @@ class Group(Mixin, Mapping):
     def attrs(self):
         """The group attributes.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `dict`
@@ -1218,6 +1309,8 @@ class Group(Mixin, Mapping):
     @property
     def dimensions(self):
         """The dimensions defined in this group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -1231,6 +1324,8 @@ class Group(Mixin, Mapping):
     def groups(self):
         """The sub-groups.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `dict`
@@ -1242,6 +1337,8 @@ class Group(Mixin, Mapping):
     @property
     def is_root(self):
         """Whether or not this is the root group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -1255,6 +1352,8 @@ class Group(Mixin, Mapping):
     def name(self):
         """The name of the group in its parent group.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `str`
@@ -1266,6 +1365,8 @@ class Group(Mixin, Mapping):
     @property
     def path(self):
         """The full absolute path of the group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -1292,6 +1393,8 @@ class Group(Mixin, Mapping):
     def variables(self):
         """The dimensions defined in this group.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `dict`
@@ -1309,6 +1412,8 @@ class Group(Mixin, Mapping):
         _structure=False,
     ):
         """A full description of the group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
 
@@ -1385,6 +1490,8 @@ class Group(Mixin, Mapping):
 
         'other' should be another Group (or File) object.
 
+        .. versionadded:: (cfdm) NEXTVERSION
+
         """
         group = self
         while group is not None:
@@ -1404,6 +1511,8 @@ class Group(Mixin, Mapping):
         If `True`, then *other* is a sub-group of this group.
 
         'other' should be another Group (or File) object.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         """
         while other is not None:
@@ -1559,7 +1668,7 @@ class File(Group):
                 * ``'maximal'``
 
                   All relevant metadata is retrieved from the dataset
-                  and cached. The dataset then never needs to
+                  and cached. The dataset then does not need to
                   revisited except to access the variable data arrays.
 
                 Maximal metadata retrieval can also be applied to an
@@ -1656,7 +1765,7 @@ class File(Group):
 
         if isinstance(dataset, pyfive.File):
             # --------------------------------------------------------
-            # Input (subclass of) `pyfive.File`
+            # Input `pyfive.File`-like
             # --------------------------------------------------------
             nc = dataset
             attrs = dataset.attrs
@@ -1803,6 +1912,7 @@ class File(Group):
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
+        # Cache more metadata
         if metadata_strategy == "maximal":
             self.cache_maximal_metadata()
         elif metadata_strategy != "minimal":
@@ -1824,11 +1934,19 @@ class File(Group):
             self.structure()
 
     def __enter__(self):
-        """Enter the runtime context related to this object."""
+        """Enter the runtime context related to this object.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Exit the runtime context and close the file."""
+        """Exit the runtime context and close the file.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
         self.close()
 
     @property
@@ -1911,6 +2029,8 @@ class File(Group):
 
         Closes the underlying netCDF dataset, but not if it is not
         owned by this `File` instance.
+
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -1996,15 +2116,30 @@ class File(Group):
         print(log)
 
     def cache_maximal_metadata(self):
-        """TODO.
+        """Cache all relevant metadata from the dataset.
 
-        Eagerly execute all methods that still might need to visit the
-        dataset to get metadata. These methods cache their results.
+        Any metadata that is already cached is not re-retrieved from
+        the dataset. After running `cache_maximal_metadata`, the
+        dataset does not need to be revisited except to access the
+        variable data arrays.
+
+        Metadata may have already been cached by the backend library,
+        in which case retrieving it may by fast.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `None`
 
         """
+        # Execute `Group` methods that might access the dataset and
+        # which have not already been run via `Group.__init__`.
         for group in self.all_groups.values():
             group.path
 
+        # Execute `Variable` methods that might access the dataset and
+        # which have not already been run via `Variable.__init__`.
         for variable in self.all_variables.values():
             variable.__orthogonal_indexing__
             variable.dtype

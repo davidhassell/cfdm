@@ -573,11 +573,10 @@ class FileArray(Array):
                     filename = filesystem.open(filename, "rb")
                 except AttributeError:
                     raise AttributeError(
-                        f"Can't open {self.get_filename(normalise=True)!r}. "
-                        f"The file system object {filesystem!r} does not "
-                        "have an 'open' method. Please provide a valid "
-                        "file system object (e.g. a (subclass of an) "
-                        "fsspec.filesystem instance)."
+                        f"Can't open {filename!r}. The file system object "
+                        f"{filesystem!r} does not have an 'open' method. "
+                        "Please provide a valid file system object, such "
+                        "as a fsspec.filesystem instance."
                     )
                 except Exception as error:
                     raise RuntimeError(
