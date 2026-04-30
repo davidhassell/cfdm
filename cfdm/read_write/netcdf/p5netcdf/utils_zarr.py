@@ -155,10 +155,10 @@ def zarr_dimension_maps(group):
                 except KeyError:
                     raise NetCDFError(
                         "Zarr dimension name {name!r} couldn't be found "
-                        "in the group hierarchy"
+g                        "in the group hierarchy"
                     )
 
-            # TODO
+            # Look for an existing Dimension
             zarr_dim = None
             if g in group_to_dims:
                 # Group 'g' is already registered in the mapping

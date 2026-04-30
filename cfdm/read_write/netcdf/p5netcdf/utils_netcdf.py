@@ -165,9 +165,6 @@ def netcdf_file_close(root):
 def netcdf_file_dtype(variable):
     """The numpy data type of variable opened with `netcdf_file`.
 
-    It is assumed, but not checked, that the backend is indeed
-    `netcdf_file`.
-    
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
