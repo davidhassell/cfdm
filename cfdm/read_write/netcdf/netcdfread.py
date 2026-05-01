@@ -30,6 +30,7 @@ from .constants import (
     CF_QUANTIZATION_PARAMETERS,
     NETCDF_MAGIC_NUMBERS,
     NETCDF_QUANTIZATION_PARAMETERS,
+    PP_UM_MAGIC_NUMBERS,
 )
 
 logger = logging.getLogger(__name__)
@@ -581,7 +582,7 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_errors"] = nc._open_log
+        g["dataset_open_errors"] = nc.open_log(display=False)
 
         if g["debug"]:
             logger.debug(
@@ -773,13 +774,16 @@ class NetCDFRead(IORead):
         except FileNotFoundError:
             raise
         except Exception:
-            # Can't read 4 bytes from the file, so it can't be netCDF
-            # or CDL.
+            # Can't read 4 bytes from the file, so it can't be netCDF,
+            # CDL or PP/UM.
             d_type = None
         else:
             # Is it a netCDF-3 or netCDF-4 binary file?
+            print(magic_number)
             if magic_number in NETCDF_MAGIC_NUMBERS:
                 d_type = "netCDF"
+            elif magic_number in PP_UM_MAGIC_NUMBERS:
+                d_type = "PP/UM"
             else:
                 # Is it a CDL text file?
                 try:
@@ -1035,7 +1039,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Parse the 'dataset_type' keyword parameter
         # ------------------------------------------------------------
-        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Kerchunk")
+        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Kerchunk", "PP/UM")
         if dataset_type is not None:
             if isinstance(dataset_type, str):
                 dataset_type = (dataset_type,)
@@ -1154,7 +1158,11 @@ class NetCDFRead(IORead):
             # Must use `zarr` for Zarr and Kerchunk datasets
             netcdf_backend = ("zarr",)
         elif d_type == "pyfive.File":
+            # Don't need a backend for `pyfive.File` instances
             netcdf_backend = None
+        elif d_type == "PP/UM":
+            # Must use `ppfive` for PP/UM datasets
+            netcdf_backend = "ppfive"
         elif netcdf_backend is None:
             # By default, try netCDF backends in the following order.
             #
@@ -1166,6 +1174,7 @@ class NetCDFRead(IORead):
                 "netcdf_file",  # netCDF-3
                 "h5py",  # netCDF-4
                 "netCDF4",  # netCDF-3 and netCDF-4
+                "ppfive",  # PP and UM
             )
         else:
             valid_netcdf_backends = (
@@ -1174,6 +1183,7 @@ class NetCDFRead(IORead):
                 "h5py",
                 "netCDF4",
                 "zarr",
+                "ppfive",
             )
             if isinstance(netcdf_backend, str):
                 netcdf_backend = (netcdf_backend,)

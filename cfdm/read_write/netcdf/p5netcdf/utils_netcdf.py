@@ -47,7 +47,7 @@ def netCDF4_open(dataset, options):
             * directory-like (such as `fsspec.mapping.FSMap`)
 
              An exception is raised if the library can't interpret the
-             dataset definition.
+             *dataset*.
 
         options: `dict`
             Additional keyword parameters to pass to
@@ -111,7 +111,7 @@ def netcdf_file_open(dataset, options):
             * directory-like (such as `fsspec.mapping.FSMap`)
 
              An exception is raised if the library can't interpret the
-             dataset definition.
+             *dataset*.
 
         options: `dict`
             Additional keyword parameters to pass to `netcdf_file`.

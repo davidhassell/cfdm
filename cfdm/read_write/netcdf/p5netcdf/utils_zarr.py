@@ -257,7 +257,7 @@ def zarr_open(dataset, options):
             * directory-like (such as `fsspec.mapping.FSMap`)
 
              An exception is raised if the library can't interpret the
-             dataset definition.
+             *dataset*.
 
         options: `dict`
             Additional keyword parameters to pass to `zarr.open`.

@@ -502,7 +502,9 @@ class read(ReadWrite):
         self.dataset_type = dataset_type
 
         # Recognised netCDF dataset formats
-        self.netCDF_dataset_types = set(("netCDF", "CDL", "Zarr", "Kerchunk"))
+        self.netCDF_dataset_types = set(
+            ("netCDF", "CDL", "Zarr", "Kerchunk", "PP/UM")
+        )
 
         # Allowed dataset formats
         self.allowed_dataset_types = self.netCDF_dataset_types.copy()

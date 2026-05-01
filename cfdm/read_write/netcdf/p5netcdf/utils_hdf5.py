@@ -86,10 +86,14 @@ def hdf5_parse_group_structure(group):
     # Categorise objects without double-reading items from the HDF5
     # dataset
     lib = group.lib
+    lib_has_groups = hasattr(lib, "Group")
+
     for name, h5 in group._grp.items():
-        if isinstance(h5, lib.Group):
+
+        if lib_has_groups and isinstance(h5, lib.Group):
             subgroups[name] = h5
-        elif isinstance(h5, lib.Dataset):
+        else:
+            # Everyhing else must be a Dataset
             datasets[name] = h5
 
     # Extract dimension scales (strictly ignoring scalars)
@@ -181,7 +185,7 @@ def pyfive_open(dataset, options):
             * directory-like (such as `fsspec.mapping.FSMap`)
 
              An exception is raised if the library can't interpret the
-             dataset definition.
+             *dataset*.
 
         options: `dict`
             Additional keyword parameters to pass to `pyfive.File`.
@@ -218,7 +222,7 @@ def h5py_open(dataset, options):
             * directory-like (such as `fsspec.mapping.FSMap`)
 
              An exception is raised if the library can't interpret the
-             dataset definition.
+             *dataset*.
 
         options: `dict`
             Additional keyword parameters to pass to `h5py.File`.

@@ -5,7 +5,13 @@ from os.path import expanduser, expandvars
 
 import numpy as np
 
-from .utils import NetCDFError, _parse_attributes
+from .utils import (
+    NetCDFError,
+    _cdl_is_string_list,
+    _cdl_type,
+    _cdl_value,
+    _parse_attributes,
+)
 from .utils_hdf5 import (
     h5py_open,
     hdf5_dimension_names,
@@ -20,6 +26,7 @@ from .utils_netcdf import (
     netcdf_file_open,
     netcdf_file_parse_group_structure,
 )
+from .utils_um import ppfive_open
 from .utils_zarr import zarr_open, zarr_parse_group_structure
 
 np.set_printoptions(floatmode="maxprec")
@@ -27,8 +34,11 @@ np.set_printoptions(floatmode="maxprec")
 _iam = "p5netcdf"
 
 
+import numpy as np
+
+
 class Mixin:
-    """Mixin class for methods in common.
+    """Mixin class for common methods.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -603,7 +613,7 @@ class Variable(Mixin):
         chunks = getattr(self, "_chunks", None)
         if chunks is None:
             match self.backend:
-                case "pyfive" | "h5py":
+                case "pyfive" | "h5py" | "ppfive":
                     chunks = self._var.chunks
 
                 case "netCDF4":
@@ -679,7 +689,7 @@ class Variable(Mixin):
         dtype = getattr(self, "_dtype", None)
         if dtype is None:
             match self.backend:
-                case "pyfive" | "zarr" | "netCDF4" | "h5py":
+                case "pyfive" | "zarr" | "netCDF4" | "h5py" | "ppfive":
                     dtype = self._var.dtype
                 case "netcdf_file":
                     dtype = netcdf_file_dtype(self)
@@ -869,7 +879,7 @@ class Variable(Mixin):
         if chunking is None:
             chunks = self.chunks
             match self.backend:
-                case "pyfive" | "zarr" | "h5py":
+                case "pyfive" | "zarr" | "h5py" | "ppfive":
                     if chunks is None:
                         chunking = "contiguous"
                     else:
@@ -1004,7 +1014,7 @@ class Variable(Mixin):
             return dims
 
         match self.backend:
-            case "pyfive" | "h5py":
+            case "pyfive" | "h5py" | "ppfive":
                 dims = []
                 for dim_name in hdf5_dimension_names(self):
                     # Walk up the tree to find where the dimension is
@@ -1340,7 +1350,7 @@ class Group(Mixin, Mapping):
 
         """
         match self.backend:
-            case "pyfive" | "h5py":
+            case "pyfive" | "h5py" | "ppfive":
                 hdf5_parse_group_structure(self)
 
             case "netCDF4":
@@ -1710,12 +1720,14 @@ class File(Group):
                 ``'netCDF4'``      `netCDF4`
                 ``'netcdf_file'``  `scipy.io.netcdf_file`
                 ``'h5py'``         `h5py`
+                ``'ppfive'``       `ppfive`
                 =================  ======================
 
                 By default *backend* is `None`, which is equivalent to
                 providing the ordered sequence of backends:
 
-                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
+                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py',
+                'ppfive')``
 
             metadata_strategy: `str`, optional
                 The strategy used for retrieving, via the backend
@@ -1911,6 +1923,7 @@ class File(Group):
                 "netCDF4": netCDF4_open,
                 "netcdf_file": netcdf_file_open,
                 "h5py": h5py_open,
+                "ppfive": ppfive_open,
             }
             if backend is not None:
                 # Select backends
@@ -2131,7 +2144,7 @@ class File(Group):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `structure`
+        .. seealso:: `structure`, `ncdump`
 
         :Parameters:
 
@@ -2170,6 +2183,139 @@ class File(Group):
             )
         )
 
+        if not display:
+            return out
+
+        print(out)
+
+    def ncdump(self, display=True):
+        """A text CDL description of the dataset.
+
+        The text representation is in CDL (network Common Data form
+        Language) form, and emulates the output of `ncdump -h`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `dump`, `structure`
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the CDL description as a
+                string. By default the description is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The CDL description. If *display* is True then the
+                description is printed and `None` is
+                returned. Otherwise the description is returned as a
+                string.
+
+        """
+        import re
+
+        lines = []
+
+        ds_name = re.sub(r"\.nc$", "", self.filename.split("/")[-1])
+        if ds_name:
+            ds_name += " "
+
+        lines.append(f"netcdf {ds_name}{{")
+
+        def _render_group(g, depth=0):
+            """Recursively traverse and render netCDF groups into CDL.
+
+            :Parameters:
+
+                g: `Group` or `File`
+                    The group object to render.
+
+                depth: `int`
+                    The current nesting level (0 for root, 1 for
+                    first-level groups, etc.). Used to calculate
+                    indents for keywords (2depth), members (2depth+5),
+                    and attributes (2depth+9).
+
+            :Returns:
+
+                `None`
+
+            """
+            # The structural keywords (dimensions:, variables:,
+            # group:): 0, 2, 4, ...
+            #
+            # Root (0) -> 0 spaces
+            # Sub-group (1) -> 2 spaces
+            # Sub-sub-group (2) -> 4 spaces
+            label_indent = " " * (2 * depth)
+
+            # Base indentation: 1, 3, ...
+            base_indent = 2 * depth + 1
+            # Indentation for dimension and variable definitions: 5,
+            # 7, 9, ...
+            defn_indent = " " * (base_indent + 4)
+            # Indentation for attributes: 9, 11, 13, ...
+            attr_indent = " " * (base_indent + 8)
+
+            # Dimensions
+            if g.dimensions:
+                lines.append(f"{label_indent}dimensions:")
+                for name, dim in g.dimensions.items():
+                    if dim.isunlimited():
+                        d = f"UNLIMITED ; // ({dim.size} currently)"
+                    else:
+                        d = f"{dim.size} ;"
+
+                    lines.append(f"{defn_indent}{name} = {d}")
+
+            # Variables
+            if g.variables:
+                lines.append(f"{label_indent}variables:")
+                for name, var in g.variables.items():
+                    dtype = _cdl_type(var.dtype)
+
+                    dims = ", ".join(var.dimensions)
+                    if dims:
+                        dims = f"({dims})"
+
+                    lines.append(f"{defn_indent}{dtype} {name}{dims} ;")
+
+                    # Variable attributes
+                    for attr, value in var.attrs.items():
+                        pfx = "string " if _cdl_is_string_list(value) else ""
+                        lines.append(
+                            f"{attr_indent}{pfx}{name}:{attr} = "
+                            f"{_cdl_value(value)} ;"
+                        )
+
+            # Group attributes
+            if g.attrs:
+                label = "group" if depth > 0 else "global"
+
+                lines.append(f"\n{label_indent}// {label} attributes:")
+
+                for attr, value in g.attrs.items():
+                    pfx = "string " if _cdl_is_string_list(value) else ""
+                    lines.append(
+                        f"{attr_indent}{pfx}:{attr} = {_cdl_value(value)} ;"
+                    )
+
+            # Recursive sub-groups
+            for name, group in g.groups.items():
+                lines.append(f"\n{label_indent}group: {name} {{")
+
+                _render_group(group, depth + 1)
+
+                # Braces are at 2, 4, 6... (match the 'group:' keyword)
+                b_indent = " " * (2 * (depth + 1))
+                lines.append(f"{b_indent}}} // group {name}")
+
+        _render_group(self)
+
+        lines.append("}")
+
+        out = "\n".join(lines)
         if not display:
             return out
 
