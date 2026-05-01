@@ -962,7 +962,7 @@ class Variable(Mixin):
             )
 
         if data:
-            lines.append(f"{i1}Data:")
+            lines.append(f"{i1}Data {self.dtype.name}:")
             lines.append(
                 f"{i2}{np.array2string(self[...], separator=', ', prefix=i2)}"
             )
@@ -1612,13 +1612,13 @@ Group._Group__Group = Group
 class File(Group):
     """A netCDF dataset.
 
-    A `File` represents the netCDF dataset as a collection of groups
-    (`Group` objects), dimensions (`Dimension` objects), variables
-    (`Variable` objects), and attributes.
+    A `File` represents the netCDF dataset as a collection of
+    groups (`Group` objects), dimensions (`Dimension` objects),
+    variables (`Variable` objects), and attributes.
 
-    A `File` may be intantiated from a `str` or `pathlib.Path` path, a
-    file-like object, a `pyfive.File` object, or a subclass of a
-    `pyfive.File` object.
+    A `File` may be intantiated from a `str` or `pathlib.Path`
+    path, a file-like object, a `pyfive.File` object, or a subclass of
+    a `pyfive.File` object.
 
     **Instantiation from a subclass of `pyfive.File`**
 
@@ -1698,6 +1698,23 @@ class File(Group):
 
                       >>> py5 = pyfive.File('file.nc')
                       >>> nc = p5netcdf.File(py5)
+
+                   A subclass of `pyfive.File` (e.g. `myfive.File`)
+                   must expose following attributes and methods from
+                   the `pyive` API:
+               
+                   * `myfive.File.attrs`
+                   * `myfive.File.close`
+                   * `myfive.File.filename`
+                   * `myfive.File.items`
+                   * `myfive.Group.attrs`
+                   * `myfive.Group.items`
+                   * `myfive.Dataset.attrs`
+                   * `myfive.Dataset.chunks`
+                   * `myfive.Dataset.dtype`
+                   * `myfive.Dataset.maxshape`
+                   * `myfive.Dataset.name`
+                   * `myfive.Dataset.shape`
 
             mode: `str`, optional
                 The access mode used when using `pyfive.File` to open
@@ -1818,10 +1835,11 @@ class File(Group):
                   groups.
 
             verbose: `int`, optional
-                 Set the verbosity. If *verbose* is less than ``1``
-                 then there is no verbose output; more output is
-                 produced for progressively larger values of
-                 *verbose*. Values of ``4`` and higher produce the
+
+                 Set the verbosity. If *verbose* is ``0`` there is no
+                 verbose output; more output is produced for
+                 progressively larger values of *verbose*. Values of
+                 ``4`` and higher (or the value ``-1``) produce the
                  same maximally verbose output.
 
         """
@@ -1845,7 +1863,7 @@ class File(Group):
 
         if isinstance(dataset, pyfive.File):
             # --------------------------------------------------------
-            # Input `pyfive.File`-like
+            # Input is `pyfive.File`-like
             # --------------------------------------------------------
             nc = dataset
             attrs = dataset.attrs
@@ -1877,7 +1895,7 @@ class File(Group):
 
         else:
             # --------------------------------------------------------
-            # Input string-like, file-like, or directory-like
+            # Input is string-like, file-like, or directory-like
             # --------------------------------------------------------
             # Attempt to get the dataset name and protocol
             try:
@@ -1967,7 +1985,7 @@ class File(Group):
         self._dataset = dataset
         self._dataset_name = dataset_name
 
-        # Set the file system protocol, but only if we've found out
+        # Cache the file system protocol, but only if we've found out
         # what it is.
         if protocol == -1:
             # -1 is a non-string and non-None code for an unknown file
@@ -1977,12 +1995,14 @@ class File(Group):
             if isinstance(protocol, tuple):
                 protocol = protocol[0]
 
-            if not protocol:
+            if protocol in ("", "file", "local", None):
                 protocol = "file"
+                is_local = True
+            else:
+                is_local = False
 
             self._protocol = protocol
-            is_local = protocol in ("file", "local", None)
-
+                
         self._is_local = is_local
 
         # ------------------------------------------------------------
@@ -2006,7 +2026,7 @@ class File(Group):
         if verbose >= 1:
             self.open_log()
 
-        if verbose >= 4:
+        if verbose == -1 or verbose >= 4:
             print()
             self.dump(data=True)
         elif verbose >= 3:
@@ -2308,8 +2328,8 @@ class File(Group):
                 _render_group(group, depth + 1)
 
                 # Braces are at 2, 4, 6... (match the 'group:' keyword)
-                b_indent = " " * (2 * (depth + 1))
-                lines.append(f"{b_indent}}} // group {name}")
+                brace_indent = " " * (2 * (depth + 1))
+                lines.append(f"{brace_indent}}} // group {name}")
 
         _render_group(self)
 

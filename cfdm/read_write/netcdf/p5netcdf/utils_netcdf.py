@@ -140,7 +140,7 @@ def netcdf_file_close(root):
 
     :Parameters:
 
-        root: `p5netcdf.File`
+        root: `File`
             The root group.
 
     :Returns:
