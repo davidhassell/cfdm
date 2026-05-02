@@ -6,6 +6,8 @@ def netCDF4_parse_group_structure(group):
 
     Parses variables, dimensions, and sub-groups, recursively.
 
+    .. versionadded:: (cfdm) NEXTVERSION
+
     :Parameters:
 
         group: `Group` or `File`
@@ -76,6 +78,8 @@ def netcdf_file_parse_group_structure(group):
 
     Parses variables, dimensions in the root. There are no
     sub-groups in netCDF-3.
+
+    .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 

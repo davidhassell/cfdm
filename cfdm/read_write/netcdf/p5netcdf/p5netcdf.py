@@ -217,26 +217,6 @@ class Mixin:
 
         return root
 
-    @property
-    def thread_safe(self):
-        """Whether the backend allows thread-safe dataset access.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Returns:
-
-            `bool`
-                `True` if the backend library allows thread-safe
-                dataset access, otherwise `False`.
-
-        """
-        thread_safe = getattr(self.root, "_thread_safe", None)
-        if thread_safe is None:
-            thread_safe = self.backend not in ("netCDF4", "h5py")
-            self.root._thread_safe = thread_safe
-
-        return thread_safe
-
     def structure(
         self,
         display=True,
@@ -397,10 +377,6 @@ class Dimension(Mixin):
     ):
         """A full description of the dimension.
 
-        The full description includes the full group, variable and
-        dimension structure, with all variable, group and global
-        attributes. No variable data arrays are shown..
-
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `structure`
@@ -465,7 +441,7 @@ class Dimension(Mixin):
         """
         return self._isunlimited
 
-
+    
 class Variable(Mixin):
     """A netCDF variable.
 
@@ -973,23 +949,6 @@ class Variable(Mixin):
 
         print(out)
 
-    def group(self):
-        """The parent group that defines this variable.
-
-        This is an alias for `parent`.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        .. seealso:: `parent`
-
-        :Returns:
-
-            `Group` or `File`
-                The parent group.
-
-        """
-        return self._parent
-
     def get_dims(self):
         """Return the dimensions of the variable.
 
@@ -1056,6 +1015,62 @@ class Variable(Mixin):
         self._dims = dims
         return dims
 
+    def getncattr(self, name):
+        """Get an attribute value by name.
+
+        This method has the same API as `netCDF4.Variable.getncattr`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            name: `str`
+                The attribute name.
+
+        :Returns:
+
+                The attribute value.
+
+        """
+        try:
+            return self.attrs[name]
+        except KeyError:
+            raise AttributeError(
+                f"{self.__class__.__name__!r} object has no attribute "
+                f"{name!r}"
+            )
+
+    def group(self):
+        """The parent group that defines this variable.
+
+        This is an alias for `parent`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `parent`
+
+        :Returns:
+
+            `Group` or `File`
+                The parent group.
+
+        """
+        return self._parent
+        
+    def ncattrs(self):
+        """Return a list of attribute names.
+
+        This method has the same API as `netCDF4.Variable.ncattrs`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `list` of `str`
+                The attribute names.
+
+        """
+        return list(self.attrs.keys())
 
 class Group(Mixin, Mapping):
     """A netCDF group.
@@ -1157,20 +1172,6 @@ class Group(Mixin, Mapping):
                 # Move up one group
                 current = current.parent
                 continue
-
-            #               current = current.parent
-            #               if current is None:
-            #                   if path.startswith("/"):
-            #                       start = ""
-            #                   else:
-            #                       start = f" from group {self.path}"
-            #
-            #                   raise KeyError(
-            #                       f"Invalid path {path!r}{start}: Attempted to "
-            #                       "navigate above the root group."
-            #                   )
-            #
-            #                continue
 
             if part == ".":
                 continue
@@ -1571,14 +1572,80 @@ class Group(Mixin, Mapping):
 
         print(out)
 
-    def is_sub_group(self, other):
-        """Return True if the group is a subgroup of, or is, 'other'.
+    def getncattr(self, name):
+        """Get an attribute value by name.
 
-        If `True`, then *other* is an ancestor of this group.
-
-        'other' should be another Group (or File) object.
+        This method has the same API as `netCDF4.Group.getncattr`.
 
         .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            name: `str`
+                The attribute name.
+
+        :Returns:
+
+                The attribute value.
+
+        """
+        try:
+            return self.attrs[name]
+        except KeyError:
+            raise AttributeError(
+                f"{self.__class__.__name__!r} object has no attribute "
+                f"{name!r}"
+            )
+
+    def is_ancestor_group(self, other):
+        """Return True if the group is an ancestor of another group.
+
+        A group is considered to be an ancestor of itself.
+
+        If `True`, then *other* is a sub-group of this group.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            other: `Group` or `File`
+                Another group to test against.
+
+        :Returns:
+
+            `bool`
+                `True` if this group is an ancestor of *other*, or if
+                this group is *other* itself. `False` otherwise.
+
+        """
+        while other is not None:
+            if self is other:
+                return True
+
+            try:
+                other = other.parent
+            except AttributeError:
+                return False
+
+        return False
+
+    def is_sub_group(self, other):
+        """Return True if the group is a subgroup of, another group.
+
+        A group is considered to be a sub-group of itself.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            other: `Group` or `File`
+                Another group to test against.
+
+        :Returns:
+
+            `bool`
+                `True` if this group is a subgroup of *other*, or if
+                this group is *other* itself. `False` otherwise.
 
         """
         group = self
@@ -1593,27 +1660,20 @@ class Group(Mixin, Mapping):
 
         return False
 
-    def is_ancestor_group(self, other):
-        """Return True if the group is an ancestor of, or is, 'other'.
+    def ncattrs(self):
+        """Return a list of attribute names.
 
-        If `True`, then *other* is a sub-group of this group.
-
-        'other' should be another Group (or File) object.
+        This method has the same API as `netCDF4.Group.ncattrs`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        :Returns:
+
+            `list` of `str`
+                The attribute names.
+
         """
-        while other is not None:
-            if self is other:
-                return True
-
-            try:
-                other = other.parent
-            except AttributeError:
-                return False
-
-        return False
-
+        return list(self.attrs.keys())
 
 # Set __Group to `Group`, now that `Group` has been defined. This is
 # used to create sub-groups.
@@ -1811,7 +1871,6 @@ class File(Group):
                   groups.
 
             verbose: `int`, optional
-
                  Set the verbosity. If *verbose* is ``0`` there is no
                  verbose output, and more output is produced for
                  progressively larger values of *verbose*. Values of
@@ -2258,6 +2317,46 @@ class File(Group):
 
         print(log)
 
+    def ncattrs(self):
+        """Return a list of global attribute names.
+
+        This method has the same API as `netCDF4.Dataset.ncattrs`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `list` of `str`
+                The global attribute names.
+
+        """
+        return list(self.attrs.keys())
+
+    def getncattr(self, name):
+        """Get a global attribute value by name.
+
+        This method has the same API as `netCDF4.Dataset.getncattr`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            name: `str`
+                The attribute name.
+
+        :Returns:
+
+                The attribute value.
+
+        """
+        try:
+            return self.attrs[name]
+        except KeyError:
+            raise AttributeError(
+                f"{self.__class__.__name__!r} object has no attribute "
+                f"{name!r}"
+            )
+
     def cache_metadata(self, strategy="maximal"):
         """Cache all relevant metadata from the dataset.
 
@@ -2290,9 +2389,9 @@ class File(Group):
                   cached. For instance, this includes all variable and
                   group attributes, but may exclude (depending on the
                   backend library) the variable shapes. Minimal
-                  metdata caching is always applied during
-                  `File.__init__`, so there is no benefit in using
-                  this option.
+                  metdata caching is always applied during `File`
+                  instantiation, so there is no benefit in using this
+                  option.
 
         :Returns:
 

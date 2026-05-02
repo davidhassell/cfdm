@@ -205,13 +205,13 @@ def zarr_raw_dimension_names(variable):
 
     :Parameters:
 
-        var: `Variable`
+        variable: `Variable`
             The variable object.
 
     :Returns:
 
         `list` of `str`
-            The raw dimension names stored in the embdedded
+            The raw dimension names stored in the embedded
             `zarr.Variable`. A scalar variable will have an empty
             list.
 

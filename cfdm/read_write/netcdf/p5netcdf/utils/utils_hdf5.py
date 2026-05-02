@@ -10,9 +10,11 @@ def hdf5_dimension_names(variable):
     Raises a `NetCDFError` exception if the DIMENSION_LIST attribute
     is not appropriately set.
 
+    .. versionadded:: (cfdm) NEXTVERSION
+
     :Parameters:
 
-        variabe: `Variable`
+        variable: `Variable`
             The variable.
 
     :Returns:

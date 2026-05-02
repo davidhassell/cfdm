@@ -18,7 +18,8 @@ def cdl_format_group(g, lines, depth=0):
         depth: `int`
             The current nesting level (0 for root, 1 for first-level
             groups, etc.). Used to calculate indents for keywords
-            (2depth), members (2depth+5), and attributes (2*depth+9).
+            (2*depth), members (2*depth+5), and attributes
+            (2*depth+9).
 
     :Returns:
 
