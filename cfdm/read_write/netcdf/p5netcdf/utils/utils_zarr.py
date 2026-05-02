@@ -1,4 +1,4 @@
-from .utils import NetCDFError
+from .utils_general import NetCDFError
 
 
 # --------------------------------------------------------------------

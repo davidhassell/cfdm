@@ -21,7 +21,7 @@ class Testp5netcdf(unittest.TestCase):
     def setUpClass(cls):
         """Create the test file."""
         tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
-#        tmpfile = "test_p5_example.nc"
+        #        tmpfile = "test_p5_example.nc"
 
         # ------------------------------------------------------------
         # NETCDF4
@@ -888,6 +888,8 @@ class Testp5netcdf(unittest.TestCase):
         self.assertIs(self.p["/"], self.p)
         self.assertIs(self.p["//"], self.p)
         self.assertIs(self.p["/."], self.p)
+        self.assertIs(self.p["."], self.p)
+        self.assertIs(self.p["./"], self.p)
         self.assertIs(self.p["./."], self.p)
         self.assertIs(self.p["/./."], self.p)
         self.assertIs(self.p["/././"], self.p)
@@ -903,6 +905,8 @@ class Testp5netcdf(unittest.TestCase):
 
         self.assertIs(self.p["forecast"]["/"], self.p["/"])
         self.assertIs(self.p["forecast"][""], self.p["/forecast"])
+        self.assertIs(self.p["forecast"]["."], self.p["/forecast"])
+        self.assertIs(self.p["forecast"]["./"], self.p["/forecast"])
         self.assertIs(self.p["forecast"]["/forecast"], self.p["/forecast"])
         self.assertIs(
             self.p["forecast"]["/forecast/model/q"],

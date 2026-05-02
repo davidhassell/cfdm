@@ -7,27 +7,22 @@ import numpy as np
 
 from .utils import (
     NetCDFError,
-    _cdl_is_string_list,
-    _cdl_type,
-    _cdl_value,
-    _parse_attributes,
-)
-from .utils_hdf5 import (
+    cdl_format_group,
     h5py_open,
     hdf5_dimension_names,
     hdf5_parse_group_structure,
-    pyfive_open,
-)
-from .utils_netcdf import (
     netCDF4_open,
     netCDF4_parse_group_structure,
     netcdf_file_close,
     netcdf_file_dtype,
     netcdf_file_open,
     netcdf_file_parse_group_structure,
+    parse_attributes,
+    ppfive_open,
+    pyfive_open,
+    zarr_open,
+    zarr_parse_group_structure,
 )
-from .utils_um import ppfive_open
-from .utils_zarr import zarr_open, zarr_parse_group_structure
 
 np.set_printoptions(floatmode="maxprec")
 
@@ -65,7 +60,7 @@ class Mixin:
 
     @property
     def dataset(self):
-        """The dataset definition, as passed to `File`.
+        """The dataset definition, as originally passed to `File`.
 
         If an original string-like dataset definition contained tilde
         or environment variables, then these are expanded in the
@@ -510,7 +505,7 @@ class Variable(Mixin):
         self._var = var
         self._parent = parent
         self._var_attrs = var_attrs
-        self._attrs = _parse_attributes(self, var_attrs)
+        self._attrs = parse_attributes(self, var_attrs)
         if shape is not None:
             self._shape = shape
 
@@ -1106,59 +1101,73 @@ class Group(Mixin, Mapping):
         self._grp = grp
         self._is_root = parent is None
 
-        self._attrs = _parse_attributes(self, grp_attrs)
+        self._attrs = parse_attributes(self, grp_attrs)
 
         self._dimensions = {}
         self._variables = {}
         self._groups = {}
         self._parse_group_structure()
 
-    def __getitem__(self, key):
-        """Get a variable or group.
+    def __getitem__(self, path):
+        """Get a variable or group from its path.
 
         Absolute and relative nested paths are allowed, which may
         include ``.`` (current group) and ``..`` (parent group)
-        elements. A trailing ``/`` in the path is ignored. An empty
-        path (``''``) is equivalent to ``'/'``.
+        elements. The empty path ``''`` is equivalent to ``'.'``. A
+        trailing ``/`` in non-empty path is ignored.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        if key == "":
+        if path == "":
             return self
 
         # Still here? Determine the starting point
         current = self
-        if key.startswith("/"):
+        if path.startswith("/"):
             current = self.root
         else:
             current = self
 
         # Split the path into parts (ignoring empty strings from
         # double-slashes)
-        segments = [s for s in key.split("/") if s]
+        segments = [s for s in path.split("/") if s]
 
-        # Handle a key of "/", "//", "///", etc.
+        # Handle a path of "/", "//", "///", etc.
         if not segments:
             return current
 
         # Still here? Then loop through the segments
         for i, part in enumerate(segments):
             if part == "..":
-                # Move up one group
-                current = current.parent
-                if current is None:
-                    if key.startswith("/"):
+                if current.is_root:
+                    if path.startswith("/"):
                         start = ""
                     else:
                         start = f" from group {self.path}"
 
                     raise KeyError(
-                        f"Invalid path {key!r}{start}: Attempted to "
+                        f"Invalid path {path!r}{start}: Attempted to "
                         "navigate above the root group."
                     )
 
+                # Move up one group
+                current = current.parent
                 continue
+
+            #               current = current.parent
+            #               if current is None:
+            #                   if path.startswith("/"):
+            #                       start = ""
+            #                   else:
+            #                       start = f" from group {self.path}"
+            #
+            #                   raise KeyError(
+            #                       f"Invalid path {path!r}{start}: Attempted to "
+            #                       "navigate above the root group."
+            #                   )
+            #
+            #                continue
 
             if part == ".":
                 continue
@@ -1171,24 +1180,24 @@ class Group(Mixin, Mapping):
                 if i == len(segments) - 1:
                     return current.variables[part]
 
-                if key.startswith("/"):
+                if path.startswith("/"):
                     start = ""
                 else:
                     start = f" from group {self.path}"
 
                 raise KeyError(
-                    f"Invalid path {key!r}{start}: "
+                    f"Invalid path {path!r}{start}: "
                     f"{current.variables[part].path} is a variable "
                     "and cannot have children"
                 )
             else:
-                if key.startswith("/"):
+                if path.startswith("/"):
                     start = ""
                 else:
                     start = f" from group {self.path}"
 
                 raise KeyError(
-                    f"Invalid path {key!r}{start}: Path element {part!r} "
+                    f"Invalid path {path!r}{start}: Path element {part!r} "
                     f"not found in group {current.path}"
                 )
 
@@ -1220,9 +1229,7 @@ class Group(Mixin, Mapping):
         pv = "" if len(self.variables) == 1 else "s"
         pg = "" if len(self.groups) == 1 else "s"
 
-        parent = self.parent
-        if parent is None:
-            # Root group
+        if self.is_root:
             path = ""
         else:
             path = f"{self.path}, "
@@ -1605,55 +1612,28 @@ class Group(Mixin, Mapping):
         return False
 
 
-# Set __Group to `Group`, now that `Group` has been defined.
+# Set __Group to `Group`, now that `Group` has been defined. This is
+# used to create sub-groups.
 Group._Group__Group = Group
 
 
 class File(Group):
-    """A netCDF dataset.
+    """A dataset viewed as netCDF.
 
-    A `File` represents the netCDF dataset as a collection of
-    groups (`Group` objects), dimensions (`Dimension` objects),
+    The dataset (a `File` object) is represented as a collection of
+    netCDF groups (`Group` objects), dimensions (`Dimension` objects),
     variables (`Variable` objects), and attributes.
-
-    A `File` may be intantiated from a `str` or `pathlib.Path`
-    path, a file-like object, a `pyfive.File` object, or a subclass of
-    a `pyfive.File` object.
-
-    **Instantiation from a subclass of `pyfive.File`**
-
-    A subclass of `pyfive.File` (e.g. `my_pyfive.File`) must reference
-    classes `my_pyfive.Group` and `my_pyfive.Dataset` that inherit
-    repectively from `pyfive.Group` and pyfive.Dataset`. The
-    sublcasses must expose following attributes and methods:
-
-    * `my_pyfive.File.attrs`
-    * `my_pyfive.File.close`
-    * `my_pyfive.File.filename`
-    * `my_pyfive.File.items`
-    * `my_pyfive.Group.attrs`
-    * `my_pyfive.Group.items`
-    * `my_pyfive.Dataset.attrs`
-    * `my_pyfive.Dataset.chunks`
-    * `my_pyfive.Dataset.dtype`
-    * `my_pyfive.Dataset.maxshape`
-    * `my_pyfive.Dataset.name`
-    * `my_pyfive.Dataset.shape`
 
     **Performance**
 
-    `netcdf` is "structure- and attribute-eager", meaning that during
-    `File` instantiation, the entire netCDF-4 group, variable, and
-    dimension structure is parsed; along with all group and variable
-    attributes. Variable data access is always via access to the
-    underlying (subclass of a) `pyfive.Dataset` object. Some
-    `Variable` and `Group` properties and methods also access an
-    underlying (subclass of a) `pyfive.Dataset` or `pyfive.Group`
-    object, but only for the first request, after which the result is
-    cached. For instance, the first time `Variable.shape` is requested
-    it is retrieved from the underlying (subclass of)
-    `pyfive.Dataset`, and subsequent requests access the shape that is
-    cached inside the `Variable` object.
+    `p5netcdf` is "structure- and attribute-eager", meaning that
+    during `File` instantiation, the entire netCDF group, variable,
+    and dimension structure is parsed; along with all group and
+    variable attributes. Variable data access is always via access to
+    the underlying backend library (see the *backend* parameter). Some
+    `Variable` and `Group` properties and methods might also access
+    the underlying backend but only for the first request, after which
+    the result is cached (see the *metadata_strategy* parameter).
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1699,22 +1679,15 @@ class File(Group):
                       >>> py5 = pyfive.File('file.nc')
                       >>> nc = p5netcdf.File(py5)
 
-                   A subclass of `pyfive.File` (e.g. `myfive.File`)
-                   must expose following attributes and methods from
-                   the `pyive` API:
-               
-                   * `myfive.File.attrs`
-                   * `myfive.File.close`
-                   * `myfive.File.filename`
-                   * `myfive.File.items`
-                   * `myfive.Group.attrs`
-                   * `myfive.Group.items`
-                   * `myfive.Dataset.attrs`
-                   * `myfive.Dataset.chunks`
-                   * `myfive.Dataset.dtype`
-                   * `myfive.Dataset.maxshape`
-                   * `myfive.Dataset.name`
-                   * `myfive.Dataset.shape`
+                   A subclass of `pyfive.File` must expose following
+                   classes, attributes and methods from the `pyfive`
+                   API: `!File.attrs` `!File.close`, `!File.filename`,
+                   `!File.items`, `!Group.attrs`, `!Group.items`,
+                   `Dataset.attrs`, `Dataset.chunks`, `Dataset.dtype`,
+                   `Dataset.maxshape`, `Dataset.name`,
+                   `Dataset.shape`; and its `!File` and `!Group`
+                   classes must be (registered as) subclasses of
+                   `pyfive.File` and `pyfive.Group` respectively.
 
             mode: `str`, optional
                 The access mode used when using `pyfive.File` to open
@@ -1724,8 +1697,8 @@ class File(Group):
             backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading the
                 dataset. An attempt to open the dataset is made by the
-                given backends in their order given, stopping after
-                the first successful read.
+                given backends in the order in which they are
+                provided, stopping after the first successful read.
 
                 The available backends are:
 
@@ -1944,11 +1917,17 @@ class File(Group):
                 "ppfive": ppfive_open,
             }
             if backend is not None:
-                # Select backends
+                # Restrict to selected backends
                 if isinstance(backend, str):
                     backend = (backend,)
 
-                open_functions = {b: open_functions[b] for b in backend}
+                try:
+                    open_functions = {b: open_functions[b] for b in backend}
+                except KeyError as error:
+                    raise ValueError(
+                        f"Invalid value for backend. Got {error}, "
+                        f"expected one of {tuple(open_functions)}"
+                    )
 
             nc = None
             for backend, func in open_functions.items():
@@ -2002,7 +1981,7 @@ class File(Group):
                 is_local = False
 
             self._protocol = protocol
-                
+
         self._is_local = is_local
 
         # ------------------------------------------------------------
@@ -2242,97 +2221,7 @@ class File(Group):
             ds_name += " "
 
         lines.append(f"netcdf {ds_name}{{")
-
-        def _render_group(g, depth=0):
-            """Recursively traverse and render netCDF groups into CDL.
-
-            :Parameters:
-
-                g: `Group` or `File`
-                    The group object to render.
-
-                depth: `int`
-                    The current nesting level (0 for root, 1 for
-                    first-level groups, etc.). Used to calculate
-                    indents for keywords (2depth), members (2depth+5),
-                    and attributes (2depth+9).
-
-            :Returns:
-
-                `None`
-
-            """
-            # The structural keywords (dimensions:, variables:,
-            # group:): 0, 2, 4, ...
-            #
-            # Root (0) -> 0 spaces
-            # Sub-group (1) -> 2 spaces
-            # Sub-sub-group (2) -> 4 spaces
-            label_indent = " " * (2 * depth)
-
-            # Base indentation: 1, 3, ...
-            base_indent = 2 * depth + 1
-            # Indentation for dimension and variable definitions: 5,
-            # 7, 9, ...
-            defn_indent = " " * (base_indent + 4)
-            # Indentation for attributes: 9, 11, 13, ...
-            attr_indent = " " * (base_indent + 8)
-
-            # Dimensions
-            if g.dimensions:
-                lines.append(f"{label_indent}dimensions:")
-                for name, dim in g.dimensions.items():
-                    if dim.isunlimited():
-                        d = f"UNLIMITED ; // ({dim.size} currently)"
-                    else:
-                        d = f"{dim.size} ;"
-
-                    lines.append(f"{defn_indent}{name} = {d}")
-
-            # Variables
-            if g.variables:
-                lines.append(f"{label_indent}variables:")
-                for name, var in g.variables.items():
-                    dtype = _cdl_type(var.dtype)
-
-                    dims = ", ".join(var.dimensions)
-                    if dims:
-                        dims = f"({dims})"
-
-                    lines.append(f"{defn_indent}{dtype} {name}{dims} ;")
-
-                    # Variable attributes
-                    for attr, value in var.attrs.items():
-                        pfx = "string " if _cdl_is_string_list(value) else ""
-                        lines.append(
-                            f"{attr_indent}{pfx}{name}:{attr} = "
-                            f"{_cdl_value(value)} ;"
-                        )
-
-            # Group attributes
-            if g.attrs:
-                label = "group" if depth > 0 else "global"
-
-                lines.append(f"\n{label_indent}// {label} attributes:")
-
-                for attr, value in g.attrs.items():
-                    pfx = "string " if _cdl_is_string_list(value) else ""
-                    lines.append(
-                        f"{attr_indent}{pfx}:{attr} = {_cdl_value(value)} ;"
-                    )
-
-            # Recursive sub-groups
-            for name, group in g.groups.items():
-                lines.append(f"\n{label_indent}group: {name} {{")
-
-                _render_group(group, depth + 1)
-
-                # Braces are at 2, 4, 6... (match the 'group:' keyword)
-                brace_indent = " " * (2 * (depth + 1))
-                lines.append(f"{brace_indent}}} // group {name}")
-
-        _render_group(self)
-
+        cdl_format_group(self, lines)
         lines.append("}")
 
         out = "\n".join(lines)
