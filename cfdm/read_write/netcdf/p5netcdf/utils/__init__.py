@@ -1,5 +1,5 @@
 from .utils_cdl import cdl_format_group
-from .utils_general import NetCDFError, parse_attributes
+from .utils_general import NetCDFError, get_lib, parse_attributes
 from .utils_hdf5 import (
     h5py_open,
     hdf5_dimension_names,

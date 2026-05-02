@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 # Ignore netCDF internal attributes
@@ -16,6 +18,45 @@ class NetCDFError(Exception):
     """Error raised when dataset can't be viewed as netCDF."""
 
     pass
+
+
+def get_lib(obj):
+    """Get the library package of an object.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Parameters:
+
+        obj:
+            The object (e.g. a `pyfive.File` instance),
+
+    :Returns:
+
+            The package (e.g. a `pyfive`).
+
+    """
+    module_name = type(obj).__module__
+    parts = module_name.split(".")
+
+    current_package = None
+    for i in range(1, len(parts) + 1):
+        name = ".".join(parts[:i])
+        mod = sys.modules.get(name)
+
+        # If the module exists and has a __path__ then it's a package
+        if mod and hasattr(mod, "__path__"):
+            current_package = mod
+        else:
+            # We hit a module (file) or something not in
+            # `sys.modules` => the previous 'current_package' was our
+            # deepest package.
+            break
+
+    if current_package is None:
+        # Fallback to the root if no deeper package was identified
+        current_package = sys.modules.get(parts[0])
+
+    return current_package
 
 
 def format_attr(attr, value, lib):

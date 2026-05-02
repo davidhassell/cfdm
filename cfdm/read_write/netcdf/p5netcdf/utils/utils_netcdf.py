@@ -74,7 +74,8 @@ def netCDF4_open(dataset, options):
 def netcdf_file_parse_group_structure(group):
     """Parse the group structure for the `netcdf_file` backend.
 
-    Parses variables, dimensions, and sub-groups, recursively.
+    Parses variables, dimensions in the root. There are no
+    sub-groups in netCDF-3.
 
     :Parameters:
 

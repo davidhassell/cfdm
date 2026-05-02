@@ -582,7 +582,7 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_errors"] = nc.open_log(display=False)
+        g["dataset_open_errors"] = nc.read_log(display=False)
 
         if g["debug"]:
             logger.debug(

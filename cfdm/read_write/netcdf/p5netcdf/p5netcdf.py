@@ -8,6 +8,7 @@ import numpy as np
 from .utils import (
     NetCDFError,
     cdl_format_group,
+    get_lib,
     h5py_open,
     hdf5_dimension_names,
     hdf5_parse_group_structure,
@@ -27,9 +28,6 @@ from .utils import (
 np.set_printoptions(floatmode="maxprec")
 
 _iam = "p5netcdf"
-
-
-import numpy as np
 
 
 class Mixin:
@@ -86,13 +84,13 @@ class Mixin:
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `dataset`, `filename`
+        .. seealso:: `filename`, `dataset`
 
         :Returns:
 
             `str`
-                The name of the dataset. If the name is not known then
-                an empty string is returned.
+                The name of the dataset. If the dataset name is not
+                known then an empty string is returned.
 
         """
         return self.root._dataset_name
@@ -110,8 +108,8 @@ class Mixin:
         :Returns:
 
             `str`
-                The name of the dataset. If the name is not known then
-                an empty string is returned.
+                The name of the dataset. If the dataset name is not
+                known then an empty string is returned.
 
         """
         return self.dataset_name
@@ -190,8 +188,8 @@ class Mixin:
         :Returns:
 
             `str` or `None`
-                The file system protocol. If `None`, ``'file'`` or
-                ``'local'``, then the file system is local.
+                The file system protocol. The local file system is
+                indicated by ``'file'``, ``'local'``, or `None`.
 
         """
         try:
@@ -859,15 +857,20 @@ class Variable(Mixin):
     def chunking(self):
         """The data chunk shape.
 
+        This method has the same API as `netCDF4.Variable.chunking`.
+
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `chunks`, `shards`
 
         :Returns:
 
-            `tuple` or `None`
-                The chunk shape, e.g. ``(5, 6, 7)``. If the data is
-                contiguous then `None` is returned.
+            `list` or ``'contiguous'`` or `None`
+                The chunk shape, e.g. ``[5, 6, 7]``. For contiguous
+                data in a dataset that does support chunking,
+                ``'contiguous'`` is returned. If the dataset doesn't
+                support chunking (such as netCDF-3) then `None` is
+                returned.
 
         """
         chunking = getattr(self, "_chunking", None)
@@ -882,7 +885,7 @@ class Variable(Mixin):
 
                 case "netCDF4":
                     if chunks is None:
-                        if self.parent._grp.data_model == "NETCDF3_CLASSIC":
+                        if self.root._grp.data_model.startswith("NETCDF3"):
                             chunking = None
                         else:
                             chunking = "contiguous"
@@ -1740,9 +1743,9 @@ class File(Group):
                   and cached. The dataset then does not need to
                   revisited except to access the variable data arrays.
 
-                Maximal metadata retrieval can also be applied to an
-                existing `File` instance with the
-                `cache_maximal_metadata` method.
+                Dataset metadata caching can also be applied to an
+                existing `File` instance with the `cache_metadata`
+                method.
 
             pyfive_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `pyfive.File` to
@@ -1810,9 +1813,9 @@ class File(Group):
             verbose: `int`, optional
 
                  Set the verbosity. If *verbose* is ``0`` there is no
-                 verbose output; more output is produced for
+                 verbose output, and more output is produced for
                  progressively larger values of *verbose*. Values of
-                 ``4`` and higher (or the value ``-1``) produce the
+                 ``5`` and higher (or the value ``-1``) produce the
                  same maximally verbose output.
 
         """
@@ -1821,30 +1824,33 @@ class File(Group):
         if mode != "r":
             raise ValueError("mode must be 'r'. Got: mode={mode!r}")
 
-        open_options = {}
+        read_options = {}
         if h5py_options:
-            open_options["h5py"] = h5py_options
+            read_options["h5py"] = h5py_options
 
         if pyfive_options:
-            open_options["pyfive"] = pyfive_options
+            read_options["pyfive"] = pyfive_options
 
         self._zarr_dimension_search = zarr_dimension_search
 
-        self._open_log = []
+        # The name of the dataset
         dataset_name = ""
+        # The file system procotol of the dataset
         protocol = -1
+        # The log of how the dataset is read
+        self._read_log = []
 
         if isinstance(dataset, pyfive.File):
             # --------------------------------------------------------
             # Input is `pyfive.File`-like
             # --------------------------------------------------------
             nc = dataset
-            attrs = dataset.attrs
-            self._backend = "pyfive"
-            self._lib = pyfive
-
-            # The opened dataset is owned externally
+            attrs = nc.attrs
+            lib = get_lib(nc)
             self._owns_nc = False
+
+            # Use the 'pyfive' logic to parse the dataset
+            backend = "pyfive"
 
             # Attempt to get the dataset name and file system protocol
             try:
@@ -1870,7 +1876,7 @@ class File(Group):
             # --------------------------------------------------------
             # Input is string-like, file-like, or directory-like
             # --------------------------------------------------------
-            # Attempt to get the dataset name and protocol
+            # Attempt to get the dataset name and file system protocol
             try:
                 # string-like: Expand tilde and environment variables
                 dataset = expanduser(expandvars(dataset))
@@ -1905,10 +1911,8 @@ class File(Group):
 
                 protocol = urlparse(dataset_name).scheme
 
-            self._dataset = dataset
-
-            # Map backend names to dataset-open functions
-            open_functions = {
+            # Map backend names to dataset-read functions
+            read_functions = {
                 "pyfive": pyfive_open,
                 "zarr": zarr_open,
                 "netCDF4": netCDF4_open,
@@ -1922,24 +1926,24 @@ class File(Group):
                     backend = (backend,)
 
                 try:
-                    open_functions = {b: open_functions[b] for b in backend}
+                    read_functions = {b: read_functions[b] for b in backend}
                 except KeyError as error:
                     raise ValueError(
                         f"Invalid value for backend. Got {error}, "
-                        f"expected one of {tuple(open_functions)}"
+                        f"expected one of {tuple(read_functions)}"
                     )
 
             nc = None
-            for backend, func in open_functions.items():
-                options = open_options.get(backend, {})
+            for backend, func in read_functions.items():
+                options = read_options.get(backend, {})
                 try:
                     nc, attrs, lib = func(dataset, options)
                 except Exception as error:
-                    self._open_log.append(
+                    self._read_log.append(
                         f"{backend}: {error.__class__.__name__}: {error}"
                     )
                 else:
-                    self._open_log.append(f"{backend}: Successfully opened")
+                    self._read_log.append(f"{backend}: Successfully opened")
                     break
 
             if nc is None:
@@ -1951,16 +1955,19 @@ class File(Group):
 
                 raise NetCDFError(
                     f"Can't interpret {dataset} as a netCDF dataset "
-                    f"with any of the backends {tuple(open_functions)}:\n\n"
-                    f"{self.open_log(display=False)}"
+                    f"with any of the backends {tuple(read_functions)}:\n\n"
+                    f"{self.read_log(display=False)}"
                 )
-
-            self._backend = backend
-            self._lib = lib
 
             # The opened dataset is owned internally
             self._owns_nc = True
 
+        # Cache the backend, lib, dataset, and dataset name
+        if not isinstance(dataset_name, str):
+            dataset_name = ""
+
+        self._backend = backend
+        self._lib = lib
         self._dataset = dataset
         self._dataset_name = dataset_name
 
@@ -1985,35 +1992,32 @@ class File(Group):
         self._is_local = is_local
 
         # ------------------------------------------------------------
-        # Initialise the group structure
+        # Parse the group structure
         # ------------------------------------------------------------
         super().__init__(
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
-        # Cache more metadata
-        if metadata_strategy == "maximal":
-            self.cache_maximal_metadata()
-        elif metadata_strategy != "minimal":
-            raise ValueError(
-                "Invalid value for metadata_strategy. "
-                f"Got {metadata_strategy!r}, expected one of "
-                "'minimal', 'maximal'"
-            )
+        # Cache dataset metadata
+        self.cache_metadata(metadata_strategy)
 
         # Verbose output
-        if verbose >= 1:
-            self.open_log()
+        if verbose == -1:
+            verbose = 5
 
-        if verbose == -1 or verbose >= 4:
-            print()
-            self.dump(data=True)
-        elif verbose >= 3:
-            print()
-            self.dump()
-        elif verbose >= 2:
-            print()
-            self.structure()
+        if verbose >= 1:
+            self.read_log()
+            if verbose >= 2:
+                print()
+
+            if verbose >= 5:
+                self.dump(data=True)
+            elif verbose >= 4:
+                self.dump()
+            elif verbose >= 3:
+                self.structure()
+            elif verbose >= 2:
+                print(self)
 
     def __enter__(self):
         """Enter the runtime context related to this object.
@@ -2214,12 +2218,11 @@ class File(Group):
         """
         import re
 
-        lines = []
-
         ds_name = re.sub(r"\.nc$", "", self.filename.split("/")[-1])
         if ds_name:
             ds_name += " "
 
+        lines = []
         lines.append(f"netcdf {ds_name}{{")
         cdl_format_group(self, lines)
         lines.append("}")
@@ -2230,7 +2233,7 @@ class File(Group):
 
         print(out)
 
-    def open_log(self, display=True):
+    def read_log(self, display=True):
         """The dataset-open log.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -2249,36 +2252,71 @@ class File(Group):
                 returned as a string.
 
         """
-        log = "\n\n".join(self._open_log)
+        log = "\n\n".join(self._read_log)
         if not display:
             return log
 
         print(log)
 
-    def cache_maximal_metadata(self):
+    def cache_metadata(self, strategy="maximal"):
         """Cache all relevant metadata from the dataset.
 
         Any metadata that is already cached is not re-retrieved from
-        the dataset. After running `cache_maximal_metadata`, the
-        dataset does not need to be revisited except to access the
-        variable data arrays.
+        the dataset.
 
-        Metadata may have already been cached by the backend library,
-        in which case retrieving it may by fast.
+        Metadata may have already been cached within the backend
+        library, in which case retrieving and caching it in the `File`
+        instance it may by fast.
 
         .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            strategy: `str`
+                The strategy used for caching, via the backend
+                library, metadata from the dataset. Must be one of:
+
+                * ``'maximal'``
+
+                  This is the default. All required metadata is
+                  retrieved from the dataset and cached. The dataset
+                  then does not ever need to revisited except to
+                  access the variable data arrays.
+
+                * ``'minimal'``
+
+                  Only the minimum amount of metadata required to
+                  parse the dataset is retrieved from the dataset and
+                  cached. For instance, this includes all variable and
+                  group attributes, but may exclude (depending on the
+                  backend library) the variable shapes. Minimal
+                  metdata caching is always applied during
+                  `File.__init__`, so there is no benefit in using
+                  this option.
 
         :Returns:
 
             `None`
 
         """
-        # Execute `Variable` methods that might access the dataset and
-        # which have not already been run via `Variable.__init__`.
-        for variable in self.all_variables.values():
-            variable.__orthogonal_indexing__
-            variable.dtype
-            variable.shape
-            variable.shards
-            variable.get_dims()
-            variable.chunking()
+        if strategy == "maximal":
+            # Execute `Variable` methods that might access the dataset and
+            # which have not already been run via `Variable.__init__`.
+            for variable in self.all_variables.values():
+                variable.__orthogonal_indexing__
+                variable.dtype
+                variable.shape
+                variable.shards
+                variable.get_dims()
+                variable.chunking()
+
+        elif strategy == "minimal":
+            # Minimal caching is always already done in
+            # `File.__init__`
+            pass
+
+        else:
+            raise ValueError(
+                f"Invalid value for metadata_strategy. Got {strategy!r}, "
+                "expected one of 'minimal', 'maximal'"
+            )
