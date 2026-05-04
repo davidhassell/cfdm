@@ -2666,8 +2666,6 @@ def netcdf_flatten(*args, **kwargs):
     """
     _DEPRECATION_ERROR_FUNCTION(
         "netcdf_flatten",
-        "Use 'cfdm.dataset_flatten' instead, "
-        "which has a slightly different API.",
         version="1.13.0.0",
         removed_at="1.15.0.0",
     )  # pragma: no cover

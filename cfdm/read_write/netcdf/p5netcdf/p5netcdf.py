@@ -7,7 +7,7 @@ import numpy as np
 
 from .utils import (
     NetCDFError,
-    cdl_format_group,
+    cdl_format,
     get_lib,
     h5py_open,
     hdf5_dimension_names,
@@ -126,8 +126,8 @@ class Mixin:
 
             `bool` or `None`
                 `True` if the dataset is on the local file system
-                (i.e. `protocol` is `None`, ``'file'`` or
-                ``'local'``), `False` otherwise.
+                (i.e. `protocol` returns ``'file'``), and `False`
+                otherwise.
 
                 It is usually possible to ascertain the file system
                 protocol from the input dataset, but in those cases
@@ -248,7 +248,7 @@ class Mixin:
             display=display,
             _prefix=_prefix,
             _level=_level,
-            _recursive=True,
+            _sub_groups=True,
             _structure=True,
         )
 
@@ -372,7 +372,7 @@ class Dimension(Mixin):
         display=True,
         _prefix=None,
         _level=0,
-        _recursive=True,
+        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the dimension.
@@ -425,7 +425,7 @@ class Dimension(Mixin):
                 The parent group.
 
         """
-        return self._parent
+        return self.parent
 
     def isunlimited(self):
         """Whether the dimension is unlimited.
@@ -441,7 +441,7 @@ class Dimension(Mixin):
         """
         return self._isunlimited
 
-    
+
 class Variable(Mixin):
     """A netCDF variable.
 
@@ -881,7 +881,7 @@ class Variable(Mixin):
         data=False,
         _prefix=None,
         _level=0,
-        _recursive=True,
+        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the variable.
@@ -1055,8 +1055,8 @@ class Variable(Mixin):
                 The parent group.
 
         """
-        return self._parent
-        
+        return self.parent
+
     def ncattrs(self):
         """Return a list of attribute names.
 
@@ -1070,7 +1070,8 @@ class Variable(Mixin):
                 The attribute names.
 
         """
-        return list(self.attrs.keys())
+        return list(self.attrs)
+
 
 class Group(Mixin, Mapping):
     """A netCDF group.
@@ -1252,7 +1253,7 @@ class Group(Mixin, Mapping):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self.dump(display=False, _recursive=False, _structure=True)
+        return self.dump(display=False, _sub_groups=False, _structure=True)
 
     def _create_dimension(self, name, size, isunlimited):
         """Create a new dimension in this group.
@@ -1317,8 +1318,8 @@ class Group(Mixin, Mapping):
     def _populate_all(self):
         """Populate the 'all_*' dictionaries.
 
-        Populates the dictionaries of all dimensions, variables, and
-        groups.
+        Populates the root dictionaries of all dimensions, variables,
+        and groups.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1491,7 +1492,7 @@ class Group(Mixin, Mapping):
         data=False,
         _prefix=None,
         _level=0,
-        _recursive=True,
+        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the group.
@@ -1555,9 +1556,9 @@ class Group(Mixin, Mapping):
         # Groups
         if self.groups:
             lines.append(f"{i1}Groups:")
-            if _recursive:
+            if _sub_groups:
                 lines.extend(
-                    f"{group.dump(display=False, data=data, _level=_level + 2, _recursive=True, _structure=_structure)}"
+                    f"{group.dump(display=False, data=data, _level=_level + 2, _sub_groups=True, _structure=_structure)}"
                     for group in self.groups.values()
                 )
             else:
@@ -1673,7 +1674,8 @@ class Group(Mixin, Mapping):
                 The attribute names.
 
         """
-        return list(self.attrs.keys())
+        return list(self.attrs)
+
 
 # Set __Group to `Group`, now that `Group` has been defined. This is
 # used to create sub-groups.
@@ -1712,6 +1714,7 @@ class File(Group):
         metadata_strategy="minimal",
         pyfive_options=None,
         h5py_options=None,
+        zarr_options=None,
         zarr_dimension_search="closest_ancestor",
         verbose=0,
     ):
@@ -1745,12 +1748,13 @@ class File(Group):
                    A subclass of `pyfive.File` must expose following
                    classes, attributes and methods from the `pyfive`
                    API: `!File.attrs` `!File.close`, `!File.filename`,
-                   `!File.items`, `!Group.attrs`, `!Group.items`,
-                   `Dataset.attrs`, `Dataset.chunks`, `Dataset.dtype`,
-                   `Dataset.maxshape`, `Dataset.name`,
-                   `Dataset.shape`; and its `!File` and `!Group`
-                   classes must be (registered as) subclasses of
-                   `pyfive.File` and `pyfive.Group` respectively.
+                   `!File.items`, `!File._fh`, `!Group.attrs`,
+                   `!Group.items`, `Dataset.attrs`, `Dataset.chunks`,
+                   `Dataset.dtype`, `Dataset.maxshape`,
+                   `Dataset.name`, `Dataset.shape`; and its `!File`
+                   and `!Group` classes must be (registered as)
+                   subclasses of `pyfive.File` and `pyfive.Group`
+                   respectively.
 
             mode: `str`, optional
                 The access mode used when using `pyfive.File` to open
@@ -1811,13 +1815,19 @@ class File(Group):
                 Keyword arguments that are passed to `pyfive.File` to
                 be used when opening a netCDF-4 dataset. Setting to
                 `None` (the default) is equivalent to providing an
-                empty dictionary. Ignored if *dataset* is already a
-                (subclass of a) `pyfive.File` object.
+                empty dictionary. Ignored if *dataset* is a
+                `pyfive.File`-like object.
 
             h5py_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `h5py.File` to be
                 used when opening a netCDF-4 dataset. Setting to
                 `None` (the default) is equivalent to providing an
+                empty dictionary.
+
+            zarr_options: `dict` or `None`, optional
+                Keyword arguments that are passed to `zarr.open` to be
+                used when opening a Zarr or Kerchunk dataset. Setting
+                to `None` (the default) is equivalent to providing an
                 empty dictionary.
 
             zarr_dimension_search: `str`, optional
@@ -1881,7 +1891,7 @@ class File(Group):
         import pyfive
 
         if mode != "r":
-            raise ValueError("mode must be 'r'. Got: mode={mode!r}")
+            raise ValueError(f"mode must be 'r'. Got: {mode!r}")
 
         read_options = {}
         if h5py_options:
@@ -1890,14 +1900,18 @@ class File(Group):
         if pyfive_options:
             read_options["pyfive"] = pyfive_options
 
+        if zarr_options:
+            read_options["zarr"] = zarr_options
+
         self._zarr_dimension_search = zarr_dimension_search
 
         # The name of the dataset
         dataset_name = ""
-        # The file system procotol of the dataset
+        # The file system procotol of the dataset. -1 is a non-string
+        # and non-None code for an unknown file system protocol.
         protocol = -1
         # The log of how the dataset is read
-        self._read_log = []
+        self._log_read = []
 
         if isinstance(dataset, pyfive.File):
             # --------------------------------------------------------
@@ -1998,11 +2012,11 @@ class File(Group):
                 try:
                     nc, attrs, lib = func(dataset, options)
                 except Exception as error:
-                    self._read_log.append(
+                    self._log_read.append(
                         f"{backend}: {error.__class__.__name__}: {error}"
                     )
                 else:
-                    self._read_log.append(f"{backend}: Successfully opened")
+                    self._log_read.append(f"{backend}: Successfully opened")
                     break
 
             if nc is None:
@@ -2015,13 +2029,13 @@ class File(Group):
                 raise NetCDFError(
                     f"Can't interpret {dataset} as a netCDF dataset "
                     f"with any of the backends {tuple(read_functions)}:\n\n"
-                    f"{self.read_log(display=False)}"
+                    f"{self.log(display=False)}"
                 )
 
             # The opened dataset is owned internally
             self._owns_nc = True
 
-        # Cache the backend, lib, dataset, and dataset name
+        # Cache the backend, library, dataset, and dataset name
         if not isinstance(dataset_name, str):
             dataset_name = ""
 
@@ -2031,10 +2045,9 @@ class File(Group):
         self._dataset_name = dataset_name
 
         # Cache the file system protocol, but only if we've found out
-        # what it is.
+        # what it is, and whether or not the dataset exists in the
+        # local file system.
         if protocol == -1:
-            # -1 is a non-string and non-None code for an unknown file
-            # system protocol
             is_local = None
         else:
             if isinstance(protocol, tuple):
@@ -2057,7 +2070,8 @@ class File(Group):
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
-        # Cache dataset metadata
+        # Cache any extra dataset metadata (after the group structure
+        # has been parsed)
         self.cache_metadata(metadata_strategy)
 
         # Verbose output
@@ -2065,7 +2079,7 @@ class File(Group):
             verbose = 5
 
         if verbose >= 1:
-            self.read_log()
+            self.log()
             if verbose >= 2:
                 print()
 
@@ -2199,7 +2213,7 @@ class File(Group):
         data=False,
         _prefix=None,
         _level=0,
-        _recursive=True,
+        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the dataset.
@@ -2239,7 +2253,7 @@ class File(Group):
                     data=data,
                     _prefix=_prefix,
                     _level=_level,
-                    _recursive=_recursive,
+                    _sub_groups=_sub_groups,
                     _structure=_structure,
                 ),
             )
@@ -2249,6 +2263,31 @@ class File(Group):
             return out
 
         print(out)
+
+    def log(self, display=True):
+        """The dataset-read log.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the log as a string. By default
+                the log is printed.
+
+        :Returns:
+
+            `None` or `str`
+                The open log. If *display* is True then the log is
+                printed and `None` is returned. Otherwise the log is
+                returned as a string.
+
+        """
+        log = "\n\n".join(self._log_read)
+        if not display:
+            return log
+
+        print(log)
 
     def ncdump(self, display=True):
         """A text CDL description of the dataset.
@@ -2275,15 +2314,13 @@ class File(Group):
                 string.
 
         """
-        import re
-
-        ds_name = re.sub(r"\.nc$", "", self.filename.split("/")[-1])
-        if ds_name:
-            ds_name += " "
+        dataset_name = self.dataset_name
+        if dataset_name:
+            dataset_name += " "
 
         lines = []
-        lines.append(f"netcdf {ds_name}{{")
-        cdl_format_group(self, lines)
+        lines.append(f"netcdf {dataset_name}{{")
+        cdl_format(self, lines)
         lines.append("}")
 
         out = "\n".join(lines)
@@ -2291,46 +2328,6 @@ class File(Group):
             return out
 
         print(out)
-
-    def read_log(self, display=True):
-        """The dataset-open log.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            display: `bool`, optional
-                If False then return the log as a string. By default
-                the log is printed.
-
-        :Returns:
-
-            `None` or `str`
-                The open log. If *display* is True then the log is
-                printed and `None` is returned. Otherwise the log is
-                returned as a string.
-
-        """
-        log = "\n\n".join(self._read_log)
-        if not display:
-            return log
-
-        print(log)
-
-    def ncattrs(self):
-        """Return a list of global attribute names.
-
-        This method has the same API as `netCDF4.Dataset.ncattrs`.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Returns:
-
-            `list` of `str`
-                The global attribute names.
-
-        """
-        return list(self.attrs.keys())
 
     def getncattr(self, name):
         """Get a global attribute value by name.

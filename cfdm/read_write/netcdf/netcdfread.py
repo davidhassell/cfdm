@@ -582,7 +582,7 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_errors"] = nc.read_log(display=False)
+        g["dataset_open_errors"] = nc.log(display=False)
 
         if g["debug"]:
             logger.debug(
@@ -6284,6 +6284,7 @@ class NetCDFRead(IORead):
                 if calendar is not None:
                     attributes["calendar"] = calendar
 
+        backend = variable.backend
         kwargs = {
             "filename": dataset,
             "address": ncvar,
@@ -6293,7 +6294,7 @@ class NetCDFRead(IORead):
             "unpack": g["unpack"],
             "attributes": attributes,
             "filesystem": g["filesystem"],
-            "backend": variable.backend,
+            "backend": backend,
         }
 
         if not self._cfa_is_aggregation_variable(ncvar):
@@ -6301,7 +6302,7 @@ class NetCDFRead(IORead):
             if return_kwargs_only:
                 return kwargs
 
-            if variable.backend in ("pyfive", "zarr"):
+            if backend in ("pyfive", "zarr", "ppfive"):
                 kwargs["variable"] = variable
 
             array = self.implementation.initialise_P5netcdfArray(**kwargs)

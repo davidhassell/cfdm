@@ -1,4 +1,4 @@
-from .utils_cdl import cdl_format_group
+from .utils_cdl import cdl_format
 from .utils_general import NetCDFError, get_lib, parse_attributes
 from .utils_hdf5 import (
     h5py_open,

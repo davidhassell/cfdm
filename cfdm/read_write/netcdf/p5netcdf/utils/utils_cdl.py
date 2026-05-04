@@ -4,13 +4,15 @@ import numpy as np
 # --------------------------------------------------------------------
 # Conversion to CDL functions
 # --------------------------------------------------------------------
-def cdl_format_group(g, lines, depth=0):
-    """Recursively traverse and convert netCDF groups into CDL.
+def cdl_format(g, lines, depth=0):
+    """Render a group into CDL.
+
+    All sub-groups are also converted
 
     :Parameters:
 
         g: `Group` or `File`
-            The group object to render.
+            The group to render.
 
         lines: `list`
             A list to store the converted lines of CDL.
@@ -18,8 +20,8 @@ def cdl_format_group(g, lines, depth=0):
         depth: `int`
             The current nesting level (0 for root, 1 for first-level
             groups, etc.). Used to calculate indents for keywords
-            (2*depth), members (2*depth+5), and attributes
-            (2*depth+9).
+            (2*depth), members (2*depth + 5), and attributes (2*depth
+            + 9).
 
     :Returns:
 
@@ -86,7 +88,7 @@ def cdl_format_group(g, lines, depth=0):
     for name, group in g.groups.items():
         lines.append(f"\n{label_indent}group: {name} {{")
 
-        cdl_format_group(group, lines, depth + 1)
+        cdl_format(group, lines, depth + 1)
 
         # Braces are at 2, 4, 6... (match the 'group:' keyword)
         brace_indent = " " * (2 * (depth + 1))
