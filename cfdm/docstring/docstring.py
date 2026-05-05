@@ -749,10 +749,10 @@ _docstring_substitution_definitions = {
               ``cfa_write=['field', 'auxiliary_coordinate']``.""",
     # read cfa_backend
     "{{read cfa_backend: `None` or (sequence of) `str`, optional}}": """cfa_backend: `None` or (sequence of) `str`, optional
-            TODO""",
+           TODO""",
     # read cfa_filesystem
-    "{{read cfa_filesystem: `None` or `str`, optional}}": """cfa_filesystem: `None` or `str`, optional
-            TODO""",
+    "{{read cfa_filesystem: `None` or filesystem, optional}}": """cfa_filesystem: `None` or filesystem, optional
+           TODO""",
     # read to_memory
     "{{read to_memory: (sequence of) `str`, optional}}": """to_memory: (sequence of) `str`, optional
             Read all data arrays of the named construct types into
