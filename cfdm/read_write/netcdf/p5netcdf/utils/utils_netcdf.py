@@ -1,3 +1,7 @@
+"""Utilities for integrating the netCDF backends `netCDF4` and
+`scip.io.netcdf_file into `p5netcdf`."""
+
+
 # --------------------------------------------------------------------
 # netCDF4
 # --------------------------------------------------------------------
@@ -34,7 +38,7 @@ def netCDF4_parse_group_structure(group):
 
 
 def netCDF4_open(dataset, options):
-    """Open a dataset with `netCDF4` library.
+    """Open a dataset with `netCDF4`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -48,8 +52,8 @@ def netCDF4_open(dataset, options):
                          of an `fsspec` file system open)
             * directory-like (such as `fsspec.mapping.FSMap`)
 
-             An exception is raised if the library can't interpret the
-             *dataset*.
+             An exception is raised if the *dataset* can't be
+             interpreted.
 
         options: `dict`
             Additional keyword parameters to pass to
@@ -57,9 +61,9 @@ def netCDF4_open(dataset, options):
 
     :Returns:
 
-        (`netCDF4.Dataset`, `dict`, library)
+        (`netCDF4.Dataset`, `dict`, package)
             The opened dataset, the dataset's global attributes, and
-            the `netCDF4` library itself.
+            the `netCDF4` package itself.
 
     """
     import netCDF4
@@ -101,7 +105,7 @@ def netcdf_file_parse_group_structure(group):
 
 
 def netcdf_file_open(dataset, options):
-    """Open a dataset with `netcdf_file` library.
+    """Open a dataset with `netcdf_file`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -115,17 +119,17 @@ def netcdf_file_open(dataset, options):
                          of an `fsspec` file system open)
             * directory-like (such as `fsspec.mapping.FSMap`)
 
-             An exception is raised if the library can't interpret the
-             *dataset*.
+             An exception is raised if the *dataset* can't be
+             interpreted.
 
         options: `dict`
             Additional keyword parameters to pass to `netcdf_file`.
 
     :Returns:
 
-        (`scipy.io.netcdf_file`, `dict`, library)
+        (`scipy.io.netcdf_file`, `dict`, package)
             The opened dataset, the dataset's global attributes, and
-            the `netcdf_file` library itself.
+            the `netcdf_file` package itself.
 
     """
     from scipy.io import netcdf_file

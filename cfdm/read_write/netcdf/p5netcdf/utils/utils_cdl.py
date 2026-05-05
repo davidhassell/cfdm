@@ -1,9 +1,8 @@
+"""Utilities for rendering a `p5netcdf.File` in CDL."""
+
 import numpy as np
 
 
-# --------------------------------------------------------------------
-# Conversion to CDL functions
-# --------------------------------------------------------------------
 def cdl_format(g, lines, depth=0):
     """Render a group into CDL.
 

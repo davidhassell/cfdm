@@ -1,3 +1,5 @@
+"""General utilities for integrating the backends into `p5netcdf`."""
+
 import sys
 
 import numpy as np
@@ -20,7 +22,7 @@ class NetCDFError(Exception):
     pass
 
 
-def get_lib(obj):
+def get_package(obj):
     """Get the library package of an object.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -59,7 +61,7 @@ def get_lib(obj):
     return current_package
 
 
-def format_attr(attr, value, lib):
+def format_attr(attr, value, package):
     """Format an attribute according to netCDF-4.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -72,8 +74,8 @@ def format_attr(attr, value, lib):
         value:
             The raw attribute value.
 
-        lib:
-            The backend library that created the variable or group
+        package:
+            The backend package that created the variable or group
             that owns the attribute value.
 
     :Returns:
@@ -86,7 +88,7 @@ def format_attr(attr, value, lib):
         return value.decode("utf-8")
 
     try:
-        if isinstance(value, lib.Empty):
+        if isinstance(value, package.Empty):
             dtype = value.dtype
             if dtype.kind in "SUT":
                 return ""
@@ -181,9 +183,9 @@ def parse_attributes(obj, raw_attrs):
             The attributes formatted according to netCDF-4.
 
     """
-    lib = obj.lib
+    package = obj.package
     return {
-        k: format_attr(k, v, lib)
+        k: format_attr(k, v, package)
         for k, v in raw_attrs.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }

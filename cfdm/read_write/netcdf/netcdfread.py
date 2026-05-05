@@ -976,12 +976,12 @@ class NetCDFRead(IORead):
 
                 .. versionadded:: (cfdm) 1.12.0.0
 
-            cfa_filesystem: optional
+            cfa_filesystem: `None` or filesystem, optional
                 TODO. See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            cfa_backend: (sequence of) `str`, optional
+            cfa_backend: `None` or (sequence of) `str`, optional
                 TODO. See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) NEXTVERSION
@@ -7326,7 +7326,7 @@ class NetCDFRead(IORead):
 
         """
         g = self.read_vars
-        new_dimension_sizes = g["new_dimension_sizes"]  # TODO
+        new_dimension_sizes = g["new_dimension_sizes"]
 
         using_existing_new = False
 

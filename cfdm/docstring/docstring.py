@@ -747,6 +747,12 @@ _docstring_substitution_definitions = {
               To register field and auxiliary coordinate constructs to
               be written as CF-netCDF aggregation variables:
               ``cfa_write=['field', 'auxiliary_coordinate']``.""",
+    # read cfa_backend
+    "{{read cfa_backend: `None` or (sequence of) `str`, optional}}": """cfa_backend: `None` or (sequence of) `str`, optional
+            TODO""",
+    # read cfa_filesystem
+    "{{read cfa_filesystem: `None` or `str`, optional}}": """cfa_filesystem: `None` or `str`, optional
+            TODO""",
     # read to_memory
     "{{read to_memory: (sequence of) `str`, optional}}": """to_memory: (sequence of) `str`, optional
             Read all data arrays of the named construct types into

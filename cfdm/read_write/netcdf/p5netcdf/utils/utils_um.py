@@ -1,8 +1,9 @@
-# --------------------------------------------------------------------
-# PP/UM
-# --------------------------------------------------------------------
+"""Utilities for integrating the PP/UM backend `ppfive` into
+`p5netcdf`."""
+
+
 def ppfive_open(dataset, options):
-    """Open a dataset with `ppfive` library.
+    """Open a dataset with `ppfive`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -16,17 +17,17 @@ def ppfive_open(dataset, options):
                          of an `fsspec` file system open)
             * directory-like (such as `fsspec.mapping.FSMap`)
 
-             An exception is raised if the library can't interpret the
-             *dataset*.
+             An exception is raised if the *dataset* can't be
+             interpreted.
 
         options: `dict`
             Additional keyword parameters to pass to `ppfive.File`.
 
     :Returns:
 
-        (`ppfive.File`, `dict`, library)
+        (`ppfive.File`, `dict`, package)
             The opened dataset, the dataset's global attributes, and
-            the `ppfive` library itself.
+            the `ppfive` package itself.
 
     """
     import ppfive

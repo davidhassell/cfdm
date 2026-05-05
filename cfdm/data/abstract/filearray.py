@@ -300,24 +300,17 @@ class FileArray(Array):
         return self._get_component("address", default)
 
     def get_backend(self):
-        """TODO The name of the file containing the array.
-
-        If there are multiple files then an `AttributeError` is
-        raised by default.
+        """The names of the packages for accessing the dataset.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        :Parameters:
-
-            default: optional
-                Return *default* if the address has not been set.
-
-                {{default Exception}}
-
         :Returns:
 
-            `str`
-                The file name.
+            `str` or `None`
+                The backend names, or `None` if none have not been
+                provided. When accessing the dataset, the backends are
+                tried in order until one succeessfully reads the
+                dataset.
 
         """
         return self._get_component("backend", None)
@@ -447,36 +440,16 @@ class FileArray(Array):
         )
 
     def get_filesystem(self):
-        """Return the TODO file system options.
+        """Return the file system which contains the dataset.
 
-        .. versionadded:: (cfdm) 1.12.0.0
-
-        :Parameters:
-
-            create_endpoint_url: `bool`, optional
-                Removed at version NEXTVERSION
-
-            filename: `str`, optional
-                Removed at version NEXTVERSION
-
-            parsed_filename: `urllib.parse.ParseResult`, optional
-                Removed at versiokn NEXTVERSION
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             filesystem or `None`
-                The storage options.
-
-        **Examples**
-
-        >>> f.get_storage_options()
-        {}
-
-        >>> f.get_storage_options()
-        {'key': 'scaleway-api-key...',
-         'secret': 'scaleway-secretkey...',
-         'endpoint_url': 'https://s3.fr-par.scw.cloud',
-         'client_kwargs': {'region_name': 'fr-par'}}
+                The file system object.If the file system is the local
+                file system, then `None` may be returned or a file
+                system object.
 
         """
         return self._get_component("filesystem", None)
@@ -553,18 +526,18 @@ class FileArray(Array):
         if isinstance(filename, str):
             filesystem = self.get_filesystem()
             if filesystem is None:
+                # Local file system
                 try:
                     filename = abspath(filename, uri=False)
                 except ValueError:
                     filename = abspath(filename)
             else:
-                # ----------------------------------------------------
-                # Open the dataset in the filesystem
-                # ----------------------------------------------------
-                # For an s3 file we need to stip off the scheme and
-                # authority, if they're present.
+                # Create a file-like object for the dataset in the
+                # filesystem
                 from urllib.parse import urlparse
 
+                # For an s3 file we need to stip off the scheme and
+                # authority, if they're present.
                 url = urlparse(filename)
                 if url.scheme == "s3":
                     filename = url.path[1:]
@@ -585,6 +558,7 @@ class FileArray(Array):
                         f"file system object {filesystem!r}: {error}"
                     ) from error
 
+        # Open the dataset
         dataset = func(filename, *args, **kwargs)
 
         return dataset, self.get_address()

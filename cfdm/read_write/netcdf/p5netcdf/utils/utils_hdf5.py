@@ -1,3 +1,6 @@
+"""Utilities for integrating the HDF5 backends `pyfive` and `h5py` into
+`p5netcdf`."""
+
 from .utils_general import NetCDFError
 
 
@@ -87,12 +90,12 @@ def hdf5_parse_group_structure(group):
 
     # Categorise objects without double-reading items from the HDF5
     # dataset
-    lib = group.lib
-    lib_has_groups = hasattr(lib, "Group")
+    package = group.package
+    package_has_groups = hasattr(package, "Group")
 
     for name, h5 in group._grp.items():
 
-        if lib_has_groups and isinstance(h5, lib.Group):
+        if package_has_groups and isinstance(h5, package.Group):
             subgroups[name] = h5
         else:
             # Everyhing else must be a Dataset
@@ -172,7 +175,7 @@ def hdf5_parse_group_structure(group):
 # pyfive
 # --------------------------------------------------------------------
 def pyfive_open(dataset, options):
-    """Open a dataset with `pyfive` library.
+    """Open a dataset with `pyfive`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -186,17 +189,17 @@ def pyfive_open(dataset, options):
                          of an `fsspec` file system open)
             * directory-like (such as `fsspec.mapping.FSMap`)
 
-             An exception is raised if the library can't interpret the
-             *dataset*.
+             An exception is raised if the *dataset* can't be
+             interpreted.
 
         options: `dict`
             Additional keyword parameters to pass to `pyfive.File`.
 
     :Returns:
 
-        (`pyfive.File`, `dict`, library)
+        (`pyfive.File`, `dict`, package)
             The opened dataset, the dataset's global attributes, and
-            the `pyfive` library itself.
+            the `pyfive` package itself.
 
     """
     import pyfive
@@ -209,7 +212,7 @@ def pyfive_open(dataset, options):
 # h5py
 # --------------------------------------------------------------------
 def h5py_open(dataset, options):
-    """Open a dataset with the `h5py` library.
+    """Open a dataset with the `h5py`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -223,17 +226,17 @@ def h5py_open(dataset, options):
                          of an `fsspec` file system open)
             * directory-like (such as `fsspec.mapping.FSMap`)
 
-             An exception is raised if the library can't interpret the
-             *dataset*.
+             An exception is raised if the *dataset* can't be
+             interpreted.
 
         options: `dict`
             Additional keyword parameters to pass to `h5py.File`.
 
     :Returns:
 
-        (`h5py.File`, `dict`, library)
+        (`h5py.File`, `dict`, package)
             The opened dataset, the dataset's global attributes, and
-            the `h5py` library itself.
+            the `h5py` package itself.
 
     """
     import h5py

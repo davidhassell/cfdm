@@ -8,7 +8,7 @@ import numpy as np
 from .utils import (
     NetCDFError,
     cdl_format,
-    get_lib,
+    get_package,
     h5py_open,
     hdf5_dimension_names,
     hdf5_parse_group_structure,
@@ -37,21 +37,21 @@ class Mixin:
 
     """
 
-    # Quantum of indentation for `dump` and `structure`
+    # Quantum of indentation for the `dump` and `structure` methods
     __indent = "    "
 
     @property
     def backend(self):
-        """The name of the library that provides the backend.
+        """The name of the package that provides the backend.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `lib`
+        .. seealso:: `package`
 
         :Returns:
 
             `str`
-                The name of the library that provides the backend.
+                The name of the package that provides the backend.
 
         """
         return self.root._backend
@@ -138,11 +138,11 @@ class Mixin:
         return self.root._is_local
 
     @property
-    def lib(self):
-        """The backend library.
+    def package(self):
+        """The backend package.
 
-        The backend library is the interface to the dataset, and
-        provides access to the dataset contents.
+        The backend package is the libray interface to the dataset,
+        and provides access to the dataset contents.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -150,10 +150,10 @@ class Mixin:
 
         :Returns:
 
-                The library that provides the backend.
+                The package that provides the backend.
 
         """
-        return self.root._lib
+        return self.root._package
 
     @property
     def parent(self):
@@ -464,7 +464,7 @@ class Variable(Mixin):
 
             var:
                 The underlying dataset variable object provided by the
-                backend library.
+                backend package.
 
             var_attrs: `dict`
                 The raw attributes of *var*.
@@ -1108,7 +1108,7 @@ class Group(Mixin, Mapping):
 
             grp:
                 The underlying group object provided by the
-                backend library.
+                backend package.
 
             grp_attrs: `dict`
                 The raw attributes of *grp*.
@@ -1695,7 +1695,7 @@ class File(Group):
     during `File` instantiation, the entire netCDF group, variable,
     and dimension structure is parsed; along with all group and
     variable attributes. Variable data access is always via access to
-    the underlying backend library (see the *backend* parameter). Some
+    the underlying backend package (see the *backend* parameter). Some
     `Variable` and `Group` properties and methods might also access
     the underlying backend but only for the first request, after which
     the result is cached (see the *metadata_strategy* parameter).
@@ -1762,7 +1762,7 @@ class File(Group):
                 (read-only), and this is the default.
 
             backend: `None` or (sequence of) `str`, optional
-                Which library or libraries to use for reading the
+                Which package or packages to use for reading the
                 dataset. An attempt to open the dataset is made by the
                 given backends in the order in which they are
                 provided, stopping after the first successful read.
@@ -1770,7 +1770,7 @@ class File(Group):
                 The available backends are:
 
                 =================  ======================
-                Backend            Library
+                Backend            Package
                 =================  ======================
                 ``'pyfive'``       `pyfive`
                 ``'zarr'``         `zarr`
@@ -1788,7 +1788,7 @@ class File(Group):
 
             metadata_strategy: `str`, optional
                 The strategy used for retrieving, via the backend
-                library, metadata from the dataset during the initial
+                package, metadata from the dataset during the initial
                 parsing of the dataset, and caching it. Must be one
                 of:
 
@@ -1798,7 +1798,7 @@ class File(Group):
                   metadata required to parse the dataset is retrieved
                   from the dataset and cached. For instance, this
                   includes all variable and group attributes, but may
-                  exclude (depending on the backend library) the
+                  exclude (depending on the backend package) the
                   variable shapes.
 
                 * ``'maximal'``
@@ -1919,7 +1919,7 @@ class File(Group):
             # --------------------------------------------------------
             nc = dataset
             attrs = nc.attrs
-            lib = get_lib(nc)
+            package = get_package(nc)
             self._owns_nc = False
 
             # Use the 'pyfive' logic to parse the dataset
@@ -2010,7 +2010,7 @@ class File(Group):
             for backend, func in read_functions.items():
                 options = read_options.get(backend, {})
                 try:
-                    nc, attrs, lib = func(dataset, options)
+                    nc, attrs, package = func(dataset, options)
                 except Exception as error:
                     self._log_read.append(
                         f"{backend}: {error.__class__.__name__}: {error}"
@@ -2035,12 +2035,12 @@ class File(Group):
             # The opened dataset is owned internally
             self._owns_nc = True
 
-        # Cache the backend, library, dataset, and dataset name
+        # Cache the backend, package, dataset, and dataset name
         if not isinstance(dataset_name, str):
             dataset_name = ""
 
         self._backend = backend
-        self._lib = lib
+        self._package = package
         self._dataset = dataset
         self._dataset_name = dataset_name
 
@@ -2361,7 +2361,7 @@ class File(Group):
         the dataset.
 
         Metadata may have already been cached within the backend
-        library, in which case retrieving and caching it in the `File`
+        package, in which case retrieving and caching it in the `File`
         instance it may by fast.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -2370,7 +2370,7 @@ class File(Group):
 
             strategy: `str`
                 The strategy used for caching, via the backend
-                library, metadata from the dataset. Must be one of:
+                package, metadata from the dataset. Must be one of:
 
                 * ``'maximal'``
 
@@ -2385,7 +2385,7 @@ class File(Group):
                   parse the dataset is retrieved from the dataset and
                   cached. For instance, this includes all variable and
                   group attributes, but may exclude (depending on the
-                  backend library) the variable shapes. Minimal
+                  backend package) the variable shapes. Minimal
                   metdata caching is always applied during `File`
                   instantiation, so there is no benefit in using this
                   option.

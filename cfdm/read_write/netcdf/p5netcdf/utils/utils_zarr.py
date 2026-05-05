@@ -1,9 +1,8 @@
+"""Utilities for integrating the Zarr backend `zarr` into `p5netcdf`."""
+
 from .utils_general import NetCDFError
 
 
-# --------------------------------------------------------------------
-# zarr
-# --------------------------------------------------------------------
 def zarr_dimension_maps(group):
     """Populate the dimension map dictionaries in the root group.
 
@@ -242,7 +241,7 @@ def zarr_raw_dimension_names(variable):
 
 
 def zarr_open(dataset, options):
-    """Open a dataset with `zarr` library.
+    """Open a dataset with `zarr`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -256,17 +255,17 @@ def zarr_open(dataset, options):
                          of an `fsspec` file system open)
             * directory-like (such as `fsspec.mapping.FSMap`)
 
-             An exception is raised if the library can't interpret the
-             *dataset*.
+             An exception is raised if the *dataset* can't be
+             interpreted.
 
         options: `dict`
             Additional keyword parameters to pass to `zarr.open`.
 
     :Returns:
 
-        (`zarr.Group`, `dict`, library)
+        (`zarr.Group`, `dict`, package)
             The opened dataset, the dataset's global attributes, and
-            the `zarr` library itself.
+            the `zarr` package itself.
 
     """
     import zarr

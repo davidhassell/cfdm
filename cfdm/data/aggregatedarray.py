@@ -444,73 +444,32 @@ class AggregatedArray(abstract.FileArray):
         ]
 
     def get_fragment_backend(self):
-        """Get the aggregation data dictionary TODO.
+        """The names of the packages for accessing the fragment dataset.
 
-        The aggregation data dictionary contains the definitions of
-        the fragments and the instructions on how to aggregate them.
-        The keys are indices of the fragment array dimensions,
-        e.g. ``(1, 0, 0, 0)``.
-
-        .. versionadded:: (cfdm) 1.12.0.0
-
-         .. seealso:: `get_fragment_type`,
-                      `get_fragment_array_shape`,
-                      `get_fragmented_dimensions`
-
-        :Parameters:
-
-            copy: `bool`, optional
-                Whether or not to return a copy of the aggregation
-                dictionary. By default a deep copy is returned.
-
-                .. warning:: If False then changing the returned
-                             dictionary in-place will change the
-                             aggregation dictionary stored in the
-                             {{class}} instance, **as well as in any
-                             copies of it**.
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
-            `dict`
-                The aggregation data dictionary.
-
-        **Examples**
+            `None` or sequence of `str`
+                The backend names, or `None` if none have not been
+                provided. When accessing the fragment, the backends
+                are tried in order until one succeessfully reads the
+                dataset.
 
         """
         return self._get_component("fragment_backend", None)
 
     def get_fragment_filesystem(self):
-        """TODO et the aggregation data dictionary.
+        """Return the file system which contains the fragement dataset.
 
-        The aggregation data dictionary contains the definitions of
-        the fragments and the instructions on how to aggregate them.
-        The keys are indices of the fragment array dimensions,
-        e.g. ``(1, 0, 0, 0)``.
-
-        .. versionadded:: (cfdm) 1.12.0.0
-
-         .. seealso:: `get_fragment_type`,
-                      `get_fragment_array_shape`,
-                      `get_fragmented_dimensions`
-
-        :Parameters:
-
-            copy: `bool`, optional
-                Whether or not to return a copy of the aggregation
-                dictionary. By default a deep copy is returned.
-
-                .. warning:: If False then changing the returned
-                             dictionary in-place will change the
-                             aggregation dictionary stored in the
-                             {{class}} instance, **as well as in any
-                             copies of it**.
+        .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
-            `dict`
-                The aggregation data dictionary.
-
-        **Examples**
+            filesystem or `None`
+                The file system object. If the file system is the local
+                file system, then `None` may be returned or a file
+                system object.
 
         """
         return self._get_component("fragment_filesystem", None)

@@ -5,6 +5,9 @@ from typing import Callable
 def resolve_references(dataset):
     """Resolve all references in a dataset.
 
+    A reference comprises the name of a variable or dimension within a
+    string-valued attribute.
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
@@ -18,21 +21,23 @@ def resolve_references(dataset):
         `None`
 
     """
-    resolvable_attributes = set(resolving_rules)
     for variable in dataset.all_variables.values():
         attrs = variable.attrs
-        for name in resolvable_attributes.intersection(attrs):
+        for name in set(attrs).intersection(resolvable_attributes):
             attrs[name] = resolve_attribute(name, attrs[name], variable)
 
 
-def resolve_attribute(attr, attr_value, variable):
-    """Resolve all references in a single attribute.
+def resolve_attribute(name, attr_value, variable):
+    """Resolve all references in an attribute.
+
+    A reference comprises the name of a variable or dimension within a
+    string-valued attribute.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        attr: `str`
+        name: `str`
             The attribute name.
 
         attr_value:
@@ -46,12 +51,98 @@ def resolve_attribute(attr, attr_value, variable):
             The resolved attribute.
 
     """
-    rules = resolving_rules[attr]
-    return rules.resolver(attr_value, variable, coord=rules.coord)
+    resolve = resolvable_attributes[name]
+    if resolve.name != name:
+        raise ValueError("Wrong ResolveAttribute!")
+
+    return resolve.resolver(attr_value, variable, coord=resolve.coord)
+
+
+def resolve_reference(
+    ref, variable, dim=False, var=False, dim_then_var=True, coord=False
+):
+    """Resolve a single reference within an attribute.
+
+    Resolves the absolute path to a coordinate variable within the
+    group structure.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Parameters:
+
+        ref: `str`
+            The reference to resolve.
+
+        variable: `p5netcdf.`Variable`
+            The original variable object that has the attribute that
+            contains the reference.
+
+        dim: `bool`, optional
+            True if the reference is a dimension.
+
+        var: `bool`, optional
+            True if the reference is a variable.
+
+        dim_then_var: `bool`, optional
+            If *dim* and *var* are both True, then *dim_then_var*
+            being True means try to resolve a dimension first, and if
+            that's not possible then as a variable; and vice versa for
+            *dim_then_var* being False.
+
+        coord: `bool`, optional
+            If True then the reference is for a Unidata coordinate
+            variable.
+
+    :Returns:
+
+        `str`
+            The absolute path to the reference.
+
+    """
+    second_search = None
+    if dim:
+        if var:
+            first_search = "dim" if dim_then_var else "var"
+            second_search = "var" if first_search == "dim" else "dim"
+        else:
+            first_search = "dim"
+    else:
+        first_search = "var"
+
+    resolved_ref = None
+    if "/" in ref:
+        # Reference is to be searched by absolute or relative path
+        resolved_ref = search_by_absolute_or_relative_path(
+            ref, variable, first_search
+        )
+        if resolved_ref is None and second_search:
+            resolved_ref = search_by_absolute_or_relative_path(
+                ref, variable, second_search
+            )
+    else:
+        # Reference is to be searched by proximity
+        resolved_ref = search_by_proximity(
+            ref, variable, first_search, coord=coord
+        )
+        if resolved_ref is None and second_search:
+            resolved_ref = search_by_proximity(
+                ref, variable, second_search, coord=coord
+            )
+
+    if resolved_ref is not None:
+        # Return the resoved reference
+        return resolved_ref
+
+    # Reference couldn't be resolved, so return it unchanged.
+    return ref
 
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
-    """TODO.
+    """Search for reference targets by absolute or relative_path.
+
+    Find the target of a reference that is defined by an absolute path
+    (one that starts with '/') or a relative path (one that contains,
+    but does not start with, '/').
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -93,7 +184,13 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
 
 
 def search_by_proximity(ref, variable, search_type, coord=False):
-    """TODO.
+    """Search for reference targets by proximity.
+
+    The reference contain no '/' characters and is searched for in the
+    direct ancestors of the current in which the variable is defined.
+
+    Coordinate variable references that cannot be found by proximity
+    are searched for laterally (see `coordinate_lateral_search`).
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -162,7 +259,7 @@ def search_by_proximity(ref, variable, search_type, coord=False):
 
 
 def coordinate_lateral_search(ref, group, depth):
-    """TODO.
+    """Search for coordiante variable reference targets by laterally.
 
     Performs a lateral search starting in *group* and proceeding to
     *depth* layers of sub-groups. If *depth* is 0, only *group* is
@@ -218,7 +315,7 @@ def coordinate_lateral_search(ref, group, depth):
 
 
 def resolve_pattern_1(value, variable, coord=False):
-    """TODO.
+    """Resolve references in a pattern 1 attribute.
 
     Resolve references in an attribute whose value has one of the
     following patterns:
@@ -246,7 +343,7 @@ def resolve_pattern_1(value, variable, coord=False):
 
 
 def resolve_pattern_2(value, variable, coord=False):
-    """TODO.
+    """Resolve references in a pattern 2 attribute.
 
     Resolve references in an attribute whose value has one of the
     following patterns:
@@ -272,7 +369,7 @@ def resolve_pattern_2(value, variable, coord=False):
 
 
 def resolve_pattern_3(value, variable, coord=False):
-    """TODO.
+    """Resolve references in a pattern 3 attribute.
 
     Resolve references in an attribute whose value has one of the
     following patterns:
@@ -304,7 +401,7 @@ def resolve_pattern_3(value, variable, coord=False):
 
 
 def resolve_pattern_4(value, variable, coord=False):
-    """TODO.
+    """Resolve references in a pattern 4 attribute.
 
     Resolve references in an attribute whose value has one of the
     following patterns:
@@ -349,7 +446,9 @@ def resolve_pattern_4(value, variable, coord=False):
 
 
 def resolve_pattern_5(value, variable, coord=False):
-    """Resolve references in a cell_methods attribute.
+    """Resolve references in a pattern 4 attribute.
+
+    Resolve references in an cell_methods attribute.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -443,7 +542,6 @@ def resolve_pattern_5(value, variable, coord=False):
             continue
 
         # Still here?
-        #        if ref.startswith("(") and ref.endswith(")"):
         resolved.append(ref)
         previous_ref = None
 
@@ -451,7 +549,7 @@ def resolve_pattern_5(value, variable, coord=False):
 
 
 def resolve_pattern_6(value, variable, coord=False):
-    """TODO.
+    """Resolve references in a pattern 6 attribute.
 
     Resolve references in an attribute whose value has one of the
     following patterns:
@@ -489,79 +587,9 @@ def resolve_pattern_6(value, variable, coord=False):
         return " ".join(resolved)
 
 
-def resolve_reference(
-    ref, variable, dim=False, var=False, dim_then_var=True, coord=False
-):
-    """Resolve a single reference.
-
-    Resolves the absolute path to a coordinate variable within the
-    group structure.
-
-    .. versionadded:: (cfdm) NEXTVERSION
-
-    :Parameters:
-
-        ref: `str`
-            The reference to resolve.
-
-        variable: `Variable`
-            The original variable object containing the reference.
-
-        rules: `Rules`
-            The flattening rules that apply to the reference.
-
-    :Returns:
-
-        `str`
-            The absolute path to the reference.
-
-    """
-    second_search = None
-    if dim:
-        if var:
-            first_search = "dim" if dim_then_var else "var"
-            second_search = "var" if first_search == "dim" else "dim"
-        else:
-            first_search = "dim"
-    else:
-        first_search = "var"
-
-    resolved_ref = None
-    if "/" in ref:
-        # Reference is to be searched by absolute or relative path
-        resolved_ref = search_by_absolute_or_relative_path(
-            ref, variable, first_search
-        )
-        if resolved_ref is None and second_search:
-            resolved_ref = search_by_absolute_or_relative_path(
-                ref, variable, second_search
-            )
-    else:
-        # Reference is to be searched by proximity
-        resolved_ref = search_by_proximity(
-            ref, variable, first_search, coord=coord
-        )
-        if resolved_ref is None and second_search:
-            resolved_ref = search_by_proximity(
-                ref, variable, second_search, coord=coord
-            )
-
-    if resolved_ref is not None:
-        # Return the resoved reference
-        return resolved_ref
-
-    # Reference couldn't be resolved, so return it unchanged.
-    return ref
-
-
 @dataclass
-class Rules:
-    """Rules for resolving references in a netCDF attribute.
-
-    TODO For a named netCDF attribute, the rules a define how the contents
-    of the attribute are flattened. For instance, it has to be defined
-    that the ``ancillary_variables`` attribute contains the names of
-    other netCDF variables.
+class ResolveAttribute:
+    """How to resolving references in an attribute.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -577,89 +605,113 @@ class Rules:
 
 
 # --------------------------------------------------------------------
-# Define the flattening rules for named CF attributes
+# Define the reference-resolving strategies for each atribute type
 # --------------------------------------------------------------------
-resolving_rules = {
+resolvable_attributes = {
     attr.name: attr
     for attr in (
         # ------------------------------------------------------------
         # Coordinates
         # ------------------------------------------------------------
-        Rules(name="coordinates", resolver=resolve_pattern_1, coord=True),
+        ResolveAttribute(
+            name="coordinates", resolver=resolve_pattern_1, coord=True
+        ),
         # ------------------------------------------------------------
         # Bounds
         # ------------------------------------------------------------
-        Rules(name="bounds", resolver=resolve_pattern_1),
-        Rules(name="climatology", resolver=resolve_pattern_1),
+        ResolveAttribute(name="bounds", resolver=resolve_pattern_1),
+        ResolveAttribute(name="climatology", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Cell methods
         # ------------------------------------------------------------
-        Rules(name="cell_methods", resolver=resolve_pattern_5),
+        ResolveAttribute(name="cell_methods", resolver=resolve_pattern_5),
         # ------------------------------------------------------------
         # Cell measures
         # ------------------------------------------------------------
-        Rules(name="cell_measures", resolver=resolve_pattern_3),
+        ResolveAttribute(name="cell_measures", resolver=resolve_pattern_3),
         # ------------------------------------------------------------
         # Coordinate references
         # ------------------------------------------------------------
-        Rules(name="formula_terms", resolver=resolve_pattern_3),
-        Rules(name="grid_mapping", resolver=resolve_pattern_4),
+        ResolveAttribute(name="formula_terms", resolver=resolve_pattern_3),
+        ResolveAttribute(name="grid_mapping", resolver=resolve_pattern_4),
         # ------------------------------------------------------------
         # Ancillary variables
         # ------------------------------------------------------------
-        Rules(name="ancillary_variables", resolver=resolve_pattern_1),
+        ResolveAttribute(
+            name="ancillary_variables", resolver=resolve_pattern_1
+        ),
         # ------------------------------------------------------------
         # Compression by gathering
         # ------------------------------------------------------------
-        Rules(name="compress", resolver=resolve_pattern_2),
+        ResolveAttribute(name="compress", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Discrete sampling geometries
         # ------------------------------------------------------------
-        Rules(name="instance_dimension", resolver=resolve_pattern_2),
-        Rules(name="sample_dimension", resolver=resolve_pattern_2),
+        ResolveAttribute(
+            name="instance_dimension", resolver=resolve_pattern_2
+        ),
+        ResolveAttribute(name="sample_dimension", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Domain variables
         # ------------------------------------------------------------
-        Rules(name="dimensions", resolver=resolve_pattern_2),
+        ResolveAttribute(name="dimensions", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Aggregation variables
         # ------------------------------------------------------------
-        Rules(name="aggregated_dimensions", resolver=resolve_pattern_2),
-        Rules(name="aggregated_data", resolver=resolve_pattern_3),
+        ResolveAttribute(
+            name="aggregated_dimensions", resolver=resolve_pattern_2
+        ),
+        ResolveAttribute(name="aggregated_data", resolver=resolve_pattern_3),
         # ------------------------------------------------------------
         # Cell geometries
         # ------------------------------------------------------------
-        Rules(name="geometry", resolver=resolve_pattern_1),
-        Rules(name="interior_ring", resolver=resolve_pattern_1),
-        Rules(name="node_coordinates", resolver=resolve_pattern_1),
-        Rules(name="node_count", resolver=resolve_pattern_1),
-        Rules(name="nodes", resolver=resolve_pattern_1),
-        Rules(name="part_node_count", resolver=resolve_pattern_1),
+        ResolveAttribute(name="geometry", resolver=resolve_pattern_1),
+        ResolveAttribute(name="interior_ring", resolver=resolve_pattern_1),
+        ResolveAttribute(name="node_coordinates", resolver=resolve_pattern_1),
+        ResolveAttribute(name="node_count", resolver=resolve_pattern_1),
+        ResolveAttribute(name="nodes", resolver=resolve_pattern_1),
+        ResolveAttribute(name="part_node_count", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # UGRID variables
         # ------------------------------------------------------------
-        Rules(name="mesh", resolver=resolve_pattern_1),
-        Rules(name="node_coordinates", resolver=resolve_pattern_1),
-        Rules(name="edge_coordinates", resolver=resolve_pattern_1),
-        Rules(name="face_coordinates", resolver=resolve_pattern_1),
-        Rules(name="edge_node_connectivity", resolver=resolve_pattern_1),
-        Rules(name="edge_edge_connectivity", resolver=resolve_pattern_1),
-        Rules(name="edge_face_connectivity", resolver=resolve_pattern_1),
-        Rules(name="face_node_connectivity", resolver=resolve_pattern_1),
-        Rules(name="face_edge_connectivity", resolver=resolve_pattern_1),
-        Rules(name="face_face_connectivity", resolver=resolve_pattern_1),
-        Rules(name="edge_dimension", resolver=resolve_pattern_2),
-        Rules(name="face_dimension", resolver=resolve_pattern_2),
+        ResolveAttribute(name="mesh", resolver=resolve_pattern_1),
+        ResolveAttribute(name="node_coordinates", resolver=resolve_pattern_1),
+        ResolveAttribute(name="edge_coordinates", resolver=resolve_pattern_1),
+        ResolveAttribute(name="face_coordinates", resolver=resolve_pattern_1),
+        ResolveAttribute(
+            name="edge_node_connectivity", resolver=resolve_pattern_1
+        ),
+        ResolveAttribute(
+            name="edge_edge_connectivity", resolver=resolve_pattern_1
+        ),
+        ResolveAttribute(
+            name="edge_face_connectivity", resolver=resolve_pattern_1
+        ),
+        ResolveAttribute(
+            name="face_node_connectivity", resolver=resolve_pattern_1
+        ),
+        ResolveAttribute(
+            name="face_edge_connectivity", resolver=resolve_pattern_1
+        ),
+        ResolveAttribute(
+            name="face_face_connectivity", resolver=resolve_pattern_1
+        ),
+        ResolveAttribute(name="edge_dimension", resolver=resolve_pattern_2),
+        ResolveAttribute(name="face_dimension", resolver=resolve_pattern_2),
         # ------------------------------------------------------------
         # Compression by coordinate subsampling
         # ------------------------------------------------------------
-        Rules(name="coordinate_interpolation", resolver=resolve_pattern_4),
-        Rules(name="tie_point_mapping", resolver=resolve_pattern_6),
-        Rules(name="interpolation_parameters", resolver=resolve_pattern_3),
-        Rules(name="bounds_tie_points", resolver=resolve_pattern_1),
+        ResolveAttribute(
+            name="coordinate_interpolation", resolver=resolve_pattern_4
+        ),
+        ResolveAttribute(name="tie_point_mapping", resolver=resolve_pattern_6),
+        ResolveAttribute(
+            name="interpolation_parameters", resolver=resolve_pattern_3
+        ),
+        ResolveAttribute(name="bounds_tie_points", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
         # Quantization
         # ------------------------------------------------------------
-        Rules(name="quantization", resolver=resolve_pattern_1),
+        ResolveAttribute(name="quantization", resolver=resolve_pattern_1),
     )
 }

@@ -432,10 +432,10 @@ class Testp5netcdf(unittest.TestCase):
         self.assertEqual(self.p.backend, "pyfive")
         self.assertEqual(self.p3.backend, "netCDF4")
 
-    def test_p5netcdf_File_lib(self):
-        """Test File.lib."""
-        self.assertIs(self.p.lib, pyfive)
-        self.assertIs(self.p3.lib, netCDF4)
+    def test_p5netcdf_File_package(self):
+        """Test File.package."""
+        self.assertIs(self.p.package, pyfive)
+        self.assertIs(self.p3.package, netCDF4)
 
     def test_p5netcdf_File_enter_exit(self):
         """Test File in context manager."""
@@ -542,10 +542,10 @@ class Testp5netcdf(unittest.TestCase):
         self.assertEqual(self.p.dimensions["bounds2"].backend, "pyfive")
         self.assertEqual(self.p3.dimensions["bounds2"].backend, "netCDF4")
 
-    def test_p5netcdf_Dimension_lib(self):
-        """Test Dimension.lib."""
-        self.assertIs(self.p.dimensions["bounds2"].lib, pyfive)
-        self.assertIs(self.p3.dimensions["bounds2"].lib, netCDF4)
+    def test_p5netcdf_Dimension_package(self):
+        """Test Dimension.package."""
+        self.assertIs(self.p.dimensions["bounds2"].package, pyfive)
+        self.assertIs(self.p3.dimensions["bounds2"].package, netCDF4)
 
     def test_p5netcdf_Variable__repr__(self):
         """Test Variable.__repr__."""

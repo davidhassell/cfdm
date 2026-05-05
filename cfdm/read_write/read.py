@@ -184,11 +184,11 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.12.0.0
 
-        {{read cfa_filesystem: optional}}
+        {{read cfa_filesystem: `None` or filesystem, optional}}
 
             .. versionadded:: (cfdm) NEXTVERSION
 
-        {{read cfa_backend: (sequence of) `str`, optional}}
+        {{read cfa_backend: `None` or (sequence of) `str`, optional}}
 
             .. versionadded:: (cfdm) NEXTVERSION
 
