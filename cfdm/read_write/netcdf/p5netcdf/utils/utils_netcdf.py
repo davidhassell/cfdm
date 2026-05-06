@@ -1,5 +1,4 @@
-"""Utilities for integrating the netCDF backends `netCDF4` and
-`scip.io.netcdf_file into `p5netcdf`."""
+"""Utilities for backends `netCDF4` and `netcdf_file in `p5netcdf`."""
 
 
 # --------------------------------------------------------------------
@@ -61,9 +60,9 @@ def netCDF4_open(dataset, options):
 
     :Returns:
 
-        (`netCDF4.Dataset`, `dict`, package)
+        (`netCDF4.Dataset`, `dict`, library)
             The opened dataset, the dataset's global attributes, and
-            the `netCDF4` package itself.
+            the `netCDF4` library itself.
 
     """
     import netCDF4
@@ -127,9 +126,9 @@ def netcdf_file_open(dataset, options):
 
     :Returns:
 
-        (`scipy.io.netcdf_file`, `dict`, package)
+        (`scipy.io.netcdf_file`, `dict`, library)
             The opened dataset, the dataset's global attributes, and
-            the `netcdf_file` package itself.
+            the `netcdf_file` library itself.
 
     """
     from scipy.io import netcdf_file

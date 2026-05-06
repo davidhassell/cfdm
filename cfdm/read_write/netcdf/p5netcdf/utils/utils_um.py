@@ -1,5 +1,4 @@
-"""Utilities for integrating the PP/UM backend `ppfive` into
-`p5netcdf`."""
+"""Utilities for the backend `ppfive` in `p5netcdf`."""
 
 
 def ppfive_open(dataset, options):
@@ -25,9 +24,9 @@ def ppfive_open(dataset, options):
 
     :Returns:
 
-        (`ppfive.File`, `dict`, package)
+        (`ppfive.File`, `dict`, library)
             The opened dataset, the dataset's global attributes, and
-            the `ppfive` package itself.
+            the `ppfive` library itself.
 
     """
     import ppfive

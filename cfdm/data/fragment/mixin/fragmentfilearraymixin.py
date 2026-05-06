@@ -14,8 +14,6 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
         address=None,
         dtype=None,
         shape=None,
-        #        storage_protocol=None,
-        #        storage_options=None,
         filesystem=None,
         backend=None,
         unpack_aggregated_data=True,
@@ -52,8 +50,6 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
 
             {{aggregated_calendar: `str` or `None`, optional}}
 
-            {{init storage_options: `dict` or `None`, optional}}
-
             {{init filesystem: optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
@@ -66,6 +62,9 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
 
             {{init copy: `bool`, optional}}
 
+            storage_options: Deprecated at version NEXTVERSION
+                Use *filesystem* intesad.
+
         """
         super().__init__(
             filename=filename,
@@ -75,8 +74,6 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
             mask=True,
             unpack=True,
             attributes=None,
-            #            storage_protocol=storage_protocol,
-            #            storage_options=storage_options,
             filesystem=filesystem,
             backend=backend,
             source=source,

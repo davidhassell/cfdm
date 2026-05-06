@@ -56,14 +56,6 @@ class FileArray(Array):
                 attributes will be set from those in the dataset
                 during the first `__getitem__` call.
 
-            {{init storage_protocol: `None` or `str`, optional}}
-
-                .. versionadded:: (cfdm) NEXTVERSION
-
-            {{init storage_options: `dict` or `None`, optional}}
-
-                .. versionadded:: (cfdm) NEXTVERSION
-
             {{init filesystem: optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
@@ -84,9 +76,11 @@ class FileArray(Array):
 
             {{init copy: `bool`, optional}}
 
-            storage_protocol: Deprecated at version NEXTVERSION
-
             storage_options: Deprecated at version NEXTVERSION
+                Use *filesystem* instead.
+
+            storage_protocol: Deprecated at version NEXTVERSION
+                Use *filesystem* instead.
 
         """
         super().__init__(source=source, copy=copy)
@@ -306,11 +300,12 @@ class FileArray(Array):
 
         :Returns:
 
-            `str` or `None`
-                The backend names, or `None` if none have not been
-                provided. When accessing the dataset, the backends are
-                tried in order until one succeessfully reads the
-                dataset.
+            `None` or (sequence of) `str`
+                The backend name or names, or `None` if none have not
+                been provided. When accessing the dataset, the
+                backends are tried in order until one succeessfully
+                reads the dataset. If no backends have been provided
+                then the default backend(s) for are used.
 
         """
         return self._get_component("backend", None)
@@ -437,7 +432,7 @@ class FileArray(Array):
             "get_storage_protocol",
             version="NEXTVERSION",
             removed_at="1.14.0.0",
-        )
+        )  # pragma: no cover
 
     def get_filesystem(self):
         """Return the file system which contains the dataset.
@@ -481,7 +476,7 @@ class FileArray(Array):
             "get_storage_options",
             version="NEXTVERSION",
             removed_at="1.14.0.0",
-        )
+        )  # pragma: no cover
 
     def get_variable(self, default=AttributeError()):
         """Get the open dataset variable object for the data.
@@ -502,7 +497,7 @@ class FileArray(Array):
         """
         return self._get_component("variable", default)
 
-    def open(self, func, *args, **kwargs):
+    def open(self, func, options=None, create_filesystem=True):
         """Return a dataset file object and address.
 
         .. versionadded:: (cfdm) 1.10.1.0
@@ -512,8 +507,15 @@ class FileArray(Array):
             func: callable
                 Function that opens a file.
 
-            args, kwargs: optional
-                Optional arguments to *func*.
+            options: `dict`, optional
+                Arguments to *func*.
+
+            create_filesystem: `bool`, optional
+                If True (the default) then attempt to create a
+                filesystem if one has not been provided. Note that a
+                filesystem will not be created for a local dataset.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -525,6 +527,14 @@ class FileArray(Array):
         filename = self.get_filename(normalise=True)
         if isinstance(filename, str):
             filesystem = self.get_filesystem()
+            if filesystem is None and create_filesystem:
+                # No filesystem has been given, attempt to create one
+                # from the dataset name. Note that a filesystem will
+                # not be created for a local dataset.
+                from cfdm.read_write import IORead
+
+                filename, filesystem = IORead.create_filesystem(filename)
+
             if filesystem is None:
                 # Local file system
                 try:
@@ -559,7 +569,10 @@ class FileArray(Array):
                     ) from error
 
         # Open the dataset
-        dataset = func(filename, *args, **kwargs)
+        if not options:
+            options = {}
+
+        dataset = func(filename, **options)
 
         return dataset, self.get_address()
 
@@ -662,16 +675,12 @@ class FileArray(Array):
         Deprecated at version 1.12.0.0. Use `get_attributes` instead.
 
         """
-
-        class DeprecationError(Exception):
-            """Deprecation error."""
-
-            pass
-
-        raise DeprecationError(
-            f"{self.__class__.__name__}.get_missing_values was deprecated "
-            "at version 1.12.0.0 and is no longer available. "
-            f"Use {self.__class__.__name__}.get_attributes instead."
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "get_missing_values"
+            f"Use {self.__class__.__name__}.get_attributes instead.",
+            version="1.12.0.0",
+            removed_at="1.14.0.0",
         )  # pragma: no cover
 
     def to_memory(self):
@@ -745,7 +754,7 @@ class FileArray(Array):
             "has_remote_storage_protocol",
             version="NEXTVERSION",
             removed_at="1.14.0.0",
-        )
+        )  # pragma: no cover
 
     def replace_filename(self, filename):
         """Replace the file location.

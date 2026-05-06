@@ -26,24 +26,18 @@ from . import (
     TiePointIndex,
 )
 from .abstract import Implementation
-from .data import (
+from .data import (  # H5netcdfArray,; H5pyArray,; NetCDF4Array,; PyfiveArray,; ScipyNetcdfFileArray,; ZarrArray,
     AggregatedArray,
     BoundsFromNodesArray,
     CellConnectivityArray,
     Data,
     GatheredArray,
-    H5netcdfArray,
-    H5pyArray,
-    NetCDF4Array,
     P5netcdfArray,
     PointTopologyArray,
-    PyfiveArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
-    ScipyNetcdfFileArray,
     SubsampledArray,
-    ZarrArray,
 )
 
 
@@ -2585,95 +2579,95 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("TiePointIndex")
         return cls()
 
-    def initialise_NetCDF4Array(self, **kwargs):
-        """Return a `NetCDF4Array` instance.
-
-        :Parameters:
-
-            kwargs: optional
-                Initialisation parameters to pass to the new instance.
-
-                .. versionadded:: (cfdm) 1.11.2.0
-
-        :Returns:
-
-            `NetCDF4Array`
-
-        """
-        cls = self.get_class("NetCDF4Array")
-        return cls(**kwargs)
-
-    def initialise_H5netcdfArray(self, **kwargs):
-        """Return a `H5netcdfArray` instance.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            kwargs: optional
-                Initialisation parameters to pass to the new instance.
-
-        :Returns:
-
-            `H5netcdfArray`
-
-        """
-        cls = self.get_class("H5netcdfArray")
-        return cls(**kwargs)
-
-    def initialise_H5pyArray(self, **kwargs):
-        """Return a `H5netcdfArray` instance.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            kwargs: optional
-                Initialisation parameters to pass to the new instance.
-
-        :Returns:
-
-            `H5pyArray`
-
-        """
-        cls = self.get_class("H5pyArray")
-        return cls(**kwargs)
-
-    def initialise_ScipyNetcdfFileArray(self, **kwargs):
-        """Return a `NetCDF4Array` instance.
-
-        :Parameters:
-
-            kwargs: optional
-                Initialisation parameters to pass to the new instance.
-
-                .. versionadded:: (cfdm) NEXTVERSION
-
-        :Returns:
-
-            `ScipyNetcdfFileArray`
-
-        """
-        cls = self.get_class("ScipyNetcdfFileArray")
-        return cls(**kwargs)
-
-    def initialise_PyfiveArray(self, **kwargs):
-        """Return a `PyfiveArray` instance.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            kwargs: optional
-                Initialisation parameters to pass to the new instance.
-
-        :Returns:
-
-            `PyfiveArray`
-
-        """
-        cls = self.get_class("PyfiveArray")
-        return cls(**kwargs)
+    #    def initialise_NetCDF4Array(self, **kwargs):
+    #        """Return a `NetCDF4Array` instance.
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Initialisation parameters to pass to the new instance.
+    #
+    #                .. versionadded:: (cfdm) 1.11.2.0
+    #
+    #        :Returns:
+    #
+    #            `NetCDF4Array`
+    #
+    #        """
+    #        cls = self.get_class("NetCDF4Array")
+    #        return cls(**kwargs)
+    #
+    #    def initialise_H5netcdfArray(self, **kwargs):
+    #        """Return a `H5netcdfArray` instance.
+    #
+    #        .. versionadded:: (cfdm) 1.11.2.0
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Initialisation parameters to pass to the new instance.
+    #
+    #        :Returns:
+    #
+    #            `H5netcdfArray`
+    #
+    #        """
+    #        cls = self.get_class("H5netcdfArray")
+    #        return cls(**kwargs)
+    #
+    #    def initialise_H5pyArray(self, **kwargs):
+    #        """Return a `H5netcdfArray` instance.
+    #
+    #        .. versionadded:: (cfdm) 1.11.2.0
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Initialisation parameters to pass to the new instance.
+    #
+    #        :Returns:
+    #
+    #            `H5pyArray`
+    #
+    #        """
+    #        cls = self.get_class("H5pyArray")
+    #        return cls(**kwargs)
+    #
+    #    def initialise_ScipyNetcdfFileArray(self, **kwargs):
+    #        """Return a `NetCDF4Array` instance.
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Initialisation parameters to pass to the new instance.
+    #
+    #                .. versionadded:: (cfdm) NEXTVERSION
+    #
+    #        :Returns:
+    #
+    #            `ScipyNetcdfFileArray`
+    #
+    #        """
+    #        cls = self.get_class("ScipyNetcdfFileArray")
+    #        return cls(**kwargs)
+    #
+    #    def initialise_PyfiveArray(self, **kwargs):
+    #        """Return a `PyfiveArray` instance.
+    #
+    #        .. versionadded:: (cfdm) NEXTVERSION
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Initialisation parameters to pass to the new instance.
+    #
+    #        :Returns:
+    #
+    #            `PyfiveArray`
+    #
+    #        """
+    #        cls = self.get_class("PyfiveArray")
+    #        return cls(**kwargs)
 
     def initialise_P5netcdfArray(self, **kwargs):
         """Return a `P5netcdfArray` instance.
@@ -2693,23 +2687,23 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("P5netcdfArray")
         return cls(**kwargs)
 
-    def initialise_ZarrArray(self, **kwargs):
-        """Return a `ZarrArray` instance.
-
-        .. versionadded:: (cfdm) 1.12.2.0
-
-        :Parameters:
-
-            kwargs: optional
-                Initialisation parameters to pass to the new instance.
-
-        :Returns:
-
-            `ZarrArray`
-
-        """
-        cls = self.get_class("ZarrArray")
-        return cls(**kwargs)
+    #    def initialise_ZarrArray(self, **kwargs):
+    #        """Return a `ZarrArray` instance.
+    #
+    #        .. versionadded:: (cfdm) 1.12.2.0
+    #
+    #        :Parameters:
+    #
+    #            kwargs: optional
+    #                Initialisation parameters to pass to the new instance.
+    #
+    #        :Returns:
+    #
+    #            `ZarrArray`
+    #
+    #        """
+    #        cls = self.get_class("ZarrArray")
+    #        return cls(**kwargs)
 
     def initialise_BoundsFromNodesArray(self, **kwargs):
         """Return a node bounds array.
@@ -4129,20 +4123,20 @@ _implementation = CFDMImplementation(
     Data=Data,
     BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
-    H5netcdfArray=H5netcdfArray,
+    #    H5netcdfArray=H5netcdfArray,
     P5netcdfArray=P5netcdfArray,
-    H5pyArray=H5pyArray,
-    NetCDF4Array=NetCDF4Array,
-    ScipyNetcdfFileArray=ScipyNetcdfFileArray,
+    #    H5pyArray=H5pyArray,
+    #    NetCDF4Array=NetCDF4Array,
+    #    ScipyNetcdfFileArray=ScipyNetcdfFileArray,
     PointTopologyArray=PointTopologyArray,
-    PyfiveArray=PyfiveArray,
+    #    PyfiveArray=PyfiveArray,
     Quantization=Quantization,
     RaggedContiguousArray=RaggedContiguousArray,
     RaggedIndexedArray=RaggedIndexedArray,
     RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
     SubsampledArray=SubsampledArray,
     TiePointIndex=TiePointIndex,
-    ZarrArray=ZarrArray,
+    #    ZarrArray=ZarrArray,
 )
 
 

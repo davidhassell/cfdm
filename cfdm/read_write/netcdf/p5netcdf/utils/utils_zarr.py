@@ -1,4 +1,4 @@
-"""Utilities for integrating the Zarr backend `zarr` into `p5netcdf`."""
+"""Utilities for the backend `zarr` in `p5netcdf`."""
 
 from .utils_general import NetCDFError
 
@@ -263,9 +263,9 @@ def zarr_open(dataset, options):
 
     :Returns:
 
-        (`zarr.Group`, `dict`, package)
+        (`zarr.Group`, `dict`, library)
             The opened dataset, the dataset's global attributes, and
-            the `zarr` package itself.
+            the `zarr` library itself.
 
     """
     import zarr

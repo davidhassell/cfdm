@@ -1,4 +1,4 @@
-"""General utilities for integrating the backends into `p5netcdf`."""
+"""General utilities for `p5netcdf`."""
 
 import sys
 
@@ -22,8 +22,8 @@ class NetCDFError(Exception):
     pass
 
 
-def get_package(obj):
-    """Get the library package of an object.
+def get_library(obj):
+    """Get the library that provides an object.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -34,7 +34,7 @@ def get_package(obj):
 
     :Returns:
 
-            The package (e.g. a `pyfive`).
+            The library (e.g. a `pyfive`).
 
     """
     module_name = type(obj).__module__
@@ -61,7 +61,7 @@ def get_package(obj):
     return current_package
 
 
-def format_attr(attr, value, package):
+def format_attr(attr, value, library):
     """Format an attribute according to netCDF-4.
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -74,8 +74,8 @@ def format_attr(attr, value, package):
         value:
             The raw attribute value.
 
-        package:
-            The backend package that created the variable or group
+        library:
+            The backend library that created the variable or group
             that owns the attribute value.
 
     :Returns:
@@ -88,7 +88,7 @@ def format_attr(attr, value, package):
         return value.decode("utf-8")
 
     try:
-        if isinstance(value, package.Empty):
+        if isinstance(value, library.Empty):
             dtype = value.dtype
             if dtype.kind in "SUT":
                 return ""
@@ -183,9 +183,9 @@ def parse_attributes(obj, raw_attrs):
             The attributes formatted according to netCDF-4.
 
     """
-    package = obj.package
+    library = obj.library
     return {
-        k: format_attr(k, v, package)
+        k: format_attr(k, v, library)
         for k, v in raw_attrs.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }

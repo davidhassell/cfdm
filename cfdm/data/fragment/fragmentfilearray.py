@@ -19,32 +19,8 @@ class FragmentFileArray(
 
     """
 
+    # Store fragment classes
     __FragmentArrays = (FragmentP5netcdfArray,)
-
-    # def __new__(cls, *args, **kwargs):
-    #    """Store fragment classes.
-    #
-    #    .. versionadded:: (cfdm) 1.12.0.0
-    #
-    #    """
-    #    # Import fragment classes. Do this here (as opposed to outside
-    #    # the class) to aid subclassing.
-    #    from . import (
-    #        FragmentP5pyArray,
-    #        FragmentH5pyArray,
-    #        FragmentNetCDF4Array,
-    #        FragmentPyfiveArray,
-    #        FragmentZarrArray,
-    #    )
-    #
-    #    instance = super().__new__(cls)
-    #    instance._FragmentArrays = (
-    #        FragmentPyfiveArray,
-    #        FragmentNetCDF4Array,
-    #        FragmentH5pyArray,
-    #        FragmentZarrArray,
-    #    )
-    #    return instance
 
     def __init__(
         self,
@@ -52,8 +28,6 @@ class FragmentFileArray(
         address=None,
         dtype=None,
         shape=None,
-        #        storage_protocol=None,
-        #        storage_options=None,
         filesystem=None,
         backend=None,
         unpack_aggregated_data=True,
@@ -114,8 +88,6 @@ class FragmentFileArray(
             mask=True,
             unpack=True,
             attributes=None,
-            #            storage_protocol=storage_protocol,
-            #            storage_options=storage_options,
             filesystem=filesystem,
             backend=backend,
             source=source,
@@ -270,39 +242,3 @@ class FragmentFileArray(
             filename = abspath(filename, uri=True)
 
         return filename
-
-
-#   def get_storage_protocol(self):
-#       """The file system protocol.
-#
-#       .. versionadded:: (cfdm) NEXTVERSION
-#
-#       .. seeaslo:: `has_remote_storage_protocol`, `get_storage_options`
-#
-#       :Returns:
-#
-#           `None` or str`
-#               The file system protocol. If `None` the the file
-#               system is the local file system.
-#
-#       **Examples**
-#
-#       >>> a.get_storage_protocol()
-#       's3'
-#       >>> a.get_storage_protocol()
-#       'file'
-#       >>> print(a.get_storage_protocol())
-#       None
-#
-#       """
-#       from uritools import urisplit
-#
-#       protocol = self._get_component("storage_protocol", None)
-#       if protocol is None:
-#           protocol = urisplit(self.get_filename()).scheme
-#           if isinstance(protocol, tuple):
-#               protocol = protocol[0]
-#
-#       self._set_component("storage_protocol", protocol, copy=False)
-#
-#       return protocol

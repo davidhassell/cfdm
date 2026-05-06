@@ -17,23 +17,11 @@ class AggregatedArray(abstract.FileArray):
 
     """
 
+    # Store fragment array classes.
     __FragmentArray = {
         "uri": FragmentFileArray,
         "unique_value": FragmentUniqueValueArray,
     }
-
-    # def __new__(cls, *args, **kwargs):
-    #    """Store fragment array classes.
-    #
-    #    .. versionadded:: (cfdm) 1.12.0.0
-    #
-    #    """
-    #    instance = super().__new__(cls)
-    #    instance._FragmentArray = {
-    #        "uri": FragmentFileArray,
-    #        "unique_value": FragmentUniqueValueArray,
-    #    }
-    #    return instance
 
     def __init__(
         self,
@@ -44,8 +32,6 @@ class AggregatedArray(abstract.FileArray):
         unpack=True,
         fragment_array=None,
         attributes=None,
-        #        storage_protocol=None,
-        #        storage_options=None,
         filesystem=None,
         backend=None,
         fragment_filesystem=None,
@@ -86,12 +72,6 @@ class AggregatedArray(abstract.FileArray):
                    {'map': <'map' fragment variable data>,
                     'unique_values': <'unique_values' fragment variable data>}
 
-            {{init storage_protocol: `None` or `str`, optional}}
-
-                .. versionadded:: (cfdm) NEXTVERSION
-
-            {{init storage_options: `dict` or `None`, optional}}
-
             {{init filesystem: optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
@@ -106,9 +86,45 @@ class AggregatedArray(abstract.FileArray):
                 attributes will be set from the netCDF variable during
                 the first `__getitem__` call.
 
+            fragment_filesystem: optional
+                A pre-authenticated filesystem object (for example an
+                `fsspec` filesystem instance) to use for opening the
+                fragment.
+
+                If `None` (the default) then a fragment path is passed
+                unchanged to the backends defined by the
+                *fragament_backend* parameter.
+
+                When provided, a fragment path (``fragment``) is
+                treated as the file-like object
+                ``filesytem.open(fragment, 'rb')`` which is passed to
+                the backends (see the *fragment_backend* parameter).
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            fragment_backend: `None` or (sequence of) `str`, optional
+                Which library or libraries to use for reading the
+                fragment. When the fragment is accessed, an attempt to
+                open each fragment dataset is made by the given
+                backends in order, stopping after the first successful
+                read. The available backends are those allowed by
+                `p5netcdf`.
+
+                By default *fragment_backend* is `None`, which is
+                equivalent to providing the ordered sequence of
+                the default backends for `p5netcdf`.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
+
+            storage_options: Deprecated at version NEXTERSION
+                Use *filesystem* instead.
+
+            storage_protocol: Deprecated at version NEXTERSION
+                Use *filesystem* instead.
 
         """
         super().__init__(
@@ -118,8 +134,6 @@ class AggregatedArray(abstract.FileArray):
             mask=True,
             unpack=unpack,
             attributes=attributes,
-            #            storage_protocol=storage_protocol,
-            #            storage_options=storage_options,
             filesystem=filesystem,
             backend=backend,
             source=source,
@@ -764,8 +778,6 @@ class AggregatedArray(abstract.FileArray):
 
         dtype = self.dtype
         fragment_array = self.get_fragment_array(copy=False)
-        #        storage_options = self.get_storage_options()
-        #        backend = self.get_backend()
         fragment_filesystem = self.get_fragment_filesystem()
         fragment_backend = self.get_fragment_backend()
         fragment_type = self.get_fragment_type()
@@ -814,8 +826,6 @@ class AggregatedArray(abstract.FileArray):
 
                 kwargs["filename"] = filename
                 kwargs["address"] = kwargs.pop("identifier")
-                #                kwargs["storage_protocol"] = protocol
-                #                kwargs["storage_options"] = storage_options
                 kwargs["filesystem"] = fragment_filesystem
                 kwargs["backend"] = fragment_backend
                 kwargs["aggregation_file_directory"] = (

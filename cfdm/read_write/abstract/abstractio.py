@@ -80,7 +80,7 @@ class IORead(IO, metaclass=abc.ABCMeta):
 
         if scheme in (None, "file"):
             # --------------------------------------------------------
-            # Path is, e.g. ' file://...' or '/data/...'
+            # Path is ' file://...', '/data/...', 'data/...'
             # --------------------------------------------------------
             if storage_options is None:
                 filesystem = None
@@ -118,7 +118,7 @@ class IORead(IO, metaclass=abc.ABCMeta):
 
         else:
             # --------------------------------------------------------
-            # Path is, e.g. 'http://...', 'myschema://...'
+            # Path is 'http://...', 'https://...', 'myschema://...'
             # --------------------------------------------------------
             import fsspec
 

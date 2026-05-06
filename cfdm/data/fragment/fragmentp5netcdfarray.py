@@ -8,6 +8,3 @@ class FragmentP5netcdfArray(FragmentFileArrayMixin, P5netcdfArray):
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
-
-
-1

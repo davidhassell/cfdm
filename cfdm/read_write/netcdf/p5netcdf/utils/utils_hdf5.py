@@ -1,5 +1,4 @@
-"""Utilities for integrating the HDF5 backends `pyfive` and `h5py` into
-`p5netcdf`."""
+"""Utilities for backends `pyfive` and `h5py` in `p5netcdf`."""
 
 from .utils_general import NetCDFError
 
@@ -90,12 +89,12 @@ def hdf5_parse_group_structure(group):
 
     # Categorise objects without double-reading items from the HDF5
     # dataset
-    package = group.package
-    package_has_groups = hasattr(package, "Group")
+    library = group.library
+    library_has_groups = hasattr(library, "Group")
 
     for name, h5 in group._grp.items():
 
-        if package_has_groups and isinstance(h5, package.Group):
+        if library_has_groups and isinstance(h5, library.Group):
             subgroups[name] = h5
         else:
             # Everyhing else must be a Dataset
@@ -197,9 +196,9 @@ def pyfive_open(dataset, options):
 
     :Returns:
 
-        (`pyfive.File`, `dict`, package)
+        (`pyfive.File`, `dict`, library)
             The opened dataset, the dataset's global attributes, and
-            the `pyfive` package itself.
+            the `pyfive` library itself.
 
     """
     import pyfive
@@ -234,9 +233,9 @@ def h5py_open(dataset, options):
 
     :Returns:
 
-        (`h5py.File`, `dict`, package)
+        (`h5py.File`, `dict`, library)
             The opened dataset, the dataset's global attributes, and
-            the `h5py` package itself.
+            the `h5py` library itself.
 
     """
     import h5py

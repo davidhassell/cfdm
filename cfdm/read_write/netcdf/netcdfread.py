@@ -977,12 +977,17 @@ class NetCDFRead(IORead):
                 .. versionadded:: (cfdm) 1.12.0.0
 
             cfa_filesystem: `None` or filesystem, optional
-                TODO. See `cfdm.read` for details.
+                 A pre-authenticated filesystem object (for example an
+                 `fsspec` filesystem instance) to use for opening the
+                 fragment datasets indicated in a CF-netCDF
+                 aggregation file. See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
             cfa_backend: `None` or (sequence of) `str`, optional
-                TODO. See `cfdm.read` for details.
+                Which library or libraries to use for reading the
+                dataset fragments indicated in a CF-netCDF aggregation
+                file. See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 

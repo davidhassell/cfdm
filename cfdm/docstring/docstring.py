@@ -143,9 +143,32 @@ _docstring_substitution_definitions = {
             defines a Zarr dataset (which is ascertained by presence
             in the directory of appropriate Zarr metadata files).
 
+            If a file system has not been defined by the *filesystem*
+            or *storage_options* parameters then a dataset on the
+            local file system is passed unchanged to the backends. A
+            remote dataset is treated, in general, as the file-like
+            object ``fsspec.filesytem(protocol).open(dataset, 'rb')``
+            which is passed to the backends (see the *netcdf_backend*
+            parameter), where ``protocol`` is inferred from the start
+            of the dataset name (e.g. ``s3``, ``http``, etc.). S3 is a
+            special case for which an ``endpoint_url`` storage option
+            is added, and the leading scheme and authority is
+            automatically removed from the dataset name passed to the
+            filesystem ``open`` method; for instance, the dataset
+            ``'s3://authority/bucket/file.nc'`` is treated as
+            ``fsspec.filesytem('s3',
+            endpoint_url='s3://authority').open('bucket/file.nc',
+            'rb')``. HTTP and HTTPS are also special cases, in that if
+            the file-like treatment does not work, it will be
+            attempted to access the dataset via OpeNDAP.
+
             Remote datasets (i.e. those with an http or s3 schema) are
             assumed to be netCDF files, or else Zarr datasets if the
-            *dataset_type* parameter is set to ``'Zarr'``.
+            *dataset_type* parameter is set to ``'Zarr'``. However, if
+            a file system has been defined by the *filesystem* or
+            *storage_options* parameters then no such assumption is
+            required, and remote Zarr datasets can be identified by
+            inspection.
 
             As a special case, if the *cdl_string* parameter is True,
             then interpretation of *datasets* changes so that each
@@ -316,141 +339,75 @@ _docstring_substitution_definitions = {
                >>> ufd = {{package}}.unique_constructs(x.domain for x in f)""",
     # read netcdf_backend
     "{{read netcdf_backend: `None` or (sequence of) `str`, optional}}": """netcdf_backend: `None` or (sequence of) `str`, optional
-            Which library or libraries to use for opening and reading
-            netCDF-3, netCDF-4, and CDL datasets (the latter after
-            they have been internally converted to netCDF-4).
+            Which library or libraries to use for reading a
+            dataset. An attempt to open a dataset is made by the given
+            backends in the order in which they are provided, stopping
+            after the first successful read.
 
-            Any one or more of the following backends may be
-            specified, and an attempt to open each netCDF-3 or
-            netCDF-4 dataset is made by the given backends in the
-            order given, stopping after the first successful read.
+            The available backends are:
 
-            Note that a Zarr or Kerchunk dataset is always opened with
-            the `zarr` library.
+            =================  ======================
+            Backend            Library
+            =================  ======================
+            ``'pyfive'``       `pyfive`
+            ``'zarr'``         `zarr`
+            ``'netCDF4'``      `netCDF4`
+            ``'netcdf_file'``  `scipy.io.netcdf_file`
+            ``'h5py'``         `h5py`
+            ``'ppfive'``       `ppfive`
+            =================  ======================
 
-            * ``'p5netcdf'``
+            By default *backend* is `None`, which is equivalent to
+            providing the ordered sequence of backends:
 
-              - The `cfdm.p5netcdf` library.
-              - Reads local and remote netCDF-4 datasets.
-              - Even more performant than ``'h5netcdf-pyfive'``,
-                especially for remote datasets.
-              - Allows parallelised reading.
-              - Improves the performance by storing a dataset
-                variable's B-tree at read time so that it doesn't have
-                to be re-retrieved at compute time).
-
-            * ``'h5netcdf-pyfive'``
-
-              - The `h5netcdf` library using `pyfive` as its backend.
-              - Reads local and remote netCDF-4 datasets.
-              - Allows parallelised reading.
-              - Improves the performance by storing a dataset
-                variable's B-tree at read time so that it doesn't have
-                to be re-retrieved at compute time).
-
-
-            * ``'h5netcdf-h5py'``
-
-              - The `h5netcdf` library using `h5py` as its backend.
-              - Reads local and remote netCDF-4 datasets.
-              - Parallelised reading is not possible.
-
-            * ``'netCDF4'``
-
-              - The `netCDF4` library.
-              - Reads local and remote (http) netCDF-3 and netCDF-4
-                datasets.
-              - Parallelised reading is not possible.
-
-            * ``'netcdf_file'``
-
-              - The `scipy.io.netcdf_file` library.
-              - Reads local netCDF-3 datasets.
-              - Allows parallised reading.
-              - Treats unlimited dimensions in the dataset as not
-                unlimited.
-
-            By default *netcdf_backend* is `None`, which is equivalent
-            to providing the ordered sequence:
-
-            ``('p5netcdf', 'h5netcdf-pyfive', 'h5netcdf-h5py', 'netCDF4', 'netcdf_file')``
-
-            which means that by default, reading a netCDF dataset is
-            first attempted with the `h5netcdf` library using `pyfive`
-            backend.
+            ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
 
             *Example:*
               To only attempt ``'netCDF4'``: ``'netCDF4'`` or
               ``['netCDF4']``
 
             *Example:*
-              To only attempt ``'netCDF4'`` or ``'h5netcdf-h5py'``, in
-              that order: ``('netCDF4', 'h5netcdf-h5py')``
-
-            *Example:*
-              ``('netCDF4', 'h5netcdf-pyfive', 'netcdf_file',
-              'h5netcdf-h5py')``""",
+              To only attempt ``'netCDF4'`` or ``'pyfive'``, in that
+              order: ``('netCDF4', 'pyfive')``""",
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
-            A pre-authenticated filesystem object (for example an
+            A pre-authenticated filesystem object (for instance an
             `fsspec` filesystem instance) to use for opening the
-            dataset. When provided, *datasets* values are treated as
-            paths understood by *filesystem*, and local string
-            pre-processing (tilde/variable expansion, globbing and
-            directory walking) is bypassed. The file is opened by
-            calling ``filesystem.open(dataset, 'rb')``, which returns
-            a file-like object that is passed to the netCDF backend.
+            dataset.
 
-            If `None` (the default) then files are opened using
-            built-in local file system access; or via OPeNDAP access
-            for ``http://`` and ``https://`` URIs; or via
-            S3-compatible object store access for ``s3://`` URIs.
+            If `None` (the default) and *storage_options* is also
+            `None`, then a dataset is treated as described by the
+            *datasets* parameter.
+
+            When provided, a dataset is treated as the file-like
+            object ``filesytem.open(dataset, 'rb')`` which is passed
+            to the backends (see the *netcdf_backend* parameter).
 
             .. versionadded:: (cfdm) NEXTVERSION""",
     # read  storage_options
     "{{read storage_options: `dict` or `None`, optional}}": """storage_options: `dict` or `None`, optional
-            Pass parameters to the backend file system driver, such as
-            username, password, server, port, etc. How the storage
-            options are interpreted depends on the location of the
-            file:
+            Parameters for defining an `fsspec`` filesystem for
+            accessing a dataset.
 
-            * **Local File System**: Storage options are ignored for
-              local files.
+            If `None` (the default) and *filesystem* is also `None`,
+            then a dataset is treated as described by the *datasets*
+            parameter.
 
-            * **HTTP(S)**: Storage options are passed to
-              `fsspec.filesystem`. If the file cannot be opened via
-              this file system, then OpenDAP is attempted.
+            If set to a dictionary of storage options then a dataset
+            is treated, in general, as the file-like object
+            ``fsspec.filesytem(protocol,
+            **storage_options).open(dataset, 'rb')`` , where
+            ``protocol`` is inferred from the start of the dataset
+            name (e.g. ``s3``, ``http``, etc.). S3 is a special case
+            for which ``endpoint_url`` is added to the storage
+            options, and the leading scheme and authority is
+            automatically removed from the dataset name passed to the
+            filesystem ``open`` method; for instance, the dataset
+            ``'s3://authority/bucket/file.nc'`` is treated as
+            ``fsspec.filesytem('s3', endpoint_url='s3://authority',
+            **storage_options).open('bucket/file.nc')``.
 
-              *Parameter example:*
-                ``{'cache_type': 'readahead', 'block_size': 1048576}``
-
-            * **S3-compatible services**: The backend used is `s3fs`,
-              and the storage options are used to initialise an
-              `s3fs.S3FileSystem` file system object. By default, or
-              if `None`, then *storage_options* is taken as ``{}``.
-
-              If the ``'endpoint_url'`` key is not in
-              *storage_options*, nor in a dictionary defined by the
-              ``'client_kwargs'`` key (both of which are the case when
-              *storage_options* is `None`), then one will be
-              automatically inserted for accessing an S3 file. For
-              instance, with a file name of
-              ``'s3://store/data/file.nc'``, an ``'endpoint_url'`` key
-              with value ``'https://store'`` would be created. To
-              disable this, set the ``'endpoint_url'`` key to `None`.
-
-              *Parameter example:*
-                For a file name of ``'s3://store/data/file.nc'``, the
-                following are equivalent: ``None``, ``{}``,
-                ``{'endpoint_url': 'https://store'}``, and
-                ``{'client_kwargs': {'endpoint_url':
-                'https://store'}}``
-
-              *Parameter example:*
-                ``{'key': 'scaleway-api-key...', 'secret':
-                'scaleway-secretkey...', 'endpoint_url':
-                'https://s3.fr-par.scw.cloud', 'client_kwargs':
-                {'region_name': 'fr-par'}}``""",
+            .. versionadded:: (cfdm) 1.13.1.0""",
     # read cache
     "{{read cache: `bool`, optional}}": """cache: `bool`, optional
             If True, the default, then cache the first and last array
@@ -749,10 +706,53 @@ _docstring_substitution_definitions = {
               ``cfa_write=['field', 'auxiliary_coordinate']``.""",
     # read cfa_backend
     "{{read cfa_backend: `None` or (sequence of) `str`, optional}}": """cfa_backend: `None` or (sequence of) `str`, optional
-           TODO""",
+            Which library or libraries to use for reading the dataset
+            fragments indicated in a CF-netCDF aggregation file. When
+            the fragments are accessed (which does not occur during
+            `{{package}}.read`), an attempt to open each fragment
+            dataset is made by the given backends in order, stopping
+            after the first successful read. The available backends
+            are:
+
+            =================  ======================
+            Backend            Library
+            =================  ======================
+            ``'pyfive'``       `pyfive`
+            ``'zarr'``         `zarr`
+            ``'netCDF4'``      `netCDF4`
+            ``'netcdf_file'``  `scipy.io.netcdf_file`
+            ``'h5py'``         `h5py`
+            =================  ======================
+
+            By default *cfa_backend* is `None`, which is equivalent to
+            providing the ordered sequence of backends:
+
+            ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
+
+            *Example:*
+              To only attempt ``'netCDF4'``: ``'netCDF4'`` or
+              ``['netCDF4']``
+
+            *Example:*
+              To only attempt ``'netCDF4'`` or ``'pyfive'``, in that
+              order: ``('netCDF4', 'pyfive')``""",
     # read cfa_filesystem
     "{{read cfa_filesystem: `None` or filesystem, optional}}": """cfa_filesystem: `None` or filesystem, optional
-           TODO""",
+            A pre-authenticated filesystem object (for example an
+            `fsspec` filesystem instance) to use for opening the
+            fragment datasets indicated in a CF-netCDF aggregation
+            file.
+
+            If `None` (the default) then a fragment dataset path is
+            passed unchanged to the backends defined by the
+            *cfa_backend* parameter.
+
+            When provided, a fragment dataset path (``fragment``) is
+            treated as the file-like object ``filesytem.open(fragment,
+            'rb')`` which is passed to the backends (see the
+            *cfa_backend* parameter).
+
+            .. versionadded:: (cfdm) NEXTVERSION""",
     # read to_memory
     "{{read to_memory: (sequence of) `str`, optional}}": """to_memory: (sequence of) `str`, optional
             Read all data arrays of the named construct types into
@@ -1278,43 +1278,43 @@ _docstring_substitution_definitions = {
     "{{init attributes: `dict` or `None`, optional}}": """attributes: `dict` or `None`, optional
                 Provide netCDF attributes for the data as a dictionary
                 of key/value pairs.""",
-    # init storage_protocol
-    "{{init storage_protocol: `None` or `str`, optional}}": """storage_protocol: `None` or `str`, optional
-                The `fsspec` file system protocol (e.g, ``'file'``,
-                ``'s3'``, ``'http'``). If `None` (the default) then a
-                local file system is assumed.""",
-    # init storage_options
-    "{{init storage_options: `dict` or `None`, optional}}": """storage_options: `dict` or `None`, optional
-                Key/value pairs to be passed on to the creation of
-                `s3fs.S3FileSystem` file systems to control the
-                opening of files in S3 object stores. Ignored for
-                files not in an S3 object store, i.e. those whose
-                names do not start with ``s3:``.
-
-                By default, or if `None`, then *storage_options* is
-                taken as ``{}``.
-
-                If the ``'endpoint_url'`` key is not in
-                *storage_options* or is not in a dictionary defined by
-                the ``'client_kwargs`` key (which is always the case
-                when *storage_options* is `None`), then one will be
-                automatically inserted for accessing an S3 file. For
-                example, for a file name of
-                ``'s3://store/data/file.nc'``, an ``'endpoint_url'``
-                key with value ``'https://store'`` would be created.
-
-                *Parameter example:*
-                  For a file name of ``'s3://store/data/file.nc'``,
-                  the following are equivalent: ``None``, ``{}``, and
-                  ``{'endpoint_url': 'https://store'}``,
-                  ``{'client_kwargs': {'endpoint_url':
-                  'https://store'}}``
-
-                *Parameter example:*
-                  ``{'key': 'scaleway-api-key...', 'secret':
-                  'scaleway-secretkey...', 'endpoint_url':
-                  'https://s3.fr-par.scw.cloud', 'client_kwargs':
-                  {'region_name': 'fr-par'}}``""",
+    #    # init storage_protocol
+    #    "{{init storage_protocol: `None` or `str`, optional}}": """storage_protocol: `None` or `str`, optional
+    #                The `fsspec` file system protocol (e.g, ``'file'``,
+    #                ``'s3'``, ``'http'``). If `None` (the default) then a
+    #                local file system is assumed.""",
+    #    # init storage_options
+    #    "{{init storage_options: `dict` or `None`, optional}}": """storage_options: `dict` or `None`, optional
+    #                Key/value pairs to be passed on to the creation of
+    #                `s3fs.S3FileSystem` file systems to control the
+    #                opening of files in S3 object stores. Ignored for
+    #                files not in an S3 object store, i.e. those whose
+    #                names do not start with ``s3:``.
+    #
+    #                By default, or if `None`, then *storage_options* is
+    #                taken as ``{}``.
+    #
+    #                If the ``'endpoint_url'`` key is not in
+    #                *storage_options* or is not in a dictionary defined by
+    #                the ``'client_kwargs`` key (which is always the case
+    #                when *storage_options* is `None`), then one will be
+    #                automatically inserted for accessing an S3 file. For
+    #                example, for a file name of
+    #                ``'s3://store/data/file.nc'``, an ``'endpoint_url'``
+    #                key with value ``'https://store'`` would be created.
+    #
+    #                *Parameter example:*
+    #                  For a file name of ``'s3://store/data/file.nc'``,
+    #                  the following are equivalent: ``None``, ``{}``, and
+    #                  ``{'endpoint_url': 'https://store'}``,
+    #                  ``{'client_kwargs': {'endpoint_url':
+    #                  'https://store'}}``
+    #
+    #                *Parameter example:*
+    #                  ``{'key': 'scaleway-api-key...', 'secret':
+    #                  'scaleway-secretkey...', 'endpoint_url':
+    #                  'https://s3.fr-par.scw.cloud', 'client_kwargs':
+    #                  {'region_name': 'fr-par'}}``""",
     # init filesystem
     "{{init filesystem: optional}}": """filesystem: optional
                 A pre-authenticated filesystem object (for example an
@@ -1327,18 +1327,17 @@ _docstring_substitution_definitions = {
                 *backend* parameter).
 
                 If `None` (the default) then *dataset*, regardless of
-                its type, is passed unchanged to the backend(s).
+                its type, is passed unchanged to the backend(s). TODOP5
 
                 If *dataset* is not a string then *filesystem* is
                 ignored.""",
     # init backend
     "{{init backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
+
                 Which library or libraries to use for reading the
                 dataset. An attempt to open the dataset is made by the
-                given backends in the order given, stopping after the
-                first successful read.
-
-                The available backends are:
+                given backends in order, stopping after the first
+                successful read. The available backends are: TODOP5
 
                 =================  ======================
                 Backend            Library

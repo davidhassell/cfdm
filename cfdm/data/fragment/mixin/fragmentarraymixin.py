@@ -135,7 +135,7 @@ class FragmentArrayMixin:
 
         return array
 
-    def _size_1_axis(self):  # , indices):
+    def _size_1_axis(self):
         """Find the position of a unique size 1 index.
 
         .. versionadded:: (cfdm) 1.12.0.0

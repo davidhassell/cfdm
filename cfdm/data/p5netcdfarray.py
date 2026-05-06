@@ -152,6 +152,40 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
         """
         from cfdm import p5netcdf
 
-        return super().open(
-            p5netcdf.File, mode="r", backend=self.get_backend(), **kwargs
-        )
+        backend = self.get_backend()
+
+        options = {"mode": "r", "backend": backend}
+        options.update(kwargs)
+
+        out = None
+        try:
+            out = super().open(p5netcdf.File, options=options)
+        except Exception as e:
+            error = [str(e)]
+
+            # As a last resort, try opening an http dataset with
+            # opendap via netCDF4
+            try_opendap = self.get_filesystem() is None
+            if backend is None or backend == "netCDF4" or "netCDF4" in backend:
+                filename = self.get_filename()
+                if isinstance(filename, str):
+                    from urllib.parse import urlparse
+
+                    try_opendap = urlparse(filename).scheme in (
+                        "http",
+                        "https",
+                    )
+
+            if try_opendap:
+                options["backend"] = "neCDF4"
+                try:
+                    out = super().open(
+                        p5netcdf.File, options=options, create_filesystem=False
+                    )
+                except Exception as e:
+                    error.append[str(e)]
+
+            if out is None:
+                raise type(e)("\n\n".join(error))
+
+        return out
