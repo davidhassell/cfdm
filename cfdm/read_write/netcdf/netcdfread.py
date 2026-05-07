@@ -11382,11 +11382,32 @@ class NetCDFRead(IORead):
         return "unknown"
 
     def _absolute_ncvar(self, x):
-        """TODO."""
+        """Return the absolute path of a netCDF variable name.
+
+        All it does is add a leading ``/`` if one is missing. `None`
+        is returned unchanged.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            x:
+
+               The netCDF variable name as a string, or `None`, or an
+               object with an `!nc_get_variable` method which gets the
+               variable name.
+
+        :Returns:
+
+            `str` or `None`
+               The absolute path, or `None.
+
+        """
         try:
-            ncvar = self.implementation.nc_get_variable(x)
-        except Exception:  # TODO
-            # 'x' is a string
+            # Try for having an `nc_get_variable` method
+            ncvar = x.nc_get_variable(None)
+        except AttributeError:
+            # 'x' is a string or `None`
             ncvar = x
 
         if ncvar is None:

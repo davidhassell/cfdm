@@ -145,18 +145,18 @@ _docstring_substitution_definitions = {
 
             If a file system has not been defined by the *filesystem*
             or *storage_options* parameters then a dataset on the
-            local file system is passed unchanged to the backends. A
-            remote dataset is treated, in general, as the file-like
-            object ``fsspec.filesytem(protocol).open(dataset, 'rb')``
-            which is passed to the backends (see the *netcdf_backend*
-            parameter), where ``protocol`` is inferred from the start
-            of the dataset name (e.g. ``s3``, ``http``, etc.). S3 is a
-            special case for which an ``endpoint_url`` storage option
-            is added, and the leading scheme and authority is
-            automatically removed from the dataset name passed to the
-            filesystem ``open`` method; for instance, the dataset
-            ``'s3://authority/bucket/file.nc'`` is treated as
-            ``fsspec.filesytem('s3',
+            local file system is passed unchanged to the backends (see
+            the *netcdf_backend* parameter). A remote dataset is
+            treated, in general, as the file-like object
+            ``fsspec.filesytem(protocol).open(dataset, 'rb')`` which
+            is passed to the backends, where ``protocol`` is inferred
+            from the start of the dataset name (e.g. ``s3``, ``http``,
+            etc.). S3 is a special case for which an ``endpoint_url``
+            storage option is added, and the leading scheme and
+            authority is automatically removed from the dataset name
+            passed to the filesystem ``open`` method; for instance,
+            the dataset ``'s3://authority/bucket/file.nc'`` is treated
+            as ``fsspec.filesytem('s3',
             endpoint_url='s3://authority').open('bucket/file.nc',
             'rb')``. HTTP and HTTPS are also special cases, in that if
             the file-like treatment does not work, it will be
@@ -1318,26 +1318,31 @@ _docstring_substitution_definitions = {
     # init filesystem
     "{{init filesystem: optional}}": """filesystem: optional
                 A pre-authenticated filesystem object (for example an
-                `fsspec` filesystem instance) to use for opening
-                *dataset*. When the dataset is given as a string, it
+                `fsspec` filesystem instance) to use for opening the
+                *filename*. When the dataset is given as a string, it
                 is treated as a path understood by *filesystem* and
                 the dataset will be opened by calling
                 ``filesystem.open(dataset, 'rb')``, the result of
                 which will be passed to the backend(s) (see the
-                *backend* parameter).
+                *backend* parameter). S3 is a special case for which
+                the leading scheme and authority is automatically
+                removed from the dataset name passed to the filesystem
+                ``open`` method; for instance, the dataset
+                ``'s3://authority/bucket/file.nc'`` is treated as
+                ``filesytem.open('bucket/file.nc', 'rb')``.
+                
+                If *filename* is not a string then *filesystem* is
+                ignored.
 
-                If `None` (the default) then *dataset*, regardless of
-                its type, is passed unchanged to the backend(s). TODOP5
-
-                If *dataset* is not a string then *filesystem* is
-                ignored.""",
+                If `None` (the default) then *filename*, regardless of
+                its type, is passed unchanged to the backends.""",
     # init backend
     "{{init backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
 
-                Which library or libraries to use for reading the
-                dataset. An attempt to open the dataset is made by the
-                given backends in order, stopping after the first
-                successful read. The available backends are: TODOP5
+                Which library or libraries to use for reading
+                *filename*. An attempt to open the dataset is made by
+                the given backends in order, stopping after the first
+                successful read. If `None` the theThe available backends are: TODOP5
 
                 =================  ======================
                 Backend            Library
