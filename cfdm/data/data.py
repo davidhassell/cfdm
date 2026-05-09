@@ -40,7 +40,7 @@ from .dask_utils import (
 from .utils import (
     allclose,
     chunk_indices,
-    chunk_positions,
+    chunk_positions,chunks_align,
     collapse,
     convert_to_datetime,
     convert_to_reftime,
@@ -6650,6 +6650,8 @@ class Data(
         threshold=None,
         block_size_limit=None,
         balance=False,
+        align=False,
+            realign=False,
         inplace=False,
     ):
         """Change the chunk structure of the data.
@@ -6672,6 +6674,19 @@ class Data(
             {{block_size_limit: `int`, optional}}
 
             {{balance: `bool`, optional}}
+
+            align: `bool`, optional
+                If True, then *chunks* defines a storage chunk pattern
+                and the Dask array will be rechunked so that its
+                chunks are aligned to that storage chunk pattern.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            realign: `bool`, optional
+                If True, and *align* is True, then don't re-align the
+                Dask chunks if they are already aligned.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
             {{inplace: `bool`, optional}}
 
@@ -6716,6 +6731,23 @@ class Data(
         """
         d = _inplace_enabled_define_and_cleanup(self)
 
+        if align:
+            if not isinstance(chunks, tuple):
+                raise ValueError("TODO")
+
+            for c in chunks:
+                if not isinstance(c, int):
+                    raise ValueError("TODO")
+            
+            chunks = chunks_align(d, chunks, realign=realign)
+            if chunks is None:
+                # Dask chunks are already aligned to 'chunks'
+                return d
+
+            # Align the Dask chunks to 'chunks'
+            return d.rechunk(chunks, inplace=True)
+
+        # Still here?
         dx = d.to_dask_array(
             _force_mask_hardness=False, _force_to_memory=False
         )
@@ -6725,7 +6757,7 @@ class Data(
             clear=self._ALL ^ self._ARRAY ^ self._CACHE ^ self._CFA,
             in_memory=None,
         )
-
+            
         return d
 
     def replace_directory(
