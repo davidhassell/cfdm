@@ -7,6 +7,7 @@ from numbers import Integral
 import numpy as np
 
 from cfdm.data.dask_utils import cfdm_to_memory
+from cfdm.data.utils import chunk_storage_align
 from cfdm.decorators import _manage_log_level_via_verbosity
 from cfdm.functions import abspath, dirname, integer_dtype
 
@@ -3607,10 +3608,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # https://zarr.readthedocs.io/en/stable/user-guide/arrays.html#sharding
             shards = g["nc"][ncvar].shards
             if shards is not None:
-                dx = dx.rechunk(shards)
-                # This rechunking has aligned Dask chunk boundaries
-                # with Zarr chunk boundaries, so we don't need to lock
-                # the write.
+                shard_aligned = chunk_storage_align(dx, shards)
+                if shard_aligned is not None:
+                    dx = dx.rechunk(shard_aligned)
+
+                # The Dask chunks are aligned with Zarr shards, so we
+                # don't need to lock the write.
                 lock = False
 
         # Check for out-of-range values
@@ -3661,11 +3664,17 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             from cfdm.data.locks import netcdf_lock as lock
 
         # Set the current size of unlimited dimensions
-        self.set_unlimited_dimension_sizes(g["nc"][ncvar], data.shape)
+        var = g["nc"][ncvar]
+        self.set_unlimited_dimension_sizes(var, data.shape)
 
-        da.store(
-            dx, g["nc"][ncvar], compute=True, return_stored=False, lock=lock
+        # Create storage-aligned Dask chunks
+        storage_aligned = chunk_storage_align(
+            dx, self._variable_chunksizes(var)
         )
+        if storage_aligned is not None:
+            dx = dx.rechunk(storage_aligned)
+
+        da.store(dx, var, compute=True, return_stored=False, lock=lock)
 
     def _filled_array(self, array, fill_value):
         """Replace masked values with a fill value.
@@ -7386,3 +7395,39 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             array = array.astype(dtype)
 
         return array
+
+    def _variable_chunksizes(self, variable):
+        """Return the dataset variable chunk size.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            variable:
+                The variable, one of `netCDF4.Variable` or
+                `h5netcdf.Variable`.
+
+        :Returns:
+
+            sequence of `int`, or `None`
+                The chunk size. If the variable is contiguous
+                (i.e. not chunked) then `None` is returned.
+
+        **Examples**
+
+        >>> f.chunksizes(variable)
+        [1, 324, 432]
+
+        >>> f.chunksizes(variable)
+        None
+
+        """
+        try:
+            chunk = variable.chunks
+        except AttributeError:
+            chunk = variable.chunking()
+
+        if chunk in (None, "contiguous"):
+            return
+
+        return chunk

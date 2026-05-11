@@ -572,151 +572,220 @@ def new_axis_identifier(existing_axes=(), basename="dim"):
 
     return axis
 
-def chunks_align(data, storage_chunks,  realign=False):
-    """TODO 
-    
+
+def chunk_storage_align(data, storage_chunk, realign=False):
+    """Create a storage-aligned Dask chunk shape.
+
+    **Strategy for creating storage-aligned Dask chunks**
+
+    1. Whilst there are Dask chunk axis sizes that are strictly less
+       than their corresponding storage chunk axis sizes, iteratively
+       increase those Dask chunks axis sizes whilst reducing the other
+       Dask axis sizes in a manner such that the total number of Dask
+       chunk elements (i.e. the chunk size) is preserved as uch as
+       possible.
+
+    2. When all Dask chunk sizes have become greater than or equal to
+       their corresponding storage chunk axis sizes, replace each Dask
+       chunk axis size with the largest multiple of the storage chunk
+       axis size that doesn't exceed the current Dask chunk axis size.
+
+    Note: If the size of the storage chunk is less than or equal to
+          the size of the original Dask chunk, then the
+          storage-aligned chunk also will also have a size that is
+          less than or equal to the size of the original Dask
+          chunk. Otherwise, the storage-aligned chunk size will be
+          greater then the original Dask chunk size. For instance:
+
+                           Chunk shape             Chunk size
+          ---------------- ----------------------- ----------
+          storage:         (50, 100, 150, 20,   5)   75000000
+          original dask:   (49, 101, 150,  5, 160)  593880000
+          storage-aligned: (50, 100, 150, 20,  35)  525000000
+          ---------------- ----------------------- ----------
+          storage:         (50, 100, 150, 20,   5)   75000000
+          original dask:   (5,   15, 150,  5, 160)    9000000
+          storage-aligned: (50, 100, 150, 20,   5)   75000000
+          ---------------- ----------------------- ----------
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
-        chunks: `tuple` of `tuple`
-            TODO
+        data: array-like
+            An object that defines the shape and data type of the
+            array.
 
-        storage_chunks: `tuple` of `int`
-            TODO
+        storage_chunk: `None` or sequence of `int`
+            The storage chunk shape. If `None` then `None` is
+            returned.
 
         realign: `bool`, optional
-            TODO
+            If True then always calculate the storage-aligned Dask
+            chunk shape. If False (the default) then only calculate
+            the storage-aligned Dask chunk shape if *data* does not
+            already have storage-aligned Dask chunks.
+
+            For instance, if *storage_chunk* is ``(10, 20, 30)`` then
+            the *data* Dask chunks ``((10,), (20,), (30,))``,
+            ``((50,), (60,), (90,))``, and ``((50, 70), (20,), (30,
+            15))`` are all already aligned with *storage_chunk*.
 
     :Returns:
 
-        ``tuple` or `None`
-            TODO
+        `list` or `None`
+            The storage-aligned Dask chunk shape.
+
+            If *realign* is False and the Dask chunks were already
+            aligned with *storage_chunk* then `None` is returned.
+
+            If *storage_chunk* is `None` the `None` is returned.
 
     **Examples**
 
-    TODO
-    
+    >>> d.shape
+    (1800, 144, 192)
+    >>> d.dtype
+    dtype('float32')
+    >>> d.chunks
+    ((1184, 616), (144,), (192,))
+
+    >>> cfdm.chunksize()
+    <Constant: 134217728>
+    >>> chunks = cfdm.data.utils.chunk_align(d, (50, 144, 100))
+    >>> chunks
+    [1200, 144, 192]
+
+    >>> e = d.rechunk(chunks)
+    >>> e.chunks
+    ((1200, 600), (144,), (192,))
+    >>> print(cfdm.data.utils.chunk_align(e, (50, 144, 100)))
+    None
+
+    >>> _ = cfdm.chunksize("16 MiB")
+    >>> cfdm.chunksize()
+    <Constant: 16777216>
+    >>> chunks = cfdm.data.utils.chunk_align(d, (50, 144, 100))
+    >>> chunks
+    [150, 144, 192]
+
+    >>> print(cfdm.data.utils.chunk_align(e, (50, 144, 100)))
+    None
+    >>> print(cfdm.data.utils.chunk_align(e, (50, 144, 100), realign=True))
+    [150, 144, 100]
+
+    >>> _ = cfdm.chunksize(1024**2)
+    >>> cfdm.chunksize()
+    <Constant: 1048576>
+    >>> cfdm.data.utils.chunk_align(d, (50, 144, 100))
+    [50, 144, 192]
+
     """
-    # ----------------------------------------------------------------
-    # Strategy for creating aligned Dask chunks:
-    #
-    # 1) Whilst there are Dask chunk axis sizes that are strictly less
-    #    than their corresponding storage chunk axis sizes,
-    #    iteratively increase those Dask chunks axis sizes whilst
-    #    reducing the other Dask axis sizes in a manner such that the
-    #    total number of Dask chunk elements is preserved.
-    #
-    # 2) When all Dask chunk sizes have become greater than or equal
-    #    to their corresponding storage chunk axis sizes, replace each
-    #    Dask chunk axis size with the largest multiple of the storage
-    #    chunk axis size that doesn't exceed the current Dask chunk
-    #    axis size.
-    #
-    # Note: If the size of the storage chunk is less than or equal to
-    #       the size of the original Dask chunk, then the
-    #       storage-aligned chunk also will also have a size that is
-    #       less than or equal to the size of the original Dask
-    #       chunk. Otherwise, the storage-aligned chunk size will be
-    #       greater then the original Dask chunk size:
-    #
-    #                        Chunk shape             Chunk size
-    #       ---------------- ----------------------- ----------
-    #       storage:         (50, 100, 150, 20,   5)   75000000
-    #       original dask:   (49, 101, 150,  5, 160)  593880000
-    #       storage-aligned: (50, 100, 150, 20,  35)  525000000
-    #       ---------------- ----------------------- ----------
-    #       storage:         (50, 100, 150, 20,   5)   75000000
-    #       original dask:   (5,   15, 150,  5, 160)    9000000
-    #       storage-aligned: (50, 100, 150, 20,   5)   75000000
-    #       ---------------- ----------------------- ----------
-    #
-    # ----------------------------------------------------------------
+    if storage_chunk is None:
+        # Return `None` if there are no storage chunks
+        return
 
     if not realign:
-        # 0) Do nothing if already aligned
+        # Return `None` if the Dask chunks are already aligned to the
+        # storage chunks
+        if not hasattr(data, "chunks"):
+            raise ValueError(
+                "When realign=False, the 'data' argument must have a "
+                "`chunks` attribute that behaves like `dask.Array.chunks`. "
+                f"Got: data={data!r}"
+            )
+
         aligned = True
-        for index, (d, s) in enumerate(zip(data.chunks, storage_chunks)):
+        for index, (d, s) in enumerate(zip(data.chunks, storage_chunk)):
             for c in d[:-1]:
                 _, r = divmod(c, s)
                 if not r:
                     continue
-                
-                aligned=False
+
+                aligned = False
                 break
-            
+
             if not aligned:
                 break
-            
+
         if aligned:
-            print(';ater;')
             return
-        
+
+    # Initialise a Dask chunk shape that has the default Dask chunk
+    # size.
     from dask.array.core import normalize_chunks
 
-    dask_chunks = normalize_chunks(
-        "auto", shape=data.shape, dtype=data.dtype
-    )
-    
-    dask_chunks = [sizes[0] for sizes in dask_chunks]
-    n_dask_elements = prod(dask_chunks)
-    print('dask_chunks=',dask_chunks, 'storage_chunks=',storage_chunks)
-    
+    data_shape = data.shape
+    data_dtype = data.dtype
+    dask_chunk = [
+        sizes[0]
+        for sizes in normalize_chunks(
+            "auto", shape=data_shape, dtype=data_dtype
+        )
+    ]
+    dask_chunk_size = prod(dask_chunk)
+
     # 1) While there are Dask axis elements that are less than their
     #    corresponding storage axis elements, iteratively increase the
     #    those Dask axis elements whilst reducing the other Dask axis
     #    elements so that the total number of Dask chunk elements is
     #    preserved.
     continue_iterating = True
-    
+
     while continue_iterating:
         continue_iterating = False
-        
-        # Index locations of Dask elements which are greater than
-        # their corresponding storage elements
+
+        # Index locations of Dask chunk axis sizes which are greater
+        # than their corresponding storage chunk axis sizes
         dask_gt_storage = []
 
-        # Product of Dask elements which are greater than their
-        # corresponding storage element
+        # Product of Dask chunk axis sizes which are greater than
+        # their corresponding storage chunk axis sizes
         p_dask_gt_storage = 1
-        
-        # Product of storage elements which are less than or equal to
-        # their corresponding Dask element
+
+        # Product of storage chunk axis sizes which are less than or
+        # equal to their corresponding Dask chunk axis sizes
         p_storage_ge_dask = 1
-        for i, (sc, dc) in enumerate(zip(storage_chunks, dask_chunks[:])):
+        for i, (sc, dc) in enumerate(zip(storage_chunk, dask_chunk[:])):
             if dc > sc:
-                # Dask element is greater than the storage element
+                # Dask chunk axis size is greater than the storage
+                # chunk axis size
                 dask_gt_storage.append(i)
                 p_dask_gt_storage *= dc
             else:
-                # Dask element is less than or equal to the storage
-                # element
+                # Dask chunk axis size is less than or equal to the
+                # storage chunk axis size
                 p_storage_ge_dask *= sc
 
         if not dask_gt_storage:
-            # All Dask elements are less than or equal to their
-            # corresponding storage elements => we can stop the
-            # iteration, after setting the Dask chunk to the storage
-            # chunk.
-            dask_chunks[:] = storage_chunks
+            # All Dask chunk axis sizes are less than or equal to
+            # their corresponding storage chunk axis sizes => we can
+            # stop the iteration, after setting the Dask chunk to the
+            # storage chunk.
+            dask_chunk[:] = storage_chunk
+            break
+
+        if dask_chunk == list(data_shape):
+            # If the Dask chunk equals the data shape, then we must be
+            # done.
             break
 
         # Calculate the x that preserves the Dask chunk size (i.e. the
-        # number of elements in the Dask chunk) when
+        # total number of elements in the Dask chunk) when
         #
-        #  i) All Dask elements that are strictly less than their
-        #     corresponding storage axis elements have been replaced
-        #     with those corresponding larger values.
+        #  i) All Dask chunk axis sizes that are strictly less than
+        #     their corresponding storage chunks axis sizes have been
+        #     replaced with those corresponding larger values.
         #
-        # ii) All other Dask elements have been reduced by being
-        #     raised to the power of x.
+        # ii) All other Dask chunk axis sizes have been reduced by
+        #     being raised to the power of x.
         #
         # I.e. x is such that
         #
-        #      p_storage_ge_dask * p_dask_gt_storage**x = n_dask_elements
-        #  =>  x = log(n_dask_elements / p_storage_ge_dask) / log(p_dask_gt_storage)
+        #      p_storage_ge_dask * p_dask_gt_storage**x = dask_chunk_size
+        #  =>  x = log(dask_chunk_size / p_storage_ge_dask) / log(p_dask_gt_storage)
         #
-        # E.g. if the storage chunk shape is (40, 20, 15, 5) and the
+        # E.g. If the storage chunk shape is (40, 20, 15, 5) and the
         #      Dask chunk shape is (20, 25, 10, 30), then x is such
         #      that
         #
@@ -727,54 +796,55 @@ def chunks_align(data, storage_chunks,  realign=False):
         #
         # Note: If we have reached here to calculate x, then it must
         #       be the case that p_dask_gt_storage > 1 and
-        #       n_dask_elements > p_storage_ge_dask. Therefore:
+        #       dask_chunk_size > p_storage_ge_dask. Therefore:
         #
         #       a) log(p_dask_gt_storage) > 0
         #       b) x is in the range (-inf, 1], excluding 0
-        #       c) x is 1 if no Dask element is less than its
-        #          corresponding storage element
+        #       c) x is 1 if no Dask chunk axis size is less than its
+        #          corresponding storage chunk axis size
         #
         # Note: There are other reasonable methods for reducing Dask
-        #       elements. With the method used here (i.e. using a
-        #       power of x that is <= 1), larger values get reduced by
-        #       a greater factor than smaller values, thereby
-        #       promoting the Dask preference for square-like chunk
-        #       shapes (although I suspect that in many cases,
+        #       chunk axis sizes. With the method used here
+        #       (i.e. using a power of x that is <= 1), larger values
+        #       get reduced by a greater factor than smaller values,
+        #       thereby promoting the Dask preference for square-like
+        #       chunk shapes (although I suspect that in many cases,
         #       different approaches will give the same result).
-        x = log(n_dask_elements / p_storage_ge_dask) / log(
-            p_dask_gt_storage
-        )
+        x = log(dask_chunk_size / p_storage_ge_dask) / log(p_dask_gt_storage)
 
-        for i, (sc, dc) in enumerate(zip(storage_chunks, dask_chunks[:])):
+        for i, (sc, dc) in enumerate(zip(storage_chunk, dask_chunk[:])):
             if i in dask_gt_storage:
-                # The Dask element is greater than the storage element
-                # => raise the Dask element to the power of x.
+                # The Dask chunk axis size is greater than the storage
+                # chunk axis size => raise the Dask chunk axis size to
+                # the power of x.
                 if x == 1:
                     # After being raised to the power of x (= 1), the
-                    # Dask element will still be greater than the
-                    # storage element, so we don't need to change it.
+                    # Dask chunk axis size will still be greater than
+                    # the storage chunk axis size, so we don't need to
+                    # change it.
                     c = dc
                 else:
                     # x < 1
                     c = dc**x
                     if c < sc:
                         # After being raised to the power of x, the
-                        # Dask element has become less than the
-                        # storage element => we need to go round the
-                        # 2) iteration again, because this new Dask
-                        # element will need increasing to its
-                        # corresponding storage element value, with
-                        # the possibility of further reductions to
-                        # other Dask elements.
+                        # Dask chunk axis size has become less than
+                        # the storage chunk axis size => we need to go
+                        # round the 2) iteration again, because this
+                        # new Dask chunk axis size will need
+                        # increasing to its corresponding storage
+                        # chunk axis size value, with the possibility
+                        # of further reductions to other Dask chunk
+                        # axis sizes.
                         continue_iterating = True
             else:
-                # The Dask element is less than or equal to
-                # the storage element, so replace it with the
-                # storage element.
+                # The Dask chunk axis size is less than or equal to
+                # the storage chunk axis size, so replace it with the
+                # storage chunk axis size.
                 c = sc
 
-            # Update the Dask chunk element
-            dask_chunks[i] = c
+            # Update the Dask chunk axis size
+            dask_chunk[i] = c
 
     # 2) All Dask chunk axis sizes are now greater than or equal to
     #    their corresponding storage chunk axis sizes, so replace each
@@ -782,17 +852,17 @@ def chunks_align(data, storage_chunks,  realign=False):
     #    chunk axis size that doesn't exceed the current Dask chunk
     #    axis size.
     #
-    # E.g. if the storage chunk is (12, 40, 40) and the current Dask
-    #      chunk is (12, 64, 128), then the Dask chunk will be
-    #      modified to be (12, 40, 120).
+    # E.g. If the storage chunk shape is (12, 40, 40) and the current
+    #      Dask chunk shape is (12, 64, 128), then the Dask chunk
+    #      shape will be modified to be (12, 40, 120).
     if dask_gt_storage:
         for i, (sc, dc, axis_size) in enumerate(
-            zip(storage_chunks, dask_chunks[:], data.shape)
+            zip(storage_chunk, dask_chunk[:], data_shape)
         ):
             if i in dask_gt_storage and dc < axis_size:
-                # Dask element is strictly greater than the
-                # corresponding storage element, and smaller that the
-                # axis size.
+                # Dask chunk axis size is strictly greater than the
+                # corresponding storage chunk axis size, and smaller
+                # that the axis size of the full data.
                 dc = int(dc)
                 c = dc - (dc % sc)
                 if not c:
@@ -802,10 +872,10 @@ def chunks_align(data, storage_chunks,  realign=False):
                     # it should be sc.
                     c = sc
 
-                dask_chunks[i] = c
+                dask_chunk[i] = c
 
-    # Return the storage-aligned Dask chunks
-    return dask_chunks
+    # Return the storage-aligned Dask chunk shape
+    return dask_chunk
 
 
 def chunk_indices(chunks):

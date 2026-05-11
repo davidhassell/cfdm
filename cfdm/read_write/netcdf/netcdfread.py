@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import reduce
-from math import log, nan, prod
+from math import nan, prod
 from numbers import Integral
 from os.path import isdir, isfile, join
 from typing import Any
@@ -16,6 +16,7 @@ from typing import Any
 import numpy as np
 
 from cfdm.data.netcdfindexer import netcdf_indexer
+from cfdm.data.utils import chunk_storage_align
 from cfdm.decorators import _manage_log_level_via_verbosity
 from cfdm.functions import abspath, is_log_level_debug, is_log_level_detail
 
@@ -11711,208 +11712,7 @@ class NetCDFRead(IORead):
                 # found in the file.)
                 return "auto"
 
-            # --------------------------------------------------------
-            # Strategy for creating storage-aligned Dask chunks:
-            #
-            # 1) Initialise the Dask chunk as the Dask's "auto" shape.
-            #
-            # 2) Whilst there are Dask elements that are strictly less
-            #    than their corresponding storage elements,
-            #    iteratively increase those Dask axis elements whilst
-            #    reducing the other Dask axis elements in a manner
-            #    such that the total number of Dask chunk elements is
-            #    preserved.
-            #
-            # 3) When all Dask elements have become greater than or
-            #    equal to their corresponding storage elements,
-            #    replace each Dask element with the largest multiple
-            #    of the storage element that doesn't exceed the
-            #    current Dask element.
-            #
-            # Note: If the number of elements in the storage chunk is
-            #       less than or equal to the number of elements in
-            #       the original Dask chunk, then the storage-aligned
-            #       chunk also will also have an amount of elements
-            #       that is less than or equal to the number of
-            #       elements in the original Dask chunk. Otherwise,
-            #       the storage-aligned chunk will have more elements
-            #       than the original Dask chunk:
-            #
-            #                        Chunk shape              Elements
-            #       ---------------- ----------------------- ---------
-            #       storage:         (50, 100, 150, 20,   5)  75000000
-            #       original Dask:   (49, 101, 150,  5, 160) 593880000
-            #       storage-aligned: (50, 100, 150, 20,  35) 525000000
-            #       ---------------- ----------------------- ---------
-            #       storage:         (50, 100, 150, 20,   5)  75000000
-            #       original Dask:   (5,   15, 150,  5, 160)   9000000
-            #       storage-aligned: (50, 100, 150, 20,   5)  75000000
-            # --------------------------------------------------------
-            # 1) Initialise the Dask chunk shape
-            from dask.array.core import normalize_chunks
-
-            dask_chunks = normalize_chunks(
-                "auto", shape=array.shape, dtype=array.dtype
-            )
-            dask_chunks = [sizes[0] for sizes in dask_chunks]
-            n_dask_elements = prod(dask_chunks)
-
-            # 2) While there are Dask axis elements that are less than
-            #    their corresponding storage axis elements,
-            #    iteratively increase the those Dask axis elements
-            #    whilst reducing the other Dask axis elements so that
-            #    the total number of Dask chunk elements is preserved.
-            continue_iterating = True
-
-            while continue_iterating:
-                continue_iterating = False
-
-                # Index locations of Dask elements which are greater
-                # than their corresponding storage elements
-                dask_gt_storage = []
-
-                # Product of Dask elements which are greater than
-                # their corresponding storage element
-                p_dask_gt_storage = 1
-
-                # Product of storage elements which are less than or
-                # equal to their corresponding Dask element
-                p_storage_ge_dask = 1
-                for i, (sc, dc) in enumerate(
-                    zip(storage_chunks, dask_chunks[:])
-                ):
-                    if dc > sc:
-                        # Dask element is greater than the storage
-                        # element
-                        dask_gt_storage.append(i)
-                        p_dask_gt_storage *= dc
-                    else:
-                        # Dask element is less than or equal to the
-                        # storage element
-                        p_storage_ge_dask *= sc
-
-                if not dask_gt_storage:
-                    # All Dask elements are less than or equal to
-                    # their corresponding storage elements => we can
-                    # stop the iteration, after setting the Dask chunk
-                    # to the storage chunk.
-                    dask_chunks[:] = storage_chunks
-                    break
-
-                # Calculate the x that preserves the Dask chunk size
-                # (i.e. the number of elements in the Dask chunk) when
-                #
-                #  i) All Dask elements that are strictly less than
-                #     their corresponding storage axis elements have
-                #     been replaced with those corresponding larger
-                #     values.
-                #
-                # ii) All other Dask elements have been reduced by
-                #     being raised to the power of x.
-                #
-                # I.e. x is such that
-                #
-                #      p_storage_ge_dask * p_dask_gt_storage**x = n_dask_elements
-                #  =>  x = log(n_dask_elements / p_storage_ge_dask) / log(p_dask_gt_storage)
-                #
-                # E.g. if the storage chunk shape is (40, 20, 15,  5)
-                #      and the Dask chunk shape is   (20, 25, 10, 30),
-                #      then x is such that
-                #
-                #      (40 * 15) * (25 * 30)**x = 20 * 25 * 10 * 30
-                #   => 600 * 750**x = 150000
-                #   => x = log(150000 / 600) / log(750)
-                #   => x = 0.834048317232446
-                #
-                # Note: If we have reached here to calculate x, then
-                #       it must be the case that p_dask_gt_storage > 1
-                #       and n_dask_elements >
-                #       p_storage_ge_dask. Therefore:
-                #
-                #       a) log(p_dask_gt_storage) > 0
-                #       b) x is in the range (-inf, 1], excluding 0
-                #       c) x is 1 if no Dask element is less than its
-                #          corresponding storage element
-                #
-                # Note: There are other reasonable methods for
-                #       reducing Dask elements. With the method used
-                #       here (i.e. using a power of x that is <= 1),
-                #       larger values get reduced by a greater factor
-                #       than smaller values, thereby promoting the
-                #       Dask preference for square-like chunk shapes
-                #       (although I suspect that in many cases,
-                #       different approaches will give the same
-                #       result).
-                x = log(n_dask_elements / p_storage_ge_dask) / log(
-                    p_dask_gt_storage
-                )
-
-                for i, (sc, dc) in enumerate(
-                    zip(storage_chunks, dask_chunks[:])
-                ):
-                    if i in dask_gt_storage:
-                        # The Dask element is greater than the storage
-                        # element => raise the Dask element to the
-                        # power of x.
-                        if x == 1:
-                            # After being raised to the power of x (=
-                            # 1), the Dask element will still be
-                            # greater than the storage element, so we
-                            # don't need to change it.
-                            c = dc
-                        else:
-                            # x < 1
-                            c = dc**x
-                            if c < sc:
-                                # After being raised to the power of
-                                # x, the Dask element has become less
-                                # than the storage element => we need
-                                # to go round the 2) iteration again,
-                                # because this new Dask element will
-                                # need increasing to its corresponding
-                                # storage element value, with the
-                                # possibility of further reductions to
-                                # other Dask elements.
-                                continue_iterating = True
-                    else:
-                        # The Dask element is less than or equal to
-                        # the storage element, so replace it with the
-                        # storage element.
-                        c = sc
-
-                    # Update the Dask chunk element
-                    dask_chunks[i] = c
-
-            # 3) All Dask elements are now greater than or equal to
-            #    their corresponding storage elements, so replace each
-            #    Dask element with the largest multiple of the storage
-            #    element that doesn't exceed the current Dask element.
-            #
-            # E.g. if the storage chunk is (12, 40, 40) and the
-            #      current Dask chunk is (12, 64, 128), then the Dask
-            #      chunk will be modified to be (12, 40, 120).
-            if dask_gt_storage:
-                for i, (sc, dc, axis_size) in enumerate(
-                    zip(storage_chunks, dask_chunks[:], array.shape)
-                ):
-                    if i in dask_gt_storage and dc < axis_size:
-                        # Dask element is strictly greater than the
-                        # corresponding storage element, and smaller
-                        # that the axis size.
-                        dc = int(dc)
-                        c = dc - (dc % sc)
-                        if not c:
-                            # Analytically, c must be a positive
-                            # integer multiple of sc, but it's
-                            # conceivable that rounding errors could
-                            # result in c being 0 when it should be
-                            # sc.
-                            c = sc
-
-                        dask_chunks[i] = c
-
-            # Return the storage-aligned Dask chunks
-            return dask_chunks
+            return chunk_storage_align(array, storage_chunks, realign=True)
 
         # ------------------------------------------------------------
         # storage-exact

@@ -266,6 +266,61 @@ class DataUtilsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             cfdm.data.utils.first_non_missing_value(d, method="bad")
 
+    def test_Data_utils_chunk_align(self):
+        """Test chunk_storage_align."""
+        with cfdm.chunksize("1 MiB"):
+            storage_align = cfdm.data.utils.chunk_storage_align
+            d = cfdm.Data.empty((20, 30, 40), chunks=(20, 30, 40))
+            self.assertIsNone(storage_align(d, (20, 30, 40)))
+            self.assertIsNone(storage_align(d, (21, 31, 41)))
+            self.assertIsNone(storage_align(d, (10, 31, 39)))
+            self.assertIsNone(storage_align(d, (2, 31, 39)))
+
+            d = d.rechunk((10, 15, 25))
+            self.assertEqual(storage_align(d, (20, 30, 40)), [20, 30, 40])
+            self.assertEqual(storage_align(d, (21, 31, 41)), [21, 31, 41])
+            self.assertEqual(storage_align(d, (10, 31, 39)), [20, 30, 40])
+            self.assertEqual(storage_align(d, (2, 31, 39)), [20, 30, 40])
+
+        with cfdm.chunksize("100 KiB"):
+            d = cfdm.Data.empty((20, 30, 40), chunks=(20, 30, 40))
+            self.assertIsNone(storage_align(d, (20, 30, 40)))
+            self.assertIsNone(storage_align(d, (21, 31, 41)))
+            self.assertIsNone(storage_align(d, (10, 31, 39)))
+            self.assertIsNone(storage_align(d, (2, 31, 39)))
+
+            d = d.rechunk((10, 15, 25))
+            self.assertEqual(storage_align(d, (20, 30, 40)), [20, 30, 40])
+            self.assertEqual(storage_align(d, (21, 31, 41)), [21, 31, 41])
+            self.assertEqual(storage_align(d, (10, 31, 39)), [10, 31, 39])
+            self.assertEqual(storage_align(d, (2, 31, 39)), [10, 31, 39])
+
+        with cfdm.chunksize("50 KiB"):
+            d = cfdm.Data.empty((20, 30, 40), chunks=(20, 30, 40))
+            self.assertIsNone(storage_align(d, (20, 30, 40)))
+            self.assertIsNone(storage_align(d, (21, 31, 41)))
+            self.assertIsNone(storage_align(d, (10, 31, 39)))
+            self.assertIsNone(storage_align(d, (2, 31, 39)))
+
+            d = d.rechunk((10, 15, 25))
+            self.assertEqual(storage_align(d, (20, 30, 40)), [20, 30, 40])
+            self.assertEqual(storage_align(d, (21, 31, 41)), [21, 31, 41])
+            self.assertEqual(storage_align(d, (10, 31, 39)), [10, 31, 39])
+            self.assertEqual(storage_align(d, (2, 31, 39)), [4, 31, 39])
+
+        with cfdm.chunksize("10 KiB"):
+            d = cfdm.Data.empty((20, 30, 40), chunks=(20, 30, 40))
+            self.assertIsNone(storage_align(d, (20, 30, 40)))
+            self.assertIsNone(storage_align(d, (21, 31, 41)))
+            self.assertIsNone(storage_align(d, (10, 31, 39)))
+            self.assertIsNone(storage_align(d, (2, 31, 39)))
+
+            d = d.rechunk((10, 15, 25))
+            self.assertEqual(storage_align(d, (20, 30, 40)), [20, 30, 40])
+            self.assertEqual(storage_align(d, (21, 31, 41)), [21, 31, 41])
+            self.assertEqual(storage_align(d, (10, 31, 39)), [10, 31, 39])
+            self.assertEqual(storage_align(d, (2, 31, 39)), [2, 31, 39])
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

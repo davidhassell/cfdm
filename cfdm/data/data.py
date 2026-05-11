@@ -40,7 +40,8 @@ from .dask_utils import (
 from .utils import (
     allclose,
     chunk_indices,
-    chunk_positions,chunks_align,
+    chunk_positions,
+    chunk_storage_align,
     collapse,
     convert_to_datetime,
     convert_to_reftime,
@@ -6651,7 +6652,7 @@ class Data(
         block_size_limit=None,
         balance=False,
         align=False,
-            realign=False,
+        realign=False,
         inplace=False,
     ):
         """Change the chunk structure of the data.
@@ -6675,16 +6676,39 @@ class Data(
 
             {{balance: `bool`, optional}}
 
-            align: `bool`, optional
+            storage_align: `bool`, optional
                 If True, then *chunks* defines a storage chunk pattern
                 and the Dask array will be rechunked so that its
-                chunks are aligned to that storage chunk pattern.
+                chunks are aligned to that storage chunk
+                pattern. Alignment means that each storage chunk is
+                wholly contained in exactly one Dask chunk, which is
+                the optimal strategy for writing to chunked datasets on
+                disk (as it wholly prevents chunk thrashing).
+
+                Each Dask chunk will be a hypercube that is at least
+                as large as *storage_chunk* in each axis, and if
+                possible its size will not exceed the default Dask
+                chunksize (determined by `{{package}}.chunksize`)
+
+                Each Dask chunk will be the largest hypercube that is
+                no larger than the default Dask chunksize (determined
+                by `{{package}}.chunksize`) and is aaligned with the
+                storage pattern defined by *chunks*.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            realign: `bool`, optional
-                If True, and *align* is True, then don't re-align the
-                Dask chunks if they are already aligned.
+            storage_realign: `bool`, optional
+                If False (the default), and *storage_align* is True,
+                then don't re-align the Dask chunks if they are
+                already aligned, regardless of the nature of the
+                alignment. If True, and *storage_align* is True, then
+                the alignment is always recalculated.
+
+                For instance, if *chunks* is ``(10, 20, 30)`` then the
+                Dask chunks ``((10,), (20,), (30,))``, ``((50,),
+                (60,), (90,))``, ``((50, 70), (5, 15, 25), (30, 15))``, and
+                ``((15), (25,), (35))`` are all already aligned with
+                the storage chunks
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -6733,19 +6757,24 @@ class Data(
 
         if align:
             if not isinstance(chunks, tuple):
-                raise ValueError("TODO")
+                raise ValueError(
+                    "When align=True, 'chunks' must be a tuple of "
+                    f"integers. Got: chunks={chunks!r}"
+                )
 
             for c in chunks:
                 if not isinstance(c, int):
-                    raise ValueError("TODO")
-            
-            chunks = chunks_align(d, chunks, realign=realign)
-            if chunks is None:
-                # Dask chunks are already aligned to 'chunks'
-                return d
+                    raise ValueError(
+                        "When align=True, 'chunks' must be a tuple of "
+                        f"integers. Got: chunks={chunks!r}"
+                    )
 
-            # Align the Dask chunks to 'chunks'
-            return d.rechunk(chunks, inplace=True)
+            chunks = chunk_storage_align(d, chunks, realign=storage_realign)
+            if chunks is not None:
+                # The Dask chunks need aligning to 'chunks'
+                d.rechunk(chunks, inplace=True)
+
+            return d
 
         # Still here?
         dx = d.to_dask_array(
@@ -6757,7 +6786,7 @@ class Data(
             clear=self._ALL ^ self._ARRAY ^ self._CACHE ^ self._CFA,
             in_memory=None,
         )
-            
+
         return d
 
     def replace_directory(
