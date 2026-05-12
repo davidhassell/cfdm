@@ -22,6 +22,7 @@ from .utils import (
     ppfive_open,
     pyfive_open,
     xarray_open,
+    xarray_parse_group_structure,
     zarr_open,
     zarr_parse_group_structure,
 )
@@ -491,11 +492,14 @@ class Variable(Mixin):
 
         """
         array = self._var[indices]
-        if self.backend == "netcdf_file":
-            # Need to copy the numpy array returned by
-            # scipy.io.netcdf_file with mmap=True. See
-            # `netcdf_file_close` for details.
-            array = array.copy()
+        match self.backend:
+            case "netcdf_file":
+                # Need to copy the numpy array returned by
+                # scipy.io.netcdf_file with mmap=True. See
+                # `netcdf_file_close` for details.
+                array = array.copy()
+            case "xarray":
+                array = array.values
 
         return array
 
@@ -991,7 +995,7 @@ class Variable(Mixin):
                     if not found:
                         raise NetCDFError(
                             f"Dimension {dim_name!r} not found in the "
-                            "group hierarchy."
+                            f"{self.backend!r} group hierarchy."
                         )
 
             case "netCDF4":
@@ -1004,6 +1008,28 @@ class Variable(Mixin):
             case "netcdf_file":
                 dimensions = self.root.dimensions
                 dims = [dimensions[dim] for dim in self._var.dimensions]
+
+            case "xarray":
+                dims = []
+                for dim_name in self._var.dims:
+                    # Walk up the tree to find where the dimension is
+                    # defined
+                    current_group = self.parent
+                    found = False
+                    while current_group is not None:
+                        dim = current_group.dimensions.get(dim_name)
+                        if dim is not None:
+                            dims.append(dim)
+                            found = True
+                            break
+
+                        current_group = current_group.parent
+
+                    if not found:
+                        raise NetCDFError(
+                            f"Dimension {dim_name!r} not found in the "
+                            f"{self.backend!r} group hierarchy."
+                        )
 
             case "zarr":
                 raise RuntimeError(
@@ -1374,6 +1400,15 @@ class Group(Mixin, Mapping):
 
             case "zarr":
                 zarr_parse_group_structure(self)
+
+            case "xarray":
+                xarray_parse_group_structure(self)
+
+            case _:
+                raise NotImplementedError(
+                    "Need a 'parse group structure' function for backend "
+                    f"{self.backend!r}"
+                )
 
     @property
     def attrs(self):
@@ -1897,7 +1932,15 @@ class File(Group):
                  same maximally verbose output.
 
         """
-        import pyfive
+        try:
+            import pyfive
+        except ModuleNotFoundError:
+            pyfive = None
+
+        try:
+            import xarray
+        except ModuleNotFoundError:
+            xarray = None
 
         if mode != "r":
             raise ValueError(f"mode must be 'r'. Got: {mode!r}")
@@ -1922,7 +1965,7 @@ class File(Group):
         # The log of how the dataset is read
         self._log_read = []
 
-        if isinstance(dataset, pyfive.File):
+        if pyfive is not None and isinstance(dataset, pyfive.File):
             # --------------------------------------------------------
             # Input is `pyfive.File`-like
             # --------------------------------------------------------
@@ -1954,6 +1997,31 @@ class File(Group):
                 except AttributeError:
                     pass
 
+        elif xarray is not None and isinstance(dataset, (xarray.Dataset, xarray.DataTree)):
+            # --------------------------------------------------------
+            # Input is `xarray.Dataset`-like or `xarray.DataTree`-like
+            # --------------------------------------------------------
+            if isinstance(dataset, xarray.Dataset):
+                # Cast a Dataset as a DataTree                
+                dataset = xarray.DataTree(dataset=dataset)
+     
+            nc = dataset
+            attrs = nc.attrs
+            library = get_library(nc)
+            self._owns_nc = False
+
+            # Use the 'xarray' logic to parse the dataset
+            backend = "xarray"
+
+            # Attempt to get the dataset name and file system protocol
+            try:
+                dataset_name = dataset.encoding.get('source')
+            except AttributeError:
+                pass
+            else:
+                if dataset_name is None:
+                    dataset_name = ""
+                
         else:
             # --------------------------------------------------------
             # Input is string-like, file-like, or directory-like
@@ -2008,7 +2076,6 @@ class File(Group):
                 "netcdf_file": netcdf_file_open,
                 "h5py": h5py_open,
                 "ppfive": ppfive_open,
-                "xarray": xarray_open,
             }
             if backend is not None:
                 # Restrict to selected backends
