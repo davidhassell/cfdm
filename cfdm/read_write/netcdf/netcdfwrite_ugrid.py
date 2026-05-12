@@ -622,7 +622,8 @@ class NetCDFWriteUgrid:
             for c in mesh[key]:
                 found_match = False
                 for i, c1 in enumerate(mesh1_key):
-                    if c.equals(c1):
+                    print(repr(c), repr(c1))
+                    if c.equals(c1, verbose=-1):
                         # Matching construct pair
                         found_match = True
                         mesh1_key.pop(i)
@@ -901,7 +902,9 @@ class NetCDFWriteUgrid:
 
         """
         g = self.write_vars
-
+        import pprint
+        print('_ugrid_write_mesh_variables')
+        pprint.pprint(g["meshes"])
         for mesh_ncvar, mesh in g["meshes"].items():
             # --------------------------------------------------------
             # Create the mesh variable attributes.
