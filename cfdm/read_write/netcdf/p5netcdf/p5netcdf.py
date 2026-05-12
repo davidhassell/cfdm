@@ -21,6 +21,7 @@ from .utils import (
     parse_attributes,
     ppfive_open,
     pyfive_open,
+    xarray_open,
     zarr_open,
     zarr_parse_group_structure,
 )
@@ -2007,6 +2008,7 @@ class File(Group):
                 "netcdf_file": netcdf_file_open,
                 "h5py": h5py_open,
                 "ppfive": ppfive_open,
+                "xarray": xarray_open,
             }
             if backend is not None:
                 # Restrict to selected backends
