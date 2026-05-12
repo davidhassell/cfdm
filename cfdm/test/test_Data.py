@@ -1742,17 +1742,17 @@ class DataTest(unittest.TestCase):
         # Align
         d = cfdm.Data.empty((5, 6, 7), chunks=(5, 6, 7))
         self.assertEqual(
-            d.rechunk((5, 6, 7), align=True).chunks, ((5,), (6,), (7,))
+            d.rechunk((5, 6, 7), storage_align=True).chunks, ((5,), (6,), (7,))
         )
 
         d = cfdm.Data.empty((5, 6, 7), chunks=(2, 3, 4))
         self.assertEqual(
-            d.rechunk((5, 6, 7), align=True).chunks, ((5,), (6,), (7,))
+            d.rechunk((5, 6, 7), storage_align=True).chunks, ((5,), (6,), (7,))
         )
         with cfdm.chunksize("100 KB"):
             d = cfdm.Data.empty((50, 60, 70), chunks=(10, 20, 30))
             self.assertEqual(
-                d.rechunk((5, 6, 7), align=True).chunks,
+                d.rechunk((5, 6, 7), storage_align=True).chunks,
                 ((20, 20, 10), (18, 18, 18, 6), (21, 21, 21, 7)),
             )
 

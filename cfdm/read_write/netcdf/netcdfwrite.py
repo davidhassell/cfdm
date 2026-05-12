@@ -3599,6 +3599,10 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # Initialise the dataset lock for the data writing from Dask
         lock = None
 
+        # Initialise whether or not to create storage-aligned Dask
+        # chunks
+        storage_align = True
+
         # Rechunk the Dask array to shards, if applicable.
         if zarr:
             # When a Zarr variable is sharded, the Dask array must be
@@ -3608,9 +3612,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # https://zarr.readthedocs.io/en/stable/user-guide/arrays.html#sharding
             shards = g["nc"][ncvar].shards
             if shards is not None:
-                shard_aligned = chunk_storage_align(dx, shards)
+                shard_aligned = chunk_storage_align(dx, shards, realign=False)
                 if shard_aligned is not None:
                     dx = dx.rechunk(shard_aligned)
+                    # We're now storage-aligned, so no need to
+                    # potentially re-align later.
+                    storage_align = False
 
                 # The Dask chunks are aligned with Zarr shards, so we
                 # don't need to lock the write.
@@ -3658,21 +3665,31 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 fill_value=fill_value,
             )
 
-        if lock is None:
-            # We need to define the dataset lock for data writing from
-            # Dask
-            from cfdm.data.locks import netcdf_lock as lock
-
         # Set the current size of unlimited dimensions
         var = g["nc"][ncvar]
         self.set_unlimited_dimension_sizes(var, data.shape)
 
         # Create storage-aligned Dask chunks
-        storage_aligned = chunk_storage_align(
-            dx, self._variable_chunksizes(var)
-        )
-        if storage_aligned is not None:
-            dx = dx.rechunk(storage_aligned)
+        if storage_align:
+            storage_chunk = chunk_storage_align(
+                dx, self._variable_chunksizes(var), realign=False
+            )
+            if storage_chunk is not None:
+                dx = dx.rechunk(storage_chunk)
+
+            # At this point, the Dask chunks are storage-aligned,
+            # meaning that each storage chunk is wholly contained in
+            # exactly one Dask chunk.
+
+            if zarr:
+                # With storage-aligned Dask chunks we can safely not
+                # lock when writing to Zarr.
+                lock = False
+
+        if lock is None:
+            # We need to define the dataset lock for data writing from
+            # Dask
+            from cfdm.data.locks import netcdf_lock as lock
 
         da.store(dx, var, compute=True, return_stored=False, lock=lock)
 

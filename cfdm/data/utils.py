@@ -639,7 +639,7 @@ def chunk_storage_align(data, storage_chunk, realign=False):
             If *realign* is False and the Dask chunks were already
             aligned with *storage_chunk* then `None` is returned.
 
-            If *storage_chunk* is `None` the `None` is returned.
+            If *storage_chunk* is `None` then `None` is returned.
 
     **Examples**
 

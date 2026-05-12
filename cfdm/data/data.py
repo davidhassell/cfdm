@@ -6651,8 +6651,8 @@ class Data(
         threshold=None,
         block_size_limit=None,
         balance=False,
-        align=False,
-        realign=False,
+        storage_align=False,
+        storage_realign=False,
         inplace=False,
     ):
         """Change the chunk structure of the data.
@@ -6755,17 +6755,17 @@ class Data(
         """
         d = _inplace_enabled_define_and_cleanup(self)
 
-        if align:
+        if storage_align:
             if not isinstance(chunks, tuple):
                 raise ValueError(
-                    "When align=True, 'chunks' must be a tuple of "
+                    "When storage_align=True, 'chunks' must be a tuple of "
                     f"integers. Got: chunks={chunks!r}"
                 )
 
             for c in chunks:
                 if not isinstance(c, int):
                     raise ValueError(
-                        "When align=True, 'chunks' must be a tuple of "
+                        "When storage_align=True, 'chunks' must be a tuple of "
                         f"integers. Got: chunks={chunks!r}"
                     )
 
