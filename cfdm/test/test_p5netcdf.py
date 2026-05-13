@@ -21,7 +21,7 @@ class Testp5netcdf(unittest.TestCase):
     def setUpClass(cls):
         """Create the test file."""
         tmpfile = tempfile.mkstemp("_test_p5netcdf.nc", dir=os.getcwd())[1]
-        #        tmpfile = "test_p5_example.nc"
+        # tmpfile = "test_p5_example.nc"
 
         # ------------------------------------------------------------
         # NETCDF4
@@ -134,6 +134,8 @@ class Testp5netcdf(unittest.TestCase):
             # Coordinates and methods
             q.setncattr("coordinates", "time")
             q.setncattr("cell_methods", "area: mean")
+
+            q.setncattr("standard_name", "specific_humidity")
 
             # Data for model group
             lat[...] = [-75, -45, 0, 45, 75]
@@ -317,11 +319,6 @@ class Testp5netcdf(unittest.TestCase):
         forecast: <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>""",
         )
 
-    def test_p5netcdf_File_mode(self):
-        """Test File mode argument."""
-        with self.assertRaises(ValueError):
-            cfdm.p5netcdf.File(self.filename, mode="w")
-
     def test_p5netcdf_File_bad_file(self):
         """Test File with not a netCDF file."""
         with self.assertRaises(Exception):
@@ -407,7 +404,8 @@ class Testp5netcdf(unittest.TestCase):
                                 string8: ''
                                 string9: ''
                                 coordinates: 'time'
-                                cell_methods: 'area: mean'""",
+                                cell_methods: 'area: mean'
+                                standard_name: 'specific_humidity'""",
         )
 
     def test_p5netcdf_File_close(self):
@@ -823,7 +821,8 @@ class Testp5netcdf(unittest.TestCase):
                         string8: ''
                         string9: ''
                         coordinates: 'time'
-                        cell_methods: 'area: mean'""",
+                        cell_methods: 'area: mean'
+                        standard_name: 'specific_humidity'""",
         )
 
         self.assertEqual(
@@ -879,7 +878,8 @@ class Testp5netcdf(unittest.TestCase):
                 string8: ''
                 string9: ''
                 coordinates: 'time'
-                cell_methods: 'area: mean'""",
+                cell_methods: 'area: mean'
+                standard_name: 'specific_humidity'""",
         )
 
     def test_p5netcdf_Group__getitem__(self):

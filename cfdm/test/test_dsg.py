@@ -191,7 +191,7 @@ class DSGTest(unittest.TestCase):
         self.assertEqual(len(g), len(f))
 
         for i in range(len(f)):
-            self.assertTrue(g[i].equals(f[i], verbose=3))
+            self.assertTrue(g[i].equals(f[i]))
 
         # ------------------------------------------------------------
         # Test creation
@@ -260,7 +260,7 @@ class DSGTest(unittest.TestCase):
         self.assertEqual(len(g), len(f))
 
         for i in range(len(f)):
-            self.assertTrue(g[i].equals(f[i], verbose=3))
+            self.assertTrue(g[i].equals(f[i]))
 
     def test_DSG_indexed_contiguous(self):
         """Test the indexed contiguous ragged array representation."""
@@ -285,7 +285,7 @@ class DSGTest(unittest.TestCase):
         self.assertEqual(len(g), len(f))
 
         for i in range(len(f)):
-            self.assertTrue(g[i].equals(f[i], verbose=3))
+            self.assertTrue(g[i].equals(f[i]))
 
         # Check original filenames
         self.assertEqual(

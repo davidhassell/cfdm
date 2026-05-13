@@ -20,5 +20,5 @@ from .utils_netcdf import (
     netcdf_file_parse_group_structure,
 )
 from .utils_um import ppfive_open
-from .utils_xarray import xarray_parse_group_structure
+from .utils_xarray import xarray_open, xarray_parse_group_structure
 from .utils_zarr import zarr_open, zarr_parse_group_structure

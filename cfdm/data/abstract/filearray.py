@@ -512,16 +512,22 @@ class FileArray(Array):
 
             create_filesystem: `bool`, optional
                 If True (the default) then attempt to create a
-                filesystem if one has not been provided. Note that a
-                filesystem will not be created for a local dataset.
+                file system if one has not been provided. Note that a
+                file system will not be created for a local dataset.
+
+                If there is no file system then the dataset as
+                returned by `get_filename` is passed directly to
+                *func*.
+
+                Ignored if `get_filename`does not return a string.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             2-`tuple`
-                The file object for the dataset, and the address of
-                the data within the file.
+                The object representing the whole the dataset, and the
+                address of the data array within the dataset.
 
         """
         filename = self.get_filename(normalise=True)

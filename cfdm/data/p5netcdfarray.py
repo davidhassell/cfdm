@@ -154,7 +154,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
         backend = self.get_backend()
 
-        options = {"mode": "r", "backend": backend}
+        options = {"backend": backend}
         options.update(kwargs)
 
         out = None
@@ -164,7 +164,8 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
             error = [str(e)]
 
             # As a last resort, try opening an http dataset with
-            # opendap via netCDF4
+            # OPeNDAP via netCDF4. (Currently, the only backend that
+            # can use OPeNDAP is 'netCDF4'.)
             try_opendap = self.get_filesystem() is None
             if backend is None or backend == "netCDF4" or "netCDF4" in backend:
                 filename = self.get_filename()
@@ -177,13 +178,13 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
                     )
 
             if try_opendap:
-                options["backend"] = "neCDF4"
+                options["backend"] = "netCDF4"
                 try:
                     out = super().open(
                         p5netcdf.File, options=options, create_filesystem=False
                     )
                 except Exception as e:
-                    error.append[str(e)]
+                    error.append(str(e))
 
             if out is None:
                 raise type(e)("\n\n".join(error))

@@ -22,6 +22,7 @@ from .utils import (
     parse_attributes,
     ppfive_open,
     pyfive_open,
+    xarray_open,
     xarray_parse_group_structure,
     zarr_open,
     zarr_parse_group_structure,
@@ -72,8 +73,9 @@ class Mixin:
 
         :Returns:
 
-            string-like or file-like or directory-like or `pyfive.File`-like
-                The dataset definition.
+                The dataset definition. One of string-like, file-like,
+                directory-like, `pyfive.File`-like, or
+                xarray.Dataset`-like, or `xarray.DataTree`-like.
 
         """
         return self.root._dataset
@@ -222,6 +224,7 @@ class Mixin:
     def structure(
         self,
         display=True,
+        depth=None,
         _prefix=None,
         _level=0,
     ):
@@ -248,9 +251,10 @@ class Mixin:
         """
         return self.dump(
             display=display,
+            data=False,
+            depth=depth,
             _prefix=_prefix,
             _level=_level,
-            _sub_groups=True,
             _structure=True,
         )
 
@@ -374,7 +378,6 @@ class Dimension(Mixin):
         display=True,
         _prefix=None,
         _level=0,
-        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the dimension.
@@ -605,6 +608,15 @@ class Variable(Mixin):
                     if not chunks:
                         chunks = None
 
+                case "xarray":
+                    chunks = self._var.encoding.get("chunksizes")
+
+                case _:
+                    raise NotImplementedError(
+                        "Need to implement 'chunks' for backend "
+                        f"{self.backend!r}"
+                    )
+
             self._chunks = chunks
 
         return chunks
@@ -668,15 +680,17 @@ class Variable(Mixin):
                     | "zarr"
                     | "netCDF4"
                     | "h5py"
-                    | "ppfive"
                     | "xarray"
+                    | "ppfive"
                 ):
                     dtype = self._var.dtype
+
                 case "netcdf_file":
                     dtype = netcdf_file_dtype(self)
+
                 case _:
                     raise NotImplementedError(
-                        "Need to implement 'dtype` for backend "
+                        "Need to implement 'dtype' for backend "
                         f"{self.backend!r}"
                     )
 
@@ -870,7 +884,7 @@ class Variable(Mixin):
         if chunking is None:
             chunks = self.chunks
             match self.backend:
-                case "pyfive" | "zarr" | "h5py" | "ppfive":
+                case "pyfive" | "zarr" | "xarray" | "h5py" | "ppfive":
                     if chunks is None:
                         chunking = "contiguous"
                     else:
@@ -888,6 +902,12 @@ class Variable(Mixin):
                 case "netcdf_file":
                     chunking = None
 
+                case _:
+                    raise NotImplementedError(
+                        "Need to implement 'chunking' for backend "
+                        f"{self.backend!r}"
+                    )
+
             self._chunking = chunking
 
         return chunking
@@ -898,7 +918,6 @@ class Variable(Mixin):
         data=False,
         _prefix=None,
         _level=0,
-        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the variable.
@@ -984,38 +1003,43 @@ class Variable(Mixin):
         #       only available after the entire group and variable
         #       structure has been parsed.
         dims = getattr(self, "_dims", None)
-        if dims is not None:
-            return dims
+        if dims is None:
+            match self.backend:
+                case "pyfive" | "h5py" | "ppfive":
+                    dims = get_dimensions_from_source(
+                        self, hdf5_dimension_names(self)
+                    )
 
-        match self.backend:
-            case "pyfive" | "h5py" | "ppfive":
-                dims = get_dimensions_from_source(
-                    self, hdf5_dimension_names(self)
-                )
+                case "netCDF4":
+                    root = self.root
+                    dims = [
+                        root[ndim.group().path].dimensions[ndim.name]
+                        for ndim in self._var.get_dims()
+                    ]
 
-            case "netCDF4":
-                root = self.root
-                dims = [
-                    root[ndim.group().path].dimensions[ndim.name]
-                    for ndim in self._var.get_dims()
-                ]
+                case "netcdf_file":
+                    dimensions = self.root.dimensions
+                    dims = [dimensions[dim] for dim in self._var.dimensions]
 
-            case "netcdf_file":
-                dimensions = self.root.dimensions
-                dims = [dimensions[dim] for dim in self._var.dimensions]
+                case "xarray":
+                    dims = get_dimensions_from_source(self, self._var.dims)
 
-            case "xarray":
-                dims = get_dimensions_from_source(self, self._var.dims)
+                case "zarr":
+                    raise RuntimeError(
+                        "self._dims should have already been set to  "
+                        "something other than None by the "
+                        "zarr_parse_group_structure function"
+                    )
 
-            case "zarr":
-                raise RuntimeError(
-                    "self._dims should have already been set to something "
-                    "other than None by the zarr_parse_group_structure "
-                    "function"
-                )
+                case _:
+                    raise NotImplementedError(
+                        "Need to implement 'get_dims' for backend "
+                        f"{self.backend!r}"
+                    )
 
-        dims = tuple(dims)
-        self._dims = dims
+            dims = tuple(dims)
+            self._dims = dims
+
         return dims
 
     def getncattr(self, name):
@@ -1256,7 +1280,7 @@ class Group(Mixin, Mapping):
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        return self.dump(display=False, _sub_groups=False, _structure=True)
+        return self.dump(display=False, data=False, depth=0, _structure=True)
 
     def _create_dimension(self, name, size, isunlimited):
         """Create a new dimension in this group.
@@ -1382,7 +1406,7 @@ class Group(Mixin, Mapping):
 
             case _:
                 raise NotImplementedError(
-                    "Need a 'parse group structure' function for backend "
+                    "Need a '*_parse group structure' function for backend "
                     f"{self.backend!r}"
                 )
 
@@ -1502,9 +1526,9 @@ class Group(Mixin, Mapping):
         self,
         display=True,
         data=False,
+        depth=None,
         _prefix=None,
         _level=0,
-        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the group.
@@ -1523,6 +1547,9 @@ class Group(Mixin, Mapping):
                 If True then include a summary of each variable's data
                 array. If False (the default) then don't include these
                 data summaries.
+
+            depth: `int` or `None`, optional
+                TODOP5
 
         :Returns:
 
@@ -1568,9 +1595,12 @@ class Group(Mixin, Mapping):
         # Groups
         if self.groups:
             lines.append(f"{i1}Groups:")
-            if _sub_groups:
+            if depth is None or depth >= self.path.count("/"):
+                if depth is not None:
+                    depth = depth - 1
+
                 lines.extend(
-                    f"{group.dump(display=False, data=data, _level=_level + 2, _sub_groups=True, _structure=_structure)}"
+                    f"{group.dump(display=False, data=data, depth=depth, _level=_level + 2, _structure=_structure)}"
                     for group in self.groups.values()
                 )
             else:
@@ -1611,7 +1641,7 @@ class Group(Mixin, Mapping):
             )
 
     def is_ancestor_group(self, other):
-        """Return True if the group is an ancestor of another group.
+        """Return True if this group is an ancestor of another group.
 
         A group is considered to be an ancestor of itself.
 
@@ -1643,7 +1673,7 @@ class Group(Mixin, Mapping):
         return False
 
     def is_sub_group(self, other):
-        """Return True if the group is a subgroup of, another group.
+        """Return True if this group is a subgroup of another group.
 
         A group is considered to be a sub-group of itself.
 
@@ -1721,11 +1751,11 @@ class File(Group):
     def __init__(
         self,
         dataset,
-        mode="r",
         backend=None,
         metadata_strategy="minimal",
         pyfive_options=None,
         h5py_options=None,
+        xarray_options=None,
         zarr_options=None,
         zarr_dimension_search="closest_ancestor",
         verbose=0,
@@ -1745,33 +1775,39 @@ class File(Group):
 
                 * directory-like (such as `fsspec.mapping.FSMap`)
 
-                * `pyfive.File`-like (`pyfive.File` or a subclass of
-                                      `pyfive.File`)
+                * `pyfive.File`-like
 
                    Note that::
 
-                      >>> nc = p5netcdf.File('file.nc', backend='pyfive')
+                      >>> nc = p5netcdf.File('dataset.nc', backend='pyfive')
 
                    is identical to::
 
-                      >>> py5 = pyfive.File('file.nc')
-                      >>> nc = p5netcdf.File(py5)
+                      >>> p = pyfive.File('dataset.nc')
+                      >>> nc = p5netcdf.File(p)
 
-                   A subclass of `pyfive.File` must expose following
-                   classes, attributes and methods from the `pyfive`
-                   API: `!File.attrs` `!File.close`, `!File.filename`,
-                   `!File.items`, `!File._fh`, `!Group.attrs`,
-                   `!Group.items`, `Dataset.attrs`, `Dataset.chunks`,
-                   `Dataset.dtype`, `Dataset.maxshape`,
-                   `Dataset.name`, `Dataset.shape`; and its `!File`
-                   and `!Group` classes must be (registered as)
-                   subclasses of `pyfive.File` and `pyfive.Group`
-                   respectively.
+                   A subclass of `pyfive.File` must expose the
+                   following classes, attributes and methods from the
+                   `pyfive` API: `!File.attrs` `!File.close`,
+                   `!File.filename`, `!File.items`, `!File._fh`,
+                   `!Group.attrs`, `!Group.items`, `Dataset.attrs`,
+                   `Dataset.chunks`, `Dataset.dtype`, `Dataset.name`,
+                   `Dataset.shape`; and its `!File` and `!Group`
+                   classes must be (registered as) subclasses of
+                   `pyfive.File` and `pyfive.Group` respectively.
 
-            mode: `str`, optional
-                The access mode used when using `pyfive.File` to open
-                the *dataset*. The only allowed value is ``'r'``
-                (read-only), and this is the default.
+                * `xarray.Dataset`-like or `xarray.DataTree`-like
+
+                   Note that::
+
+                      >>> nc = p5netcdf.File('dataset', backend='xarray')
+
+                   is identical to::
+
+                      >>> x = xarray.open_datatree(
+                      ...     'dataset', mask_and_scale=False, decode_cf=False
+                      ... )
+                      >>> nc = p5netcdf.File(x)
 
             backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading a
@@ -1788,6 +1824,7 @@ class File(Group):
                 ``'zarr'``         `zarr`
                 ``'netCDF4'``      `netCDF4`
                 ``'netcdf_file'``  `scipy.io.netcdf_file`
+                ``'xarray'``       `xarray`
                 ``'h5py'``         `h5py`
                 ``'ppfive'``       `ppfive`
                 =================  ======================
@@ -1795,8 +1832,8 @@ class File(Group):
                 By default *backend* is `None`, which is equivalent to
                 providing the ordered sequence of backends:
 
-                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py',
-                'ppfive')``
+                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file',
+                'xarray', 'h5py', 'ppfive')``
 
                 *Example:*
                   To only attempt ``'netCDF4'``: ``'netCDF4'`` or
@@ -1833,22 +1870,32 @@ class File(Group):
 
             pyfive_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `pyfive.File` to
-                be used when opening a netCDF-4 dataset. Setting to
-                `None` (the default) is equivalent to providing an
-                empty dictionary. Ignored if *dataset* is a
+                be used when opening a netCDF-4 dataset with the
+                ``'pyfive'`` backend. Setting to `None` (the default)
+                is equivalent to providing an empty
+                dictionary. Ignored if *dataset* is already a
                 `pyfive.File`-like object.
 
             h5py_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `h5py.File` to be
-                used when opening a netCDF-4 dataset. Setting to
+                used when opening a netCDF-4 dataset with the
+                ``'h5py'`` backend. Setting to `None` (the default) is
+                equivalent to providing an empty dictionary.
+
+            xarray_options: `dict` or `None`, optional
+                Keyword arguments that are passed to
+                `xarray.open_datatree` to be used when opening a
+                dataset with the ``'xarray'`` backend. Setting to
                 `None` (the default) is equivalent to providing an
-                empty dictionary.
+                empty dictionary. Ignored if *dataset* is already an
+                `xarray.Dataset`-like or `xarray.DataTree`-like
+                object.
 
             zarr_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `zarr.open` to be
-                used when opening a Zarr or Kerchunk dataset. Setting
-                to `None` (the default) is equivalent to providing an
-                empty dictionary.
+                used when opening a Zarr or Kerchunk dataset with the
+                ``'zarr'`` backend. Setting to `None` (the default) is
+                equivalent to providing an empty dictionary.
 
             zarr_dimension_search: `str`, optional
                 How to interpret a Zarr or Kerchunk dataset dimension
@@ -1918,9 +1965,7 @@ class File(Group):
         except ModuleNotFoundError:
             xarray = None
 
-        if mode != "r":
-            raise ValueError(f"mode must be 'r'. Got: {mode!r}")
-
+        # Options for the open functions
         read_options = {}
         if h5py_options:
             read_options["h5py"] = h5py_options
@@ -1930,6 +1975,9 @@ class File(Group):
 
         if zarr_options:
             read_options["zarr"] = zarr_options
+
+        if xarray_options:
+            read_options["xarray"] = xarray_options
 
         self._zarr_dimension_search = zarr_dimension_search
 
@@ -1980,7 +2028,7 @@ class File(Group):
             # Input is `xarray.Dataset`-like or `xarray.DataTree`-like
             # --------------------------------------------------------
             if isinstance(dataset, xarray.Dataset):
-                # Cast a Dataset as a DataTree
+                # Convert a Dataset to a DataTree
                 dataset = xarray.DataTree(dataset=dataset)
 
             nc = dataset
@@ -1996,9 +2044,6 @@ class File(Group):
                 dataset_name = dataset.encoding.get("source")
             except AttributeError:
                 pass
-            else:
-                if dataset_name is None:
-                    dataset_name = ""
 
         else:
             # --------------------------------------------------------
@@ -2041,17 +2086,18 @@ class File(Group):
 
             # Map backend names to dataset-read functions
             #
-            # Note to devolopers: If you change the order of this
-            #                     dictionary, you must update
-            #                     docstring, as well as {{read
-            #                     netcdf_backend: ...}} and {{read
-            #                     cfa_backend: ...}} in
-            #                     docstring/docstring.py
+            # Note to developers: If you change the order of this
+            #                     dictionary, you must update the
+            #                     `__init__` docstring, and consider
+            #                     updating {{read netcdf_backend:
+            #                     ...}} and {{read cfa_backend: ...}}
+            #                     in docstring/docstring.py
             read_functions = {
                 "pyfive": pyfive_open,
                 "zarr": zarr_open,
                 "netCDF4": netCDF4_open,
                 "netcdf_file": netcdf_file_open,
+                "xarray": xarray_open,
                 "h5py": h5py_open,
                 "ppfive": ppfive_open,
             }
@@ -2089,8 +2135,8 @@ class File(Group):
                     pass
 
                 raise NetCDFError(
-                    f"Can't interpret {dataset} as a netCDF dataset "
-                    f"with any of the backends {tuple(read_functions)}:\n\n"
+                    f"Can't open {dataset} as a netCDF dataset with any of "
+                    f"the backends {tuple(read_functions)}:\n\n"
                     f"{self.log(display=False)}"
                 )
 
@@ -2273,9 +2319,9 @@ class File(Group):
         self,
         display=True,
         data=False,
+        depth=None,
         _prefix=None,
         _level=0,
-        _sub_groups=True,
         _structure=False,
     ):
         """A full description of the dataset.
@@ -2295,6 +2341,9 @@ class File(Group):
                 array. If False (the default) then don't include these
                 data summaries.
 
+            depth: `int` or `None`, optional
+                TODOP5
+
         :Returns:
 
             `None` or `str`
@@ -2309,13 +2358,13 @@ class File(Group):
 
         out = "\n".join(
             (
-                self.filename,
+                self.dataset_name,
                 super().dump(
                     display=False,
                     data=data,
+                    depth=depth,
                     _prefix=_prefix,
                     _level=_level,
-                    _sub_groups=_sub_groups,
                     _structure=_structure,
                 ),
             )

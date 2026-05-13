@@ -556,7 +556,6 @@ class NetCDFRead(IORead):
                 metadata_strategy="maximal",
             )
         except Exception as error:
-            print(888888, error)
             if cdl_filename is not None:
                 error = (
                     f"{dataset} was created from CDL file {cdl_filename}\n\n"
@@ -583,7 +582,7 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_errors"] = nc.log(display=False)
+        g["dataset_open_log"] = nc.log(display=False)
 
         if g["debug"]:
             logger.debug(
@@ -1512,7 +1511,6 @@ class NetCDFRead(IORead):
         try:
             nc = self.dataset_open(dataset, flatten=True, verbose=None)
         except DatasetTypeError:
-            print(9999999)
             if not g["ignore_unknown_type"]:
                 raise
 

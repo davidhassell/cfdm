@@ -14,7 +14,7 @@ import cfdm
 
 n_tmpfiles = 1
 tmpfiles = [
-    tempfile.mkstemp("_test_netCDF.nc", dir=os.getcwd())[1]
+    tempfile.mkstemp("_test_P5netcdfArray.nc", dir=os.getcwd())[1]
     for i in range(n_tmpfiles)
 ]
 (tmpfile,) = tmpfiles
@@ -32,8 +32,8 @@ def _remove_tmpfiles():
 atexit.register(_remove_tmpfiles)
 
 
-class NetCDF4ArrayTest(unittest.TestCase):
-    """Unit test for the NetCDF4Array class."""
+class P5netcdfArrayTest(unittest.TestCase):
+    """Unit test for theP5netcdfArray class."""
 
     f0 = cfdm.example_field(0)
 
@@ -50,43 +50,43 @@ class NetCDF4ArrayTest(unittest.TestCase):
         # < ... test code ... >
         # cfdm.log_level('DISABLE')
 
-    def test_NetCDF4Array_get_address(self):
-        """Test NetCDF4Array.get_address."""
-        a = cfdm.NetCDF4Array(address="tas")
+    def test_P5netcdfArray_get_address(self):
+        """Test P5netcdfArray.get_address."""
+        a = cfdm.P5netcdfArray(address="tas")
         self.assertEqual(a.get_address(), "tas")
 
-        a = cfdm.NetCDF4Array()
+        a = cfdm.P5netcdfArray()
         self.assertIsNone(a.get_address(default=None))
 
-    def test_NetCDF4Array_get_filename(self):
-        """Test NetCDF4Array.get_filename."""
-        a = cfdm.NetCDF4Array("/data1/file1")
+    def test_P5netcdfArray_get_filename(self):
+        """Test P5netcdfArray.get_filename."""
+        a = cfdm.P5netcdfArray("/data1/file1")
         self.assertEqual(a.get_filename(), "/data1/file1")
 
-        a = cfdm.NetCDF4Array()
+        a = cfdm.P5netcdfArray()
         self.assertIsNone(a.get_filename(default=None))
 
-    def test_NetCDF4Array_mask(self):
-        """Test NetCDF4Array masking."""
+    def test_P5netcdfArray_mask(self):
+        """Test P5netcdfArray masking."""
         f = self.f0
         f.data[0] = np.ma.masked
         cfdm.write(f, tmpfile)
         array = f.array
 
-        n = cfdm.NetCDF4Array(tmpfile, f.nc_get_variable(), shape=f.shape)
+        n = cfdm.P5netcdfArray(tmpfile, f.nc_get_variable(), shape=f.shape)
         self.assertTrue(n.get_mask())
         n = np.asanyarray(n[...])
         self.assertTrue((array.mask == n.mask).all())
 
-        n = cfdm.NetCDF4Array(
+        n = cfdm.P5netcdfArray(
             tmpfile, f.nc_get_variable(), shape=f.shape, mask=False
         )
         self.assertFalse(n.get_mask())
         n = np.asanyarray(n[...])
         self.assertEqual(np.ma.count(n), n.size)
 
-    def test_NetCDF4Array_unpack(self):
-        """Test NetCDF4Array unpacking."""
+    def test_P5netcdfArray_unpack(self):
+        """Test P5netcdfArray unpacking."""
         add_offset = 10.0
         scale_factor = 3.14
 
@@ -99,14 +99,14 @@ class NetCDF4ArrayTest(unittest.TestCase):
         f.set_property("scale_factor", scale_factor)
         cfdm.write(f, tmpfile)
 
-        n = cfdm.NetCDF4Array(tmpfile, f.nc_get_variable(), shape=f.shape)
+        n = cfdm.P5netcdfArray(tmpfile, f.nc_get_variable(), shape=f.shape)
         self.assertTrue(n.get_unpack())
         n = np.asanyarray(n[...])
 
         self.assertTrue((n.mask == array0.mask).all())
         self.assertTrue(np.ma.allclose(n, array0))
 
-        n = cfdm.NetCDF4Array(
+        n = cfdm.P5netcdfArray(
             tmpfile, f.nc_get_variable(), shape=f.shape, unpack=False
         )
         self.assertFalse(n.get_unpack())
@@ -114,38 +114,11 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertTrue((n.mask == array1.mask).all())
         self.assertTrue((n == array1).all())
 
-    #    def test_NetCDF4Array_get_storage_options(self):
-    #        """Test NetCDF4Array get_storage_options."""
-    #        n = cfdm.NetCDF4Array(filename="filename.nc")
-    #        self.assertEqual(n.get_storage_options(), {})
-    #
-    #        n = cfdm.NetCDF4Array(
-    #            filename="filename.nc", storage_options={"anon": True}
-    #        )
-    #        self.assertEqual(n.get_storage_options(), {"anon": True})
-    #
-    #        n = cfdm.NetCDF4Array(
-    #            filename="s3://store/filename.nc", storage_options={"anon": True}
-    #        )
-    #        self.assertEqual(
-    #            n.get_storage_options(),
-    #            {"anon": True},
-    #        )
-    #
-    #        n = cfdm.NetCDF4Array(
-    #            filename="s3://store/filename.nc",
-    #            storage_options={"anon": True, "endpoint_url": None},
-    #        )
-    #        self.assertEqual(
-    #            n.get_storage_options(),
-    #            {"anon": True, "endpoint_url": None},
-    #        )
-
-    def test_NetCDF4Array_get_attributes(self):
-        """Test NetCDF4Array get_attributes."""
+    def test_P5netcdfArray_get_attributes(self):
+        """Test P5netcdfArray get_attributes."""
         f = self.f0
         cfdm.write(f, tmpfile)
-        n = cfdm.NetCDF4Array(tmpfile, f.nc_get_variable(), shape=f.shape)
+        n = cfdm.P5netcdfArray(tmpfile, f.nc_get_variable(), shape=f.shape)
         self.assertEqual(n.get_attributes(), {})
 
         # Set attributes via indexing
@@ -162,36 +135,38 @@ class NetCDF4ArrayTest(unittest.TestCase):
             },
         )
 
-    def test_NetCDF4Array_file_directory(self):
-        """Test NetCDF4Array.file_directory."""
-        a = cfdm.NetCDF4Array("/data1/file1")
+    def test_P5netcdfArray_file_directory(self):
+        """Test P5netcdfArray.file_directory."""
+        a = cfdm.P5netcdfArray("/data1/file1")
         self.assertEqual(a.file_directory(), "/data1")
 
-        a = cfdm.NetCDF4Array()
+        a = cfdm.P5netcdfArray()
         self.assertIsNone(a.file_directory(default=None))
 
-    def test_NetCDF4Array__dask_tokenize__(self):
-        """Test NetCDF4Array.__dask_tokenize__"""
-        a = cfdm.NetCDF4Array("/data1/file1", "tas", shape=(12, 2), mask=False)
+    def test_P5netcdfArray__dask_tokenize__(self):
+        """Test P5netcdfArray.__dask_tokenize__"""
+        a = cfdm.P5netcdfArray(
+            "/data1/file1", "tas", shape=(12, 2), mask=False
+        )
         self.assertEqual(tokenize(a), tokenize(a.copy()))
 
-        b = cfdm.NetCDF4Array("/home/file2", "tas", shape=(12, 2))
+        b = cfdm.P5netcdfArray("/home/file2", "tas", shape=(12, 2))
         self.assertNotEqual(tokenize(a), tokenize(b))
 
-    def test_NetCDF4Array_shape(self):
-        """Test NetCDF4Array.shape."""
+    def test_P5netcdfArray_shape(self):
+        """Test P5netcdfArray.shape."""
         shape = (12, 73, 96)
-        a = cfdm.NetCDF4Array("/home/file2", "tas", shape=shape)
+        a = cfdm.P5netcdfArray("/home/file2", "tas", shape=shape)
         self.assertEqual(a.shape, shape)
         self.assertEqual(a.original_shape, shape)
         a = a[::2]
         self.assertEqual(a.shape, (shape[0] // 2,) + shape[1:])
         self.assertEqual(a.original_shape, shape)
 
-    def test_NetCDF4Array_index(self):
-        """Test NetCDF4Array.index."""
+    def test_P5netcdfArray_index(self):
+        """Test P5netcdfArray.index."""
         shape = (12, 73, 96)
-        a = cfdm.NetCDF4Array("/home/file2", "tas", shape=shape)
+        a = cfdm.P5netcdfArray("/home/file2", "tas", shape=shape)
         self.assertEqual(list(a.index()), [slice(0, n, 1) for n in shape])
         a = a[8:7:-1, 10:19:3, [15, 1, 4, 12]]
         a = a[[0], [True, False, True], ::-2]
@@ -207,7 +182,7 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertTrue((index[2] == [12, 1]).all())
 
         # New dimensions
-        a = cfdm.NetCDF4Array("/home/file2", "tas", shape=shape)
+        a = cfdm.P5netcdfArray("/home/file2", "tas", shape=shape)
 
         b = a[:2, None, ...]
         self.assertEqual(
@@ -265,11 +240,11 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertEqual(b.original_shape, shape)
         self.assertEqual(b.reference_shape, shape)
 
-    def test_NetCDF4Array_replace_directory(self):
-        """Test NetCDF4Array.replace_directory."""
+    def test_P5netcdfArray_replace_directory(self):
+        """Test P5netcdfArray.replace_directory."""
         cwd = os.getcwd()
 
-        n = cfdm.NetCDF4Array("basename.nc")
+        n = cfdm.P5netcdfArray("basename.nc")
 
         m = n.replace_directory()
         self.assertEqual(m.get_filename(), "basename.nc")
@@ -278,7 +253,7 @@ class NetCDF4ArrayTest(unittest.TestCase):
         m = n.replace_directory(normalise=True)
         self.assertEqual(m.get_filename(), os.path.join(cwd, "basename.nc"))
 
-        n = cfdm.NetCDF4Array("data/basename.nc")
+        n = cfdm.P5netcdfArray("data/basename.nc")
 
         m = n.replace_directory()
         self.assertEqual(m.get_filename(), "data/basename.nc")
@@ -297,26 +272,26 @@ class NetCDF4ArrayTest(unittest.TestCase):
             m.get_filename(), os.path.join(cwd, "new/data/basename.nc")
         )
 
-        n = cfdm.NetCDF4Array("path/basename.nc")
+        n = cfdm.P5netcdfArray("path/basename.nc")
         m = n.replace_directory("path", "../new_path")
         self.assertEqual(m.get_filename(), "../new_path/basename.nc")
 
-        n = cfdm.NetCDF4Array("/data/../new_path/basename.nc")
+        n = cfdm.P5netcdfArray("/data/../new_path/basename.nc")
         m = n.replace_directory("/new_path/", normalise=True)
         self.assertEqual(m.get_filename(), "basename.nc")
 
-        n = cfdm.NetCDF4Array("/data/basename.nc")
+        n = cfdm.P5netcdfArray("/data/basename.nc")
         m = n.replace_directory(new="/home")
         self.assertEqual(m.get_filename(), "/home/data/basename.nc")
 
-        n = cfdm.NetCDF4Array("/data/basename.nc")
+        n = cfdm.P5netcdfArray("/data/basename.nc")
         m = n.replace_directory(new="/home/")
         self.assertEqual(m.get_filename(), "/home/data/basename.nc")
         m = n.replace_directory(old="/data")
         self.assertEqual(m.get_filename(), "basename.nc")
 
-    def test_NetCDF4Array_concatenate(self):
-        """Test np.concatenate on NetCDF4Array objects."""
+    def test_P5netcdfArray_concatenate(self):
+        """Test np.concatenate on P5netcdfArray objects."""
         f = self.f0
         f.data[0] = np.ma.masked
         cfdm.write(f, tmpfile)
@@ -324,7 +299,7 @@ class NetCDF4ArrayTest(unittest.TestCase):
         array = f.array
         c0 = np.ma.concatenate((array, array), axis=0)
 
-        n = cfdm.NetCDF4Array(
+        n = cfdm.P5netcdfArray(
             tmpfile, f.nc_get_variable(), shape=f.shape, dtype=f.dtype
         )
 
@@ -335,12 +310,12 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertTrue((c0.mask == c1.mask).all())
         self.assertTrue((c0 == c1).all())
 
-    def test_NetCDF4Array_astype(self):
-        """Test NetCDF4Array.astype."""
+    def test_P5netcdfArray_astype(self):
+        """Test P5netcdfArray.astype."""
         f = self.f0
         cfdm.write(f, tmpfile)
 
-        n = cfdm.NetCDF4Array(
+        n = cfdm.P5netcdfArray(
             tmpfile, f.nc_get_variable(), shape=f.shape, dtype=f.dtype
         )
         self.assertNotEqual(n.dtype, np.dtype("int32"))
@@ -349,21 +324,6 @@ class NetCDF4ArrayTest(unittest.TestCase):
         self.assertIsInstance(a, np.ndarray)
         self.assertEqual(a.dtype, np.dtype("int32"))
         self.assertTrue((a == f.array.astype("int32")).all())
-
-
-#    def test_NetCDF4Array_storage_protocol(self):
-#        """Test NetCDF4Array "storage_protocol" methods."""
-#        n = cfdm.NetCDF4Array("file.nc", "tas")
-#        self.assertIsNone(n.get_storage_protocol())
-#        self.assertFalse(n.has_remote_storage_protocol())
-#
-#        n = cfdm.NetCDF4Array("file.nc", "tas", storage_protocol="local")
-#        self.assertEqual(n.get_storage_protocol(), "local")
-#        self.assertFalse(n.has_remote_storage_protocol())
-#
-#        n = cfdm.NetCDF4Array("file.nc", "tas", storage_protocol="s3")
-#        self.assertEqual(n.get_storage_protocol(), "s3")
-#        self.assertTrue(n.has_remote_storage_protocol())
 
 
 if __name__ == "__main__":

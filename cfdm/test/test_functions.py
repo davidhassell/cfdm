@@ -237,10 +237,10 @@ class FunctionsTest(unittest.TestCase):
             #            the exclusion of fields 8, 9 and 10.
             if n not in (8, 9, 10):
                 cfdm.write(f, temp_file)
-                g = cfdm.read(temp_file, verbose=1)
+                g = cfdm.read(temp_file)
 
                 self.assertEqual(len(g), 1)
-                self.assertTrue(f.equals(g[0], verbose=1))
+                self.assertTrue(f.equals(g[0]))
 
         with self.assertRaises(Exception):
             cfdm.example_field(top + 1)

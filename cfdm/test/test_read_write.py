@@ -208,7 +208,7 @@ class read_writeTest(unittest.TestCase):
             g = cfdm.read(tmpfile)
             self.assertEqual(len(g), 1)
             g = g[0]
-            self.assertTrue(f.equals(g, verbose=3))
+            self.assertTrue(f.equals(g))
 
     @unittest.skipIf(True, "Flakey")
     def test_write_netcdf_mode(self):
@@ -533,7 +533,7 @@ class read_writeTest(unittest.TestCase):
         for fmt in self.netcdf_fmts:
             cfdm.write(f, tmpfile, fmt=fmt)
             g = cfdm.read(tmpfile)[0]
-            self.assertTrue(f.equals(g, verbose=3))
+            self.assertTrue(f.equals(g))
 
     def test_read_mask(self):
         """Test reading and writing of netCDF with masked data."""
@@ -694,17 +694,13 @@ class read_writeTest(unittest.TestCase):
         with self.assertRaises(ReadError):
             cfdm.read(tmpfilec2)[0]
 
-        self.assertTrue(f0.equals(f, verbose=3))
+        self.assertTrue(f0.equals(f))
 
         self.assertTrue(
-            f.construct("grid_latitude").equals(
-                c.construct("grid_latitude"), verbose=3
-            )
+            f.construct("grid_latitude").equals(c.construct("grid_latitude"))
         )
         self.assertTrue(
-            f0.construct("grid_latitude").equals(
-                c.construct("grid_latitude"), verbose=3
-            )
+            f0.construct("grid_latitude").equals(c.construct("grid_latitude"))
         )
 
         with self.assertRaises(DatasetTypeError):
@@ -767,9 +763,8 @@ class read_writeTest(unittest.TestCase):
 
         for i in range(0, n):
             j = i + n
-            print(fN[i].array, fN[j].array)
-            self.assertTrue(fN[i].data.equals(fN[j].data, verbose=3))
-            self.assertTrue(fN[j].data.equals(fN[i].data, verbose=3))
+            self.assertTrue(fN[i].data.equals(fN[j].data))
+            self.assertTrue(fN[j].data.equals(fN[i].data))
 
         # Check that netCDF4 and pyfive give the same results
         for i, j in zip(fN, fH):
@@ -791,7 +786,7 @@ class read_writeTest(unittest.TestCase):
                         for i, j in zip(
                             cfdm.read(tmpfile1), cfdm.read(tmpfile0)
                         ):
-                            self.assertTrue(i.equals(j, verbose=3))
+                            self.assertTrue(i.equals(j))
 
     def test_read_write_Conventions(self):
         """Test the `Conventions` keyword argument to `write`."""
@@ -849,9 +844,9 @@ class read_writeTest(unittest.TestCase):
         for n, f in enumerate(a):
             f.set_property("test_id", str(n))
 
-        cfdm.write(a, tmpfile, verbose=1)
+        cfdm.write(a, tmpfile)
 
-        f = cfdm.read(tmpfile, verbose=1)
+        f = cfdm.read(tmpfile)
 
         self.assertEqual(len(a), len(f))
 
@@ -873,13 +868,13 @@ class read_writeTest(unittest.TestCase):
         e = cfdm.read(tmpfile)
         self.assertTrue(len(e), 10)
 
-        e = cfdm.read(tmpfile, domain=True, verbose=1)
+        e = cfdm.read(tmpfile, domain=True)
         self.assertEqual(len(e), 1)
         e = e[0]
         self.assertIsInstance(e, cfdm.Domain)
-        self.assertTrue(e.equals(e.copy(), verbose=3))
-        self.assertTrue(d.equals(e, verbose=3))
-        self.assertTrue(e.equals(d, verbose=3))
+        self.assertTrue(e.equals(e.copy()))
+        self.assertTrue(d.equals(e))
+        self.assertTrue(e.equals(d))
 
         # 1 field and 1 domain
         cfdm.write([f, d], tmpfile)
@@ -887,9 +882,9 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(len(g), 1)
         g = g[0]
         self.assertIsInstance(g, cfdm.Field)
-        self.assertTrue(g.equals(f, verbose=3))
+        self.assertTrue(g.equals(f))
 
-        e = cfdm.read(tmpfile, domain=True, verbose=1)
+        e = cfdm.read(tmpfile, domain=True)
         self.assertEqual(len(e), 1)
         e = e[0]
         self.assertIsInstance(e, cfdm.Domain)
@@ -900,9 +895,9 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(len(g), 1)
         g = g[0]
         self.assertIsInstance(g, cfdm.Field)
-        self.assertTrue(g.equals(f, verbose=3))
+        self.assertTrue(g.equals(f))
 
-        e = cfdm.read(tmpfile, domain=True, verbose=1)
+        e = cfdm.read(tmpfile, domain=True)
         self.assertEqual(len(e), 2)
         self.assertIsInstance(e[0], cfdm.Domain)
         self.assertIsInstance(e[1], cfdm.Domain)
@@ -916,7 +911,7 @@ class read_writeTest(unittest.TestCase):
         g = cfdm.read(tmpfile)
 
         self.assertEqual(len(g), 1)
-        self.assertTrue(g[0].equals(f, verbose=3))
+        self.assertTrue(g[0].equals(f))
 
     def test_write_scalar_domain_ancillary(self):
         """Test the writing of a file with a scalar domain ancillary."""
@@ -1165,7 +1160,6 @@ class read_writeTest(unittest.TestCase):
     def test_read_dask_chunks(self):
         """Test the 'dask_chunks' keyword of cfdm.read."""
         f = self.f0.copy()
-        tmpfile = "tmpfile.nc"
         f.coordinate("latitude").axis = "Y"
         cfdm.write(f, tmpfile)
 
@@ -1237,7 +1231,6 @@ class read_writeTest(unittest.TestCase):
         for d in (f.data.todict(), f.coordinate("longitude").data.todict()):
             on_disk = False
             for v in d.values():
-                print(type(v))
                 if isinstance(v, cfdm.P5netcdfArray):
                     on_disk = True
 

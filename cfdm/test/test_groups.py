@@ -62,7 +62,7 @@ class GroupsTest(unittest.TestCase):
             `None`
 
         """
-        self.assertTrue(h5.equals(nc, verbose=3))
+        self.assertTrue(h5.equals(nc))
         self.assertEqual(h5.nc_variable_groups(), nc.nc_variable_groups())
         for key, ch5 in h5.constructs.items():
             if hasattr(ch5, "nc_variable_groups"):
@@ -110,10 +110,10 @@ class GroupsTest(unittest.TestCase):
         grid0.del_coordinate("auxiliarycoordinate1")
 
         cfdm.write(f, ungrouped_file)
-        g = cfdm.read(ungrouped_file, verbose=1)
+        g = cfdm.read(ungrouped_file)
         self.assertEqual(len(g), 1)
         g = g[0]
-        self.assertTrue(f.equals(g, verbose=2))
+        self.assertTrue(f.equals(g))
 
         # ------------------------------------------------------------
         # Move the field construct to the /forecast/model group
@@ -152,7 +152,7 @@ class GroupsTest(unittest.TestCase):
             "grid_latitude",  # Dimension coordinate
         ):
             g.construct(name).nc_set_variable_groups(["forecast"])
-            cfdm.write(g, grouped_file, verbose=1)
+            cfdm.write(g, grouped_file)
 
             # Check that the variable is in the right group
             nc = netCDF4.Dataset(grouped_file, "r")
@@ -163,9 +163,9 @@ class GroupsTest(unittest.TestCase):
             nc.close()
 
             # Check that the field construct hasn't changed
-            h = cfdm.read(grouped_file, verbose=1)
+            h = cfdm.read(grouped_file)
             self.assertEqual(len(h), 1)
-            self.assertTrue(f.equals(h[0], verbose=2), name)
+            self.assertTrue(f.equals(h[0]), name)
 
         # ------------------------------------------------------------
         # Move bounds to the /forecast group
@@ -181,12 +181,10 @@ class GroupsTest(unittest.TestCase):
         )
         nc.close()
 
-        h = cfdm.read(
-            grouped_file, netcdf_backend="netCDF4", verbose="WARNING"
-        )
+        h = cfdm.read(grouped_file, netcdf_backend="netCDF4")
         self.assertEqual(len(h), 1)
         h = h[0]
-        self.assertTrue(f.equals(h, verbose=2))
+        self.assertTrue(f.equals(h))
 
         # Check that h5netcdf reads the file correctly
         h5 = cfdm.read(grouped_file)  # , netcdf_backend="h5netcdf-pyfive")
@@ -201,11 +199,11 @@ class GroupsTest(unittest.TestCase):
         grouped_file = grouped_file2
 
         cfdm.write(f, ungrouped_file)
-        g = cfdm.read(ungrouped_file, verbose=1)
+        g = cfdm.read(ungrouped_file)
         self.assertEqual(len(g), 1)
         g = g[0]
 
-        self.assertTrue(f.equals(g, verbose=3))
+        self.assertTrue(f.equals(g))
 
         # ------------------------------------------------------------
         # Move the field construct to the /forecast/model group
@@ -222,7 +220,7 @@ class GroupsTest(unittest.TestCase):
 
         h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
-        self.assertTrue(f.equals(h[0], verbose=3))
+        self.assertTrue(f.equals(h[0]))
 
         # ------------------------------------------------------------
         # Move the geometry container to the /forecast group
@@ -240,7 +238,7 @@ class GroupsTest(unittest.TestCase):
         # Check that the field construct hasn't changed
         h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
-        self.assertTrue(f.equals(h[0], verbose=2))
+        self.assertTrue(f.equals(h[0]))
 
         # ------------------------------------------------------------
         # Move a node coordinate variable to the /forecast group
@@ -259,7 +257,7 @@ class GroupsTest(unittest.TestCase):
         # Check that the field construct hasn't changed
         h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
-        self.assertTrue(f.equals(h[0], verbose=2))
+        self.assertTrue(f.equals(h[0]))
 
         # ------------------------------------------------------------
         # Move a node count variable to the /forecast group
@@ -275,9 +273,9 @@ class GroupsTest(unittest.TestCase):
         nc.close()
 
         # Check that the field construct hasn't changed
-        h = cfdm.read(grouped_file, verbose=1)
+        h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
-        self.assertTrue(f.equals(h[0], verbose=2))
+        self.assertTrue(f.equals(h[0]))
 
         # ------------------------------------------------------------
         # Move a part node count variable to the /forecast group
@@ -297,7 +295,7 @@ class GroupsTest(unittest.TestCase):
         # Check that the field construct hasn't changed
         h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
-        self.assertTrue(f.equals(h[0], verbose=2))
+        self.assertTrue(f.equals(h[0]))
 
         # ------------------------------------------------------------
         # Move interior ring variable to the /forecast group
@@ -316,10 +314,10 @@ class GroupsTest(unittest.TestCase):
         nc.close()
 
         # Check that the field construct hasn't changed
-        h = cfdm.read(grouped_file, verbose=1)
+        h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
         h = h[0]
-        self.assertTrue(f.equals(h, verbose=2))
+        self.assertTrue(f.equals(h))
 
         # Check that h5py reads the file correctly
         h5 = cfdm.read(grouped_file, netcdf_backend="h5py")
@@ -339,7 +337,7 @@ class GroupsTest(unittest.TestCase):
 
         cfdm.write(f, ungrouped_file)
         g = cfdm.read(ungrouped_file)[0]
-        self.assertTrue(f.equals(g, verbose=2))
+        self.assertTrue(f.equals(g))
 
         # ------------------------------------------------------------
         # Move the field construct to the /forecast/model group
@@ -368,7 +366,7 @@ class GroupsTest(unittest.TestCase):
         # ------------------------------------------------------------
         g.data.get_count().nc_set_sample_dimension_groups(["forecast"])
 
-        cfdm.write(g, grouped_file, verbose=1)
+        cfdm.write(g, grouped_file)
 
         nc = netCDF4.Dataset(grouped_file, "r")
         self.assertIn(
@@ -389,10 +387,10 @@ class GroupsTest(unittest.TestCase):
         )
         nc.close()
 
-        h = cfdm.read(grouped_file, verbose=1)
+        h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
         h = h[0]
-        self.assertTrue(f.equals(h, verbose=2))
+        self.assertTrue(f.equals(h))
 
         # Check that h5py reads the file correctly
         h5 = cfdm.read(grouped_file, netcdf_backend="h5py")
@@ -407,11 +405,11 @@ class GroupsTest(unittest.TestCase):
         grouped_file = grouped_file4
 
         cfdm.write(f, ungrouped_file)
-        g = cfdm.read(ungrouped_file, verbose=1)
+        g = cfdm.read(ungrouped_file)
         self.assertEqual(len(g), 1)
         g = g[0]
 
-        self.assertTrue(f.equals(g, verbose=3))
+        self.assertTrue(f.equals(g))
 
         # ------------------------------------------------------------
         # Move the field construct to the /forecast/model group
@@ -433,7 +431,7 @@ class GroupsTest(unittest.TestCase):
             except ValueError:
                 pass
 
-        cfdm.write(g, grouped_file, verbose=1)
+        cfdm.write(g, grouped_file)
 
         nc = netCDF4.Dataset(grouped_file, "r")
         self.assertIn(
@@ -449,10 +447,10 @@ class GroupsTest(unittest.TestCase):
 
         nc.close()
 
-        h = cfdm.read(grouped_file, verbose=1)
+        h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
         h = h[0]
-        self.assertTrue(f.equals(h, verbose=3))
+        self.assertTrue(f.equals(h))
 
         # ------------------------------------------------------------
         # Move all the lat dimension to the /forecast group
@@ -461,12 +459,12 @@ class GroupsTest(unittest.TestCase):
         domain_axis = g.constructs[key]
         domain_axis.nc_set_dimension_groups(["forecast"])
 
-        cfdm.write(g, grouped_file, verbose=1)
+        cfdm.write(g, grouped_file)
 
-        h = cfdm.read(grouped_file, verbose=1)
+        h = cfdm.read(grouped_file)
         self.assertEqual(len(h), 1)
         h = h[0]
-        self.assertTrue(f.equals(h, verbose=3))
+        self.assertTrue(f.equals(h))
 
         # Check that h5py reads the file correctly
         h5 = cfdm.read(grouped_file, netcdf_backend="h5py")

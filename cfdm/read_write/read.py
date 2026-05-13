@@ -391,10 +391,9 @@ class read(ReadWrite):
             )
 
         is_zarr = partial(NetCDFRead.is_zarr, filesystem=filesystem)
-        print("representation=", representation)
+
         for datasets1 in datasets:
             representation = NetCDFRead.dataset_representation(datasets1)
-            print("2 representation=", representation)
             if representation == "path":
                 if filesystem is None:
                     # Apply tilde and environment variable expansions
