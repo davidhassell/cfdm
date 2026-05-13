@@ -189,3 +189,46 @@ def parse_attributes(obj, raw_attrs):
         for k, v in raw_attrs.items()
         if k not in _IGNORED_ATTRS and not k.startswith(_IGNORED_PREFIXES)
     }
+
+
+def get_dimensions_from_source(variable, dimension_names):
+    """TODOP5.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Parameters:
+
+        variable: `Variable`
+            TODOP5
+
+        dimension_names: `sequence of `str`
+            TODOP5
+
+    :Returns:
+
+        `list` of `Dimension`
+            TODOP5
+
+    """
+    dims = []
+    for name in dimension_names:
+        # Walk up the group tree towards the root group to find the
+        # source groups where the dimension is defined
+        current_group = variable.parent
+        found = False
+        while current_group is not None:
+            dim = current_group.dimensions.get(name)
+            if dim is not None:
+                dims.append(dim)
+                found = True
+                break
+
+            current_group = current_group.parent
+
+        if not found:
+            raise NetCDFError(
+                f"Dimension {name!r} not found in the {variable.backend!r} "
+                "group hierarchy."
+            )
+
+    return dims

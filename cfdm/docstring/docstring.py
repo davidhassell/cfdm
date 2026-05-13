@@ -1330,7 +1330,7 @@ _docstring_substitution_definitions = {
                 ``open`` method; for instance, the dataset
                 ``'s3://authority/bucket/file.nc'`` is treated as
                 ``filesytem.open('bucket/file.nc', 'rb')``.
-                
+
                 If *filename* is not a string then *filesystem* is
                 ignored.
 

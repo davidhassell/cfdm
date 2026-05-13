@@ -3666,11 +3666,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         # Set the current size of unlimited dimensions
         self.set_unlimited_dimension_sizes(g["nc"][ncvar], data.shape)
-#        print(  ncvar,       g["nc"][ncvar].chunks, dx.chunks)
-        chunks =  g["nc"][ncvar].chunks
+        #        print(  ncvar,       g["nc"][ncvar].chunks, dx.chunks)
+        chunks = g["nc"][ncvar].chunks
         if chunks is not None:
             dx = dx.rechunk(chunks)
-#        print(  '                   ', dx.chunks)
+        #        print(  '                   ', dx.chunks)
         da.store(
             dx, g["nc"][ncvar], compute=True, return_stored=False, lock=lock
         )

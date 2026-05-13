@@ -8,6 +8,7 @@ import numpy as np
 from .utils import (
     NetCDFError,
     cdl_format,
+    get_dimensions_from_source,
     get_library,
     h5py_open,
     hdf5_dimension_names,
@@ -21,7 +22,6 @@ from .utils import (
     parse_attributes,
     ppfive_open,
     pyfive_open,
-    xarray_open,
     xarray_parse_group_structure,
     zarr_open,
     zarr_parse_group_structure,
@@ -663,10 +663,22 @@ class Variable(Mixin):
         dtype = getattr(self, "_dtype", None)
         if dtype is None:
             match self.backend:
-                case "pyfive" | "zarr" | "netCDF4" | "h5py" | "ppfive":
+                case (
+                    "pyfive"
+                    | "zarr"
+                    | "netCDF4"
+                    | "h5py"
+                    | "ppfive"
+                    | "xarray"
+                ):
                     dtype = self._var.dtype
                 case "netcdf_file":
                     dtype = netcdf_file_dtype(self)
+                case _:
+                    raise NotImplementedError(
+                        "Need to implement 'dtype` for backend "
+                        f"{self.backend!r}"
+                    )
 
             if dtype is not str and dtype != np.dtypes.StringDType():
                 dtype = np.dtype(f"{dtype.kind}{dtype.itemsize}")
@@ -977,26 +989,9 @@ class Variable(Mixin):
 
         match self.backend:
             case "pyfive" | "h5py" | "ppfive":
-                dims = []
-                for dim_name in hdf5_dimension_names(self):
-                    # Walk up the tree to find where the dimension is
-                    # defined
-                    current_group = self.parent
-                    found = False
-                    while current_group is not None:
-                        dim = current_group.dimensions.get(dim_name)
-                        if dim is not None:
-                            dims.append(dim)
-                            found = True
-                            break
-
-                        current_group = current_group.parent
-
-                    if not found:
-                        raise NetCDFError(
-                            f"Dimension {dim_name!r} not found in the "
-                            f"{self.backend!r} group hierarchy."
-                        )
+                dims = get_dimensions_from_source(
+                    self, hdf5_dimension_names(self)
+                )
 
             case "netCDF4":
                 root = self.root
@@ -1010,26 +1005,7 @@ class Variable(Mixin):
                 dims = [dimensions[dim] for dim in self._var.dimensions]
 
             case "xarray":
-                dims = []
-                for dim_name in self._var.dims:
-                    # Walk up the tree to find where the dimension is
-                    # defined
-                    current_group = self.parent
-                    found = False
-                    while current_group is not None:
-                        dim = current_group.dimensions.get(dim_name)
-                        if dim is not None:
-                            dims.append(dim)
-                            found = True
-                            break
-
-                        current_group = current_group.parent
-
-                    if not found:
-                        raise NetCDFError(
-                            f"Dimension {dim_name!r} not found in the "
-                            f"{self.backend!r} group hierarchy."
-                        )
+                dims = get_dimensions_from_source(self, self._var.dims)
 
             case "zarr":
                 raise RuntimeError(
@@ -1997,14 +1973,16 @@ class File(Group):
                 except AttributeError:
                     pass
 
-        elif xarray is not None and isinstance(dataset, (xarray.Dataset, xarray.DataTree)):
+        elif xarray is not None and isinstance(
+            dataset, (xarray.Dataset, xarray.DataTree)
+        ):
             # --------------------------------------------------------
             # Input is `xarray.Dataset`-like or `xarray.DataTree`-like
             # --------------------------------------------------------
             if isinstance(dataset, xarray.Dataset):
-                # Cast a Dataset as a DataTree                
+                # Cast a Dataset as a DataTree
                 dataset = xarray.DataTree(dataset=dataset)
-     
+
             nc = dataset
             attrs = nc.attrs
             library = get_library(nc)
@@ -2015,13 +1993,13 @@ class File(Group):
 
             # Attempt to get the dataset name and file system protocol
             try:
-                dataset_name = dataset.encoding.get('source')
+                dataset_name = dataset.encoding.get("source")
             except AttributeError:
                 pass
             else:
                 if dataset_name is None:
                     dataset_name = ""
-                
+
         else:
             # --------------------------------------------------------
             # Input is string-like, file-like, or directory-like

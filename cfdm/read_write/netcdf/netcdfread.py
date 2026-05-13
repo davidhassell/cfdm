@@ -556,6 +556,7 @@ class NetCDFRead(IORead):
                 metadata_strategy="maximal",
             )
         except Exception as error:
+            print(888888, error)
             if cdl_filename is not None:
                 error = (
                     f"{dataset} was created from CDL file {cdl_filename}\n\n"
@@ -739,8 +740,8 @@ class NetCDFRead(IORead):
         if representation is None:
             representation = cls.dataset_representation(dataset)
 
-        if representation == "pyfive.File":
-            return "pyfive.File"
+        if representation in ("pyfive", "xarray"):
+            return representation
 
         if cls.is_kerchunk(dataset, filesystem, representation):
             return "Kerchunk"
@@ -779,7 +780,6 @@ class NetCDFRead(IORead):
             d_type = None
         else:
             # Is it a netCDF-3 or netCDF-4 binary file?
-            print(magic_number)
             if magic_number in NETCDF_MAGIC_NUMBERS:
                 d_type = "netCDF"
             elif magic_number in PP_UM_MAGIC_NUMBERS:
@@ -1162,8 +1162,9 @@ class NetCDFRead(IORead):
         if d_type in ("Zarr", "Kerchunk"):
             # Must use `zarr` for Zarr and Kerchunk datasets
             netcdf_backend = ("zarr",)
-        elif d_type == "pyfive.File":
-            # Don't need a backend for `pyfive.File` instances
+        elif d_type in ("pyfive", "xarray"):
+            # Don't need a backend for `pyfive`-like or `xarray`-like
+            # instances
             netcdf_backend = None
         elif d_type == "PP/UM":
             # Must use `ppfive` for PP/UM datasets
@@ -1511,6 +1512,7 @@ class NetCDFRead(IORead):
         try:
             nc = self.dataset_open(dataset, flatten=True, verbose=None)
         except DatasetTypeError:
+            print(9999999)
             if not g["ignore_unknown_type"]:
                 raise
 
@@ -6307,7 +6309,9 @@ class NetCDFRead(IORead):
             if return_kwargs_only:
                 return kwargs
 
-            if backend in ("pyfive", "zarr", "ppfive"):
+            # For some backends, it's OK to store the actual variable
+            # inside the Dask array
+            if backend in ("pyfive", "zarr", "ppfive", "xarray"):
                 kwargs["variable"] = variable
 
             array = self.implementation.initialise_P5netcdfArray(**kwargs)
@@ -11348,11 +11352,25 @@ class NetCDFRead(IORead):
         if isinstance(dataset, str):
             return "path"
 
-        # (Subclass of) pyfive.File
-        import pyfive
+        # `pyfive`-like
+        try:
+            import pyfive
+        except ModuleNotFoundError:
+            pyfive = None
 
-        if isinstance(dataset, pyfive.File):
-            return "pyfive.File"
+        if pyfive is not None and isinstance(dataset, pyfive.File):
+            return "pyfive"
+
+        # `xarray`-like
+        try:
+            import xarray
+        except ModuleNotFoundError:
+            xarray = None
+
+        if xarray is not None and isinstance(
+            dataset, (xarray.Dataset, xarray.DataTree)
+        ):
+            return "xarray"
 
         # Check for a "virtual directory" (Mapper)
         if isinstance(dataset, Mapping):
