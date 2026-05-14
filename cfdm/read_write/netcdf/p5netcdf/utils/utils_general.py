@@ -192,22 +192,26 @@ def parse_attributes(obj, raw_attrs):
 
 
 def get_dimensions_from_source(variable, dimension_names):
-    """TODOP5.
+    """Get the source `Dimension` objects for a variable.
+
+    For each given dimension name, find the corresponding `Dimension`
+    object by searching up through the group hierarchy, starting from
+    the variable's parent group.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
     :Parameters:
 
         variable: `Variable`
-            TODOP5
+            The variable for which the dimensions are being sought.
 
-        dimension_names: `sequence of `str`
-            TODOP5
+        dimension_names: sequence of `str`
+            The names of the dimensions to find.
 
     :Returns:
 
         `list` of `Dimension`
-            TODOP5
+            The located `Dimension` objects.
 
     """
     dims = []

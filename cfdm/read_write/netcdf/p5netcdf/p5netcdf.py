@@ -1568,7 +1568,10 @@ class Group(Mixin, Mapping):
                 data summaries.
 
             depth: `int` or `None`, optional
-                TODOP5
+                Descend at most this many levels deep into the group
+                hierarchy. If `None` (the default), then descend into
+                all sub-groups. If `0`, then do not descend into any
+                sub-groups.
 
         :Returns:
 
@@ -2361,7 +2364,10 @@ class File(Group):
                 data summaries.
 
             depth: `int` or `None`, optional
-                TODOP5
+                Descend at most this many levels deep into the group
+                hierarchy. If `None` (the default), then descend into
+                all sub-groups. If `0`, then do not descend into any
+                sub-groups.
 
         :Returns:
 
