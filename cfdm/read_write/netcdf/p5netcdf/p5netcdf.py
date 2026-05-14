@@ -1100,7 +1100,7 @@ class Variable(Mixin):
         return list(self.attrs)
 
     def getValue(self):
-        """Return the value of a scalar variable.
+        """Return the data value of a scalar variable.
 
         This method has the same API as `netCDF4.Variable.getValue`.
 
@@ -1112,7 +1112,9 @@ class Variable(Mixin):
 
         """
         if self.shape:
-            raise ValueError("getValue() can only be called on scalar variables")
+            raise IndexError(
+                "to retrieve values from a non-scalar variable, use slicing"
+            )
         
         return self[()]
 
