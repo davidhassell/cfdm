@@ -8,7 +8,7 @@ import numpy as np
 from .utils import (
     NetCDFError,
     cdl_format,
-    get_dimensions_from_source,
+    get_dimensions_from_defining_group,
     get_library,
     h5py_open,
     hdf5_dimension_names,
@@ -239,6 +239,13 @@ class Mixin:
             display: `bool`, optional
                 If False then return the description as a string. By
                 default the description is printed.
+
+            depth: `int` or `None`, optional
+                Descend at most this many levels deep into the group
+                hierarchy. If `None` (the default), then descend into
+                all sub-groups. If `0`, then do not descend into any
+                sub-groups (i.e. show only the contents of the root
+                group).
 
         :Returns:
 
@@ -1006,7 +1013,7 @@ class Variable(Mixin):
         if dims is None:
             match self.backend:
                 case "pyfive" | "h5py" | "ppfive":
-                    dims = get_dimensions_from_source(
+                    dims = get_dimensions_from_defining_group(
                         self, hdf5_dimension_names(self)
                     )
 
@@ -1022,7 +1029,9 @@ class Variable(Mixin):
                     dims = [dimensions[dim] for dim in self._var.dimensions]
 
                 case "xarray":
-                    dims = get_dimensions_from_source(self, self._var.dims)
+                    dims = get_dimensions_from_defining_group(
+                        self, self._var.dims
+                    )
 
                 case "zarr":
                     raise RuntimeError(
@@ -1571,7 +1580,8 @@ class Group(Mixin, Mapping):
                 Descend at most this many levels deep into the group
                 hierarchy. If `None` (the default), then descend into
                 all sub-groups. If `0`, then do not descend into any
-                sub-groups.
+                sub-groups (i.e. show only the contents of the root
+                group).
 
         :Returns:
 
@@ -2367,7 +2377,8 @@ class File(Group):
                 Descend at most this many levels deep into the group
                 hierarchy. If `None` (the default), then descend into
                 all sub-groups. If `0`, then do not descend into any
-                sub-groups.
+                sub-groups (i.e. show only the contents of the root
+                group).
 
         :Returns:
 

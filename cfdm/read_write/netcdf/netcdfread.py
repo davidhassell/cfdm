@@ -9136,7 +9136,6 @@ class NetCDFRead(IORead):
 
         return out
 
-
     def _ugrid_parse_mesh_topology(self, mesh_ncvar, attributes):
         """Parse a UGRID mesh topology or location index set variable.
 

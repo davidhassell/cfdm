@@ -191,7 +191,7 @@ def parse_attributes(obj, raw_attrs):
     }
 
 
-def get_dimensions_from_source(variable, dimension_names):
+def get_dimensions_from_defining_group(variable, dimension_names):
     """Get the source `Dimension` objects for a variable.
 
     For each given dimension name, find the corresponding `Dimension`
@@ -203,7 +203,7 @@ def get_dimensions_from_source(variable, dimension_names):
     :Parameters:
 
         variable: `Variable`
-            The variable for which the dimensions are being sought.
+            The variable for which  the dimensions are being sought.
 
         dimension_names: sequence of `str`
             The names of the dimensions to find.
