@@ -1099,6 +1099,23 @@ class Variable(Mixin):
         """
         return list(self.attrs)
 
+    def getValue(self):
+        """Return the value of a scalar variable.
+
+        This method has the same API as `netCDF4.Variable.getValue`.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+                The scalar value.
+
+        """
+        if self.shape:
+            raise ValueError("getValue() can only be called on scalar variables")
+        
+        return self[()]
+
 
 class Group(Mixin, Mapping):
     """A netCDF group.

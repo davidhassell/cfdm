@@ -134,8 +134,9 @@ def zarr_dimension_maps(group):
 
                 else:
                     raise NetCDFError(
-                        "Bad 'group_dimension_search' value: "
-                        f"{group_dimension_search!r}"
+                        f"Bad 'zarr_dimension_search' value: "
+                        f"{group_dimension_search!r}. Expected one of "
+                        "'closest_ancestor', 'furthest_ancestor', 'local'"
                     )
             else:
                 # ----------------------------------------------------
@@ -144,7 +145,7 @@ def zarr_dimension_maps(group):
                 if name.endswith("/"):
                     raise NetCDFError(
                         "Dimension names can't end with '/': "
-                        f"dataset={group.dataset_name()} "
+                        f"dataset={group.dataset_name} "
                         f"variable={var_path} "
                         f"dimension_name={name}"
                     )
@@ -154,7 +155,7 @@ def zarr_dimension_maps(group):
                     g = group[g].path
                 except KeyError:
                     raise NetCDFError(
-                        "Zarr dimension name {name!r} couldn't be found "
+                        f"Zarr dimension name {name!r} couldn't be found "
                         "in the group hierarchy"
                     )
 
