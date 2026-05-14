@@ -242,5 +242,3 @@ def h5py_open(dataset, options):
 
     nc = h5py.File(dataset, mode="r", **options)
     return nc, nc.attrs, h5py
-
-

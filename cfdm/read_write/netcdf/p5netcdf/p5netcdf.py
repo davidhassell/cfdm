@@ -1115,7 +1115,7 @@ class Variable(Mixin):
             raise IndexError(
                 "to retrieve values from a non-scalar variable, use slicing"
             )
-        
+
         return self[()]
 
 

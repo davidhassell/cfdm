@@ -305,36 +305,35 @@ class Testp5netcdf(unittest.TestCase):
             import xarray
         except ImportError:
             self.skipTest("xarray not available")
-        
+
         # Open the file with xarray first
         xr_dt = xarray.open_datatree(
             self.filename, mask_and_scale=False, decode_cf=False
         )
-        
+
         # Pass the xarray DataTree to p5netcdf.File
         p5xr = cfdm.p5netcdf.File(xr_dt)
-        
+
         # Verify it works correctly
         self.assertEqual(p5xr.backend, "xarray")
         self.assertEqual(
             p5xr["forecast/model/q"].dimensions,
             self.p["forecast/model/q"].dimensions,
         )
-        
+
         # Test that we can access the same data
         self.assertTrue(
             np.array_equal(
-                p5xr["forecast/model/q"][...],
-                self.p["forecast/model/q"][...]
+                p5xr["forecast/model/q"][...], self.p["forecast/model/q"][...]
             )
         )
-        
+
         # Test attributes are preserved
         self.assertEqual(
             p5xr["forecast/model/q"].attrs["standard_name"],
-            "specific_humidity"
+            "specific_humidity",
         )
-        
+
         # Clean up
         xr_dt.close()
 
