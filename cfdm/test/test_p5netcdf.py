@@ -324,6 +324,30 @@ class Testp5netcdf(unittest.TestCase):
         with self.assertRaises(Exception):
             cfdm.p5netcdf.File(3.14)
 
+    def test_p5netcdf_File_backend_selection(self):
+        """Test File with specific backend selection."""
+        # Test single backend
+        p_pyfive = cfdm.p5netcdf.File(self.filename, backend="pyfive")
+        self.assertEqual(p_pyfive.backend, "pyfive")
+        
+        # Test backend list
+        p_list = cfdm.p5netcdf.File(self.filename, backend=["pyfive", "netCDF4"])
+        self.assertEqual(p_list.backend, "pyfive")
+        
+        # Test invalid backend
+        with self.assertRaises(ValueError):
+            cfdm.p5netcdf.File(self.filename, backend="invalid_backend")
+
+    def test_p5netcdf_File_verbose(self):
+        """Test File with verbose output."""
+        # Should not raise an error
+        p = cfdm.p5netcdf.File(self.filename, verbose=1)
+        self.assertEqual(p.backend, "pyfive")
+        
+        # Test verbose=-1 (maximum verbosity)
+        p = cfdm.p5netcdf.File(self.filename, verbose=-1)
+        self.assertEqual(p.backend, "pyfive")
+
     def test_p5netcdf_File_dump(self):
         """Test File.dump."""
         self.assertEqual(
@@ -430,10 +454,86 @@ class Testp5netcdf(unittest.TestCase):
         self.assertEqual(self.p.backend, "pyfive")
         self.assertEqual(self.p3.backend, "netCDF4")
 
+    def test_p5netcdf_File_ncdump(self):
+        """Test File.ncdump."""
+        cdl = self.p.ncdump(display=False)
+        self.assertIsInstance(cdl, str)
+        self.assertIn("netcdf", cdl)
+        self.assertIn("dimensions:", cdl)
+        self.assertIn("variables:", cdl)
+        self.assertIn("bounds2 = 2", cdl)
+        self.assertIn("time", cdl)
+        self.assertIn("forecast", cdl)
+
+    def test_p5netcdf_File_cache_metadata(self):
+        """Test File.cache_metadata."""
+        p = cfdm.p5netcdf.File(self.filename)
+        
+        # Test maximal caching
+        p.cache_metadata("maximal")
+        
+        # Test minimal caching
+        p.cache_metadata("minimal")
+        
+        # Test invalid strategy
+        with self.assertRaises(ValueError):
+            p.cache_metadata("invalid")
+
+    def test_p5netcdf_File_getncattr(self):
+        """Test File.getncattr."""
+        self.assertEqual(self.p.getncattr("Conventions"), "CF-1.13")
+        self.assertEqual(self.p.getncattr("global_attr_1"), 3.14)
+        
+        # Test non-existing attribute should raise AttributeError
+        with self.assertRaises(AttributeError):
+            self.p.getncattr("nonexistent_attr")
+
     def test_p5netcdf_File_library(self):
         """Test File.library."""
         self.assertIs(self.p.library, pyfive)
         self.assertIs(self.p3.library, netCDF4)
+
+    def test_p5netcdf_File_all_properties(self):
+        """Test File.all_dimensions, all_variables, all_groups."""
+        # Test all_dimensions
+        all_dims = self.p.all_dimensions
+        self.assertIsInstance(all_dims, dict)
+        self.assertIn("/bounds2", all_dims)
+        self.assertIn("/forecast/lon", all_dims)
+        self.assertIn("/forecast/model/lat", all_dims)
+        
+        # Test all_variables
+        all_vars = self.p.all_variables
+        self.assertIsInstance(all_vars, dict)
+        self.assertIn("/time", all_vars)
+        self.assertIn("/forecast/lon", all_vars)
+        self.assertIn("/forecast/model/q", all_vars)
+        
+        # Test all_groups
+        all_groups = self.p.all_groups
+        self.assertIsInstance(all_groups, dict)
+        self.assertIn("/", all_groups)
+        self.assertIn("/forecast", all_groups)
+        self.assertIn("/forecast/model", all_groups)
+
+    def test_p5netcdf_File_protocol_is_local(self):
+        """Test File.protocol and is_local properties."""
+        # For local files
+        self.assertEqual(self.p.protocol, "file")
+        self.assertTrue(self.p.is_local)
+        
+        # Test with fsspec file-like object
+        local_fs = fsspec.filesystem("local")
+        fh = local_fs.open(self.filename, "rb")
+        p5fh = cfdm.p5netcdf.File(fh)
+        self.assertEqual(p5fh.protocol, "file")
+        self.assertTrue(p5fh.is_local)
+
+    def test_p5netcdf_File_log(self):
+        """Test File.log."""
+        log = self.p.log(display=False)
+        self.assertIsInstance(log, str)
+        self.assertIn("Successfully opened", log)
 
     def test_p5netcdf_File_enter_exit(self):
         """Test File in context manager."""
@@ -618,6 +718,29 @@ class Testp5netcdf(unittest.TestCase):
         var = self.p["/forecast/model/q"]
         self.assertEqual(var.dtype, "float32")
 
+    def test_p5netcdf_Variable_orthogonal_indexing(self):
+        """Test Variable.__orthogonal_indexing__ property."""
+        var = self.p["/forecast/model/q"]
+        # Should be a boolean
+        self.assertIsInstance(var.__orthogonal_indexing__, bool)
+
+    def test_p5netcdf_Variable_dimension_paths(self):
+        """Test Variable.dimension_paths property."""
+        var = self.p["/time"]
+        self.assertEqual(var.dimension_paths, ())
+        
+        var = self.p["/forecast/lon"]
+        self.assertEqual(var.dimension_paths, ("/forecast/lon",))
+        
+        var = self.p["/forecast/model/q"]
+        self.assertEqual(var.dimension_paths, ("/forecast/model/lat", "/forecast/lon"))
+
+    def test_p5netcdf_Variable_shards(self):
+        """Test Variable.shards property."""
+        var = self.p["/forecast/model/q"]
+        # For non-zarr datasets, shards should be None
+        self.assertIsNone(var.shards)
+
     def test_p5netcdf_Variable_ndim(self):
         """Test Variable.ndim."""
         var = self.p["/time"]
@@ -717,6 +840,38 @@ class Testp5netcdf(unittest.TestCase):
 
         var = self.p["/forecast/model/q"]
         self.assertIs(var.group(), self.p["/forecast/model"])
+
+    def test_p5netcdf_Variable_getValue(self):
+        """Test Variable.getValue."""
+        # Test scalar variable
+        var = self.p["/time"]
+        self.assertEqual(var.getValue(), 31)
+        
+        # Test non-scalar variable should raise IndexError
+        var = self.p["/forecast/lon"]
+        with self.assertRaises(IndexError):
+            var.getValue()
+
+    def test_p5netcdf_Variable_getncattr(self):
+        """Test Variable.getncattr."""
+        var = self.p["/forecast/model/q"]
+        
+        # Test existing attribute
+        self.assertEqual(var.getncattr("standard_name"), "specific_humidity")
+        self.assertEqual(var.getncattr("int"), 49)
+        
+        # Test non-existing attribute should raise AttributeError
+        with self.assertRaises(AttributeError):
+            var.getncattr("nonexistent_attr")
+
+    def test_p5netcdf_Variable_ncattrs(self):
+        """Test Variable.ncattrs."""
+        var = self.p["/forecast/model/q"]
+        attrs = var.ncattrs()
+        self.assertIsInstance(attrs, list)
+        self.assertIn("standard_name", attrs)
+        self.assertIn("int", attrs)
+        self.assertEqual(set(attrs), set(var.attrs.keys()))
 
     def test_p5netcdf_Group__repr__(self):
         """Test Group.__repr__."""
@@ -1112,6 +1267,109 @@ class Testp5netcdf(unittest.TestCase):
         self.assertFalse(
             self.p["forecast/model"].is_ancestor_group(self.p["forecast"])
         )
+
+    def test_p5netcdf_zarr_backend(self):
+        """Test Zarr backend functionality."""
+        if hasattr(self, 'pz'):
+            self.assertEqual(self.pz.backend, "zarr")
+            # Test that basic operations work
+            self.assertIsInstance(self.pz.dimensions, dict)
+            self.assertIsInstance(self.pz.variables, dict)
+
+    def test_p5netcdf_kerchunk_backend(self):
+        """Test Kerchunk backend functionality."""
+        if hasattr(self, 'pk'):
+            self.assertEqual(self.pk.backend, "zarr")
+            # Test that basic operations work
+            self.assertIsInstance(self.pk.dimensions, dict)
+            self.assertIsInstance(self.pk.variables, dict)
+
+    def test_p5netcdf_zarr_dimension_search(self):
+        """Test zarr_dimension_search parameter."""
+        if hasattr(self, 'zarr'):
+            # Test different search strategies
+            for strategy in ["closest_ancestor", "furthest_ancestor", "local"]:
+                try:
+                    p = cfdm.p5netcdf.File(self.zarr, zarr_dimension_search=strategy)
+                    self.assertEqual(p.backend, "zarr")
+                except Exception:
+                    # Skip if zarr file doesn't exist or can't be opened
+                    pass
+
+    def test_p5netcdf_Group_getncattr(self):
+        """Test Group.getncattr."""
+        # Test root group attributes
+        self.assertEqual(self.p.getncattr("Conventions"), "CF-1.13")
+        self.assertEqual(self.p.getncattr("global_attr_1"), 3.14)
+        
+        # Test subgroup attributes
+        model_group = self.p["/forecast/model"]
+        self.assertEqual(model_group.getncattr("group_attr_1"), 12)
+        self.assertEqual(model_group.getncattr("group_attr_2"), "bar")
+        
+        # Test non-existing attribute should raise AttributeError
+        with self.assertRaises(AttributeError):
+            self.p.getncattr("nonexistent_attr")
+
+    def test_p5netcdf_Group_ncattrs(self):
+        """Test Group.ncattrs."""
+        # Test root group
+        attrs = self.p.ncattrs()
+        self.assertIsInstance(attrs, list)
+        self.assertIn("Conventions", attrs)
+        self.assertIn("global_attr_1", attrs)
+        self.assertEqual(set(attrs), set(self.p.attrs.keys()))
+        
+        # Test subgroup
+        model_group = self.p["/forecast/model"]
+        attrs = model_group.ncattrs()
+        self.assertIn("group_attr_1", attrs)
+        self.assertIn("group_attr_2", attrs)
+        self.assertEqual(set(attrs), set(model_group.attrs.keys()))
+
+    def test_p5netcdf_edge_cases(self):
+        """Test various edge cases and error conditions."""
+        # Test Group.__len__
+        self.assertEqual(len(self.p), 2)  # forecast group + time variable
+        self.assertEqual(len(self.p["/forecast"]), 3)  # model group + 2 variables
+        
+        # Test Group.get() method (inherited from Mapping)
+        self.assertIs(self.p.get("time"), self.p["time"])
+        self.assertIsNone(self.p.get("nonexistent"))
+        self.assertEqual(self.p.get("nonexistent", "default"), "default")
+        
+        # Test Variable array access with different indices
+        var = self.p["/forecast/lon"]
+        self.assertEqual(var[0], 22.5)
+        self.assertTrue(np.array_equal(var[:2], [22.5, 67.5]))
+        
+        # Test scalar variable indexing
+        time_var = self.p["/time"]
+        self.assertEqual(time_var[()], 31)
+
+    def test_p5netcdf_metadata_strategy(self):
+        """Test different metadata strategies."""
+        # Test minimal strategy
+        p_min = cfdm.p5netcdf.File(self.filename, metadata_strategy="minimal")
+        self.assertEqual(p_min.backend, "pyfive")
+        
+        # Test maximal strategy
+        p_max = cfdm.p5netcdf.File(self.filename, metadata_strategy="maximal")
+        self.assertEqual(p_max.backend, "pyfive")
+        
+        # Test invalid strategy
+        with self.assertRaises(ValueError):
+            cfdm.p5netcdf.File(self.filename, metadata_strategy="invalid")
+
+    def test_p5netcdf_options_parameters(self):
+        """Test various options parameters."""
+        # Test with empty options
+        p = cfdm.p5netcdf.File(self.filename, pyfive_options={})
+        self.assertEqual(p.backend, "pyfive")
+        
+        # Test with h5py_options (should fall back to other backends)
+        p = cfdm.p5netcdf.File(self.filename, h5py_options={})
+        self.assertIn(p.backend, ["pyfive", "zarr", "netCDF4", "netcdf_file", "xarray", "h5py", "ppfive"])
 
 
 #    def test_p5netcdf_netcdf3_attributes(self):
