@@ -1,7 +1,7 @@
 from .utils_cdl import cdl_format
 from .utils_general import (
     NetCDFError,
-    get_dimensions_from_source,
+    get_dimensions_from_defining_group,
     get_library,
     parse_attributes,
 )

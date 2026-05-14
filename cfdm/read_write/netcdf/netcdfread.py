@@ -9136,37 +9136,6 @@ class NetCDFRead(IORead):
 
         return out
 
-    def _netCDF4_group(self, nc, name):
-        """Return the group of a variable or dimension in the dataset.
-
-        Given a dataset and a variable or dimension name, return the
-        group object for the name, and the name within the group.
-
-        .. versionadded:: (cfdm) 1.8.8.1
-
-        :Parameters:
-
-            nc: `netCDF4.Dataset` or `h5netcdf.Group` or `zarr.Group`
-
-            name: `str`
-
-        :Returns:
-
-            2-`tuple`:
-                The group object, and the relative-path variable name.
-
-        **Examples**
-
-        >>> n._netCDF4_group(nc, '/forecast/count')
-        (<Group file:///home/david/cfdm/cfdm/test/tmpdir1/forecast>, 'count')
-
-        """
-        group = nc
-        path = name.split("/")
-        for group_name in path[1:-1]:
-            group = group[group_name]
-
-        return group, path[-1]
 
     def _ugrid_parse_mesh_topology(self, mesh_ncvar, attributes):
         """Parse a UGRID mesh topology or location index set variable.
