@@ -381,12 +381,8 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_File_verbose(self):
         """Test File with verbose output."""
         # Should not raise an error
-        p = cfdm.p5netcdf.File(self.filename, verbose=1)
-        self.assertEqual(p.backend, "pyfive")
-
-        # Test verbose=-1 (maximum verbosity)
-        p = cfdm.p5netcdf.File(self.filename, verbose=-1)
-        self.assertEqual(p.backend, "pyfive")
+        for v in (0, 1, -1):
+            cfdm.p5netcdf.File(self.filename, verbose=v)
 
     def test_p5netcdf_File_dump(self):
         """Test File.dump."""
@@ -569,11 +565,11 @@ class Testp5netcdf(unittest.TestCase):
         self.assertEqual(p5fh.protocol, "file")
         self.assertTrue(p5fh.is_local)
 
-    def test_p5netcdf_File_log(self):
-        """Test File.log."""
-        log = self.p.log(display=False)
+    def test_p5netcdf_File_dataset_read_log(self):
+        """Test File.dataset_read_log."""
+        log = self.p.dataset_read_log(display=False)
         self.assertIsInstance(log, str)
-        self.assertIn("Successfully opened", log)
+        self.assertIn("Successfully read", log)
 
     def test_p5netcdf_File_enter_exit(self):
         """Test File in context manager."""

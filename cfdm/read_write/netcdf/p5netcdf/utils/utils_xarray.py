@@ -21,7 +21,8 @@ def xarray_parse_group_structure(group):
         `None`
 
     """
-    # 1. Create dimensions in this group
+    # Create dimensions in this group ('grp' is an `xarray.DataTree`
+    # instance)
     grp = group._grp
 
     # Find which dimensions are actually defined in this group, as
@@ -40,11 +41,11 @@ def xarray_parse_group_structure(group):
         unlimited = name in grp.encoding.get("unlimited_dims", ())
         group._create_dimension(name, size, unlimited)
 
-    # 2. Create variables in this group
+    # Create variables in this group
     for name, var in grp.variables.items():
         group._create_variable(name, var, var.attrs)
 
-    # 3. Recursively create subgroups
+    # Recursively create subgroups
     for name, grp in group._grp.children.items():
         group._create_group(name, grp, grp.attrs)
 
@@ -69,7 +70,10 @@ def xarray_open(dataset, options):
 
         options: `dict`
             Additional keyword parameters to pass to
-            `xarray.open_datatree`.
+            `xarray.open_datatree`. The keyword arguments
+            ``mask_and_scale=False, decode_cf=False`` are always
+            automatially applied, even when not provided in *options*,
+            and can't be set to different values.
 
     :Returns:
 
@@ -79,6 +83,15 @@ def xarray_open(dataset, options):
 
     """
     import xarray
+
+    options = options.copy()
+    mask_and_scale = options.pop("mask_and_scale", False)
+    decode_cf = options.pop("decode_cf", False)
+    if mask_and_scale:
+        raise ValueError("Can't set mask_and_scale=True in xarray_options")
+
+    if decode_cf:
+        raise ValueError("Can't set decode_cf=True in xarray_options")
 
     nc = xarray.open_datatree(
         dataset, mask_and_scale=False, decode_cf=False, **options

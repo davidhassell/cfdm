@@ -449,8 +449,8 @@ class NetCDFRead(IORead):
     def dataset_close(self):
         """Close all netCDF datasets that have been opened.
 
-        Includes the input dataset being read, any external datasets,
-        and any temporary flattened dataset.
+        Includes the input dataset being read and any external
+        datasets.
 
         :Returns:
 
@@ -473,25 +473,17 @@ class NetCDFRead(IORead):
         for nc in g["datasets"]:
             nc.close()
 
-    def dataset_open(self, dataset, flatten=True, verbose=None):
+    def dataset_open(self, dataset):
         """Open the netCDF dataset for reading.
-
-        If the file has hierarchical groups then a flattened version
-        of it is returned, and the original grouped file remains open.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
             dataset:
-                The dataset. May be a string-valued path, a file-like
-                object, or a directory-like object.
-
-            flatten: `bool`, optional
-                If True (the default) then flatten a grouped file.
-                Ignored if the file has no groups.
-
-                .. versionadded:: (cfdm) 1.8.6
+                The definition of the netCDF dataset to be read. May
+                be anything accepted by the *dataset* parameter of
+                `p5netcdf.File`.
 
         :Returns:
 
@@ -553,6 +545,7 @@ class NetCDFRead(IORead):
             nc = p5netcdf.File(
                 dataset,
                 backend=g["netcdf_backend"],
+                zarr_dimension_search=g["group_dimension_search"],
                 metadata_strategy="maximal",
             )
         except Exception as error:
@@ -582,7 +575,7 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_log"] = nc.log(display=False)
+        g["dataset_open_log"] = nc.dataset_read_log(display=False)
 
         if g["debug"]:
             logger.debug(
@@ -1405,8 +1398,6 @@ class NetCDFRead(IORead):
             "warn_valid": bool(warn_valid),
             "valid_properties": set(("valid_min", "valid_max", "valid_range")),
             "group_dimension_search": group_dimension_search,
-            # Keep a list of flattened dataset names
-            "flat_datasets": [],
             # --------------------------------------------------------
             # Domains (CF>=1.9)
             # --------------------------------------------------------
@@ -1509,7 +1500,7 @@ class NetCDFRead(IORead):
         # Open the netCDF dataset to be read
         # ------------------------------------------------------------
         try:
-            nc = self.dataset_open(dataset, flatten=True, verbose=None)
+            nc = self.dataset_open(dataset)
         except DatasetTypeError:
             if not g["ignore_unknown_type"]:
                 raise
