@@ -1,4 +1,4 @@
-"""General utilities for `p5netcdf`."""
+"""General utilities."""
 
 import sys
 

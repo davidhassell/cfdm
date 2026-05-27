@@ -354,7 +354,6 @@ _docstring_substitution_definitions = {
             ``'netCDF4'``      `netCDF4`
             ``'netcdf_file'``  `scipy.io.netcdf_file`
             ``'h5py'``         `h5py`
-            ``'ppfive'``       `ppfive`
             =================  ======================
 
             By default *backend* is `None`, which is equivalent to

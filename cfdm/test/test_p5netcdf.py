@@ -163,11 +163,11 @@ class Testp5netcdf(unittest.TestCase):
         fs = fsspec.filesystem("reference", fo="example_field_0.kerchunk")
         cls.kerchunk = fs.get_mapper()
 
-        cls.p = cfdm.p5netcdf.File(cls.filename)
-        cls.p4 = cfdm.p5netcdf.File(cls.filename3)
-        cls.p3 = cfdm.p5netcdf.File(cls.filename3)
-        cls.pz = cfdm.p5netcdf.File(cls.zarr)
-        cls.pk = cfdm.p5netcdf.File(cls.kerchunk)
+        cls.p = cfdm.p5netcdf.Dataset(cls.filename)
+        cls.p4 = cfdm.p5netcdf.Dataset(cls.filename3)
+        cls.p3 = cfdm.p5netcdf.Dataset(cls.filename3)
+        cls.pz = cfdm.p5netcdf.Dataset(cls.zarr)
+        cls.pk = cfdm.p5netcdf.Dataset(cls.kerchunk)
 
         cls.n = netCDF4.Dataset(cls.filename, "r")
         cls.n3 = netCDF4.Dataset(cls.filename3, "r")
@@ -272,35 +272,35 @@ class Testp5netcdf(unittest.TestCase):
             self.assertEqual(pattrs, nattrs)
             self.assertEqual(pg.path, ng.path)
 
-    def test_p5netcdf_File_Path(self):
-        """Check File with a file-like input."""
-        p5p = cfdm.p5netcdf.File(pathlib.Path(self.filename))
+    def test_p5netcdf_Dataset_Path(self):
+        """Check Dataset with a file-like input."""
+        p5p = cfdm.p5netcdf.Dataset(pathlib.Path(self.filename))
         self.assertEqual(
             p5p["forecast/model/q"].dimensions,
             self.p["forecast/model/q"].dimensions,
         )
 
-    def test_p5netcdf_File_file_like(self):
-        """Check File with a file-like input."""
+    def test_p5netcdf_Dataset_file_like(self):
+        """Check Dataset with a file-like input."""
         local_fs = fsspec.filesystem("local")
         fh = local_fs.open(self.filename, "rb")
-        p5fh = cfdm.p5netcdf.File(fh)
+        p5fh = cfdm.p5netcdf.Dataset(fh)
         self.assertEqual(
             p5fh["forecast/model/q"].dimensions,
             self.p["forecast/model/q"].dimensions,
         )
 
-    def test_p5netcdf_File_pyfive_like(self):
-        """Check File with a pyfive.File input."""
+    def test_p5netcdf_Dataset_pyfive_like(self):
+        """Check Dataset with a pyfive.File input."""
         py5 = pyfive.File(self.filename)
-        p5py5 = cfdm.p5netcdf.File(py5)
+        p5py5 = cfdm.p5netcdf.Dataset(py5)
         self.assertEqual(
             p5py5["forecast/model/q"].dimensions,
             self.p["forecast/model/q"].dimensions,
         )
 
-    def test_p5netcdf_File_xarray_like(self):
-        """Check File with an xarray.DataTree input."""
+    def test_p5netcdf_Dataset_xarray_like(self):
+        """Check Dataset with an xarray.DataTree input."""
         try:
             import xarray
         except ImportError:
@@ -311,8 +311,8 @@ class Testp5netcdf(unittest.TestCase):
             self.filename, mask_and_scale=False, decode_cf=False
         )
 
-        # Pass the xarray DataTree to p5netcdf.File
-        p5xr = cfdm.p5netcdf.File(xr_dt)
+        # Pass the xarray DataTree to p5netcdf.Dataset
+        p5xr = cfdm.p5netcdf.Dataset(xr_dt)
 
         # Verify it works correctly
         self.assertEqual(p5xr.backend, "xarray")
@@ -337,18 +337,19 @@ class Testp5netcdf(unittest.TestCase):
         # Clean up
         xr_dt.close()
 
-    def test_p5netcdf_File__repr__(self):
-        """Test File.__repr__."""
+    def test_p5netcdf_Dataset__repr__(self):
+        """Test Dataset.__repr__."""
         self.assertEqual(
-            repr(self.p), "<p5netcdf.File: 1 dimension, 1 variable, 1 group>"
+            repr(self.p),
+            "<p5netcdf.Dataset: /, 1 dimension, 1 variable, 1 group>",
         )
 
-    def test_p5netcdf_File__str__(self):
-        """Test File.__str__."""
+    def test_p5netcdf_Dataset__str__(self):
+        """Test Dataset.__str__."""
         self.assertEqual(
             str(self.p),
             f"""{self.p.filename}
-<p5netcdf.File: 1 dimension, 1 variable, 1 group>
+<p5netcdf.Dataset: /, 1 dimension, 1 variable, 1 group>
     Dimensions:
         bounds2: <p5netcdf.Dimension: /bounds2, size=2>
     Variables:
@@ -357,39 +358,39 @@ class Testp5netcdf(unittest.TestCase):
         forecast: <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>""",
         )
 
-    def test_p5netcdf_File_bad_file(self):
-        """Test File with not a netCDF file."""
+    def test_p5netcdf_Dataset_bad_file(self):
+        """Test Dataset with not a netCDF file."""
         with self.assertRaises(Exception):
-            cfdm.p5netcdf.File(3.14)
+            cfdm.p5netcdf.Dataset(3.14)
 
-    def test_p5netcdf_File_backend_selection(self):
-        """Test File with specific backend selection."""
+    def test_p5netcdf_Dataset_backend_selection(self):
+        """Test Dataset with specific backend selection."""
         # Test single backend
-        p_pyfive = cfdm.p5netcdf.File(self.filename, backend="pyfive")
+        p_pyfive = cfdm.p5netcdf.Dataset(self.filename, backend="pyfive")
         self.assertEqual(p_pyfive.backend, "pyfive")
 
         # Test backend list
-        p_list = cfdm.p5netcdf.File(
+        p_list = cfdm.p5netcdf.Dataset(
             self.filename, backend=["pyfive", "netCDF4"]
         )
         self.assertEqual(p_list.backend, "pyfive")
 
         # Test invalid backend
         with self.assertRaises(ValueError):
-            cfdm.p5netcdf.File(self.filename, backend="invalid_backend")
+            cfdm.p5netcdf.Dataset(self.filename, backend="invalid_backend")
 
-    def test_p5netcdf_File_verbose(self):
-        """Test File with verbose output."""
+    def test_p5netcdf_Dataset_verbose(self):
+        """Test Dataset with verbose output."""
         # Should not raise an error
         for v in (0, 1, -1):
-            cfdm.p5netcdf.File(self.filename, verbose=v)
+            cfdm.p5netcdf.Dataset(self.filename, verbose=v)
 
-    def test_p5netcdf_File_dump(self):
-        """Test File.dump."""
+    def test_p5netcdf_Dataset_dump(self):
+        """Test Dataset.dump."""
         self.assertEqual(
             self.p.dump(display=False),
             f"""{self.p.filename}
-<p5netcdf.File: 1 dimension, 1 variable, 1 group>
+<p5netcdf.Dataset: /, 1 dimension, 1 variable, 1 group>
     Attributes:
         Conventions: 'CF-1.13'
         global_attr_1: np.float64(3.14)
@@ -468,30 +469,30 @@ class Testp5netcdf(unittest.TestCase):
                                 standard_name: 'specific_humidity'""",
         )
 
-    def test_p5netcdf_File_close(self):
-        """Test File.close."""
-        p = cfdm.p5netcdf.File(self.filename, backend="pyfive")
+    def test_p5netcdf_Dataset_close(self):
+        """Test Dataset.close."""
+        p = cfdm.p5netcdf.Dataset(self.filename, backend="pyfive")
         self.assertFalse(p._grp._fh.closed)
         p.close()
         self.assertTrue(p._grp._fh.closed)
 
         py5 = pyfive.File(self.filename)
-        p = cfdm.p5netcdf.File(py5)
+        p = cfdm.p5netcdf.Dataset(py5)
         self.assertFalse(p._grp._fh.closed)
         p.close()
         self.assertFalse(p._grp._fh.closed)
 
-    def test_p5netcdf_File_filename(self):
-        """Test File.filename."""
+    def test_p5netcdf_Dataset_filename(self):
+        """Test Dataset.filename."""
         self.assertEqual(self.filename, self.filename)
 
-    def test_p5netcdf_File_backend(self):
-        """Test File.backend."""
+    def test_p5netcdf_Dataset_backend(self):
+        """Test Dataset.backend."""
         self.assertEqual(self.p.backend, "pyfive")
         self.assertEqual(self.p3.backend, "netCDF4")
 
-    def test_p5netcdf_File_ncdump(self):
-        """Test File.ncdump."""
+    def test_p5netcdf_Dataset_ncdump(self):
+        """Test Dataset.ncdump."""
         cdl = self.p.ncdump(display=False)
         self.assertIsInstance(cdl, str)
         self.assertIn("netcdf", cdl)
@@ -501,9 +502,9 @@ class Testp5netcdf(unittest.TestCase):
         self.assertIn("time", cdl)
         self.assertIn("forecast", cdl)
 
-    def test_p5netcdf_File_cache_metadata(self):
-        """Test File.cache_metadata."""
-        p = cfdm.p5netcdf.File(self.filename)
+    def test_p5netcdf_Dataset_cache_metadata(self):
+        """Test Dataset.cache_metadata."""
+        p = cfdm.p5netcdf.Dataset(self.filename)
 
         # Test maximal caching
         p.cache_metadata("maximal")
@@ -515,8 +516,8 @@ class Testp5netcdf(unittest.TestCase):
         with self.assertRaises(ValueError):
             p.cache_metadata("invalid")
 
-    def test_p5netcdf_File_getncattr(self):
-        """Test File.getncattr."""
+    def test_p5netcdf_Dataset_getncattr(self):
+        """Test Dataset.getncattr."""
         self.assertEqual(self.p.getncattr("Conventions"), "CF-1.13")
         self.assertEqual(self.p.getncattr("global_attr_1"), 3.14)
 
@@ -524,13 +525,13 @@ class Testp5netcdf(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.p.getncattr("nonexistent_attr")
 
-    def test_p5netcdf_File_library(self):
-        """Test File.library."""
+    def test_p5netcdf_Dataset_library(self):
+        """Test Dataset.library."""
         self.assertIs(self.p.library, pyfive)
         self.assertIs(self.p3.library, netCDF4)
 
-    def test_p5netcdf_File_all_properties(self):
-        """Test File.all_dimensions, all_variables, all_groups."""
+    def test_p5netcdf_Dataset_all_properties(self):
+        """Test Dataset.all_dimensions, all_variables, all_groups."""
         # Test all_dimensions
         all_dims = self.p.all_dimensions
         self.assertIsInstance(all_dims, dict)
@@ -552,8 +553,8 @@ class Testp5netcdf(unittest.TestCase):
         self.assertIn("/forecast", all_groups)
         self.assertIn("/forecast/model", all_groups)
 
-    def test_p5netcdf_File_protocol_is_local(self):
-        """Test File.protocol and is_local properties."""
+    def test_p5netcdf_Dataset_protocol_is_local(self):
+        """Test Dataset.protocol and is_local properties."""
         # For local files
         self.assertEqual(self.p.protocol, "file")
         self.assertTrue(self.p.is_local)
@@ -561,19 +562,19 @@ class Testp5netcdf(unittest.TestCase):
         # Test with fsspec file-like object
         local_fs = fsspec.filesystem("local")
         fh = local_fs.open(self.filename, "rb")
-        p5fh = cfdm.p5netcdf.File(fh)
+        p5fh = cfdm.p5netcdf.Dataset(fh)
         self.assertEqual(p5fh.protocol, "file")
         self.assertTrue(p5fh.is_local)
 
-    def test_p5netcdf_File_dataset_read_log(self):
-        """Test File.dataset_read_log."""
+    def test_p5netcdf_Dataset_dataset_read_log(self):
+        """Test Dataset.dataset_read_log."""
         log = self.p.dataset_read_log(display=False)
         self.assertIsInstance(log, str)
         self.assertIn("Successfully read", log)
 
-    def test_p5netcdf_File_enter_exit(self):
-        """Test File in context manager."""
-        with cfdm.p5netcdf.File(self.filename, backend="pyfive") as p:
+    def test_p5netcdf_Dataset_enter_exit(self):
+        """Test Dataset in context manager."""
+        with cfdm.p5netcdf.Dataset(self.filename, backend="pyfive") as p:
             self.assertEqual(p.attrs["global_attr_2"], "foo")
             self.assertFalse(p._grp._fh.closed)
 
@@ -581,7 +582,7 @@ class Testp5netcdf(unittest.TestCase):
 
         py5 = pyfive.File(self.filename)
         self.assertFalse(py5._fh.closed)
-        with cfdm.p5netcdf.File(py5) as p:
+        with cfdm.p5netcdf.Dataset(py5) as p:
             self.assertEqual(p.attrs["global_attr_2"], "foo")
 
         self.assertFalse(py5._fh.closed)
@@ -1327,7 +1328,7 @@ class Testp5netcdf(unittest.TestCase):
         if hasattr(self, "zarr"):
             # Test different search strategies
             for strategy in ["closest_ancestor", "furthest_ancestor", "local"]:
-                p = cfdm.p5netcdf.File(
+                p = cfdm.p5netcdf.Dataset(
                     self.zarr, zarr_dimension_search=strategy
                 )
                 self.assertEqual(p.backend, "zarr")
@@ -1388,25 +1389,29 @@ class Testp5netcdf(unittest.TestCase):
     def test_p5netcdf_metadata_strategy(self):
         """Test different metadata strategies."""
         # Test minimal strategy
-        p_min = cfdm.p5netcdf.File(self.filename, metadata_strategy="minimal")
+        p_min = cfdm.p5netcdf.Dataset(
+            self.filename, metadata_strategy="minimal"
+        )
         self.assertEqual(p_min.backend, "pyfive")
 
         # Test maximal strategy
-        p_max = cfdm.p5netcdf.File(self.filename, metadata_strategy="maximal")
+        p_max = cfdm.p5netcdf.Dataset(
+            self.filename, metadata_strategy="maximal"
+        )
         self.assertEqual(p_max.backend, "pyfive")
 
         # Test invalid strategy
         with self.assertRaises(ValueError):
-            cfdm.p5netcdf.File(self.filename, metadata_strategy="invalid")
+            cfdm.p5netcdf.Dataset(self.filename, metadata_strategy="invalid")
 
     def test_p5netcdf_options_parameters(self):
         """Test various options parameters."""
         # Test with empty options
-        p = cfdm.p5netcdf.File(self.filename, pyfive_options={})
+        p = cfdm.p5netcdf.Dataset(self.filename, pyfive_options={})
         self.assertEqual(p.backend, "pyfive")
 
         # Test with h5py_options (should fall back to other backends)
-        p = cfdm.p5netcdf.File(self.filename, h5py_options={})
+        p = cfdm.p5netcdf.Dataset(self.filename, h5py_options={})
         self.assertEqual(p.backend, "pyfive")
 
 

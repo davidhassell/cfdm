@@ -1,4 +1,4 @@
-"""Utilities for the backend `zarr` in `p5netcdf`."""
+"""Utilities for the `zarr` backend."""
 
 from .utils_general import NetCDFError
 
@@ -282,7 +282,7 @@ def zarr_parse_group_structure(group):
 
     :Parameters:
 
-        group: `Group` or `File`
+        group: `Group` or `Dataset`
             The group to be parsed.
 
     :Returns:

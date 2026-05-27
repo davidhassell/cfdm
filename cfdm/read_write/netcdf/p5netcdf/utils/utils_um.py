@@ -1,4 +1,4 @@
-"""Utilities for the backend `ppfive` in `p5netcdf`."""
+"""Utilities for the `ppfive` backend."""
 
 
 def ppfive_open(dataset, options):

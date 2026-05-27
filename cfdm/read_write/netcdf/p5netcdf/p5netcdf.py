@@ -20,7 +20,6 @@ from .utils import (
     netcdf_file_open,
     netcdf_file_parse_group_structure,
     parse_attributes,
-    ppfive_open,
     pyfive_open,
     xarray_open,
     xarray_parse_group_structure,
@@ -61,7 +60,7 @@ class Mixin:
 
     @property
     def dataset(self):
-        """The dataset definition, as originally passed to `File`.
+        """The dataset definition, as originally passed to `Dataset`.
 
         If an original string-like dataset definition contained tilde
         or environment variables, then these are expanded in the
@@ -171,7 +170,7 @@ class Mixin:
 
         :Returns:
 
-            `Group` or `File` or `None`
+            `Group` or `Dataset` or `None`
                 The parent group, or `None` if there is no parent
                 group.
 
@@ -186,6 +185,8 @@ class Mixin:
         from the dataset definition (as returned by `dataset`), but in
         those cases when it is not possible, `protocol` will raise an
         `AttributeError` and `is_local` will return `None`.
+
+        
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -215,7 +216,7 @@ class Mixin:
 
         :Returns:
 
-            `File`
+            `Dataset`
                 The root group.
 
         """
@@ -249,7 +250,7 @@ class Dimension(Mixin):
             isunlimited: `bool`
                 True if the dimension is unlimited.
 
-            parent: `Group` or `File`
+            parent: `Group` or `Dataset`
                 The group in which this dimension is defined.
 
         """
@@ -393,7 +394,7 @@ class Dimension(Mixin):
 
         :Returns:
 
-            `Group` or `File`
+            `Group` or `Dataset`
                 The parent group.
 
         """
@@ -465,7 +466,7 @@ class Variable(Mixin):
             name: `str`
                 The name of the variable in its parent group.
 
-            parent: `Group` or `File`
+            parent: `Group` or `Dataset`
                 The parent group in which this variable is defined.
 
             var:
@@ -1100,7 +1101,7 @@ class Variable(Mixin):
 
         :Returns:
 
-            `Group` or `File`
+            `Group` or `Dataset`
                 The parent group.
 
         """
@@ -1186,7 +1187,7 @@ class Group(Mixin, Mapping):
                 The parent group. Set to `None` if there is no parent
                 (i.e. the group is the root group).
 
-            root: `File`
+            root: `Dataset`
                 The root group.
 
             grp:
@@ -1318,7 +1319,7 @@ class Group(Mixin, Mapping):
         pg = "" if len(self.groups) == 1 else "s"
 
         if self.is_root:
-            path = ""
+            path = "/, "
         else:
             path = f"{self.path}, "
 
@@ -1436,7 +1437,7 @@ class Group(Mixin, Mapping):
 
         :Parameters:
 
-            root: `File`
+            root: `Dataset`
                 The root group.
 
         :Returns:
@@ -1722,7 +1723,7 @@ class Group(Mixin, Mapping):
 
         :Parameters:
 
-            other: `Group` or `File`
+            other: `Group` or `Dataset`
                 Another group to test against.
 
         :Returns:
@@ -1752,7 +1753,7 @@ class Group(Mixin, Mapping):
 
         :Parameters:
 
-            other: `Group` or `File`
+            other: `Group` or `Dataset`
                 Another group to test against.
 
         :Returns:
@@ -1839,17 +1840,17 @@ class Group(Mixin, Mapping):
 Group._Group__Group = Group
 
 
-class File(Group):
+class Dataset(Group):
     """A dataset viewed as netCDF.
 
-    The dataset (a `File` object) is represented as a collection of
+    The dataset (a `Dataset` object) is represented as a collection of
     netCDF groups (`Group` objects), dimensions (`Dimension` objects),
     variables (`Variable` objects), and attributes.
 
     **Performance**
 
     `p5netcdf` is "structure- and attribute-eager", meaning that
-    during `File` instantiation, the entire netCDF group, variable,
+    during `Dataset` instantiation, the entire netCDF group, variable,
     and dimension structure is parsed; along with all group and
     variable attributes. Variable data access is always via access to
     the underlying backend library (see the *backend* parameter). Some
@@ -1899,7 +1900,7 @@ class File(Group):
                    is identical to::
 
                       >>> p = pyfive.File('dataset')
-                      >>> nc = p5netcdf.File(p)
+                      >>> nc = p5netcdf.Dataset(p)
 
                    A subclass of `pyfive.File` must expose the
                    following classes, attributes and methods from the
@@ -1915,14 +1916,14 @@ class File(Group):
 
                    Note that::
 
-                      >>> nc = p5netcdf.File('dataset', backend='xarray')
+                      >>> nc = p5netcdf.Dataset('dataset', backend='xarray')
 
                    is identical to::
 
                       >>> x = xarray.open_datatree(
                       ...     'dataset', mask_and_scale=False, decode_cf=False
                       ... )
-                      >>> nc = p5netcdf.File(x)
+                      >>> nc = p5netcdf.Dataset(x)
 
             backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading a
@@ -1942,14 +1943,13 @@ class File(Group):
                 ``'netcdf_file'``  `scipy.io.netcdf_file`
                 ``'xarray'``       `xarray`
                 ``'h5py'``         `h5py`
-                ``'ppfive'``       `ppfive`
                 =================  ======================
 
                 By default *backend* is `None`, which is equivalent to
                 providing the ordered sequence of backends:
 
                 ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file',
-                'xarray', 'h5py', 'ppfive')``
+                'xarray', 'h5py')``
 
                 *Example:*
                   To only attempt ``'netCDF4'``: ``'netCDF4'`` or
@@ -1981,7 +1981,7 @@ class File(Group):
                   revisited except to access the variable data arrays.
 
                 Dataset metadata caching can also be applied to an
-                existing `File` instance with the `cache_metadata`
+                existing `Dataset` instance with the `cache_metadata`
                 method.
 
             pyfive_options: `dict` or `None`, optional
@@ -2233,7 +2233,6 @@ class File(Group):
                 "netcdf_file": netcdf_file_open,
                 "xarray": xarray_open,
                 "h5py": h5py_open,
-                "ppfive": ppfive_open,
             }
             if backend is not None:
                 # Restrict to selected backends
@@ -2259,11 +2258,12 @@ class File(Group):
                     )
                 else:
                     self._dataset_read_log.append(
-                        f"{backend}: Successfully read"
+                        f"{backend}: Successfully read {dataset!r}"
                     )
                     break
 
             if nc is None:
+                # Failed to read dataset
                 try:
                     # Rewind file-like
                     dataset.seek(0)
@@ -2271,8 +2271,8 @@ class File(Group):
                     pass
 
                 raise NetCDFError(
-                    f"Can't open {dataset} as a netCDF dataset with any of "
-                    f"the backends {tuple(read_functions)}:\n\n"
+                    f"Can't open {dataset} with any of the backends "
+                    f"{tuple(read_functions)}:\n\n"
                     f"{self.dataset_read_log(display=False)}"
                 )
 
@@ -2314,8 +2314,8 @@ class File(Group):
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
-        # Cache any extra dataset metadata (after the group structure
-        # has been parsed)
+        # Cache the requested amount of metadata (after the group
+        # structure has been parsed)
         self.cache_metadata(metadata_strategy)
 
         # Verbose output
@@ -2324,17 +2324,21 @@ class File(Group):
 
         if verbose >= 1:
             self.dataset_read_log()
-            if verbose >= 2:
-                print()
+            print()
+            if verbose == 1:
+                if dataset_name:
+                    print(dataset_name)
 
-            if verbose >= 5:
-                self.dump(data=True)
-            elif verbose >= 4:
-                self.dump()
-            elif verbose >= 3:
-                self.structure()
-            elif verbose >= 2:
-                print(self)
+                print(repr(self))
+            else:
+                if verbose >= 5:
+                    self.dump(data=True)
+                elif verbose >= 4:
+                    self.dump()
+                elif verbose >= 3:
+                    self.structure()
+                elif verbose >= 2:
+                    print(self)
 
     def __enter__(self):
         """Enter the runtime context related to this object.
@@ -2390,7 +2394,7 @@ class File(Group):
         **Example**
 
         >>> n.all_groups
-        {'/': <p5netcdf.File: 1 dimension, 1 variable, 1 group>,
+        {'/': <p5netcdf.Dataset: 1 dimension, 1 variable, 1 group>,
          '/forecast': <p5netcdf.Group: /forecast, 1 dimension, 2 variables, 1 group>,
          '/forecast/model': <p5netcdf.Group: /forecast/model, 1 dimension, 3 variables, 0 groups>}
 
@@ -2434,8 +2438,8 @@ class File(Group):
         the dataset.
 
         Metadata may have already been cached within the backend
-        library, in which case retrieving and caching it in the `File`
-        instance it may by fast.
+        library, in which case retrieving and caching it in the
+        `Dataset` instance it may by fast.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -2459,7 +2463,7 @@ class File(Group):
                   cached. For instance, this includes all variable and
                   group attributes, but may exclude (depending on the
                   backend library) the variable shapes. Minimal
-                  metdata caching is always applied during `File`
+                  metdata caching is always applied during `Dataset`
                   instantiation, so there is no benefit in using this
                   option.
 
@@ -2481,7 +2485,7 @@ class File(Group):
 
         elif strategy == "minimal":
             # Minimal caching is always already done in
-            # `File.__init__`
+            # `Dataset.__init__`
             pass
 
         else:
@@ -2494,7 +2498,7 @@ class File(Group):
         """Close the dataset.
 
         Closes the underlying netCDF dataset, but only if owned by
-        this `File` instance.
+        this `Dataset` instance.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -2533,7 +2537,7 @@ class File(Group):
                 log is returned as a string.
 
         """
-        log = "\n\n".join(self._dataset_read_log)
+        log = "\n".join(self._dataset_read_log)
         if not display:
             return log
 

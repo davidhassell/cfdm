@@ -1,4 +1,4 @@
-"""Utilities for rendering a `p5netcdf.File` in CDL."""
+"""Utilities for rendering a `Dataset` in CDL."""
 
 import numpy as np
 
@@ -10,7 +10,7 @@ def cdl_format(g, lines, depth=0):
 
     :Parameters:
 
-        g: `Group` or `File`
+        g: `Group` or `Dataset`
             The group to render.
 
         lines: `list`

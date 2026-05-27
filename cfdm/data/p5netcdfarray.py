@@ -122,7 +122,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
         :Parameters:
 
-            dataset: `p5netcdf.File`
+            dataset: `p5netcdf.Dataset`
                 The netCDF dataset to be closed.
 
         :Returns:
@@ -141,11 +141,11 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
         :Parameters:
 
             kwargs: optional
-                Extra keyword arguments to `p5netcdf.File`.
+                Extra keyword arguments to `p5netcdf.Dataset`.
 
         :Returns:
 
-            (`p5netcdf.File`, `str`)
+            (`p5netcdf.Dataset`, `str`)
                 The open file object, and the address of the data
                 within the file.
 
@@ -159,7 +159,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
         out = None
         try:
-            out = super().open(p5netcdf.File, options=options)
+            out = super().open(p5netcdf.Dataset, options=options)
         except Exception as e:
             error = [str(e)]
 
@@ -181,7 +181,9 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
                 options["backend"] = "netCDF4"
                 try:
                     out = super().open(
-                        p5netcdf.File, options=options, create_filesystem=False
+                        p5netcdf.Dataset,
+                        options=options,
+                        create_filesystem=False,
                     )
                 except Exception as e:
                     error.append(str(e))

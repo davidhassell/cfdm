@@ -1,4 +1,4 @@
-"""Utilities for backends `netCDF4` and `netcdf_file in `p5netcdf`."""
+"""Utilities for the `netCDF4` and `netcdf_file` backends."""
 
 
 # --------------------------------------------------------------------
@@ -13,7 +13,7 @@ def netCDF4_parse_group_structure(group):
 
     :Parameters:
 
-        group: `Group` or `File`
+        group: `Group` or `Dataset`
             The group to be parsed.
 
     :Returns:
@@ -86,7 +86,7 @@ def netcdf_file_parse_group_structure(group):
 
     :Parameters:
 
-        group: `Group` or `File`
+        group: `Group` or `Dataset`
             The group to be parsed.
 
     :Returns:
@@ -148,7 +148,7 @@ def netcdf_file_close(root):
 
     :Parameters:
 
-        root: `File`
+        root: `Dataset`
             The root group.
 
     :Returns:

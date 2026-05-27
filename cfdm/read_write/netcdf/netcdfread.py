@@ -481,17 +481,19 @@ class NetCDFRead(IORead):
         :Parameters:
 
             dataset:
+
                 The definition of the netCDF dataset to be read. May
                 be anything accepted by the *dataset* parameter of
-                `p5netcdf.File`.
+                `p5netcdf.Dataset`.
 
         :Returns:
 
-                An object representing the opened dataset.
+            `p5netcdf.Dataset`
+                The opened dataset.
 
         **Examples**
 
-        >>> r.dataset_open('file.nc')
+        >>> d = r.dataset_open('file.nc')
 
         """
         from .p5netcdf import p5netcdf
@@ -542,7 +544,7 @@ class NetCDFRead(IORead):
 
         nc = None
         try:
-            nc = p5netcdf.File(
+            nc = p5netcdf.Dataset(
                 dataset,
                 backend=g["netcdf_backend"],
                 zarr_dimension_search=g["group_dimension_search"],
@@ -568,7 +570,9 @@ class NetCDFRead(IORead):
 
                 if protocol in ("http", "https"):
                     try:
-                        nc = p5netcdf.File(original_dataset, backend="netCDF4")
+                        nc = p5netcdf.Dataset(
+                            original_dataset, backend="netCDF4"
+                        )
                     except Exception as error_opendap:
                         error = f"{error}\n\n{error_opendap}"
 
@@ -1158,9 +1162,6 @@ class NetCDFRead(IORead):
             # Don't need a backend for `pyfive`-like or `xarray`-like
             # instances
             netcdf_backend = None
-        elif d_type == "PP/UM":
-            # Must use `ppfive` for PP/UM datasets
-            netcdf_backend = "ppfive"
         elif netcdf_backend is None:
             # By default, try netCDF backends in the following order.
             #
@@ -1172,7 +1173,6 @@ class NetCDFRead(IORead):
                 "netcdf_file",  # netCDF-3
                 "h5py",  # netCDF-4
                 "netCDF4",  # netCDF-3 and netCDF-4
-                "ppfive",  # PP and UM
             )
         else:
             valid_netcdf_backends = (
@@ -1181,7 +1181,6 @@ class NetCDFRead(IORead):
                 "h5py",
                 "netCDF4",
                 "zarr",
-                "ppfive",
             )
             if isinstance(netcdf_backend, str):
                 netcdf_backend = (netcdf_backend,)

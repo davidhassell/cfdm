@@ -1,4 +1,4 @@
-"""Utilities for the backend `xarray` backend `p5netcdf`."""
+"""Utilities for the `xarray` backend."""
 
 
 # --------------------------------------------------------------------

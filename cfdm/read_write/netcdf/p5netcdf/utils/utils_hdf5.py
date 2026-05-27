@@ -1,4 +1,4 @@
-"""Utilities for backends `pyfive` and `h5py` in `p5netcdf`."""
+"""Utilities for the `pyfive` and `h5py` backends."""
 
 from .utils_general import NetCDFError
 
@@ -73,7 +73,7 @@ def hdf5_parse_group_structure(group):
 
     :Parameters:
 
-        group: `Group` or `File`
+        group: `Group` or `Dataset`
             The group to be parsed.
 
     :Returns:

@@ -1,1 +1,1 @@
-from .p5netcdf import File, Group, Variable, Dimension
+from .p5netcdf import Dataset, Group, Variable, Dimension
