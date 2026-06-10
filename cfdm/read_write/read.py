@@ -208,6 +208,62 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.13.0.0
 
+        um: `dict`, optional
+            For Met Office (UK) PP files and Met Office (UK) fields
+            files only, provide extra decoding instructions. This
+            option is ignored for input files which are not PP or
+            fields files. In most cases, how to decode a file is
+            inferrable from the file's contents, but if not then any
+            of the following key/value pairs in the dictionary may be
+            used to guide the decoding:
+
+            * ``'um_version'``: `str`
+
+              The UM version to be used when decoding the
+              header. Valid versions are, for example, ``4.2``,
+              ``'6.6.3'`` and ``'8.2'``. In general, a given version
+              is ignored if it can be inferred from the header (which
+              is usually the case for files created by the UM at
+              versions 5.3 and later). The exception to this is when
+              the given version has a third element (such as the 3 in
+              6.6.3), in which case any version in the header is
+              ignored. The default version is ``4.5``.
+
+            * ``'height_at_top_of_model'``: `float`
+
+              The height in metres of the upper bound of the top model
+              level (TOA). By default the height at top model is taken
+              from the top level's upper bound defined by BRSVD1 in
+              the lookup header. If the height can't be determined
+              from the header, or the given height is less than or
+              equal to 0, then a coordinate reference system will
+              still be created that contains the 'a' and 'b' formula
+              term values, but without an atmosphere hybrid height
+              dimension coordinate construct.
+
+              .. note:: A current limitation is that if pseudolevels
+                        and atmosphere hybrid height coordinates are
+                        defined by same the lookup headers then the
+                        height **can't be determined
+                        automatically**. In this case the height may
+                        be found after reading as the maximum value of
+                        the bounds of the domain ancillary construct
+                        containing the 'a' formula term. The file can
+                        then be re-read with this height as a *um*
+                        parameter.
+
+            *Example:*
+              To specify that the input files from version 6.6.3 of
+              the UM: ``um_config={'um_version': '6.6.3'}``
+
+            *Example:*
+              To specify that the input files from version 6.6.3 of
+              the UM, and the height at top of the model is 85000
+              metres: ``um_config={'height_at_top_of_model': '6.6.3',
+              'um_version': 85000}``
+
+            .. versionadded:: NEXTVERSION
+
         ignore_unknown_type: Deprecated at version 1.12.2.0
             Use *dataset_type* instead.
 
@@ -271,6 +327,7 @@ class read(ReadWrite):
         cdl_string=False,
         extra_read_vars=None,
         group_dimension_search="closest_ancestor",
+        um_config=None,
         **kwargs,
     ):
         """Read field or domain constructs from datasets.
@@ -640,6 +697,7 @@ class read(ReadWrite):
                         "cdl_string",
                         "extra_read_vars",
                         "group_dimension_search",
+                        "um_config",
                     )
                 }
 

@@ -20,6 +20,7 @@ from .utils import (
     netcdf_file_open,
     netcdf_file_parse_group_structure,
     parse_attributes,
+    ppfive_open,
     pyfive_open,
     xarray_open,
     xarray_parse_group_structure,
@@ -186,7 +187,7 @@ class Mixin:
         those cases when it is not possible, `protocol` will raise an
         `AttributeError` and `is_local` will return `None`.
 
-        
+
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1856,7 +1857,8 @@ class Dataset(Group):
     the underlying backend library (see the *backend* parameter). Some
     `Variable` and `Group` properties and methods might also access
     the underlying backend but only for the first request, after which
-    the result is cached (see the *metadata_strategy* parameter).
+    the result is cached (see the *structural_metadata_strategy*
+    parameter).
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1868,8 +1870,9 @@ class Dataset(Group):
         self,
         dataset,
         backend=None,
-        metadata_strategy="minimal",
+        structural_metadata_strategy="minimal",
         pyfive_options=None,
+        ppfive_options=None,
         h5py_options=None,
         xarray_options=None,
         zarr_options=None,
@@ -1941,6 +1944,7 @@ class Dataset(Group):
                 ``'zarr'``         `zarr`
                 ``'netCDF4'``      `netCDF4`
                 ``'netcdf_file'``  `scipy.io.netcdf_file`
+                ``'ppfive'``       `ppfive`
                 ``'xarray'``       `xarray`
                 ``'h5py'``         `h5py`
                 =================  ======================
@@ -1949,7 +1953,7 @@ class Dataset(Group):
                 providing the ordered sequence of backends:
 
                 ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file',
-                'xarray', 'h5py')``
+                'ppfive', 'xarray', 'h5py')``
 
                 *Example:*
                   To only attempt ``'netCDF4'``: ``'netCDF4'`` or
@@ -1959,36 +1963,45 @@ class Dataset(Group):
                   To only attempt ``'netCDF4'`` or ``'pyfive'``, in
                   that order: ``('netCDF4', 'pyfive')``
 
-            metadata_strategy: `str`, optional
+            structural_metadata_strategy: `str`, optional
                 The strategy used for retrieving, via the backend
-                library, metadata from the dataset during the initial
-                parsing of the dataset, and caching it. Must be one
-                of:
+                library, structural metadata from the dataset during
+                the initial parsing of the dataset, and caching
+                it. Must be one of:
 
                 * ``'minimal'``
 
                   This is the default. Only the minimum amount of
-                  metadata required to parse the dataset is retrieved
-                  from the dataset and cached. For instance, this
-                  includes all variable and group attributes, but may
-                  exclude (depending on the backend library) the
+                  structural metadata required to parse the dataset is
+                  retrieved from the dataset and cached. For instance,
+                  this includes all variable and group attributes, but
+                  may exclude (depending on the backend library) the
                   variable shapes.
 
                 * ``'maximal'``
 
-                  All required metadata is retrieved from the dataset
-                  and cached. The dataset then does not need to
-                  revisited except to access the variable data arrays.
+                  All structural metadata is retrieved from the
+                  dataset and cached. The dataset then does not need
+                  to revisited except to access the variable data
+                  arrays.
 
                 Dataset metadata caching can also be applied to an
-                existing `Dataset` instance with the `cache_metadata`
-                method.
+                existing `Dataset` instance with the
+                `cache_structural_metadata` method.
 
             pyfive_options: `dict` or `None`, optional
                 Keyword arguments that are passed to `pyfive.File` to
                 be used when opening a netCDF-4 dataset with the
                 ``'pyfive'`` backend. Setting to `None` (the default)
                 is equivalent to providing an empty
+                dictionary. Ignored if *dataset* is not a string-like,
+                file-like, or directory-like object.
+
+            ppfive_options: `dict` or `None`, optional
+                Keyword arguments that are passed to `ppfive.File` to
+                be used when opening a PP or UM fields file dataset
+                with the ``'ppfive'`` backend. Setting to `None` (the
+                default) is equivalent to providing an empty
                 dictionary. Ignored if *dataset* is not a string-like,
                 file-like, or directory-like object.
 
@@ -2097,17 +2110,20 @@ class Dataset(Group):
 
         # Options for the open functions
         read_options = {}
-        if h5py_options:
-            read_options["h5py"] = h5py_options
-
         if pyfive_options:
             read_options["pyfive"] = pyfive_options
 
-        if zarr_options:
-            read_options["zarr"] = zarr_options
+        if ppfive_options:
+            read_options["ppfive"] = ppfive_options
+
+        if h5py_options:
+            read_options["h5py"] = h5py_options
 
         if xarray_options:
             read_options["xarray"] = xarray_options
+
+        if zarr_options:
+            read_options["zarr"] = zarr_options
 
         self._zarr_dimension_search = zarr_dimension_search
 
@@ -2121,7 +2137,8 @@ class Dataset(Group):
 
         if pyfive is not None and isinstance(dataset, pyfive.File):
             # --------------------------------------------------------
-            # 'dataset' is `pyfive.File`-like
+            # 'dataset' is `pyfive.File`-like (which includes
+            # `ppfive.File`)
             # --------------------------------------------------------
             nc = dataset
             attrs = nc.attrs
@@ -2231,6 +2248,7 @@ class Dataset(Group):
                 "zarr": zarr_open,
                 "netCDF4": netCDF4_open,
                 "netcdf_file": netcdf_file_open,
+                "ppfive": ppfive_open,
                 "xarray": xarray_open,
                 "h5py": h5py_open,
             }
@@ -2314,17 +2332,20 @@ class Dataset(Group):
             name="", parent=None, root=self, grp=nc, grp_attrs=attrs
         )
 
-        # Cache the requested amount of metadata (after the group
-        # structure has been parsed)
-        self.cache_metadata(metadata_strategy)
+        # Cache the requested amount of structural metadata (after the
+        # group structure has been parsed)
+        self.cache_structural_metadata(structural_metadata_strategy)
 
         # Verbose output
         if verbose == -1:
             verbose = 5
 
         if verbose >= 1:
-            self.dataset_read_log()
-            print()
+            log = self.dataset_read_log(display=False)
+            if log:
+                print("000")
+                print(log, "\n")
+
             if verbose == 1:
                 if dataset_name:
                     print(dataset_name)
@@ -2431,8 +2452,8 @@ class Dataset(Group):
 
         return self._all_variables
 
-    def cache_metadata(self, strategy="maximal"):
-        """Cache all relevant metadata from the dataset.
+    def cache_structural_metadata(self, strategy="maximal"):
+        """Cache structural metadata from the dataset.
 
         Any metadata that is already cached is not re-retrieved from
         the dataset.
@@ -2462,7 +2483,7 @@ class Dataset(Group):
                   parse the dataset is retrieved from the dataset and
                   cached. For instance, this includes all variable and
                   group attributes, but may exclude (depending on the
-                  backend library) the variable shapes. Minimal
+                  backend library)s the variable shapes. Minimal
                   metdata caching is always applied during `Dataset`
                   instantiation, so there is no benefit in using this
                   option.
@@ -2472,6 +2493,10 @@ class Dataset(Group):
             `None`
 
         """
+        if strategy == "minimal":
+            # Minimal caching is already done in `Dataset.__init__`
+            return
+
         if strategy == "maximal":
             # Execute `Variable` methods that might access the dataset and
             # which have not already been run via `Variable.__init__`.
@@ -2482,16 +2507,10 @@ class Dataset(Group):
                 variable.shards
                 variable.get_dims()
                 variable.chunking()
-
-        elif strategy == "minimal":
-            # Minimal caching is always already done in
-            # `Dataset.__init__`
-            pass
-
         else:
             raise ValueError(
-                f"Invalid value for metadata_strategy. Got {strategy!r}, "
-                "expected one of 'minimal', 'maximal'"
+                f"Invalid value for structural_metadata_strategy. "
+                f"Got {strategy!r}, expected one of 'minimal', 'maximal'"
             )
 
     def close(self):

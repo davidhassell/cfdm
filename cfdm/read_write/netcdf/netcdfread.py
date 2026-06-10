@@ -548,7 +548,8 @@ class NetCDFRead(IORead):
                 dataset,
                 backend=g["netcdf_backend"],
                 zarr_dimension_search=g["group_dimension_search"],
-                metadata_strategy="maximal",
+                structural_metadata_strategy="maximal",
+                ppfive_options=g["um_config"],
             )
         except Exception as error:
             if cdl_filename is not None:
@@ -872,6 +873,7 @@ class NetCDFRead(IORead):
         cdl_string=False,
         ignore_unknown_type=False,
         group_dimension_search="closest_ancestor",
+        um_config=None,
     ):
         """Reads a netCDF or Zarr dataset from file or OPenDAP URL.
 
@@ -1025,6 +1027,12 @@ class NetCDFRead(IORead):
 
                 .. versionadded:: (cfdm) 1.13.0.0
 
+            um_config: `dict` or `None`, optional
+                Configuration options for decoding UM datasets. See
+                `cfdm.read` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `list`
@@ -1158,6 +1166,10 @@ class NetCDFRead(IORead):
         if d_type in ("Zarr", "Kerchunk"):
             # Must use `zarr` for Zarr and Kerchunk datasets
             netcdf_backend = ("zarr",)
+        elif d_type in ("PP/UM"):
+            # Don't need a backend for `pyfive`-like or `xarray`-like
+            # instances
+            netcdf_backend = ("ppfive",)
         elif d_type in ("pyfive", "xarray"):
             # Don't need a backend for `pyfive`-like or `xarray`-like
             # instances
@@ -1173,6 +1185,7 @@ class NetCDFRead(IORead):
                 "netcdf_file",  # netCDF-3
                 "h5py",  # netCDF-4
                 "netCDF4",  # netCDF-3 and netCDF-4
+                "ppfive",
             )
         else:
             valid_netcdf_backends = (
@@ -1181,6 +1194,7 @@ class NetCDFRead(IORead):
                 "h5py",
                 "netCDF4",
                 "zarr",
+                "ppfive",
             )
             if isinstance(netcdf_backend, str):
                 netcdf_backend = (netcdf_backend,)
@@ -1308,6 +1322,25 @@ class NetCDFRead(IORead):
             raise ValueError(
                 f"When cdl_string=True, can't set dataset_type={dataset_type}"
             )
+
+        # ------------------------------------------------------------
+        # Parse the 'um' keyword parameter
+        # ------------------------------------------------------------
+        if not (um_config is None or isinstance(um_config, dict)):
+            raise ValueError(
+                "'um_config' parameter must be a dict or None. "
+                f"Got {um_config!r}"
+            )
+
+        if um_config:
+            diff = set(um_config).difference(
+                ("um_version", "height_at_top_of_model")
+            )
+            if diff:
+                raise ValueError(
+                    "Invaid 'um_config' parameter dictionary keys: "
+                    f"{tuple(diff)}"
+                )
 
         # ------------------------------------------------------------
         # Initialise netCDF read parameters
@@ -1481,6 +1514,10 @@ class NetCDFRead(IORead):
             # Cached data elements, keyed by variable names.
             # --------------------------------------------------------
             "cached_data_elements": {},
+            # --------------------------------------------------------
+            # UM configuration options
+            # --------------------------------------------------------
+            "um_config": um_config,
         }
 
         g = self.read_vars
