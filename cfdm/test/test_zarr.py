@@ -335,13 +335,12 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(f2[0].equals(f3[0]))
 
     def test_zarr_write_np_attribute(self):
-
         """Test writing numpy attributes to Zarr."""
         f = self.f0.copy()
 
         # Scalars
         x = 9
-        scalars =  (np.int32(x), np.int64(x), np.float32(x), np.float64(x))
+        scalars = (np.int32(x), np.int64(x), np.float32(x), np.float64(x))
         for i, scalar in enumerate(scalars):
             f.set_property(f"np_generic_{i}", scalar)
 
@@ -349,7 +348,7 @@ class read_writeTest(unittest.TestCase):
         y = [1, 2, 3]
         f.set_property("np_ndarray", np.array(y))
 
-        cfdm.write(f, tmpdir1, fmt='ZARR3')
+        cfdm.write(f, tmpdir1, fmt="ZARR3")
         f = cfdm.read(tmpdir1)
         self.assertEqual(len(f), 1)
 
@@ -358,6 +357,7 @@ class read_writeTest(unittest.TestCase):
             self.assertEqual(f.get_property(f"np_generic_{i}"), x)
 
         self.assertTrue(np.allclose(f.get_property("np_ndarray"), y))
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

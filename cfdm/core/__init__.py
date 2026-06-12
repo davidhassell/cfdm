@@ -13,7 +13,7 @@ datasets and the inspection of CF data model constructs.
 
 __date__ = "2026-01-15"
 __cf_version__ = "1.13"
-__version__ = "1.13.0.0+pyfive-netcdf"
+__version__ = "1.13.0.0+pyfive-netcdf" # temporary vn for xconv dev.
 
 # Count the number of docstrings (first element), and the number which
 # have docstring substitutions applied to them (second element).
