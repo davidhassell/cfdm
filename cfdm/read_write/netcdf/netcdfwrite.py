@@ -399,6 +399,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 for attr, value in attributes.items():
                     if isinstance(value, np.ndarray):
                         attributes[attr] = value.tolist()
+                    elif isinstance(value, np.generic):
+                        attributes[attr] = value.item()
 
                 x.update_attributes(attributes)
 
