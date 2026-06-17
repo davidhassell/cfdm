@@ -496,7 +496,8 @@ class NetCDFRead(IORead):
         >>> d = r.dataset_open('file.nc')
 
         """
-        from .p5netcdf import p5netcdf
+#        from .p5netcdf import p5netcdf
+        import p5netcdf
 
         g = self.read_vars
 
@@ -580,7 +581,7 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_log"] = nc.dataset_read_log(display=False)
+        g["dataset_open_log"] = nc.dataset_open_log(display=False)
 
         if g["debug"]:
             logger.debug(
