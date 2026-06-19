@@ -4,7 +4,7 @@ from cfdm.functions import abspath
 
 from ..abstract import FileArray
 from ..mixin import IndexMixin
-from .fragmentp5netcdfarray import FragmentP5netcdfArray
+from .fragmentxnetcdfarray import FragmentXnetcdfArray
 from .mixin import FragmentArrayMixin
 
 
@@ -20,7 +20,7 @@ class FragmentFileArray(
     """
 
     # Store fragment classes
-    __FragmentArrays = (FragmentP5netcdfArray,)
+    __FragmentArrays = (FragmentXnetcdfArray,)
 
     def __init__(
         self,

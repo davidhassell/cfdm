@@ -1,8 +1,8 @@
-from ..p5netcdfarray import P5netcdfArray
+from ..xnetcdfarray import XnetcdfArray
 from .mixin import FragmentFileArrayMixin
 
 
-class FragmentP5netcdfArray(FragmentFileArrayMixin, P5netcdfArray):
+class FragmentXnetcdfArray(FragmentFileArrayMixin, XnetcdfArray):
     """Fragment of aggregated data in a file.
 
     .. versionadded:: (cfdm) NEXTVERSION

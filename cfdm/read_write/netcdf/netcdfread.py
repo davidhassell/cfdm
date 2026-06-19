@@ -484,11 +484,11 @@ class NetCDFRead(IORead):
 
                 The definition of the netCDF dataset to be read. May
                 be anything accepted by the *dataset* parameter of
-                `p5netcdf.Dataset`.
+                `xnetcdf.Dataset`.
 
         :Returns:
 
-            `p5netcdf.Dataset`
+            `xnetcdf.Dataset`
                 The opened dataset.
 
         **Examples**
@@ -497,7 +497,7 @@ class NetCDFRead(IORead):
 
         """
 #        from .p5netcdf import p5netcdf
-        import p5netcdf
+        import xnetcdf as xn
 
         g = self.read_vars
 
@@ -531,7 +531,10 @@ class NetCDFRead(IORead):
             # Pre-authenticated filesystem: open the dataset as a
             # file-like object and pass it to the backend.
             # --------------------------------------------------------
-            dataset = self.filesystem_open(filesystem, dataset)
+            try:
+                dataset = self.filesystem_open(filesystem, dataset)
+            except Exception:
+                pass
 
             try:
                 storage_options = filesystem.storage_options
@@ -545,7 +548,7 @@ class NetCDFRead(IORead):
 
         nc = None
         try:
-            nc = p5netcdf.Dataset(
+            nc = xn.Dataset(
                 dataset,
                 backend=g["netcdf_backend"],
                 zarr_dimension_search=g["group_dimension_search"],
@@ -572,7 +575,7 @@ class NetCDFRead(IORead):
 
                 if protocol in ("http", "https"):
                     try:
-                        nc = p5netcdf.Dataset(
+                        nc = xn.Dataset(
                             original_dataset, backend="netCDF4"
                         )
                     except Exception as error_opendap:
@@ -582,10 +585,11 @@ class NetCDFRead(IORead):
                 raise DatasetTypeError(error)
 
         g["dataset_open_log"] = nc.dataset_open_log(display=False)
-
         if g["debug"]:
+            
             logger.debug(
-                f"    Input netCDF dataset:\n{nc.dump(display=False)}\n"
+                f"\n    Dataset open log:\n{g['dataset_open_log']}\n"
+                f"\n    Input netCDF dataset:\n{nc.dump(display=False)}\n"
             )  # pragma: no cover
 
         resolve_references(nc)
@@ -4917,7 +4921,7 @@ class NetCDFRead(IORead):
             ncvar: `str`
                 The
 
-            dim: `p5netcdf.Dimension`
+            dim: `xnetcdf.Dimension`
 
         :Returns:
 
@@ -6340,7 +6344,7 @@ class NetCDFRead(IORead):
             if backend in ("pyfive", "zarr", "ppfive", "xarray"):
                 kwargs["variable"] = variable
 
-            array = self.implementation.initialise_P5netcdfArray(**kwargs)
+            array = self.implementation.initialise_XnetcdfArray(**kwargs)
             return array, kwargs
 
         # ------------------------------------------------------------

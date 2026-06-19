@@ -108,7 +108,7 @@ from .data import (
     netcdf_indexer,
     NumpyArray,
     PointTopologyArray,
-    P5netcdfArray,
+    XnetcdfArray,
     #    PyfiveArray,
     RaggedArray,
     RaggedContiguousArray,

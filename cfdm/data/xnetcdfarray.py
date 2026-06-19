@@ -8,8 +8,8 @@ from .netcdfindexer import netcdf_indexer
 logger = logging.getLogger(__name__)
 
 
-class P5netcdfArray(IndexMixin, abstract.FileArray):
-    """A netCDF array accessed with `p5netcdf`.
+class XnetcdfArray(IndexMixin, abstract.FileArray):
+    """A netCDF array accessed with `xnetcdf`.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -50,7 +50,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
         :Parameters:
 
-            var: `p5netcdf.Variable`
+            var: `xnetcdf.Variable`
                 The variable.
 
         :Returns:
@@ -122,7 +122,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
         :Parameters:
 
-            dataset: `p5netcdf.Dataset`
+            dataset: `xnetcdf.Dataset`
                 The netCDF dataset to be closed.
 
         :Returns:
@@ -141,16 +141,16 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
         :Parameters:
 
             kwargs: optional
-                Extra keyword arguments to `p5netcdf.Dataset`.
+                Extra keyword arguments to `xnetcdf.Dataset`.
 
         :Returns:
 
-            (`p5netcdf.Dataset`, `str`)
+            (`xnetcdf.Dataset`, `str`)
                 The open file object, and the address of the data
                 within the file.
 
         """
-        from cfdm import p5netcdf
+        import xnetcdf as xn
 
         backend = self.get_backend()
 
@@ -159,7 +159,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
 
         out = None
         try:
-            out = super().open(p5netcdf.Dataset, options=options)
+            out = super().open(xn.Dataset, options=options)
         except Exception as e:
             error = [str(e)]
 
@@ -181,7 +181,7 @@ class P5netcdfArray(IndexMixin, abstract.FileArray):
                 options["backend"] = "netCDF4"
                 try:
                     out = super().open(
-                        p5netcdf.Dataset,
+                        xn.Dataset,
                         options=options,
                         create_filesystem=False,
                     )
