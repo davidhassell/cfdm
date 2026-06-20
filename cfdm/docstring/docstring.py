@@ -1357,6 +1357,9 @@ _docstring_substitution_definitions = {
                 providing the ordered sequence of backends:
 
                 ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``""",
+    # init backend_options
+    "{{init backend_options: `None` or `dict`, optional}}": """init backend_options: `None` or `dict`, optional
+                TODOP""",
     # _force_mask_hardness
     "{{_force_mask_hardness: `bool`, optional}}": """_force_mask_hardness: `bool`, optional
                 If True (the default) then force the mask hardness of

@@ -150,16 +150,14 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
                 within the file.
 
         """
-        import xnetcdf as xn
+        import xnetcdf
 
         backend = self.get_backend()
-
-        options = {"backend": backend}
-        options.update(kwargs)
+        options = {"backend": backend} | self.get_backend_options() | kwargs
 
         out = None
         try:
-            out = super().open(xn.Dataset, options=options)
+            out = super().open(xnetcdf.Dataset, options=options)
         except Exception as e:
             error = [str(e)]
 
@@ -181,7 +179,7 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
                 options["backend"] = "netCDF4"
                 try:
                     out = super().open(
-                        xn.Dataset,
+                        xnetcdf.Dataset,
                         options=options,
                         create_filesystem=False,
                     )

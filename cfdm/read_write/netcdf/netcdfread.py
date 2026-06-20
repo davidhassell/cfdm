@@ -496,8 +496,7 @@ class NetCDFRead(IORead):
         >>> d = r.dataset_open('file.nc')
 
         """
-#        from .p5netcdf import p5netcdf
-        import xnetcdf as xn
+        import xnetcdf
 
         g = self.read_vars
 
@@ -534,7 +533,8 @@ class NetCDFRead(IORead):
             try:
                 dataset = self.filesystem_open(filesystem, dataset)
             except Exception:
-                pass
+                filesystem = None
+                g["filesystem"] = None
 
             try:
                 storage_options = filesystem.storage_options
@@ -548,12 +548,12 @@ class NetCDFRead(IORead):
 
         nc = None
         try:
-            nc = xn.Dataset(
+            nc = xnetcdf.Dataset(
                 dataset,
                 backend=g["netcdf_backend"],
                 zarr_dimension_search=g["group_dimension_search"],
                 structural_metadata_strategy="maximal",
-                ppfive_options=g["um_config"],
+                **g["backend_options"],
             )
         except Exception as error:
             if cdl_filename is not None:
@@ -575,7 +575,7 @@ class NetCDFRead(IORead):
 
                 if protocol in ("http", "https"):
                     try:
-                        nc = xn.Dataset(
+                        nc = xnetcdf.Dataset(
                             original_dataset, backend="netCDF4"
                         )
                     except Exception as error_opendap:
@@ -586,7 +586,7 @@ class NetCDFRead(IORead):
 
         g["dataset_open_log"] = nc.dataset_open_log(display=False)
         if g["debug"]:
-            
+
             logger.debug(
                 f"\n    Dataset open log:\n{g['dataset_open_log']}\n"
                 f"\n    Input netCDF dataset:\n{nc.dump(display=False)}\n"
@@ -863,6 +863,7 @@ class NetCDFRead(IORead):
         storage_options=None,
         filesystem=None,
         netcdf_backend=None,
+        backend_options=None,
         cache=True,
         dask_chunks="storage-aligned",
         store_dataset_chunks=True,
@@ -871,6 +872,7 @@ class NetCDFRead(IORead):
         cfa_write=None,
         cfa_filesystem=None,
         cfa_backend=None,
+        cfa_backend_options=None,
         to_memory=None,
         squeeze=False,
         unsqueeze=False,
@@ -989,6 +991,13 @@ class NetCDFRead(IORead):
 
             cfa_backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading the
+                dataset fragments indicated in a CF-netCDF aggregation
+                file. See `cfdm.read` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            cfa_backend_options: `None` or `dict`, optional
+                TODOP Which library or libraries to use for reading the
                 dataset fragments indicated in a CF-netCDF aggregation
                 file. See `cfdm.read` for details.
 
@@ -1212,6 +1221,14 @@ class NetCDFRead(IORead):
                 )
 
         # ------------------------------------------------------------
+        # Parse the 'backend_options' keyword parameter
+        # ------------------------------------------------------------
+        if backend_options is None:
+            backend_options = {}
+        elif not isinstance(backend_options, dict):
+            raise ("TODOP")
+
+        # ------------------------------------------------------------
         # Parse the 'external' keyword parameter
         # ------------------------------------------------------------
         if external:
@@ -1347,6 +1364,12 @@ class NetCDFRead(IORead):
                     f"{tuple(diff)}"
                 )
 
+            ppfive_options = backend_options.get("ppfive_options")
+            if ppfive_options is None:
+                backend_options["ppfive_options"] = um_config
+            else:
+                backend_options["ppfive_options"] = ppfive_options | um_config
+
         # ------------------------------------------------------------
         # Initialise netCDF read parameters
         # ------------------------------------------------------------
@@ -1460,9 +1483,10 @@ class NetCDFRead(IORead):
             # Interpolation parameter variables
             "interpolation_parameter": {},
             # --------------------------------------------------------
-            # NetCDF backend
+            # Dataset backend
             # --------------------------------------------------------
             "netcdf_backend": netcdf_backend,
+            "backend_options": backend_options,
             # --------------------------------------------------------
             # S3
             # --------------------------------------------------------
@@ -1492,6 +1516,7 @@ class NetCDFRead(IORead):
             "cfa_filesystem": cfa_filesystem,
             # Backend with which to open fragment datasets
             "cfa_backend": cfa_backend,
+            "cfa_backend_options": cfa_backend_options,
             # --------------------------------------------------------
             # Whether or not to store the dataset chunking and
             # sharding strategies
@@ -6332,6 +6357,7 @@ class NetCDFRead(IORead):
             "attributes": attributes,
             "filesystem": g["filesystem"],
             "backend": backend,
+            "backend_options": g["backend_options"].get(f"{backend}_options"),
         }
 
         if not self._cfa_is_aggregation_variable(ncvar):
@@ -6342,6 +6368,7 @@ class NetCDFRead(IORead):
             # For some backends, it's OK to store the actual variable
             # inside the Dask array
             if backend in ("pyfive", "zarr", "ppfive", "xarray"):
+                # TODOP - xarray only if the input data set was an xarray-like object!
                 kwargs["variable"] = variable
 
             array = self.implementation.initialise_XnetcdfArray(**kwargs)
@@ -6394,6 +6421,7 @@ class NetCDFRead(IORead):
         kwargs["fragment_array"] = fragment_array
         kwargs["fragment_filesystem"] = g["cfa_filesystem"]
         kwargs["fragment_backend"] = g["cfa_backend"]
+        kwargs["fragment_backend_options"] = g["cfa_backend_options"]
 
         if return_kwargs_only:
             return kwargs

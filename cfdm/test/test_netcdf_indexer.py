@@ -255,7 +255,7 @@ class netcdf_indexerTest(unittest.TestCase):
         self.assertEqual(v[1, np.newaxis, :3].shape, (1, 3))
 
         # Test with netCDF backends
-        for klass in (cfdm.P5netcdfArray,):
+        for klass in (cfdm.XnetcdfArray,):
             k = klass("example_field_0.nc", "time", shape=())
             dataset, address = k.open()
             variable = dataset[address]

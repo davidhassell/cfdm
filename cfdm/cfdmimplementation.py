@@ -32,12 +32,12 @@ from .data import (  # H5netcdfArray,; H5pyArray,; NetCDF4Array,; PyfiveArray,; 
     CellConnectivityArray,
     Data,
     GatheredArray,
-    XnetcdfArray,
     PointTopologyArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
     SubsampledArray,
+    XnetcdfArray,
 )
 
 
