@@ -114,11 +114,11 @@ class AggregatedArray(abstract.FileArray):
                 open each fragment dataset is made by the given
                 backends in order, stopping after the first successful
                 read. The available backends are those allowed by
-                `p5netcdf`.
+                `xnetcdf`.
 
                 By default *fragment_backend* is `None`, which is
-                equivalent to providing the ordered sequence of
-                the default backends for `p5netcdf`.
+                equivalent to providing the ordered sequence of the
+                default backends for `xnetcdf`.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -498,8 +498,7 @@ class AggregatedArray(abstract.FileArray):
         return self._get_component("fragment_backend", None)
 
     def get_fragment_backend_options(self):
-        """TODOP The names of the packages for accessing the fragment
-        dataset.
+        """TODOP.
 
         .. versionadded:: (cfdm) NEXTVERSION
 

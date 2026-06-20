@@ -102,22 +102,16 @@ from .data import (
     Data,
     FullArray,
     GatheredArray,
-    #    H5netcdfArray,
-    #    NetCDFArray,
-    #    NetCDF4Array,
     netcdf_indexer,
     NumpyArray,
     PointTopologyArray,
     XnetcdfArray,
-    #    PyfiveArray,
     RaggedArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
-    #    ScipyNetcdfFileArray,
     SparseArray,
     SubsampledArray,
-    #    ZarrArray,
 )
 
 from .data import (
