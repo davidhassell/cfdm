@@ -484,11 +484,11 @@ class NetCDFRead(IORead):
 
                 The definition of the netCDF dataset to be read. May
                 be anything accepted by the *dataset* parameter of
-                `p5netcdf.Dataset`.
+                `xnetcdf.Dataset`.
 
         :Returns:
 
-            `p5netcdf.Dataset`
+            `xnetcdf.Dataset`
                 The opened dataset.
 
         **Examples**
@@ -497,7 +497,7 @@ class NetCDFRead(IORead):
 
         """
 #        from .p5netcdf import p5netcdf
-        import p5netcdf
+        import xnetcdf
 
         g = self.read_vars
 
@@ -545,9 +545,9 @@ class NetCDFRead(IORead):
 
         nc = None
         try:
-            nc = p5netcdf.Dataset(
+            nc = xnetcdf.Dataset(
                 dataset,
-                backend=g["netcdf_backend"],
+#                backend=g["netcdf_backend"],
                 zarr_dimension_search=g["group_dimension_search"],
                 structural_metadata_strategy="maximal",
                 ppfive_options=g["um_config"],
@@ -572,7 +572,7 @@ class NetCDFRead(IORead):
 
                 if protocol in ("http", "https"):
                     try:
-                        nc = p5netcdf.Dataset(
+                        nc = xnetcdf.Dataset(
                             original_dataset, backend="netCDF4"
                         )
                     except Exception as error_opendap:
@@ -4917,7 +4917,7 @@ class NetCDFRead(IORead):
             ncvar: `str`
                 The
 
-            dim: `p5netcdf.Dimension`
+            dim: `xnetcdf.Dimension`
 
         :Returns:
 
