@@ -149,8 +149,47 @@ class read(ReadWrite):
             .. versionadded:: (cfdm) 1.9.0.0
 
         {{read netcdf_backend: `None` or (sequence of) `str`, optional}}
+            TODOP - deprecate
 
             .. versionadded:: (cfdm) 1.11.2.0
+
+        backend: `None` or (sequence of) `str`, optional
+            Which library or libraries to use for reading a
+            dataset. An attempt to open a dataset is made by the given
+            backends in the order in which they are provided, stopping
+            after the first successful read.
+
+            The available backends are:
+
+            =================  ======================
+            Backend            Library
+            =================  ======================
+            ``'pyfive'``       `pyfive`
+            ``'zarr'``         `zarr`
+            ``'netCDF4'``      `netCDF4`
+            ``'netcdf_file'``  `scipy.io.netcdf_file`
+            ``'h5py'``         `h5py`
+            =================  ======================
+
+            By default *backend* is `None`, which is equivalent to
+            providing the ordered sequence of backends:
+
+            ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
+
+            *Example:*
+              To only attempt ``'netCDF4'``: ``'netCDF4'`` or
+              ``['netCDF4']``
+
+            *Example:*
+              To only attempt ``'netCDF4'`` or ``'pyfive'``, in that
+              order: ``('netCDF4', 'pyfive')``
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        backend_options: `None` or `dict`
+            TODOP
+
+            .. versionadded:: (cfdm) NEXTVERSION
 
         {{read filesystem: optional}}
 
@@ -189,6 +228,11 @@ class read(ReadWrite):
             .. versionadded:: (cfdm) NEXTVERSION
 
         {{read cfa_backend: `None` or (sequence of) `str`, optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        cfa_backend_options: `None` or `dict`
+            TODOP
 
             .. versionadded:: (cfdm) NEXTVERSION
 
@@ -308,6 +352,7 @@ class read(ReadWrite):
         unpack=True,
         domain=False,
         netcdf_backend=None,
+        backend_options=None,
         storage_options=None,
         filesystem=None,
         cache=True,
@@ -318,6 +363,7 @@ class read(ReadWrite):
         cfa_write=None,
         cfa_filesystem=None,
         cfa_backend=None,
+        cfa_backend_options=None,
         to_memory=False,
         squeeze=False,
         unsqueeze=False,
@@ -682,6 +728,7 @@ class read(ReadWrite):
                         "storage_options",
                         "filesystem",
                         "netcdf_backend",
+                        "backend_options",
                         "cache",
                         "dask_chunks",
                         "store_dataset_chunks",
@@ -690,6 +737,7 @@ class read(ReadWrite):
                         "cfa_write",
                         "cfa_filesystem",
                         "cfa_backend",
+                        "cfa_backend_options",
                         "to_memory",
                         "squeeze",
                         "unsqueeze",

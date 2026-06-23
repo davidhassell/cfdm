@@ -12,7 +12,7 @@ def resolve_references(dataset):
 
     :Parameters:
 
-        dataset: `p5netcdf.File`
+        dataset: `xnetcdf.Dataset`
             The dataset, which will have its attribute dictionaries
             updated in-place.
 
@@ -43,7 +43,7 @@ def resolve_attribute(name, attr_value, variable):
         attr_value:
             The attribute value.
 
-        variable: `p5netcdf.Variable`
+        variable: `xnetcdf.Variable`
             The parent variable.
 
     :Returns:
@@ -73,7 +73,7 @@ def resolve_reference(
         ref: `str`
             The reference to resolve.
 
-        variable: `p5netcdf.`Variable`
+        variable: `xnetcdf.`Variable`
             The original variable object that has the attribute that
             contains the reference.
 
@@ -151,7 +151,7 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
         ref: `str`
             The reference to be searched for.
 
-        variable: `p5netcdf.Variable`
+        variable: `xnetcdf.Variable`
             The parent variable.
 
         search_type: `str`
@@ -199,7 +199,7 @@ def search_by_proximity(ref, variable, search_type, coord=False):
         ref: `str`
             The reference to be searched for.
 
-        variable: `p5netcdf.Variable`
+        variable: `xnetcdf.Variable`
             The parent variable.
 
         search_type: `str`
@@ -276,7 +276,7 @@ def coordinate_lateral_search(ref, group, depth):
         ref: `str`
             The name of the refernece to be resolved (e.g. ``'lat'``).
 
-        group: `p5netcdf.Group`
+        group: `xnetcdf.Group`
             The group containing the variable that has the attribute
             which contains the reference.
 

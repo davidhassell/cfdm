@@ -26,18 +26,18 @@ from . import (
     TiePointIndex,
 )
 from .abstract import Implementation
-from .data import (  # H5netcdfArray,; H5pyArray,; NetCDF4Array,; PyfiveArray,; ScipyNetcdfFileArray,; ZarrArray,
+from .data import (
     AggregatedArray,
     BoundsFromNodesArray,
     CellConnectivityArray,
     Data,
     GatheredArray,
-    P5netcdfArray,
     PointTopologyArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
     SubsampledArray,
+    XnetcdfArray,
 )
 
 
@@ -2579,98 +2579,8 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("TiePointIndex")
         return cls()
 
-    #    def initialise_NetCDF4Array(self, **kwargs):
-    #        """Return a `NetCDF4Array` instance.
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Initialisation parameters to pass to the new instance.
-    #
-    #                .. versionadded:: (cfdm) 1.11.2.0
-    #
-    #        :Returns:
-    #
-    #            `NetCDF4Array`
-    #
-    #        """
-    #        cls = self.get_class("NetCDF4Array")
-    #        return cls(**kwargs)
-    #
-    #    def initialise_H5netcdfArray(self, **kwargs):
-    #        """Return a `H5netcdfArray` instance.
-    #
-    #        .. versionadded:: (cfdm) 1.11.2.0
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Initialisation parameters to pass to the new instance.
-    #
-    #        :Returns:
-    #
-    #            `H5netcdfArray`
-    #
-    #        """
-    #        cls = self.get_class("H5netcdfArray")
-    #        return cls(**kwargs)
-    #
-    #    def initialise_H5pyArray(self, **kwargs):
-    #        """Return a `H5netcdfArray` instance.
-    #
-    #        .. versionadded:: (cfdm) 1.11.2.0
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Initialisation parameters to pass to the new instance.
-    #
-    #        :Returns:
-    #
-    #            `H5pyArray`
-    #
-    #        """
-    #        cls = self.get_class("H5pyArray")
-    #        return cls(**kwargs)
-    #
-    #    def initialise_ScipyNetcdfFileArray(self, **kwargs):
-    #        """Return a `NetCDF4Array` instance.
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Initialisation parameters to pass to the new instance.
-    #
-    #                .. versionadded:: (cfdm) NEXTVERSION
-    #
-    #        :Returns:
-    #
-    #            `ScipyNetcdfFileArray`
-    #
-    #        """
-    #        cls = self.get_class("ScipyNetcdfFileArray")
-    #        return cls(**kwargs)
-    #
-    #    def initialise_PyfiveArray(self, **kwargs):
-    #        """Return a `PyfiveArray` instance.
-    #
-    #        .. versionadded:: (cfdm) NEXTVERSION
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Initialisation parameters to pass to the new instance.
-    #
-    #        :Returns:
-    #
-    #            `PyfiveArray`
-    #
-    #        """
-    #        cls = self.get_class("PyfiveArray")
-    #        return cls(**kwargs)
-
-    def initialise_P5netcdfArray(self, **kwargs):
-        """Return a `P5netcdfArray` instance.
+    def initialise_XnetcdfArray(self, **kwargs):
+        """Return a `XnetcdfArray` instance.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -2681,29 +2591,11 @@ class CFDMImplementation(Implementation):
 
         :Returns:
 
-            `P5netcdfArray`
+            `XnetcdfArray`
 
         """
-        cls = self.get_class("P5netcdfArray")
+        cls = self.get_class("XnetcdfArray")
         return cls(**kwargs)
-
-    #    def initialise_ZarrArray(self, **kwargs):
-    #        """Return a `ZarrArray` instance.
-    #
-    #        .. versionadded:: (cfdm) 1.12.2.0
-    #
-    #        :Parameters:
-    #
-    #            kwargs: optional
-    #                Initialisation parameters to pass to the new instance.
-    #
-    #        :Returns:
-    #
-    #            `ZarrArray`
-    #
-    #        """
-    #        cls = self.get_class("ZarrArray")
-    #        return cls(**kwargs)
 
     def initialise_BoundsFromNodesArray(self, **kwargs):
         """Return a node bounds array.
@@ -4123,20 +4015,14 @@ _implementation = CFDMImplementation(
     Data=Data,
     BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
-    #    H5netcdfArray=H5netcdfArray,
-    P5netcdfArray=P5netcdfArray,
-    #    H5pyArray=H5pyArray,
-    #    NetCDF4Array=NetCDF4Array,
-    #    ScipyNetcdfFileArray=ScipyNetcdfFileArray,
     PointTopologyArray=PointTopologyArray,
-    #    PyfiveArray=PyfiveArray,
     Quantization=Quantization,
     RaggedContiguousArray=RaggedContiguousArray,
     RaggedIndexedArray=RaggedIndexedArray,
     RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
     SubsampledArray=SubsampledArray,
     TiePointIndex=TiePointIndex,
-    #    ZarrArray=ZarrArray,
+    XnetcdfArray=XnetcdfArray,
 )
 
 
@@ -4151,46 +4037,6 @@ def implementation():
 
         `CFDMImplementation`
             A container for the CF data model implementation.
-
-    **Examples**
-
-    >>> i = cfdm.implementation()
-    >>> i
-    <CFDMImplementation: >
-    >>> i.classes()
-    {'AuxiliaryCoordinate': <class 'cfdm.auxiliarycoordinate.AuxiliaryCoordinate'>,
-     'CellMeasure': <class 'cfdm.cellmeasure.CellMeasure'>,
-     'CellMethod': <class 'cfdm.cellmethod.CellMethod'>,
-     'CoordinateReference': <class 'cfdm.coordinatereference.CoordinateReference'>,
-     'DimensionCoordinate': <class 'cfdm.dimensioncoordinate.DimensionCoordinate'>,
-     'DomainAncillary': <class 'cfdm.domainancillary.DomainAncillary'>,
-     'DomainAxis': <class 'cfdm.domainaxis.DomainAxis'>,
-     'Field': <class 'cfdm.field.Field'>,
-     'FieldAncillary': <class 'cfdm.fieldancillary.FieldAncillary'>,
-     'Bounds': <class 'cfdm.bounds.Bounds'>,
-     'InteriorRing': <class 'cfdm.interiorring.InteriorRing'>,
-     'CoordinateConversion': <class 'cfdm.coordinateconversion.CoordinateConversion'>,
-     'Datum': <class 'cfdm.datum.Datum'>,
-     'Data': <class 'cfdm.data.data.Data'>,
-     'GatheredArray': <class 'cfdm.data.gatheredarray.GatheredArray'>,
-     'H5netcdfArray': <class 'cfdm.data.h5netcdfarray.H5netcdfArray'>,
-     'P5netcdfArray': <class 'cfdm.data.p5netcdfarray.P5netcdfArray'>,
-     'H5pyArray': <class 'cfdm.data.h5pyarray.H5pyArray'>,
-     'NetCDF4Array': <class 'cfdm.data.netcdf4array.NetCDF4Array'>,
-     'ScipyNetcdfFileArray': <class 'cfdm.data.scipynetcdffilearray.ScipyNetcdfFileArray'>,
-     'PointTopologyArray': <class 'cfdm.data.pointtopologyarray.PointTopologyArray'>,
-     'PyfiveArray': <class 'cfdm.data.pyfivearray.PyFiveArray'>,
-     'RaggedContiguousArray': <class 'cfdm.data.raggedcontiguousarray.RaggedContiguousArray'>,
-     'RaggedIndexedArray': <class 'cfdm.data.raggedindexedarray.RaggedIndexedArray'>,
-     'RaggedIndexedContiguousArray': <class 'cfdm.data.raggedindexedcontiguousarray.RaggedIndexedContiguousArray'>,
-     'SubsampledArray': <class 'cfdm.data.subsampledrray.SubsampledArray'>,
-     'List': <class 'cfdm.list.List'>,
-     'Count': <class 'cfdm.count.Count'>,
-     'Index': <class 'cfdm.index.Index'>,
-     'NodeCountProperties': <class 'cfdm.nodecountproperties.NodeCountProperties'>,
-     'PartNodeCountProperties': <class 'cfdm.partnodecountproperties.PartNodeCountProperties'>,
-     'Quantization': <class 'cfdm.quantization.Quantization'>,
-     'ZarrArray': <class 'cfdm.data.zarrarray.ZarrArray'>}
 
     """
     return _implementation.copy()

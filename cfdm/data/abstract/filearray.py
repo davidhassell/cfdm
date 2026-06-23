@@ -24,6 +24,7 @@ class FileArray(Array):
         attributes=None,
         filesystem=None,
         backend=None,
+        backend_options=None,
         variable=None,
         source=None,
         copy=True,
@@ -61,6 +62,10 @@ class FileArray(Array):
                 .. versionadded:: (cfdm) NEXTVERSION
 
             {{init backend: `None` or (sequence of) `str`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{init backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -132,6 +137,13 @@ class FileArray(Array):
                 backend = None
 
             try:
+                backend_options = source._get_component(
+                    "backend_options", None
+                )
+            except AttributeError:
+                backend_options = None
+
+            try:
                 variable = source._get_component("variable", None)
             except AttributeError:
                 variable = None
@@ -160,6 +172,9 @@ class FileArray(Array):
 
         if backend is not None:
             self._set_component("backend", backend, copy=False)
+
+        if backend_options is not None:
+            self._set_component("backend_options", backend_options, copy=False)
 
         # By default, close the netCDF file after data array access
         self._set_component("close", True, copy=False)
@@ -208,6 +223,7 @@ class FileArray(Array):
             self.get_attributes(copy=False),
             self.get_filesystem(),
             self.get_backend(),
+            self.get_backend_options(),
         )
 
     def _get_array(self, index=None, use_lock=None):
@@ -309,6 +325,23 @@ class FileArray(Array):
 
         """
         return self._get_component("backend", None)
+
+    def get_backend_options(self):
+        """TODOP The names of the packages for accessing the dataset.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `dict`
+                TODOP The backend name or names, or `None` if none have not
+                been provided. When accessing the dataset, the
+                backends are tried in order until one succeessfully
+                reads the dataset. If no backends have been provided
+                then the default backend(s) for are used.
+
+        """
+        return self._get_component("backend_options", {})
 
     def file_directory(self, normalise=False, default=AttributeError()):
         """The file directory.

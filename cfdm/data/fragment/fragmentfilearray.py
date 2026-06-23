@@ -4,7 +4,7 @@ from cfdm.functions import abspath
 
 from ..abstract import FileArray
 from ..mixin import IndexMixin
-from .fragmentp5netcdfarray import FragmentP5netcdfArray
+from .fragmentxnetcdfarray import FragmentXnetcdfArray
 from .mixin import FragmentArrayMixin
 
 
@@ -20,7 +20,7 @@ class FragmentFileArray(
     """
 
     # Store fragment classes
-    __FragmentArrays = (FragmentP5netcdfArray,)
+    __FragmentArrays = (FragmentXnetcdfArray,)
 
     def __init__(
         self,
@@ -30,6 +30,7 @@ class FragmentFileArray(
         shape=None,
         filesystem=None,
         backend=None,
+        backend_options=None,
         unpack_aggregated_data=True,
         aggregated_attributes=None,
         aggregation_file_directory=None,
@@ -75,6 +76,10 @@ class FragmentFileArray(
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
+            {{init backend_options: `None` or `dict`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
@@ -90,6 +95,7 @@ class FragmentFileArray(
             attributes=None,
             filesystem=filesystem,
             backend=backend,
+            backend_options=backend_options,
             source=source,
             copy=copy,
         )
@@ -153,8 +159,8 @@ class FragmentFileArray(
 
             {{index: `tuple` or `None`, optional}}
 
-               When a `tuple`, there must be a distinct entry for each
-               fragment dimension.
+                When a `tuple`, there must be a distinct entry for
+                each fragment dimension.
 
         :Returns:
 

@@ -4198,7 +4198,7 @@ class Data(
          [0.029 0.059 0.039 0.07  0.058 0.072 0.009 0.017]
          [0.006 0.036 0.019 0.035 0.018 0.037 0.034 0.013]]
         >>> f.data.compute(_force_to_memory=False)
-        <{{repr}}PyfiveArray(5, 8): file.nc, q(5, 8)>
+        <{{repr}}XnetcdfArray(5, 8): file.nc, q(5, 8)>
 
         """
         dx = self.to_dask_array(

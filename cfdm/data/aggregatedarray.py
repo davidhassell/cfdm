@@ -34,8 +34,10 @@ class AggregatedArray(abstract.FileArray):
         attributes=None,
         filesystem=None,
         backend=None,
+        backend_options=None,
         fragment_filesystem=None,
         fragment_backend=None,
+        fragment_backend_options=None,
         source=None,
         copy=True,
     ):
@@ -80,6 +82,10 @@ class AggregatedArray(abstract.FileArray):
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
+            {{init backend_options: `None` or `dict`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
             {{init attributes: `dict` or `None`, optional}}
 
                 If *attributes* is `None`, the default, then the
@@ -108,11 +114,16 @@ class AggregatedArray(abstract.FileArray):
                 open each fragment dataset is made by the given
                 backends in order, stopping after the first successful
                 read. The available backends are those allowed by
-                `p5netcdf`.
+                `xnetcdf`.
 
                 By default *fragment_backend* is `None`, which is
-                equivalent to providing the ordered sequence of
-                the default backends for `p5netcdf`.
+                equivalent to providing the ordered sequence of the
+                default backends for `xnetcdf`.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            fragment_backend_options: `None` or `dict`, optional
+                TODOP
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -136,6 +147,7 @@ class AggregatedArray(abstract.FileArray):
             attributes=attributes,
             filesystem=filesystem,
             backend=backend,
+            backend_options=backend_options,
             source=source,
             copy=copy,
         )
@@ -160,14 +172,23 @@ class AggregatedArray(abstract.FileArray):
                 fragment_type = source.get_fragment_type()
             except AttributeError:
                 fragment_type = None
+
             try:
                 fragment_filesystem = source.get_fragment_filesystem()
             except AttributeError:
                 fragment_filesystem = None
+
             try:
                 fragment_backend = source.get_fragment_backend()
             except AttributeError:
                 fragment_backend = None
+
+            try:
+                fragment_backend_options = (
+                    source.get_fragment_backend_options()
+                )
+            except AttributeError:
+                fragment_backend_options = None
         else:
             if filename is not None:
                 (
@@ -193,6 +214,9 @@ class AggregatedArray(abstract.FileArray):
             "fragment_filesystem", fragment_filesystem, copy=False
         )
         self._set_component("fragment_backend", fragment_backend, copy=False)
+        self._set_component(
+            "fragment_backend_options", fragment_backend_options, copy=False
+        )
 
     def __getitem__(self, index):
         """Return a subspace.
@@ -472,6 +496,22 @@ class AggregatedArray(abstract.FileArray):
 
         """
         return self._get_component("fragment_backend", None)
+
+    def get_fragment_backend_options(self):
+        """TODOP.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `dict`
+                TODOP  The backend names, or `None` if none have not been
+                provided. When accessing the fragment, the backends
+                are tried in order until one succeessfully reads the
+                dataset.
+
+        """
+        return self._get_component("fragment_backend_options", {})
 
     def get_fragment_filesystem(self):
         """Return the file system which contains the fragement dataset.
@@ -780,6 +820,7 @@ class AggregatedArray(abstract.FileArray):
         fragment_array = self.get_fragment_array(copy=False)
         fragment_filesystem = self.get_fragment_filesystem()
         fragment_backend = self.get_fragment_backend()
+        fragment_backend_options = self.get_fragment_backend_options()
         fragment_type = self.get_fragment_type()
         aggregated_attributes = self.get_attributes()
         unpack = self.get_unpack()
@@ -828,6 +869,7 @@ class AggregatedArray(abstract.FileArray):
                 kwargs["address"] = kwargs.pop("identifier")
                 kwargs["filesystem"] = fragment_filesystem
                 kwargs["backend"] = fragment_backend
+                kwargs["backend_options"] = fragment_backend_options
                 kwargs["aggregation_file_directory"] = (
                     aggregation_file_directory
                 )
