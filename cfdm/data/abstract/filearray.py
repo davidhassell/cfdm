@@ -59,7 +59,7 @@ class FileArray(Array):
 
             {{init filesystem: optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             {{init backend: `None` or (sequence of) `str`, optional}}
 
@@ -67,7 +67,7 @@ class FileArray(Array):
 
             {{init backend_options: `None` or `dict`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             variable: optional
                 An open dataset variable object. Setting *variable*
@@ -75,7 +75,7 @@ class FileArray(Array):
                 *address* parameters, instead it complements them by
                 allowing faster data access.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             {{init source: optional}}
 
@@ -440,13 +440,13 @@ class FileArray(Array):
     def get_storage_protocol(self):
         """The file system protocol.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         .. seeaslo:: `has_remote_storage_protocol`, `get_storage_options`
 
         :Returns:
 
-            `None` or str`
+            `None` or `str`
                 The file system protocol. If `None` the the file
                 system is the local file system.
 
@@ -514,7 +514,7 @@ class FileArray(Array):
     def get_variable(self, default=AttributeError()):
         """Get the open dataset variable object for the data.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -777,7 +777,7 @@ class FileArray(Array):
     def has_remote_storage_protocol(self):
         """Whether or not there is a remote file system protocol.
 
-        .. versionadded:: (cfdm)  NEXTVERSION
+        .. versionadded:: (cfdm)  1.13.1.0
 
         .. seeaslo:: `get_storage_protocol`, `get_storage_options`
 

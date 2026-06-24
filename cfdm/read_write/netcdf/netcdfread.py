@@ -11,14 +11,15 @@ from functools import reduce
 from math import log, nan, prod
 from numbers import Integral
 from os.path import isdir, isfile, join
+from pprint import pformat
 from typing import Any
 
 import numpy as np
 
-from cfdm.data.netcdfindexer import netcdf_indexer
-from cfdm.decorators import _manage_log_level_via_verbosity
-from cfdm.functions import abspath, is_log_level_debug  # , is_log_level_detail
-
+from ...conformance import FieldChecker, VariableNonConformance
+from ...data.netcdfindexer import netcdf_indexer
+from ...decorators import _manage_log_level_via_verbosity
+from ...functions import abspath, is_log_level_debug, is_log_level_detail
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
 from .cf_resolve_references import (
@@ -26,6 +27,7 @@ from .cf_resolve_references import (
     resolve_references,
     search_by_proximity,
 )
+from .checker import NetCDFCheckerMixin
 from .constants import (
     CF_QUANTIZATION_PARAMETERS,
     NETCDF_MAGIC_NUMBERS,
@@ -80,7 +82,7 @@ class Mesh:
     ncdim: dict = field(default_factory=dict)
 
 
-class NetCDFRead(IORead):
+class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
     """A container for instantiating Fields from a netCDF dataset."""
 
     _code0 = {
@@ -115,6 +117,8 @@ class NetCDFRead(IORead):
         "instance_dimension attribute": 311,
         "Count dimension": 320,
         "count_dimension attribute": 321,
+        "standard_name attribute": 400,
+        "computed_standard_name attribute": 401,
     }
 
     _code1 = {
@@ -140,7 +144,21 @@ class NetCDFRead(IORead):
         "is not used by data variable": 15,
         "not in node_coordinates": 16,
         "is not locatable in the group hierarchy": 17,
+        "has a value that is not a string": 20,
+        (
+            "has a value that is not appropriate to "
+            "the context of the variable in question"
+        ): 21,
+        (
+            "has a value that is not a valid name contained "
+            "in the current standard name table"
+        ): 22,
+        ("has a modifier that is not a valid standard name modifier"): 23,
     }
+
+    def __init__(self, implementation=None):
+        FieldChecker.__init__(self)
+        self.implementation = implementation  # from IORead
 
     def cf_datum_parameters(self):
         """Datum-defining parameters names."""
@@ -550,7 +568,7 @@ class NetCDFRead(IORead):
         try:
             nc = xnetcdf.Dataset(
                 dataset,
-#                backend=g["netcdf_backend"],
+                backend=g["netcdf_backend"],
                 zarr_dimension_search=g["group_dimension_search"],
                 structural_metadata_strategy="maximal",
                 **g["backend_options"],
@@ -584,11 +602,11 @@ class NetCDFRead(IORead):
             if nc is None:
                 raise DatasetTypeError(error)
 
-        g["dataset_open_log"] = nc.dataset_open_log(display=False)
+        g["dataset_read_log"] = nc.dataset_read_log(display=False)
         if g["debug"]:
 
             logger.debug(
-                f"\n    Dataset open log:\n{g['dataset_open_log']}\n"
+                f"\n    Dataset open log:\n{g['dataset_read_log']}\n"
                 f"\n    Input netCDF dataset:\n{nc.dump(display=False)}\n"
             )  # pragma: no cover
 
@@ -713,7 +731,7 @@ class NetCDFRead(IORead):
             allowed_dataset_types: `None` or sequence of `str`
                 The allowed dataset types.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             filesystem: file system or `None`
                 The file system that contains the dataset. If `None`
@@ -723,9 +741,9 @@ class NetCDFRead(IORead):
             representation: `str` or `None`, optional
                 The dataset representation, i.e. the general type of
                 the *dataset* object. If `None` (the default), then it
-                will be determined by `dataset_representation`.
+                will be determined by calling `dataset_representation`.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
         :Returns:
 
@@ -735,14 +753,14 @@ class NetCDFRead(IORead):
                 * ``'netCDF'`` for a netCDF-3 or netCDF-4 file,
                 * ``'CDL'`` for a text CDL file,
                 * ``'Zarr'`` for a Zarr dataset directory,
-                * ``'Kerchunk'`` for a Kerchunk file,
+                * ``'Kerchunk'`` for a Kerchunk virtual directory,
                 * `None` for anything else.
 
         """
         if representation is None:
             representation = cls.dataset_representation(dataset)
 
-        if representation in ("pyfive", "xarray"):
+        if representation in ("general_mapper", "unknown"):
             return representation
 
         if cls.is_kerchunk(dataset, filesystem, representation):
@@ -778,14 +796,14 @@ class NetCDFRead(IORead):
             raise
         except Exception:
             # Can't read 4 bytes from the file, so it can't be netCDF,
-            # CDL or PP/UM.
+            # CDL or UM.
             d_type = None
         else:
             # Is it a netCDF-3 or netCDF-4 binary file?
             if magic_number in NETCDF_MAGIC_NUMBERS:
                 d_type = "netCDF"
             elif magic_number in PP_UM_MAGIC_NUMBERS:
-                d_type = "PP/UM"
+                d_type = "UM"
             else:
                 # Is it a CDL text file?
                 try:
@@ -881,6 +899,7 @@ class NetCDFRead(IORead):
         ignore_unknown_type=False,
         group_dimension_search="closest_ancestor",
         um_config=None,
+        _noncompliance_report=False,
     ):
         """Reads a netCDF or Zarr dataset from file or OPenDAP URL.
 
@@ -938,7 +957,7 @@ class NetCDFRead(IORead):
             filesystem: optional
                 See `cfdm.read` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             netcdf_backend: `None` or `str`, optional
                 See `cfdm.read` for details.
@@ -1035,6 +1054,40 @@ class NetCDFRead(IORead):
 
                 .. versionadded:: (cfdm) 1.11.2.0
 
+            _noncompliance_report: `bool`, optional
+                If True then return a warning when any data read in are
+                not fully compliant by the CF Conventions, with a dictionary
+                which registers any detected issues in a structured way to
+                indicate the issue against any netCDF objects (variables,
+                dimensions and/or attributes) which they affect. Note this is
+                in an (early) developmental stage, therefore the default is
+                False to not produce this warning.
+
+                The dictionaries printed in the warning are available
+                post-read through the dataset_compliance() method
+                available on a field or domain.
+
+                .. warning:: Compliance checking in cfdm is not yet mature
+                             and therefore only certain issues of
+                             non-compliance will be detected and reported in
+                             the warning dictionary, so this is not intended,
+                             at present, to be a comprehensive check for
+                             compliance according to the latest version of
+                             the CF Conventions. As-is it may be useful as
+                             a guide to possible issues.
+
+                             In future a human-friendly report will be made
+                             available from the warning dictionary output,
+                             but for now it is only available pretty-printed
+                             from the nested machine-parsable structure.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            _file_systems: `dict`, optional
+                Provide any already-open S3 file systems.
+
+                .. versionadded:: (cfdm) 1.11.2.0
+
             group_dimension_search: `str`, optional
                 How to interpret a group dimension name that has no
                 path. See `cfdm.read` for details.
@@ -1062,7 +1115,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         # Parse the 'dataset_type' keyword parameter
         # ------------------------------------------------------------
-        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Kerchunk", "PP/UM")
+        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Kerchunk", "UM")
         if dataset_type is not None:
             if isinstance(dataset_type, str):
                 dataset_type = (dataset_type,)
@@ -1096,14 +1149,14 @@ class NetCDFRead(IORead):
         # Dataset representation
         # ------------------------------------------------------------
         representation = self.dataset_representation(dataset)
-        if representation == "kerchunk_dict":
-            raise ValueError(
-                f"Can't read a {representation!r} dataset. Convert it to a "
-                "Kerchunk mapper and read that instead. For instance:\n\n"
-                ">>> fs = fsspec.filesystem('reference', fo=kerchunk_dict, "
-                "<options>)\n"
-                ">>> kerchunk_mapper = fs.get_mapper()"
-            )
+        #        if representation == "kerchunk_dict":
+        #            raise ValueError(
+        #                f"Can't read a {representation!r} dataset. Convert it to a "
+        #                "Kerchunk mapper and read that instead. For instance:\n\n"
+        #                ">>> fs = fsspec.filesystem('reference', fo=kerchunk_dict, "
+        #                "<options>)\n"
+        #                ">>> kerchunk_mapper = fs.get_mapper()"
+        #            )
 
         if representation == "kerchunk_bytes":
             raise ValueError(
@@ -1146,6 +1199,9 @@ class NetCDFRead(IORead):
             dataset, filesystem = self.create_filesystem(
                 dataset, storage_options
             )
+            internally_created_filesystem = True
+        else:
+            internally_created_filesystem = False
 
         # ------------------------------------------------------------
         # Check the file type, raising an exception if the type is not
@@ -1153,72 +1209,85 @@ class NetCDFRead(IORead):
         #
         # Note that the `dataset_type` method is much faster than the
         # `dataset_open` method at returning for unrecognised types.
+        #
+        # If 'd_type' is `None` then it means that we haven't been
+        # able to work out the dataset type, so we'll just let
+        # `dataset_open` work it out. (In the past (<= 1.13.1.0) we
+        # would either raise an exception or return an empty list in
+        # this case.)
         # ------------------------------------------------------------
         d_type = self.dataset_type(
             dataset, dataset_type, filesystem, representation
         )
 
-        if not d_type:
-            # Can't interpret the dataset as a recognised type, so
-            # either raise an exception or return an empty list.
-            if dataset_type is None:
-                raise DatasetTypeError(
-                    f"Can't interpret {dataset} as a dataset of one of the "
-                    f"valid types: {valid_dataset_types!r}"
-                )
-
-            return []
-
         # Can interpret the dataset as a recognised type, but return
         # an empty list if that type has been exlcuded.
-        if dataset_type is not None and d_type not in dataset_type:
+        if (
+            dataset_type is not None
+            and d_type is not None
+            and d_type not in dataset_type
+        ):
             return []
 
         # ------------------------------------------------------------
         # Parse the 'netcdf_backend' keyword parameter
         # ------------------------------------------------------------
-        if d_type in ("Zarr", "Kerchunk"):
-            # Must use `zarr` for Zarr and Kerchunk datasets
-            netcdf_backend = ("zarr",)
-        elif d_type in ("PP/UM"):
-            # Don't need a backend for `pyfive`-like or `xarray`-like
-            # instances
-            netcdf_backend = ("ppfive",)
-        elif d_type in ("pyfive", "xarray"):
-            # Don't need a backend for `pyfive`-like or `xarray`-like
-            # instances
-            netcdf_backend = None
-        elif netcdf_backend is None:
-            # By default, try netCDF backends in the following order.
-            #
-            # Note: If this order is ever changed, then the
-            #       netcdf_backend parameter docstring must also be
-            #       updated.
-            netcdf_backend = (
-                "pyfive",  # netCDF-4
-                "netcdf_file",  # netCDF-3
-                "h5py",  # netCDF-4
-                "netCDF4",  # netCDF-3 and netCDF-4
-                "ppfive",
-            )
+        if netcdf_backend is None:
+            if d_type in ("netCDF", "CDL"):
+                netcdf_backend = ("pyfive", "netCDF4", "h5py", "xarray")
+            elif d_type in ("Zarr", "Kerchunk"):
+                netcdf_backend = ("zarr", "xarray")
+            elif d_type == "UM":
+                netcdf_backend = "ppfive"
         else:
-            valid_netcdf_backends = (
-                "pyfive",
-                "netcdf_file",
-                "h5py",
-                "netCDF4",
-                "zarr",
-                "ppfive",
-            )
+            import xnetcdf
+
             if isinstance(netcdf_backend, str):
                 netcdf_backend = (netcdf_backend,)
 
-            if not set(netcdf_backend).issubset(valid_netcdf_backends):
+            if not set(netcdf_backend).issubset(xnetcdf.backends):
                 raise ValueError(
                     "Invalid netCDF backend given by the 'netcdf_backend' "
                     f"parameter. Got {netcdf_backend}, expected a subset "
-                    f"of {valid_netcdf_backends}"
+                    f"of {xnetcdf.backends}"
                 )
+        #        else:
+        #            netcdf_backend = None
+        # elif d_type is None:
+        #    # Don't need a backend for `pyfive`-like or `xarray`-like
+        #    # instances
+        #    netcdf_backend = None
+        # elif netcdf_backend is None:
+        #    # By default, try netCDF backends in the following order.
+        #    #
+        #    # Note: If this order is ever changed, then the
+        #    #       netcdf_backend parameter docstring must also be
+        #    #       updated.
+        #    netcdf_backend = (
+        #        "pyfive",  # netCDF-4
+        #        "netcdf_file",  # netCDF-3
+        #        "h5py",  # netCDF-4
+        #        "netCDF4",  # netCDF-3 and netCDF-4
+        #        "ppfive",
+        #    )
+        # else:
+        #    valid_netcdf_backends = (
+        #        "pyfive",
+        #        "netcdf_file",
+        #        "h5py",
+        #        "netCDF4",
+        #        "zarr",
+        #        "ppfive",
+        #    )
+        #    if isinstance(netcdf_backend, str):
+        #        netcdf_backend = (netcdf_backend,)
+        #
+        #    if not set(netcdf_backend).issubset(valid_netcdf_backends):
+        #        raise ValueError(
+        #            "Invalid netCDF backend given by the 'netcdf_backend' "
+        #            f"parameter. Got {netcdf_backend}, expected a subset "
+        #            f"of {valid_netcdf_backends}"
+        #        )
 
         # ------------------------------------------------------------
         # Parse the 'backend_options' keyword parameter
@@ -1384,20 +1453,21 @@ class NetCDFRead(IORead):
             "dataset_representation": representation,
             "cdl_string": bool(cdl_string),
             "ignore_unknown_type": bool(ignore_unknown_type),
+            # Compression
+            "compression": {},
+            # Conformance (CF-compliance)
+            "_noncompliance_report": {},
             # --------------------------------------------------------
             # Verbosity
             # --------------------------------------------------------
+            "verbose": verbose,
             "debug": debug,
-            #
+            "warnings": warnings,
+            # --------------------------------------------------------
+            # Data model components
+            # --------------------------------------------------------
             "new_dimension_sizes": {},
             "formula_terms": {},
-            "compression": {},
-            # Verbose?
-            "verbose": verbose,
-            # Warnings?
-            "warnings": warnings,
-            "dataset_compliance": {None: {"non-compliance": {}}},
-            "component_report": {},
             "auxiliary_coordinate": {},
             "cell_measure": {},
             "dimension_coordinate": {},
@@ -1494,6 +1564,7 @@ class NetCDFRead(IORead):
             "storage_options": storage_options,
             # Pre-authenticated filesystem object (e.g. fsspec)
             "filesystem": filesystem,
+            "internally_created_filesystem": internally_created_filesystem,
             # --------------------------------------------------------
             # Array element caching
             # --------------------------------------------------------
@@ -1551,6 +1622,10 @@ class NetCDFRead(IORead):
         }
 
         g = self.read_vars
+
+        # Process the _noncompliance_report, if any specified
+        if _noncompliance_report:
+            g["_noncompliance_report"] = _noncompliance_report
 
         # Set versions
         for version in ("1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12"):
@@ -1832,12 +1907,15 @@ class NetCDFRead(IORead):
             netcdf_external_variables = g["global_attributes"].pop(
                 "external_variables", None
             )
+
             parsed_external_variables = self._split_string_by_white_space(
                 netcdf_external_variables
             )
+
             parsed_external_variables = self._check_external_variables(
                 netcdf_external_variables, parsed_external_variables
             )
+
             g["external_variables"] = set(parsed_external_variables)
 
         # ------------------------------------------------------------
@@ -2007,7 +2085,7 @@ class NetCDFRead(IORead):
             ].difference(g["referenced_external_variables"])
             for ncvar in unreferenced_external_variables:
                 self._add_message(
-                    None,
+                    "",
                     ncvar,
                     message=("External variable", "is not referenced in file"),
                     attribute={
@@ -2104,13 +2182,18 @@ class NetCDFRead(IORead):
 
         out = [x[1] for x in sorted(items)]
 
-        if warnings:
+        # ------------------------------------------------------------
+        # Provide requested warnings e.g. about non-compliance
+        # ------------------------------------------------------------
+        noncompliance = g["_noncompliance_report"]
+        if warnings or noncompliance:
             for x in out:
-                qq = x.dataset_compliance()
-                if qq:
+                noncompliance_dict = x.dataset_compliance()
+                if noncompliance_dict:
                     logger.warning(
-                        f"WARNING: {x.__class__.__name__} incomplete due to "
-                        f"non-CF-compliant dataset. Report:\n{qq}"
+                        f"\nWARNING: {x.__class__.__name__} incomplete or "
+                        "non-standard due to non-CF-compliant dataset. "
+                        f"Report:\n{pformat(noncompliance)}"
                     )  # pragma: no cover
 
         if warn_valid and not g["domain"]:
@@ -2121,13 +2204,13 @@ class NetCDFRead(IORead):
             # --------------------------------------------------------
             for f in out:
                 # Check field constructs
-                self._check_valid(f, f)
+                self._warn_valid(f, f)
 
                 # Check constructs with data
                 for c in self.implementation.get_constructs(
                     f, data=True
                 ).values():
-                    self._check_valid(f, c)
+                    self._warn_valid(f, c)
 
         # ------------------------------------------------------------
         # Close all opened netCDF datasets
@@ -2150,7 +2233,7 @@ class NetCDFRead(IORead):
         # ------------------------------------------------------------
         return out
 
-    def _check_valid(self, field, construct):
+    def _warn_valid(self, field, construct):
         """Warns when valid_[min|max|range] properties exist on data.
 
         Issue a warning if a construct with data has
@@ -2176,7 +2259,7 @@ class NetCDFRead(IORead):
         # Check the bounds, if any.
         if self.implementation.has_bounds(construct):
             bounds = self.implementation.get_bounds(construct)
-            self._check_valid(field, bounds)
+            self._warn_valid(field, bounds)
 
         x = sorted(
             self.read_vars["valid_properties"].intersection(
@@ -2364,9 +2447,8 @@ class NetCDFRead(IORead):
         external_variables = read_vars["external_variables"]
         external_files = read_vars["external_files"]
         datasets = read_vars["datasets"]
-        #        parent_dimension_sizes = read_vars["internal_dimension_sizes"]
 
-        found = []
+        found_external_variables = []
 
         for external_file in external_files:
             logger.info(
@@ -2392,67 +2474,30 @@ class NetCDFRead(IORead):
 
             datasets.append(external_read_vars["nc"])
 
-            for ncvar in external_variables.copy():
-                original_ncvar = ncvar
+            error = False
+            for original_ncvar in external_variables:
+                found_external_variable = []
+
+                ncvar = None
                 for e_var in external_read_vars["variables"].values():
-                    ncvar = resolve_reference(ncvar, e_var, var=True)
-                    if ncvar != original_ncvar:
+                    ncvar = resolve_reference(original_ncvar, e_var, var=True)
+                    if ncvar in external_read_vars["variables"]:
                         break
 
-                self.read_vars["external_variable_map"][original_ncvar] = ncvar
+                    ncvar = None
 
-                if ncvar not in external_read_vars["internal_variables"]:
-                    # The external variable name is not in this
-                    # external file
+                if ncvar is None:  # not found_external_variables:
+                    # Didn't find the variable in this external file
                     continue
-
-                if ncvar in found:
-                    # Error: The external variable exists in more than
-                    # one external file
-                    external_variables.add(ncvar)
-                    #                    for key in keys:
-                    self.read_vars["variables"].pop(ncvar)
-
-                    self._add_message(
-                        None,
-                        ncvar,
-                        message=(
-                            "External variable",
-                            "exists in multiple external datasets",
-                        ),
-                        attribute=attribute,
-                    )
-                    continue
-
-                # Still here? Then the external variable exists in
-                # this external file
-                found.append(ncvar)
 
                 # Check that the external variable dimensions exist in
                 # parent file, with the same sizes.
                 ok = True
-                # for d in external_read_vars["variable_dimensions"][ncvar]:
                 for d in external_read_vars["variable_dimension_paths"][ncvar]:
-                    #                    size = parent_dimension_sizes.get(d)
-                    #                    if size is None:
                     dim = read_vars["dimensions"].get(d)
                     if dim is None:
                         ok = False
-                        self._add_message(
-                            None,
-                            ncvar,
-                            message=(
-                                "External variable dimension",
-                                "does not exist in file",
-                            ),
-                            attribute=attribute,
-                        )
-                    elif (
-                        # external_read_vars["internal_dimension_sizes"][d]
-                        # != size
-                        external_read_vars["dimensions"][d].size
-                        != dim.size
-                    ):
+                    elif external_read_vars["dimensions"][d].size != dim.size:
                         ok = False
                         self._add_message(
                             None,
@@ -2469,17 +2514,12 @@ class NetCDFRead(IORead):
                 if ok:
                     # Update the read parameters so that this external
                     # variable looks like it is an internal variable
-                    #                    for key in keys:
-                    #                        self.read_vars[key][ncvar] = external_read_vars[key][
-                    #                            ncvar
-                    #                        ]
                     for key in ("variables", "variable_dimension_paths"):
-                        self.read_vars[key][ncvar] = external_read_vars[key][
-                            ncvar
-                        ]
+                        self.read_vars[key][original_ncvar] = (
+                            external_read_vars[key][ncvar]
+                        )
 
-                    # Remove this ncvar from the set of external variables
-                    external_variables.remove(original_ncvar)
+                    break
 
     def _parse_compression_gathered(self, ncvar, compress):
         """Parse a list variable for compressing arrays by gathering."""
@@ -3227,360 +3267,6 @@ class NetCDFRead(IORead):
 
         return element_dimension
 
-    def _check_external_variables(
-        self, external_variables, parsed_external_variables
-    ):
-        """Check that named external variables do not exist in the file.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Parameters:
-
-            external_variables: `str`
-                The external_variables attribute as found in the file.
-
-            parsed_external_variables: `list`
-                The external_variables attribute parsed into a list of
-                external variable names.
-
-        :Returns:
-
-            `list`
-                The external variable names, less those which are also
-                netCDF variables in the file.
-
-        """
-        g = self.read_vars
-
-        attribute = {"external_variables": external_variables}
-        message = ("External variable", "exists in the file")
-
-        out = []
-
-        for ncvar in parsed_external_variables:
-            if ncvar not in g["internal_variables"]:
-                out.append(ncvar)
-            else:
-                self._add_message(
-                    None, ncvar, message=message, attribute=attribute
-                )
-
-        return out
-
-    def _check_formula_terms(
-        self, field_ncvar, coord_ncvar, formula_terms, z_ncdim=None
-    ):
-        """Check formula_terms for CF-compliance.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Parameters:
-
-            field_ncvar: `str`
-
-            coord_ncvar: `str`
-
-            formula_terms: `str`
-                A CF-netCDF formula_terms attribute.
-
-        """
-        # ============================================================
-        # CF-1.7 7.1. Cell Boundaries
-        #
-        # If a parametric coordinate variable with a formula_terms
-        # attribute (section 4.3.2) also has a bounds attribute, its
-        # boundary variable must have a formula_terms attribute
-        # too. In this case the same terms would appear in both (as
-        # specified in Appendix D), since the transformation from the
-        # parametric coordinate values to physical space is realised
-        # through the same formula.  For any term that depends on the
-        # vertical dimension, however, the variable names appearing in
-        # the formula terms would differ from those found in the
-        # formula_terms attribute of the coordinate variable itself
-        # because the boundary variables for formula terms are
-        # two-dimensional while the formula terms themselves are
-        # one-dimensional.
-        #
-        # Whenever a formula_terms attribute is attached to a boundary
-        # variable, the formula terms may additionally be identified
-        # using a second method: variables appearing in the vertical
-        # coordinates' formula_terms may be declared to be coordinate,
-        # scalar coordinate or auxiliary coordinate variables, and
-        # those coordinates may have bounds attributes that identify
-        # their boundary variables. In that case, the bounds attribute
-        # of a formula terms variable must be consistent with the
-        # formula_terms attribute of the boundary variable. Software
-        # digesting legacy datasets (constructed prior to version 1.7
-        # of this standard) may have to rely in some cases on the
-        # first method of identifying the formula term variables and
-        # in other cases, on the second. Starting from version 1.7,
-        # however, the first method will be sufficient.
-        # ============================================================
-
-        g = self.read_vars
-
-        attribute = {coord_ncvar + ":formula_terms": formula_terms}
-
-        g["formula_terms"].setdefault(coord_ncvar, {"coord": {}, "bounds": {}})
-
-        parsed_formula_terms = self._parse_x(coord_ncvar, formula_terms)
-
-        incorrectly_formatted = (
-            "formula_terms attribute",
-            "is incorrectly formatted",
-        )
-
-        if not parsed_formula_terms:
-            self._add_message(
-                field_ncvar,
-                coord_ncvar,
-                message=incorrectly_formatted,
-                attribute=attribute,
-            )
-            return False
-
-        self._ncdimensions(field_ncvar)
-
-        for x in parsed_formula_terms:
-            term, values = list(x.items())[0]
-
-            g["formula_terms"][coord_ncvar]["coord"][term] = None
-
-            if len(values) != 1:
-                self._add_message(
-                    field_ncvar,
-                    coord_ncvar,
-                    message=incorrectly_formatted,
-                    attribute=attribute,
-                )
-                continue
-
-            ncvar = values[0]
-
-            if ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Formula terms variable"
-                )
-
-                self._add_message(
-                    field_ncvar, ncvar, message=message, attribute=attribute
-                )
-                continue
-
-            g["formula_terms"][coord_ncvar]["coord"][term] = ncvar
-
-        bounds_ncvar = g["variables"][coord_ncvar].attrs.get("bounds")
-
-        if bounds_ncvar is None:
-            # --------------------------------------------------------
-            # Parametric Z coordinate does not have bounds
-            # --------------------------------------------------------
-            for term in g["formula_terms"][coord_ncvar]["coord"]:
-                g["formula_terms"][coord_ncvar]["bounds"][term] = None
-        else:
-            # --------------------------------------------------------
-            # Parametric Z coordinate has bounds
-            # --------------------------------------------------------
-            bounds_formula_terms = g["variables"][bounds_ncvar].attrs.get(
-                "formula_terms"
-            )
-            if bounds_formula_terms is not None:
-                # ----------------------------------------------------
-                # Parametric Z coordinate has bounds, and the bounds
-                # variable has a formula_terms attribute
-                # ----------------------------------------------------
-                bounds_attribute = {
-                    bounds_ncvar + ":formula_terms": bounds_formula_terms
-                }
-
-                parsed_bounds_formula_terms = self._parse_x(
-                    bounds_ncvar, bounds_formula_terms
-                )
-
-                if not parsed_bounds_formula_terms:
-                    self._add_message(
-                        field_ncvar,
-                        bounds_ncvar,
-                        message=(
-                            "Bounds formula_terms attribute",
-                            "is incorrectly formatted",
-                        ),
-                        attribute=attribute,
-                        variable=coord_ncvar,
-                    )
-
-                for x in parsed_bounds_formula_terms:
-                    term, values = list(x.items())[0]
-
-                    g["formula_terms"][coord_ncvar]["bounds"][term] = None
-
-                    if len(values) != 1:
-                        self._add_message(
-                            field_ncvar,
-                            bounds_ncvar,
-                            message=(
-                                "Bounds formula_terms attribute",
-                                "is incorrectly formatted",
-                            ),
-                            attribute=bounds_attribute,
-                            variable=coord_ncvar,
-                        )
-                        continue
-
-                    ncvar = values[0]
-
-                    if ncvar not in g["internal_variables"]:
-                        ncvar, message = self._missing_variable(
-                            ncvar, "Bounds formula terms variable"
-                        )
-
-                        self._add_message(
-                            field_ncvar,
-                            ncvar,
-                            message=message,
-                            attribute=bounds_attribute,
-                            variable=coord_ncvar,
-                        )
-                        continue
-
-                    if term not in g["formula_terms"][coord_ncvar]["coord"]:
-                        self._add_message(
-                            field_ncvar,
-                            bounds_ncvar,
-                            message=(
-                                "Bounds formula_terms attribute",
-                                "has incompatible terms",
-                            ),
-                            attribute=bounds_attribute,
-                            variable=coord_ncvar,
-                        )
-                        continue
-
-                    parent_ncvar = g["formula_terms"][coord_ncvar]["coord"][
-                        term
-                    ]
-
-                    d_ncdims = g["variable_dimension_paths"][parent_ncvar]
-                    dimensions = g["variable_dimension_paths"][ncvar]
-
-                    if z_ncdim not in d_ncdims:
-                        if ncvar != parent_ncvar:
-                            self._add_message(
-                                field_ncvar,
-                                bounds_ncvar,
-                                message=(
-                                    "Bounds formula terms variable",
-                                    "that does not span the vertical "
-                                    "dimension is inconsistent with the "
-                                    "formula_terms of the parametric "
-                                    "coordinate variable",
-                                ),
-                                attribute=bounds_attribute,
-                                variable=coord_ncvar,
-                            )
-                            continue
-
-                    elif len(dimensions) != len(d_ncdims) + 1:
-                        self._add_message(
-                            field_ncvar,
-                            bounds_ncvar,
-                            message=(
-                                "Bounds formula terms variable",
-                                "spans incorrect dimensions",
-                            ),
-                            attribute=bounds_attribute,
-                            dimensions=dimensions,
-                            variable=coord_ncvar,
-                        )
-                        continue
-                    # WRONG - need to account for char arrays:
-                    elif d_ncdims != dimensions[:-1]:
-                        self._add_message(
-                            field_ncvar,
-                            bounds_ncvar,
-                            message=(
-                                "Bounds formula terms variable",
-                                "spans incorrect dimensions",
-                            ),
-                            attribute=bounds_attribute,
-                            dimensions=dimensions,
-                            variable=coord_ncvar,
-                        )
-                        continue
-
-                    # Still here?
-                    g["formula_terms"][coord_ncvar]["bounds"][term] = ncvar
-
-                if set(g["formula_terms"][coord_ncvar]["coord"]) != set(
-                    g["formula_terms"][coord_ncvar]["bounds"]
-                ):
-                    self._add_message(
-                        field_ncvar,
-                        bounds_ncvar,
-                        message=(
-                            "Bounds formula_terms attribute",
-                            "has incompatible terms",
-                        ),
-                        attribute=bounds_attribute,
-                        variable=coord_ncvar,
-                    )
-
-            else:
-                # ----------------------------------------------------
-                # Parametric Z coordinate has bounds, but the bounds
-                # variable does not have a formula_terms attribute =>
-                # Infer the formula terms bounds variables from the
-                # coordinates
-                # ----------------------------------------------------
-                for term, ncvar in g["formula_terms"][coord_ncvar][
-                    "coord"
-                ].items():
-                    g["formula_terms"][coord_ncvar]["bounds"][term] = None
-
-                    if z_ncdim not in self._ncdimensions(ncvar):
-                        g["formula_terms"][coord_ncvar]["bounds"][term] = ncvar
-                        continue
-
-                    is_coordinate_with_bounds = False
-                    for c_ncvar in g["coordinates"][field_ncvar]:
-                        if ncvar != c_ncvar:
-                            continue
-
-                        is_coordinate_with_bounds = True
-
-                        if (
-                            z_ncdim
-                            not in g["variable_dimension_paths"][c_ncvar]
-                        ):
-                            # Coordinates do not span the Z dimension
-                            g["formula_terms"][coord_ncvar]["bounds"][
-                                term
-                            ] = ncvar
-                        else:
-                            # Coordinates span the Z dimension
-                            b = g["bounds"][field_ncvar].get(ncvar)
-                            if b is not None:
-                                g["formula_terms"][coord_ncvar]["bounds"][
-                                    term
-                                ] = b
-                            else:
-                                is_coordinate_with_bounds = False
-
-                        break
-
-                    if not is_coordinate_with_bounds:
-                        self._add_message(
-                            field_ncvar,
-                            ncvar,
-                            message=(
-                                "Formula terms variable",
-                                "that spans the vertical dimension "
-                                "has no bounds",
-                            ),
-                            attribute=attribute,
-                            variable=coord_ncvar,
-                        )
-
     def _missing_variable(self, ncvar, message0):
         """Return the name of a missing variable with a message.
 
@@ -3658,12 +3344,21 @@ class NetCDFRead(IORead):
         g["domain_ancillary_key"] = {}
 
         dimensions = g["variable_dimension_paths"][field_ncvar]
-        g["dataset_compliance"].setdefault(field_ncvar, {})
-        g["dataset_compliance"][field_ncvar][
-            "CF version"
-        ] = self.implementation.get_cf_version()
-        g["dataset_compliance"][field_ncvar]["dimensions"] = dimensions
-        g["dataset_compliance"][field_ncvar].setdefault("non-compliance", {})
+        #        g["dataset_compliance"].setdefault(field_ncvar, {})
+        #        g["dataset_compliance"][field_ncvar][
+        #            "CF version"
+        #        ] = self.implementation.get_cf_version()
+        #        g["dataset_compliance"][field_ncvar]["dimensions"] = dimensions
+        #        g["dataset_compliance"][field_ncvar].setdefault("non-compliance", {})
+        #        dimensions = g["variable_dimensions"][field_ncvar]
+
+        # Set the top-level i.e. field variable conformance as a Conformance
+        # Data Model object corresponding to the field variable. As we process
+        # the read we add non-conformance information to it structured
+        # according to affected netCDF components.
+        # Later we convert the overall object to a dictionary report to set
+        # as the overall field 'dataset compliance' output.
+        self.dataset_compliance = VariableNonConformance(field_ncvar)
 
         if mesh_topology:
             logger.info(
@@ -4048,8 +3743,6 @@ class NetCDFRead(IORead):
                         f"for {field_ncvar!r}."
                     )
                     if is_log_level_debug(logger):
-                        from pprint import pformat
-
                         logger.debug(
                             f"Mesh dictionary is: {pformat(g['mesh'])}"
                         )
@@ -4706,7 +4399,6 @@ class NetCDFRead(IORead):
                     )
 
                     create_new = True
-
                     if not coordinates:
                         # DCH ALERT
                         # what to do about duplicate standard names? TODO
@@ -4788,6 +4480,7 @@ class NetCDFRead(IORead):
         # Add cell measures to the field/domain
         # ------------------------------------------------------------
         measures = self.implementation.del_property(f, "cell_measures", None)
+
         if measures is not None:
             parsed_cell_measures = self._parse_x(field_ncvar, measures)
 
@@ -4843,6 +4536,24 @@ class NetCDFRead(IORead):
 
             for properties in cell_methods:
                 axes = properties.pop("axes")
+                for axis in axes:
+                    # As per CF Conventions 7.3. Cell Methods, cell methods may
+                    # have a standard name stored in this component 'axis'.
+                    # "In the specification of this attribute, name [from the
+                    # form "name: method"] can be a dimension of the variable,
+                    # a scalar coordinate variable, *a valid standard name*,
+                    # or the word "area"."
+
+                    # So if the 'axis' is not in name_to_axis, and isn't
+                    # "area", it must not be an axis at all but a standard
+                    # name, and should therefore be checked for validity.
+                    if axis != "area" and axis not in name_to_axis:
+                        self._check_standard_names(
+                            field_ncvar,
+                            field_ncvar,
+                            None,  # special case
+                            no_var_case=["cell_methods", axis],
+                        )
 
                 # Replace names with domain axis keys
                 axes = [name_to_axis.get(axis, axis) for axis in axes]
@@ -4852,7 +4563,6 @@ class NetCDFRead(IORead):
                 cell_method = self._create_cell_method(
                     axes, method, properties
                 )
-
                 logger.detail(
                     f"        [i] Inserting {method!r} "
                     f"{cell_method.__class__.__name__}"
@@ -4920,15 +4630,22 @@ class NetCDFRead(IORead):
         # -------------------------------------------------------------
         self._set_quantization(f, field_ncvar)
 
-        # Add the structural read report to the field/domain
-        dataset_compliance = g["dataset_compliance"][field_ncvar]
-        components = dataset_compliance["non-compliance"]
-        if components:
-            dataset_compliance = {field_ncvar: dataset_compliance}
-        else:
-            dataset_compliance = {}
+        # -------------------------------------------------------------
+        # Compliance reporting
+        # -------------------------------------------------------------
+        # Perform check on the final field (properties e.g standard name)
+        self._check_field_ncvar(field_ncvar)
 
-        self.implementation.set_dataset_compliance(f, dataset_compliance)
+        # Add the structural read report to the field/domain
+        dataset_compliance = self.dataset_compliance.todict()
+
+        # At top (field) level, always include the CF Conventions version at
+        # which the compliance/conformance was checked against
+        field_compliance = {"CF version": self.implementation.get_cf_version()}
+        if dataset_compliance:
+            field_compliance[field_ncvar] = dataset_compliance
+
+        self.implementation.set_dataset_compliance(f, field_compliance)
 
         # Return the finished field/domain
         return f
@@ -5150,127 +4867,6 @@ class NetCDFRead(IORead):
 
             return g["geometries"].get(geometry_ncvar)
 
-    def _add_message(
-        self,
-        parent_ncvar,
-        ncvar,
-        message=None,
-        attribute=None,
-        dimensions=None,
-        variable=None,
-        conformance=None,
-    ):
-        """Stores and logs a message about an issue with a field.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent variable.
-
-                *Parameter example:*
-                  ``'tas'``
-
-            ncvar: `str`
-                The netCDF variable name of the parent component that
-                has the problem.
-
-                *Parameter example:*
-                  ``'rotated_latitude_longitude'``
-
-            message: (`str`, `str`), optional
-
-            attribute: `dict`, optional
-                The name and value of the netCDF attribute that has a problem.
-
-                *Parameter example:*
-                  ``attribute={'tas:cell_measures': 'area: areacella'}``
-
-            dimensions: sequence of `str`, optional
-                The netCDF dimensions of the variable that has a problem.
-
-                *Parameter example:*
-                  ``dimensions=('lat', 'lon')``
-
-            variable: `str`, optional
-
-        """
-        g = self.read_vars
-
-        if message is not None:
-            try:
-                code = self._code0[message[0]] * 1000 + self._code1[message[1]]
-            except KeyError:
-                code = None
-
-            message = " ".join(message)
-        else:
-            code = None
-
-        d = {"code": code, "attribute": attribute, "reason": message}
-
-        if dimensions is not None:
-            d["dimensions"] = dimensions
-
-        if variable is None:
-            variable = ncvar
-
-        g["dataset_compliance"].setdefault(
-            parent_ncvar,
-            {
-                "CF version": self.implementation.get_cf_version(),
-                "non-compliance": {},
-            },
-        )
-        g["dataset_compliance"][parent_ncvar]["non-compliance"].setdefault(
-            ncvar, []
-        ).append(d)
-
-        e = g["component_report"].setdefault(variable, {})
-        e.setdefault(ncvar, []).append(d)
-
-        if dimensions is None:  # pragma: no cover
-            dimensions = ""  # pragma: no cover
-        else:  # pragma: no cover
-            dimensions = "(" + ", ".join(dimensions) + ")"  # pragma: no cover
-
-        logger.info(
-            "    Error processing netCDF variable "
-            f"{ncvar}{dimensions}: {d['reason']}"
-        )  # pragma: no cover
-
-        return d
-
-    def _include_component_report(self, parent_ncvar, ncvar):
-        """Include a component in the dataset compliance report.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent variable.
-
-                *Parameter example:*
-                  ``'tas'``
-
-            ncvar: `str`
-                The netCDF variable name of the parent component that
-                has the problem.
-
-        :Returns:
-
-            `None`
-
-        """
-        g = self.read_vars
-        component_report = g["component_report"].get(ncvar)
-        if component_report:
-            g["dataset_compliance"][parent_ncvar]["non-compliance"].setdefault(
-                ncvar, []
-            ).extend(component_report)
-
     def _get_domain_axes(self, ncvar, allow_external=False, parent_ncvar=None):
         """Find a domain axis identifier for the variable's dimensions.
 
@@ -5308,7 +4904,11 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        if allow_external and ncvar in g["external_variables"]:
+        if (
+            allow_external
+            and ncvar in g["external_variables"]
+            and ncvar not in g["variables"]
+        ):
             axes = []
         else:
             ncdim_to_axis = g["ncdim_to_axis"]
@@ -5736,7 +5336,7 @@ class NetCDFRead(IORead):
 
         # Store the netCDF variable name
         self.implementation.nc_set_variable(cell_measure, ncvar)
-        if ncvar in g["external_variables"]:
+        if ncvar in g["external_variables"] and ncvar not in g["variables"]:
             # The cell measure variable is in an unknown external file
             self.implementation.nc_set_external(construct=cell_measure)
         else:
@@ -6245,19 +5845,19 @@ class NetCDFRead(IORead):
     def _create_cell_method(self, axes, method, qualifiers):
         """Create a cell method object.
 
-        .. versionadded:: (cfdm) 1.7.0
+                .. versionadded:: (cfdm) 1.7.0
 
-        :Parameters:
+                :Parameters:
+        s
+                    axes: `tuple`
 
-            axes: `tuple`
+                    method: 'str`
 
-            method: 'str`
+                    properties: `dict`
 
-            properties: `dict`
+                :Returns:
 
-        :Returns:
-
-            `CellMethod`
+                    `CellMethod`
 
         """
         return self.implementation.initialise_CellMethod(
@@ -6346,7 +5946,7 @@ class NetCDFRead(IORead):
                 if calendar is not None:
                     attributes["calendar"] = calendar
 
-        backend = variable.backend
+        backend = variable.backend_api
         kwargs = {
             "filename": dataset,
             "address": ncvar,
@@ -6365,13 +5965,19 @@ class NetCDFRead(IORead):
             if return_kwargs_only:
                 return kwargs
 
-            # For some backends, it's OK to store the actual variable
-            # inside the Dask array
-            if backend in ("pyfive", "zarr", "ppfive", "xarray"):
-                # TODOP - xarray only if the input data set was an xarray-like object!
-                kwargs["variable"] = variable
+            if backend == "xarray":
+                # Assuming that the xarray 'chunks' argument was not
+                # `None`, this will be Dask array, otherwise it might
+                # be (e.g.) a numpy array in memory.
+                array = variable.data
+            else:
+                # For some backends, it's OK to store the actual
+                # variable inside the Dask array
+                if backend in ("pyfive", "zarr", "ppfive"):
+                    kwargs["variable"] = variable
 
-            array = self.implementation.initialise_XnetcdfArray(**kwargs)
+                array = self.implementation.initialise_XnetcdfArray(**kwargs)
+
             return array, kwargs
 
         # ------------------------------------------------------------
@@ -7838,7 +7444,7 @@ class NetCDFRead(IORead):
 
         # Deal with strings
         variable = g["variables"][ncvar]
-        match variable.backend:
+        match variable.backend_api:
             case "pyfive" | "h5py" | "netCDF4":
                 if array.dtype is None:
                     array = variable[...]
@@ -7940,483 +7546,168 @@ class NetCDFRead(IORead):
         """
         g = self.read_vars
 
-        component_report = g["component_report"].get(ncvar)
-
-        if component_report is not None:
-            for var, report in component_report.items():
-                g["dataset_compliance"][parent_ncvar][
-                    "non-compliance"
-                ].setdefault(var, []).extend(report)
-
         return self.implementation.copy_construct(g[construct_type][ncvar])
 
-    # ================================================================
-    # Methods for checking CF compliance
-    #
-    # These methods (whose names all start with "_check") check the
-    # minimum required for mapping the file to CFDM structural
-    # elements. General CF compliance is not checked (e.g. whether or
-    # not grid mapping variable has a grid_mapping_name attribute).
-    # ================================================================
-    def _check_bounds(
-        self, parent_ncvar, coord_ncvar, attribute, bounds_ncvar
-    ):
-        """Check a bounds variable spans the correct dimensions.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        Checks that
-
-        * The bounds variable has exactly one more dimension than the
-          parent coordinate variable
-
-        * The bounds variable's dimensions, other than the trailing
-          dimension are the same, and in the same order, as the parent
-          coordinate variable's dimensions.
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent that contains
-                the coordinates.
-
-            nc: `netCDF4.Dataset`
-                The netCDF dataset object.
-
-            coord_ncvar: `str`
-                The netCDF variable name of the coordinate variable.
-
-            bounds_ncvar: `str`
-                The netCDF variable name of the bounds.
-
-        :Returns:
-
-            `bool`
-
-        """
-        attribute = {coord_ncvar + ":" + attribute: bounds_ncvar}
-
-        if attribute == "bounds_tie_points":
-            variable_type = "Bounds tie points variable"
-        else:
-            variable_type = "Bounds variable"
-
-        incorrect_dimensions = (variable_type, "spans incorrect dimensions")
-
-        g = self.read_vars
-
-        if bounds_ncvar not in g["internal_variables"]:
-            bounds_ncvar, message = self._missing_variable(
-                bounds_ncvar, variable_type
-            )
-            self._add_message(
-                parent_ncvar,
-                bounds_ncvar,
-                message=message,
-                attribute=attribute,
-                variable=coord_ncvar,
-            )
-            return False
-
-        ok = True
-
-        c_ncdims = self._ncdimensions(coord_ncvar, parent_ncvar=parent_ncvar)
-        b_ncdims = self._ncdimensions(bounds_ncvar, parent_ncvar=parent_ncvar)
-
-        if len(b_ncdims) == len(c_ncdims) + 1:
-            if c_ncdims != b_ncdims[:-1]:
-                self._add_message(
-                    parent_ncvar,
-                    bounds_ncvar,
-                    message=incorrect_dimensions,
-                    attribute=attribute,
-                    dimensions=g["variable_dimension_paths"][bounds_ncvar],
-                    variable=coord_ncvar,
-                )
-                ok = False
-
-        else:
-            self._add_message(
-                parent_ncvar,
-                bounds_ncvar,
-                message=incorrect_dimensions,
-                attribute=attribute,
-                dimensions=g["variable_dimension_paths"][bounds_ncvar],
-                variable=coord_ncvar,
-            )
-            ok = False
-
-        return ok
-
-    def _check_geometry_node_coordinates(
-        self, field_ncvar, node_ncvar, geometry
-    ):
-        """Check a geometry node coordinate variable.
-
-        .. versionadded:: (cfdm) 1.8.6
-
-        :Parameters:
-
-            field_ncvar: `str`
-                The netCDF variable name of the parent data variable.
-
-            node_ncvar: `str`
-                The netCDF variable name of the node coordinate variable.
-
-            geometry: `dict`
-
-        :Returns:
-
-            `bool`
-
-        """
-        g = self.read_vars
-
-        geometry_ncvar = g["variable_geometry"].get(field_ncvar)
-
-        attribute = {
-            field_ncvar
-            + ":"
-            + geometry_ncvar: " ".join(geometry["node_coordinates"])
-        }
-
-        if node_ncvar not in g["internal_variables"]:
-            node_ncvar, message = self._missing_variable(
-                node_ncvar, "Node coordinate variable"
-            )
-            self._add_message(
-                field_ncvar,
-                node_ncvar,
-                message=message,
-                attribute=attribute,
-                variable=field_ncvar,
-            )
-            return False
-
-        ok = True
-
-        if node_ncvar not in geometry.get("node_coordinates", ()):
-            self._add_message(
-                field_ncvar,
-                node_ncvar,
-                message=(
-                    "Node coordinate variable",
-                    "not in node_coordinates",
-                ),
-                attribute=attribute,
-                variable=field_ncvar,
-            )
-            ok = False
-
-        return ok
-
-    def _check_cell_measures(self, field_ncvar, string, parsed_string):
-        """Checks requirements.
-
-        * 7.2.requirement.1
-        * 7.2.requirement.3
-        * 7.2.requirement.4
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Parameters:
-
-            field_ncvar: `str`
-
-            string: `str`
-                The value of the netCDF cell_measures attribute.
-
-            parsed_string: `list`
-
-        :Returns:
-
-            `bool`
-
-        """
-        attribute = {field_ncvar + ":cell_measures": string}
-
-        incorrectly_formatted = (
-            "cell_measures attribute",
-            "is incorrectly formatted",
-        )
-        incorrect_dimensions = (
-            "Cell measures variable",
-            "spans incorrect dimensions",
-        )
-        missing_variable = (
-            "Cell measures variable",
-            "is not in file nor referenced by the external_variables "
-            "global attribute",
-        )
-
-        g = self.read_vars
-
-        if not parsed_string:
-            self._add_message(
-                field_ncvar,
-                field_ncvar,
-                message=incorrectly_formatted,
-                attribute=attribute,
-                conformance="7.2.requirement.1",
-            )
-            return False
-
-        parent_dimensions = self._ncdimensions(field_ncvar)
-        external_variables = g["external_variables"]
-
-        ok = True
-        for x in parsed_string:
-            measure, values = list(x.items())[0]
-            if len(values) != 1:
-                self._add_message(
-                    field_ncvar,
-                    field_ncvar,
-                    message=incorrectly_formatted,
-                    attribute=attribute,
-                    conformance="7.2.requirement.1",
-                )
-                ok = False
-                continue
-
-            ncvar = values[0]
-            ncvar = g["external_variable_map"].get(ncvar, ncvar)
-
-            unknown_external = ncvar in external_variables
-
-            # Check that the variable exists in the file, or if not
-            # that it is listed in the 'external_variables' global
-            # file attribute.
-            if not unknown_external and ncvar not in g["variables"]:
-                self._add_message(
-                    field_ncvar,
-                    ncvar,
-                    message=missing_variable,
-                    attribute=attribute,
-                    conformance="7.2.requirement.3",
-                )
-                ok = False
-                continue
-
-            if not unknown_external:
-                dimensions = self._ncdimensions(ncvar)
-                if not unknown_external and not self._dimensions_are_subset(
-                    ncvar, dimensions, parent_dimensions
-                ):
-                    # The cell measure variable's dimensions do NOT span a
-                    # subset of the parent variable's dimensions.
-                    self._add_message(
-                        field_ncvar,
-                        ncvar,
-                        message=incorrect_dimensions,
-                        attribute=attribute,
-                        dimensions=g["variable_dimension_paths"][ncvar],
-                        conformance="7.2.requirement.4",
-                    )
-                    ok = False
-
-        return ok
-
-    def _check_geometry_attribute(self, parent_ncvar, string, parsed_string):
-        """Checks requirements.
-
-        .. versionadded:: (cfdm) 1.8.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent data variable.
-
-            string: `str`
-                The value of the netCDF geometry attribute.
-
-            parsed_string: `list`
-
-        :Returns:
-
-            `bool`
-
-        """
-        attribute = {parent_ncvar + ":geometry": string}
-
-        incorrectly_formatted = (
-            "geometry attribute",
-            "is incorrectly formatted",
-        )
-
-        g = self.read_vars
-
-        if len(parsed_string) != 1:
-            self._add_message(
-                parent_ncvar,
-                parent_ncvar,
-                message=incorrectly_formatted,
-                attribute=attribute,
-                conformance="?",
-            )
-            return False
-
-        for ncvar in parsed_string:
-            # Check that the geometry variable exists in the file
-            if ncvar not in g["variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Geometry variable"
-                )
-                self._add_message(
-                    parent_ncvar,
-                    ncvar,
-                    message=message,
-                    attribute=attribute,
-                    conformance="?",
-                )
-                return False
-
-        return True
-
-    def _check_ancillary_variables(self, field_ncvar, string, parsed_string):
-        """Checks requirements.
-
-        :Parameters:
-
-            field_ncvar: `str`
-
-            ancillary_variables: `str`
-                The value of the netCDF ancillary_variables attribute.
-
-            parsed_ancillary_variables: `list`
-
-        :Returns:
-
-            `bool`
-
-        """
-        attribute = {field_ncvar + ":ancillary_variables": string}
-
-        incorrectly_formatted = (
-            "ancillary_variables attribute",
-            "is incorrectly formatted",
-        )
-        incorrect_dimensions = (
-            "Ancillary variable",
-            "spans incorrect dimensions",
-        )
-
-        g = self.read_vars
-
-        if not parsed_string:
-            d = self._add_message(
-                field_ncvar,
-                field_ncvar,
-                message=incorrectly_formatted,
-                attribute=attribute,
-            )
-
-            # Though an error of sorts, set as debug level message;
-            # read not terminated
-            if g["debug"]:
-                logger.debug(
-                    f"    Error processing netCDF variable {field_ncvar}: "
-                    f"{d['reason']}"
-                )  # pragma: no cover
-
-            return False
-
-        parent_dimensions = self._ncdimensions(field_ncvar)
-
-        ok = True
-        for ncvar in parsed_string:
-            # Check that the variable exists in the file
-            if ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Ancillary variable"
-                )
-                self._add_message(
-                    field_ncvar, ncvar, message=message, attribute=attribute
-                )
-                return False
-
-            if not self._dimensions_are_subset(
-                ncvar, self._ncdimensions(ncvar), parent_dimensions
+    def _dimensions_are_subset(self, ncvar, dimensions, parent_dimensions):
+        """True if dimensions are a subset of the parent dimensions."""
+        if not set(dimensions).issubset(parent_dimensions):
+            if not (
+                self._is_char(ncvar)
+                and set(dimensions[:-1]).issubset(parent_dimensions)
             ):
-                # The ancillary variable's dimensions do NOT span a
-                # subset of the parent variable's dimensions
-                self._add_message(
-                    field_ncvar,
-                    ncvar,
-                    message=incorrect_dimensions,
-                    attribute=attribute,
-                    dimensions=g["variable_dimension_paths"][ncvar],
-                )
-                ok = False
+                return False
 
-        return ok
+        return True
 
-    def _check_auxiliary_or_scalar_coordinate(
-        self, parent_ncvar, coord_ncvar, string
-    ):
-        """Checks requirements.
+    def _split_string_by_white_space(self, string):
+        """Split a string by white space.
 
-          * 5.requirement.5
-          * 5.requirement.6
+        .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
-        parent_ncvar: `str`
-            NetCDF name of parent data or domain variable.
+            string: `str or `None`
 
         :Returns:
 
-            `bool`
+            `list`
 
         """
-        attribute = {parent_ncvar + ":coordinates": string}
+        if string is None:
+            return []
 
-        incorrect_dimensions = (
-            "Auxiliary/scalar coordinate variable",
-            "spans incorrect dimensions",
-        )
+        try:
+            out = string.split()
+        except AttributeError:
+            out = []
 
+        return out
+
+    def _parse_grid_mapping(self, parent_ncvar, string):
+        """Parse a netCDF grid_mapping attribute.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        """
         g = self.read_vars
 
-        if coord_ncvar not in g["internal_variables"]:
-            coord_ncvar, message = self._missing_variable(
-                coord_ncvar, "Auxiliary/scalar coordinate variable"
-            )
-            self._add_message(
-                parent_ncvar,
-                coord_ncvar,
-                message=message,
-                attribute=attribute,
-                conformance="5.requirement.5",
-            )
-            self._add_message(
-                parent_ncvar,
-                coord_ncvar,
-                message=message,
-                attribute=attribute,
-                conformance="5.requirement.5",
-            )
-            return False
+        out = []
 
-        # Check that the variable's dimensions span a subset of the
-        # parent variable's dimensions (allowing for char variables
-        # with a trailing dimension)
+        if g["CF>=1.7"]:
+            # The grid mapping attribute may point to a single netCDF
+            # variable OR to multiple variables with associated
+            # coordinate variables (CF>=1.7)
+            out = self._parse_x(parent_ncvar, string, keys_are_variables=True)
+        else:
+            # The grid mapping attribute may only point to a single
+            # netCDF variable (CF<=1.6)
+            out = self._split_string_by_white_space(string)
+            if len(out) == 1:
+                out = [{out[0]: []}]
 
-        if not self._dimensions_are_subset(
-            coord_ncvar,
-            self._ncdimensions(coord_ncvar, parent_ncvar=parent_ncvar),
-            self._ncdimensions(parent_ncvar),
-        ):
-            self._add_message(
-                parent_ncvar,
-                coord_ncvar,
-                message=incorrect_dimensions,
-                attribute=attribute,
-                dimensions=g["variable_dimension_paths"][coord_ncvar],
-                conformance="5.requirement.6",
+        return out
+
+    def _parse_x(
+        self,
+        parent_ncvar,
+        string,
+        keys_are_variables=False,
+        keys_are_dimensions=False,
+    ):
+        """Parse CF-netCDF strings.
+
+        Handling of CF-compliant strings:
+        ---------------------------------
+
+        'area: areacello' ->
+            [{'area': ['areacello']}]
+
+        'area: areacello volume: volumecello' ->
+            [{'area': ['areacello']}, {'volume': ['volumecello']}]
+
+        'rotated_latitude_longitude' ->
+            [{'rotated_latitude_longitude': []}]
+
+        'rotated_latitude_longitude: x y latitude_longitude: lat lon' ->
+            [{'rotated_latitude_longitude': ['x', 'y']},
+             {'latitude_longitude': ['lat', 'lon']}]
+
+        'rotated_latitude_longitude: x latitude_longitude: lat lon' ->
+            [{'rotated_latitude_longitude': ['x']},
+             {'latitude_longitude': ['lat', 'lon']}]
+
+        'a: A b: B orog: OROG' ->
+            [{'a': ['A']}, {'b': ['B']}, {'orog': ['OROG']}]
+
+        Handling of non-CF-compliant strings:
+        -------------------------------------
+
+        'area' ->
+            [{'area': []}]
+
+        'a: b: B orog: OROG' ->
+            []
+
+        'rotated_latitude_longitude:' ->
+            []
+
+        'rotated_latitude_longitude zzz' ->
+            []
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        """
+        # ============================================================
+        # Thanks to Alan Iwi for creating these regular expressions
+        # ============================================================
+        import re
+
+        def subst(s):
+            """Substitutes WORD and SEP tokens for regular expressions.
+
+            All WORD tokens are replaced by the expression for a space
+            and all SEP tokens are replaced by the expression for the
+            end of string.
+
+            """
+            return s.replace("WORD", r"[A-Za-z0-9_#/]+").replace(
+                "SEP", r"(\s+|$)"
             )
-            return False
 
-        return True
+        out = []
+
+        pat_value = subst(r"(?P<value>WORD)SEP")
+        pat_values = f"({pat_value})+"
+
+        pat_mapping = subst(
+            rf"(?P<mapping_name>WORD):SEP(?P<values>{pat_values})"
+        )
+        pat_mapping_list = f"({pat_mapping})+"
+
+        pat_all = subst(
+            rf"((?P<sole_mapping>WORD)|(?P<mapping_list>{pat_mapping_list}))$"
+        )
+
+        m = re.match(pat_all, string)
+        if m is None:
+            return []
+
+        sole_mapping = m.group("sole_mapping")
+        if sole_mapping:
+            out.append({sole_mapping: []})
+        else:
+            mapping_list = m.group("mapping_list")
+            for mapping in re.finditer(pat_mapping, mapping_list):
+                term = mapping.group("mapping_name")
+                values = [
+                    value.group("value")
+                    for value in re.finditer(
+                        pat_value, mapping.group("values")
+                    )
+                ]
+                out.append({term: values})
+
+        return out
 
     def _check_tie_point_coordinates(
         self, parent_ncvar, tie_point_ncvar, string
@@ -8475,17 +7766,6 @@ class NetCDFRead(IORead):
                 conformance="8.3.requirement.5",
             )
             return False
-
-        return True
-
-    def _dimensions_are_subset(self, ncvar, dimensions, parent_dimensions):
-        """True if dimensions are a subset of the parent dimensions."""
-        if not set(dimensions).issubset(parent_dimensions):
-            if not (
-                self._is_char(ncvar)
-                and set(dimensions[:-1]).issubset(parent_dimensions)
-            ):
-                return False
 
         return True
 
@@ -9029,172 +8309,6 @@ class NetCDFRead(IORead):
             ok = False
 
         return ok
-
-    def _split_string_by_white_space(self, string):
-        """Split a string by white space.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                Not used
-
-            string: `str or `None`
-
-            variables: `bool`
-                If True then *string* contains internal netCDF variable
-                names. (Not sure yet what to do about external names.)
-
-                .. versionadded:: (cfdm) 1.8.6
-
-            trailing_colon: `bool`
-                If True then trailing colons are not part of the
-                string components that are variable names. Ignored if
-                *variables* is False.
-
-                .. versionadded:: (cfdm) 1.10.0.0
-
-        :Returns:
-
-            `list`
-
-        """
-        if string is None:
-            return []
-
-        try:
-            out = string.split()
-        except AttributeError:
-            out = []
-
-        return out
-
-    def _parse_grid_mapping(self, parent_ncvar, string):
-        """Parse a netCDF grid_mapping attribute.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        """
-        g = self.read_vars
-
-        out = []
-
-        if g["CF>=1.7"]:
-            # The grid mapping attribute may point to a single netCDF
-            # variable OR to multiple variables with associated
-            # coordinate variables (CF>=1.7)
-            out = self._parse_x(parent_ncvar, string, keys_are_variables=True)
-        else:
-            # The grid mapping attribute may only point to a single
-            # netCDF variable (CF<=1.6)
-            out = self._split_string_by_white_space(string)
-            if len(out) == 1:
-                out = [{out[0]: []}]
-
-        return out
-
-    def _parse_x(
-        self,
-        parent_ncvar,
-        string,
-        keys_are_variables=False,
-        keys_are_dimensions=False,
-    ):
-        """Parse CF-netCDF strings.
-
-        Handling of CF-compliant strings:
-        ---------------------------------
-
-        'area: areacello' ->
-            [{'area': ['areacello']}]
-
-        'area: areacello volume: volumecello' ->
-            [{'area': ['areacello']}, {'volume': ['volumecello']}]
-
-        'rotated_latitude_longitude' ->
-            [{'rotated_latitude_longitude': []}]
-
-        'rotated_latitude_longitude: x y latitude_longitude: lat lon' ->
-            [{'rotated_latitude_longitude': ['x', 'y']},
-             {'latitude_longitude': ['lat', 'lon']}]
-
-        'rotated_latitude_longitude: x latitude_longitude: lat lon' ->
-            [{'rotated_latitude_longitude': ['x']},
-             {'latitude_longitude': ['lat', 'lon']}]
-
-        'a: A b: B orog: OROG' ->
-            [{'a': ['A']}, {'b': ['B']}, {'orog': ['OROG']}]
-
-        Handling of non-CF-compliant strings:
-        -------------------------------------
-
-        'area' ->
-            [{'area': []}]
-
-        'a: b: B orog: OROG' ->
-            []
-
-        'rotated_latitude_longitude:' ->
-            []
-
-        'rotated_latitude_longitude zzz' ->
-            []
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        """
-        # ============================================================
-        # Thanks to Alan Iwi for creating these regular expressions
-        # ============================================================
-        import re
-
-        def subst(s):
-            """Substitutes WORD and SEP tokens for regular expressions.
-
-            All WORD tokens are replaced by the expression for a space
-            and all SEP tokens are replaced by the expression for the
-            end of string.
-
-            """
-            return s.replace("WORD", r"[A-Za-z0-9_#/]+").replace(
-                "SEP", r"(\s+|$)"
-            )
-
-        out = []
-
-        pat_value = subst(r"(?P<value>WORD)SEP")
-        pat_values = f"({pat_value})+"
-
-        pat_mapping = subst(
-            rf"(?P<mapping_name>WORD):SEP(?P<values>{pat_values})"
-        )
-        pat_mapping_list = f"({pat_mapping})+"
-
-        pat_all = subst(
-            rf"((?P<sole_mapping>WORD)|(?P<mapping_list>{pat_mapping_list}))$"
-        )
-
-        m = re.match(pat_all, string)
-        if m is None:
-            return []
-
-        sole_mapping = m.group("sole_mapping")
-        if sole_mapping:
-            out.append({sole_mapping: []})
-        else:
-            mapping_list = m.group("mapping_list")
-            for mapping in re.finditer(pat_mapping, mapping_list):
-                term = mapping.group("mapping_name")
-                values = [
-                    value.group("value")
-                    for value in re.finditer(
-                        pat_value, mapping.group("values")
-                    )
-                ]
-                out.append({term: values})
-
-        return out
 
     def _ugrid_parse_mesh_topology(self, mesh_ncvar, attributes):
         """Parse a UGRID mesh topology or location index set variable.
@@ -9880,596 +8994,6 @@ class NetCDFRead(IORead):
 
         return cell_dim
 
-    def _ugrid_check_mesh_topology(self, mesh_ncvar):
-        """Check a UGRID mesh topology variable.
-
-        These checks are independent of any parent data variable.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            mesh_ncvar: `str`
-                The name of the netCDF mesh topology variable.
-
-        :Returns:
-
-            `bool`
-                Whether or not the mesh topology variable adheres to
-                the CF conventions.
-
-        """
-        g = self.read_vars
-
-        ok = True
-
-        if mesh_ncvar not in g["internal_variables"]:
-            mesh_ncvar, message = self._missing_variable(
-                mesh_ncvar, "Mesh topology variable"
-            )
-            self._add_message(
-                mesh_ncvar,
-                mesh_ncvar,
-                message=message,
-                attribute={f"{mesh_ncvar}:mesh": mesh_ncvar},
-            )
-            ok = False
-            return ok
-
-        attributes = g["variables"][mesh_ncvar].attrs
-
-        node_coordinates = attributes.get("node_coordinates")
-        if node_coordinates is None:
-            self._add_message(
-                mesh_ncvar,
-                mesh_ncvar,
-                message=("node_coordinates attribute", "is missing"),
-            )
-            ok = False
-
-        # Check coordinate variables
-        for attr in (
-            "node_coordinates",
-            "edge_coordinates",
-            "face_coordinates",
-            "volume_coordinates",
-        ):
-            if attr not in attributes:
-                continue
-
-            coordinates = self._split_string_by_white_space(attributes[attr])
-            n_coordinates = len(coordinates)
-            if attr == "node_coordinates":
-                n_nodes = n_coordinates
-            elif n_coordinates != n_nodes:
-                self._add_message(
-                    mesh_ncvar,
-                    mesh_ncvar,
-                    message=(
-                        f"{attr} variable",
-                        "contains wrong number of variables",
-                    ),
-                    attribute=attr,
-                )
-                ok = False
-
-            dims = []
-            for ncvar in coordinates:
-                if ncvar not in g["internal_variables"]:
-                    ncvar, message = self._missing_variable(
-                        mesh_ncvar, f"{attr} variable"
-                    )
-                    self._add_message(
-                        mesh_ncvar,
-                        ncvar,
-                        message=message,
-                        attribute=attr,
-                    )
-                    ok = False
-                else:
-                    dims = []
-                    ncdims = self._ncdimensions(ncvar)
-                    if len(ncdims) != 1:
-                        self._add_message(
-                            mesh_ncvar,
-                            ncvar,
-                            message=(
-                                f"{attr} variable",
-                                "spans incorrect dimensions",
-                            ),
-                            attribute=attr,
-                            dimensions=g["variable_dimension_paths"][ncvar],
-                        )
-                        ok = False
-
-                    dims.extend(ncdims)
-
-                if len(set(dims)) > 1:
-                    self._add_message(
-                        mesh_ncvar,
-                        ncvar,
-                        message=(
-                            f"{attr} variables",
-                            "span different dimensions",
-                        ),
-                        attribute=attr,
-                    )
-                    ok = False
-
-        # Check connectivity variables
-        topology_dimension = attributes.get("topology_dimension")
-        if topology_dimension is None:
-            self._add_message(
-                mesh_ncvar,
-                mesh_ncvar,
-                message=("topology_dimension attribute", "is missing"),
-            )
-            ok = False
-        elif topology_dimension == 2:
-            ncvar = attributes.get("face_node_connectivity")
-            if ncvar is None:
-                self._add_message(
-                    mesh_ncvar,
-                    ncvar,
-                    message=("face_node_connectivity attribute", "is missing"),
-                    attribute="face_node_connectivity",
-                )
-                ok = False
-            elif ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Face node connectivity variable"
-                )
-                self._add_message(
-                    mesh_ncvar,
-                    ncvar,
-                    message=message,
-                    attribute={f"{mesh_ncvar}:face_node_connectivity": ncvar},
-                )
-                ok = False
-        elif topology_dimension == 1:
-            ncvar = attributes.get("edge_node_connectivity")
-            if ncvar is None:
-                self._add_message(
-                    mesh_ncvar,
-                    mesh_ncvar,
-                    message=("edge_node_connectivity attribute", "is missing"),
-                    attribute="edge_node_connectivity",
-                )
-                ok = False
-            elif ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Edge node connectivity variable"
-                )
-                self._add_message(
-                    mesh_ncvar,
-                    ncvar,
-                    message=message,
-                    attribute={f"{mesh_ncvar}:edge_node_connectivity": ncvar},
-                )
-                ok = False
-        elif topology_dimension == 3:
-            ncvar = attributes.get("volume_node_connectivity")
-            if ncvar is None:
-                self._add_message(
-                    mesh_ncvar,
-                    mesh_ncvar,
-                    message=(
-                        "volume_node_connectivity attribute",
-                        "is missing",
-                    ),
-                    attribute="volume_node_connectivity",
-                )
-                ok = False
-            elif ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Volume node connectivity variable"
-                )
-                self._add_message(
-                    mesh_ncvar,
-                    ncvar,
-                    message=message,
-                    attribute={
-                        f"{mesh_ncvar}:volume_node_connectivity": ncvar
-                    },
-                )
-                ok = False
-
-            ncvar = attributes.get("volume_shape_type")
-            if ncvar is None:
-                self._add_message(
-                    mesh_ncvar,
-                    mesh_ncvar,
-                    message=("volume_shape_type attribute", "is missing"),
-                )
-                ok = False
-        else:
-            self._add_message(
-                mesh_ncvar,
-                mesh_ncvar,
-                message=("topology_dimension attribute", "has invalid value"),
-                attribute={f"{ncvar}:topology_dimension": topology_dimension},
-            )
-            ok = False
-
-        return ok
-
-    def _ugrid_check_location_index_set(
-        self,
-        location_index_set_ncvar,
-    ):
-        """Check a UGRID location index set variable.
-
-        These checks are independent of any parent variable.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            location_index_set_ncvar: `str`
-                The name of the UGRID location index set netCDF
-                variable.
-
-        :Returns:
-
-            `bool`
-                Whether or not the location index set variable adheres
-                to the CF conventions.
-
-        """
-        g = self.read_vars
-
-        ok = True
-
-        if location_index_set_ncvar not in g["internal_variables"]:
-            location_index_set_ncvar, message = self._missing_variable(
-                location_index_set_ncvar, "Location index set variable"
-            )
-            self._add_message(
-                location_index_set_ncvar,
-                location_index_set_ncvar,
-                message=message,
-            )
-            ok = False
-            return ok
-
-        location_index_set_attributes = g["variables"][
-            location_index_set_ncvar
-        ].attrs
-
-        location = location_index_set_attributes.get("location")
-        if location is None:
-            self._add_message(
-                location_index_set_ncvar,
-                location_index_set_ncvar,
-                message=("location attribute", "is missing"),
-            )
-            ok = False
-        elif location not in ("node", "edge", "face", "volume"):
-            self._add_message(
-                location_index_set_ncvar,
-                location_index_set_ncvar,
-                message=("location attribute", "has invalid value"),
-                attribute={f"{location_index_set_ncvar}:location": location},
-            )
-            ok = False
-
-        mesh_ncvar = location_index_set_attributes.get("mesh")
-        if mesh_ncvar is None:
-            self._add_message(
-                location_index_set_ncvar,
-                location_index_set_ncvar,
-                message=("mesh attribute", "is missing"),
-            )
-            ok = False
-        elif mesh_ncvar not in g["internal_variables"]:
-            mesh_ncvar, message = self._missing_variable(
-                mesh_ncvar, "Mesh topology variable"
-            )
-            self._add_message(
-                location_index_set_ncvar,
-                mesh_ncvar,
-                message=message,
-                attribute={f"{location_index_set_ncvar}:mesh": mesh_ncvar},
-                variable=location_index_set_ncvar,
-            )
-            ok = False
-        elif mesh_ncvar not in g["mesh"]:
-            self._add_message(
-                location_index_set_ncvar,
-                mesh_ncvar,
-                message=("Mesh attribute", "is not a mesh topology variable"),
-                attribute={f"{location_index_set_ncvar}:mesh": mesh_ncvar},
-            )
-            ok = False
-
-        return ok
-
-    def _ugrid_check_field_location_index_set(
-        self,
-        parent_ncvar,
-        location_index_set_ncvar,
-    ):
-        """Check a UGRID location index set variable.
-
-        These checks are in the context of a parent variable.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent field or domain
-                construct.
-
-            location_index_set_ncvar: `str`
-                The name of the UGRID location index set netCDF
-                variable.
-
-        :Returns:
-
-            `bool`
-                Whether or not the location index set variable of a
-                field or domain variable adheres to the CF
-                conventions.
-
-        """
-        g = self.read_vars
-
-        ok = True
-
-        if "mesh" in g["variables"][parent_ncvar].attrs:
-            self._add_message(
-                parent_ncvar,
-                parent_ncvar,
-                ("Location index set variable", "is referenced incorrectly"),
-            )
-            return False
-
-        if location_index_set_ncvar not in g["internal_variables"]:
-            location_index_set_ncvar, message = self._missing_variable(
-                location_index_set_ncvar, "Location index set variable"
-            )
-            self._add_message(
-                parent_ncvar,
-                location_index_set_ncvar,
-                message=message,
-                attribute={
-                    f"{parent_ncvar}:location_index_set": location_index_set_ncvar
-                },
-            )
-            ok = False
-            return ok
-
-        location_index_set_attributes = g["variables"][
-            location_index_set_ncvar
-        ].attrs
-
-        location = location_index_set_attributes.get("location")
-        if location is None:
-            self._add_message(
-                parent_ncvar,
-                location_index_set_ncvar,
-                message=("location attribute", "is missing"),
-            )
-            ok = False
-        elif location not in ("node", "edge", "face", "volume"):
-            self._add_message(
-                parent_ncvar,
-                location_index_set_ncvar,
-                message=("location attribute", "has invalid value"),
-                attribute={f"{location_index_set_ncvar}:location": location},
-            )
-            ok = False
-
-        mesh_ncvar = location_index_set_attributes.get("mesh")
-        if mesh_ncvar is None:
-            self._add_message(
-                parent_ncvar,
-                location_index_set_ncvar,
-                message=("mesh attribute", "is missing"),
-            )
-            ok = False
-        elif mesh_ncvar not in g["internal_variables"]:
-            mesh_ncvar, message = self._missing_variable(
-                mesh_ncvar, "Mesh topology variable"
-            )
-            self._add_message(
-                parent_ncvar,
-                mesh_ncvar,
-                message=message,
-                attribute={f"{location_index_set_ncvar}:mesh": mesh_ncvar},
-                variable=location_index_set_ncvar,
-            )
-            ok = False
-        elif mesh_ncvar not in g["mesh"]:
-            self._add_message(
-                parent_ncvar,
-                location_index_set_ncvar,
-                message=("Mesh attribute", "is not a mesh topology variable"),
-                attribute={f"{location_index_set_ncvar}:mesh": mesh_ncvar},
-            )
-            ok = False
-
-        parent_ncdims = self._ncdimensions(parent_ncvar)
-        lis_ncdims = self._ncdimensions(location_index_set_ncvar)
-        if not set(lis_ncdims).issubset(parent_ncdims):
-            self._add_message(
-                parent_ncvar,
-                location_index_set_ncvar,
-                message=(
-                    "Location index set variable",
-                    "spans incorrect dimensions",
-                ),
-                attribute="location_index_set",
-                dimensions=g["variable_dimension_paths"][
-                    location_index_set_ncvar
-                ],
-            )
-            ok = False
-
-        self._include_component_report(parent_ncvar, location_index_set_ncvar)
-        return ok
-
-    def _ugrid_check_field_mesh(
-        self,
-        parent_ncvar,
-        mesh_ncvar,
-    ):
-        """Check a UGRID mesh topology variable.
-
-        These checks are in the context of a parent variable.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent field or domain
-                construct.
-
-        :Returns:
-
-            `bool`
-                Whether or not the mesh topology variable of a field
-                or domain variable adheres to the CF conventions.
-
-        """
-        g = self.read_vars
-
-        ok = True
-
-        parent_attributes = g["variables"][parent_ncvar].attrs
-        if "location_index_set" in parent_attributes:
-            self._add_message(
-                parent_ncvar,
-                parent_ncvar,
-                ("Mesh topology variable", "is referenced incorrectly"),
-            )
-            return False
-
-        if mesh_ncvar not in g["mesh"]:
-            self._add_message(
-                parent_ncvar,
-                parent_ncvar,
-                message=(
-                    "mesh attribute",
-                    "is not a mesh topology variable",
-                ),
-                attribute={f"{parent_ncvar}:mesh": mesh_ncvar},
-            )
-            return False
-
-        location = parent_attributes.get("location")
-        if location is None:
-            self._add_message(
-                parent_ncvar,
-                parent_ncvar,
-                message=("location attribute", "is missing"),
-            )
-            ok = False
-        elif location not in ("node", "edge", "face", "volume"):
-            self._add_message(
-                parent_ncvar,
-                parent_ncvar,
-                message=("location attribute", "has invalid value"),
-                attribute={f"{parent_ncvar}:location": location},
-            )
-            ok = False
-        elif location not in g["mesh"][mesh_ncvar].domain_topologies:
-            self._add_message(
-                parent_ncvar,
-                mesh_ncvar,
-                message=(
-                    "Couldn't create domain topology construct",
-                    "from UGRID mesh topology variable",
-                ),
-                attribute={f"{parent_ncvar}:mesh": mesh_ncvar},
-            )
-            ok = False
-
-        self._include_component_report(parent_ncvar, mesh_ncvar)
-        return ok
-
-    def _ugrid_check_connectivity_variable(
-        self, parent_ncvar, mesh_ncvar, connectivity_ncvar, connectivity_attr
-    ):
-        """Check a UGRID connectivity variable.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        :Parameters:
-
-            parent_ncvar: `str`
-                The netCDF variable name of the parent field
-                construct.
-
-            mesh_ncvar: `str`
-                The netCDF variable name of the UGRID mesh topology
-                variable.
-
-            connectivity_ncvar: `str`
-                The netCDF variable name of the UGRID connectivity
-                variable.
-
-            connectivity_attr: `str`
-                The name of the UGRID connectivity attribute,
-                e.g. ``'face_face_connectivity'``.
-
-        :Returns:
-
-            `bool`
-                Whether or not the connectivity variable adheres to
-                the CF conventions.
-
-        """
-        g = self.read_vars
-
-        ok = True
-        if connectivity_ncvar is None:
-            self._add_message(
-                parent_ncvar,
-                connectivity_ncvar,
-                message=(f"{connectivity_attr} attribute", "is missing"),
-                variable=mesh_ncvar,
-            )
-            ok = False
-            return ok
-
-        if connectivity_ncvar not in g["internal_variables"]:
-            connectivity_ncvar, message = self._missing_variable(
-                connectivity_ncvar, f"{connectivity_attr} variable"
-            )
-            self._add_message(
-                parent_ncvar,
-                connectivity_ncvar,
-                message=message,
-                attribute={
-                    f"{mesh_ncvar}:{connectivity_attr}": connectivity_ncvar
-                },
-                variable=mesh_ncvar,
-            )
-            ok = False
-            return ok
-
-        parent_ncdims = self._ncdimensions(parent_ncvar)
-        connectivity_ncdims = self._ncdimensions(connectivity_ncvar)[0]
-        if not connectivity_ncdims[0] not in parent_ncdims:
-            self._add_message(
-                parent_ncvar,
-                mesh_ncvar,
-                message=(
-                    f"UGRID {connectivity_attr} variable",
-                    "spans incorrect dimensions",
-                ),
-                attribute={
-                    f"mesh:{connectivity_attr}": f"{connectivity_ncvar}"
-                },
-                dimensions=g["variable_dimension_paths"][connectivity_ncvar],
-            )
-            ok = False
-
-        return ok
-
     def _dask_chunks(self, array, ncvar, compressed, construct_type=None):
         """Set the Dask chunking strategy for a netCDF variable.
 
@@ -11097,14 +9621,14 @@ class NetCDFRead(IORead):
                 path is assumed to be local. Ignored if *dataset* is
                 not string-valued.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             representation: `str` or `None`, optional
                 The dataset representation, i.e. the general type of
                 the *dataset* object. If `None` (the default), then it
                 will be determined by `dataset_representation`.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
         :Returns:
 
@@ -11145,7 +9669,7 @@ class NetCDFRead(IORead):
     def is_kerchunk(cls, dataset, filesystem=None, representation=None):
         """Whether or not a dataset contains a Kerchunk dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -11166,7 +9690,7 @@ class NetCDFRead(IORead):
         :Returns:
 
             `bool`
-                `True` if *dataset* is contains Kerchunk dataset,
+                `True` if *dataset* contains a Kerchunk dataset,
                 otherwise `False`.
 
         """
@@ -11269,7 +9793,7 @@ class NetCDFRead(IORead):
 
         >>> n._get_dataset_shards('tas')
         [1, 2, 3], (12, 324, 432)
-        >>> n._get_dataset_chunks('pr')
+        >>> n._get_dataset_shards('pr')
         None, (12, 324, 432)
 
         """
@@ -11288,7 +9812,7 @@ class NetCDFRead(IORead):
     def get_magic_number(cls, dataset, filesystem=None, representation=None):
         """Get the magic number of a dataset in a file.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -11304,7 +9828,8 @@ class NetCDFRead(IORead):
             representation: `str` or `None`, optional
                 The dataset representation, i.e. the general type of
                 the *dataset* object. If `None` (the default), then it
-                will be determined by `dataset_representation`.
+                will be determined by calling
+                `dataset_representation`.
 
         :Returns:
 
@@ -11343,7 +9868,7 @@ class NetCDFRead(IORead):
     def dataset_representation(cls, dataset):
         """Return the logical representation type of the input dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -11365,8 +9890,7 @@ class NetCDFRead(IORead):
                 * ``'file_handle'``: An open file handle (such as
                   returned by `fsspec.filesystem.open`)
 
-                * ``'kerchunk_dict'``: A `dict` (parsed JSON)
-                  representation of a Kerchunk file.
+                * ``'general_mapper'``: A general dict-like object.
 
                 * ``'kerchunk_bytes'``: A `bytes` (raw unparsed JSON)
                   representation of a Kerchunk file.
@@ -11378,26 +9902,6 @@ class NetCDFRead(IORead):
         if isinstance(dataset, str):
             return "path"
 
-        # `pyfive`-like
-        try:
-            import pyfive
-        except ModuleNotFoundError:
-            pyfive = None
-
-        if pyfive is not None and isinstance(dataset, pyfive.File):
-            return "pyfive"
-
-        # `xarray`-like
-        try:
-            import xarray
-        except ModuleNotFoundError:
-            xarray = None
-
-        if xarray is not None and isinstance(
-            dataset, (xarray.Dataset, xarray.DataTree)
-        ):
-            return "xarray"
-
         # Check for a "virtual directory" (Mapper)
         if isinstance(dataset, Mapping):
             # If it has a '.fs' attribute then it's a live fsspec
@@ -11407,13 +9911,11 @@ class NetCDFRead(IORead):
                 if "reference" in protocol:
                     return "kerchunk_mapper"
 
-                return "general_mapper"
-
             # If it has no '.fs' attribute then it's a raw reference
             # (`dict`, `OrderedDict`, etc.)
             #
             # Can't be passed to zarr.open
-            return "kerchunk_dict"
+            return "general_mapper"
 
         # Check for a "binary stream" (file handle)
         if hasattr(dataset, "read") and hasattr(dataset, "seek"):

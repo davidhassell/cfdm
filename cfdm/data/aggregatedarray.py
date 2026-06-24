@@ -76,7 +76,7 @@ class AggregatedArray(abstract.FileArray):
 
             {{init filesystem: optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             {{init backend: `None` or (sequence of) `str`, optional}}
 

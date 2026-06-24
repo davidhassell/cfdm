@@ -120,15 +120,20 @@ _docstring_substitution_definitions = {
 
             May be a string-valued path, a file-like object (such as
             `io.BufferedReader`), or a directory-like object (such as
+<<<<<<< HEAD
             `fsspec.mapping.FSMap`), or a (subclass of a)
             `pyfive.File` object; or a sequence of any combination of
             these types.
+=======
+            `fsspec.mapping.FSMap`); or a sequence of any combination
+            of these types.
+>>>>>>> delme-373
 
             Note that a Kerchunk dataset may be only read from a
             directory-like object. For instance::
 
                >>> fs = fsspec.filesystem('reference', fo='kerchunk.json')
-               >>> kerchunk = fs.get_mapper())
+               >>> kerchunk = fs.get_mapper()
                >>> f = {{package}}.read(kerchunk)
 
             Local names may be relative paths and will have tilde and
@@ -359,7 +364,40 @@ _docstring_substitution_definitions = {
             By default *backend* is `None`, which is equivalent to
             providing the ordered sequence of backends:
 
+<<<<<<< HEAD
             ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
+=======
+            * ``'netCDF4'``
+
+              - The `netCDF4` library.
+              - Reads local and remote (http) netCDF-3 and netCDF-4
+                datasets.
+              - Parallelised reading is not possible.
+
+            * ``'h5netcdf-h5py'``
+
+              - The `h5netcdf` library using `h5py` as its backend.
+              - Reads local and remote (http and s3) netCDF-4
+                datasets.
+              - Parallelised reading is not possible.
+
+            * ``'netcdf_file'``
+
+              - The `scipy.io.netcdf_file` library.
+              - Reads local netCDF-3 datasets.
+              - Allows parallelised reading.
+              - Treats unlimited dimensions in the dataset as not
+                unlimited.
+
+            By default *netcdf_backend* is `None`, which is equivalent
+            to providing the ordered sequence:
+
+            ``('h5netcdf-pyfive', 'h5netcdf-h5py', 'netCDF4', 'netcdf_file')``
+
+            which means that by default, reading a netCDF dataset is
+            first attempted with the `h5netcdf` library using `pyfive`
+            backend.
+>>>>>>> delme-373
 
             *Example:*
               To only attempt ``'netCDF4'``: ``'netCDF4'`` or
@@ -382,7 +420,7 @@ _docstring_substitution_definitions = {
             object ``filesytem.open(dataset, 'rb')`` which is passed
             to the backends (see the *netcdf_backend* parameter).
 
-            .. versionadded:: (cfdm) NEXTVERSION""",
+            .. versionadded:: (cfdm) 1.13.1.0""",
     # read  storage_options
     "{{read storage_options: `dict` or `None`, optional}}": """storage_options: `dict` or `None`, optional
             Parameters for defining an `fsspec`` filesystem for

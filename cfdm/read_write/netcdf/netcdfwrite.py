@@ -264,7 +264,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 be used to ensure that fill and missing values have
                 the correct data type.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
         :Returns:
 
@@ -5584,14 +5584,14 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 Which library to use for creating the dataset. The
                 default value is `None`. See `cfdm.write` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
             h5py_options: `dict` or `None`, optional
                 Additional keyword arguments to be passed to the
                 `h5py.File` file constructor. The default value is
                 `None`. See `cfdm.write` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.1.0
 
         :Returns:
 
@@ -7222,7 +7222,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
     def _matching_coordinate_formula_terms(self, f, ref, coord):
         """Is the coordinate/formula_terms pair already in the dataset?
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -7296,7 +7296,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
     def default_netCDF_fill_value(self, ncvar):
         """Get the default netCDF fill value for a variable.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -7322,7 +7322,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
     def set_unlimited_dimension_sizes(self, var, shape):
         """Manually set the current size of unlimted dimensions.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 
@@ -7361,7 +7361,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
     def _pack_array(self, array, scale_factor=None, add_offset=None):
         """Pack an array like `netCDF4` does.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.1.0
 
         :Parameters:
 

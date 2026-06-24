@@ -4,8 +4,29 @@ Version NEXTVERSION
 **2026-??-??**
 
 * New default backend for netCDF-4 in `cfdm.read` that allows more
-  performant parallel reading: ``cfdm.p5netcdf``
+  performant parallel reading: ``cfdm.p5netcdf`` TODO
   (https://github.com/NCAS-CMS/cfdm/issues/???)
+* New dependency: ``xnetcdf>=0.1.0``
+
+Version 1.13.2.0
+----------------
+
+**2026-??-??**
+
+* Improved and restructured output of `cfdm.Field.dataset_compliance` for
+  (at present, preliminary) CF compliance checking, also available
+  through a new keyword parameter to `cfdm.read`: ``_noncompliance_report``
+  (https://github.com/NCAS-CMS/cfdm/issues/365,
+   https://github.com/NCAS-CMS/cfdm/issues/366)
+* Fix bug in `cfdm.read` that prevented some OPeNDAP URLS being read
+  (https://github.com/NCAS-CMS/cfdm/issues/406)
+
+Version 1.13.1.0
+----------------
+
+**2026-04-09**
+
+>>>>>>> delme-373
 * Read Kerchunk datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/385)
 * Read open file handle datasets with `cfdm.read`

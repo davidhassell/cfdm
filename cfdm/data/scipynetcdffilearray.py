@@ -14,7 +14,7 @@ class ScipyNetcdfFileArray(IndexMixin, FileArray):
     Deprecated at version NEXTVERSION and is no longer available. Use
     `{{package}}.XnetcdfArray` instead.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.1.0
 
     """
 

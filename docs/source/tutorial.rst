@@ -3580,7 +3580,7 @@ in that file:
    >>> h = cfdm.example_field(0)
    >>> h
    <Field: specific_humidity(latitude(5), longitude(8)) 1>
-   >>> cfdm.write(h, 'append-example-file.nc', mode='a')
+   >>> cfdm.write(h, 'append-example-file.nc', mode='a', netcdf_backend='netCDF4')
    >>> cfdm.read('append-example-file.nc')
    [<Field: air_potential_temperature(time(36), latitude(5), longitude(8)) K>,
     <Field: specific_humidity(latitude(5), longitude(8)) 1>]
@@ -4972,7 +4972,7 @@ method:
 
    >>> q, t = cfdm.read('file.nc')
    >>> t.set_quantize_on_write(algorithm='bitgroom', quantization_nsd=1)
-   >>> cfdm.write(t, 'quantized.nc')
+   >>> cfdm.write(t, 'quantized.nc', netcdf_backend='netCDF4')
    >>> quantized = cfdm.read('quantized.nc')[0]
    >>> c = quantized.get_quantization()
    >>> c
