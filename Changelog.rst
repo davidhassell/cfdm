@@ -3,10 +3,10 @@ Version NEXTVERSION
 
 **2026-??-??**
 
-* New default backend for netCDF-4 in `cfdm.read` that allows more
-  performant parallel reading: ``cfdm.p5netcdf`` TODO
-  (https://github.com/NCAS-CMS/cfdm/issues/???)
+* Dataset read backends in `cfdm.read` are now entirely managed by
+  `xnetcdf` (https://github.com/NCAS-CMS/cfdm/issues/???)
 * New dependency: ``xnetcdf>=0.1.0``
+* Removed dependency (now optional): ``ppfive``
 
 ----
 
@@ -40,7 +40,6 @@ Version 1.13.1.0
 
 **2026-04-09**
 
->>>>>>> delme-373
 * Read Kerchunk datasets with `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/385)
 * Read open file handle datasets with `cfdm.read`

@@ -21,6 +21,11 @@ from ...decorators import _manage_log_level_via_verbosity
 from ...functions import abspath, is_log_level_debug, is_log_level_detail
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
+from .cf_resolve_references import (
+    resolve_reference,
+    resolve_references,
+    search_by_proximity,
+)
 from .checker import NetCDFCheckerMixin
 from .constants import (
     CF_QUANTIZATION_PARAMETERS,
@@ -1290,7 +1295,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if backend_options is None:
             backend_options = {}
         elif not isinstance(backend_options, dict):
-            raise ("TODOP")
+            raise  ValueError("TODOP")
+        else:
+            valid_options = [f"{b}_options" for b in xnetcdf.backends]
+            if not set(backend_options).issubset( valid_options):
+                raise ValueError("TODOP")
 
         # ------------------------------------------------------------
         # Parse the 'external' keyword parameter

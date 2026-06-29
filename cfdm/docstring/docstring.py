@@ -115,76 +115,94 @@ _docstring_substitution_definitions = {
         collection of original files from all contributing sources.""",
     # read datasets
     "{{read datasets:}}": """datasets:
-            The dataset, or datasets, from which to read field or
-            domain constructs.
+            The dataset, or sequence of datasets, from which to read
+            field or domain constructs.
 
-            TODOP May be a string-valued path, a file-like object (such as
-            `io.BufferedReader`), or a directory-like object (such as
-            `fsspec.mapping.FSMap`), or a (subclass of a)
-            `pyfive.File` object; or a sequence of any combination of
-            these types.
+            Each dataset must be one of:
 
-            Note that a Kerchunk dataset may be only read from a
-            directory-like object. For instance::
+            * A string-like path name to the dataset (such as `str` or
+              `pathlib.Path` instance)
+    
+              - Local names may be relative paths and will have tilde
+                and shell environment variables expansions applied to
+                them, followed by the replacement of any UNIX
+                wildcards (such as ``*``, ``?``, ``[a-z]``, etc.) with
+                the list of matching names. Remote names (i.e. those
+                with an http or s3 schema), however, are not
+                transformed in any way.
+  
+                *Example:*
+                  The local dataset ``file.nc`` in the user's home
+                  directory could be described by any of the
+                  following: ``'$HOME/file.nc'``,
+                  ``'${HOME}/file.nc'``, ``'~/file.nc'``,
+                  ``'~/tmp/../file.nc'``
+    
+                *Example:*
+                  The local datasets ``file1.nc`` and ``file2.nc``
+                  could be described by any of the following:
+                  ``['file1.nc', 'file2.nc']``, ``'file[12].nc'``
+    
+              - A path of a directory will be walked through to find
+                its contents (recursively if *recursive* is True),
+                unless the directory defines a Zarr dataset (which is
+                ascertained by presence in the directory of
+                appropriate Zarr metadata files).
+  
+              - If a file system has been defined by the *filesystem*
+                or *storage_options* parameters, then the path is
+                assumed to be in that file system. If a file system
+                has not been defined, then a remote dataset is
+                treated, in general, as the file-like object
+                ``fsspec.filesytem(protocol).open(dataset, 'rb')``,
+                where ``protocol`` is inferred from the start of the
+                dataset name (e.g. ``s3`, ``http``, etc.).
 
-               >>> fs = fsspec.filesystem('reference', fo='kerchunk.json')
-               >>> kerchunk = fs.get_mapper()
-               >>> f = {{package}}.read(kerchunk)
+              - There is a special case for remote s3 datasets for
+                which a file system has not been provided with the
+                *filesystem* parameter. In this case, an
+                ``endpoint_url`` file system storage option is created
+                (unless it is already been provided present), and the
+                leading scheme and authority is automatically removed
+                from the dataset name; for instance, the dataset
+                ``'s3://authority/bucket/file.nc'`` might be treated
+                as ``fsspec.filesytem('s3',
+                endpoint_url='s3://authority').open('bucket/file.nc',
+                'rb')``.
 
-            Local names may be relative paths and will have tilde and
-            shell environment variables expansions applied to them,
-            followed by the replacement of any UNIX wildcards (such as
-            ``*``, ``?``, ``[a-z]``, etc.) with the list of matching
-            names. Remote names (i.e. those with an http or s3
-            schema), however, are not transformed in any way.
+              - There is a special case for remote http and https
+                datasets for which a file system has not been provided
+                with the *filesystem* parameter. In this case, it will
+                be attempted to access the dataset via OpeNDAP if
+                other methods do not work..
 
-            Directories will be walked through to find their contents
-            (recursively if *recursive* is True), unless the directory
-            defines a Zarr dataset (which is ascertained by presence
-            in the directory of appropriate Zarr metadata files).
+              - If the *cdl_string* parameter is True, then the
+                string-like dataset is nterpreted as an actual CDL
+                representation of a dataset, rather than a path name.
+    
+            * A file-like object that accesses the dataset (such as
+              `io.BufferedReader` or the result of an `fsspec` file
+              system open)
 
-            If a file system has not been defined by the *filesystem*
-            or *storage_options* parameters then a dataset on the
-            local file system is passed unchanged to the backends (see
-            the *netcdf_backend* parameter). A remote dataset is
-            treated, in general, as the file-like object
-            ``fsspec.filesytem(protocol).open(dataset, 'rb')`` which
-            is passed to the backends, where ``protocol`` is inferred
-            from the start of the dataset name (e.g. ``s3``, ``http``,
-            etc.). S3 is a special case for which an ``endpoint_url``
-            storage option is added, and the leading scheme and
-            authority is automatically removed from the dataset name
-            passed to the filesystem ``open`` method; for instance,
-            the dataset ``'s3://authority/bucket/file.nc'`` is treated
-            as ``fsspec.filesytem('s3',
-            endpoint_url='s3://authority').open('bucket/file.nc',
-            'rb')``. HTTP and HTTPS are also special cases, in that if
-            the file-like treatment does not work, it will be
-            attempted to access the dataset via OpeNDAP.
+            * A directory-like object that accesses the dataset (such
+              as `fsspec.mapping.FSMap`)
 
-            Remote datasets (i.e. those with an http or s3 schema) are
-            assumed to be netCDF files, or else Zarr datasets if the
-            *dataset_type* parameter is set to ``'Zarr'``. However, if
-            a file system has been defined by the *filesystem* or
-            *storage_options* parameters then no such assumption is
-            required, and remote Zarr datasets can be identified by
-            inspection.
+            * Any of the following backend objects (see the *backend*
+              parameter) that accesses the dataset: `pyfive.File`,
+              `zarr.Group`, `ppfive.File`, `netCDF4.Dataset`,
+              `scipy.io.netcdf_file`, `h5py.File`, `xarray.Dataset`,
+              and `xarray.DataTree`.
 
-            As a special case, if the *cdl_string* parameter is True,
-            then interpretation of *datasets* changes so that each
-            string is assumed to be an actual CDL representation of a
-            dataset, rather than a than a file or directory name.
-
-            *Example:*
-              The local dataset ``file.nc`` in the user's home
-              directory could be described by any of the following:
-              ``'$HOME/file.nc'``, ``'${HOME}/file.nc'``,
-              ``'~/file.nc'``, ``'~/tmp/../file.nc'``
-
-            *Example:*
-              The local datasets ``file1.nc`` and ``file2.nc`` could
-              be described by any of the following: ``['file1.nc',
-              'file2.nc']``, ``'file[12].nc'``""",
+            * Any object ``x`` that accesses the dataset and has the
+              same API as one of the allowed backend objects. In
+              pratice, this means any object ``x`` for which
+              ``isinstance(x, <backend-object>)`` is `True` for any
+              ``<backend-object>`` from the selection of allowed
+              backend objects. For instance, if you have created a
+              library called ``my_pyfive`` for which
+              ``my_pyfive.File`` is (registered as) a subclass of
+              `pyfive.File`, then ``my_pyfive.File`` instances can be
+              passed to `Dataset`.""",
     # read cdl_string
     "{{read cdl_string: `bool`, optional}}": """cdl_string: `bool`, optional
             If True and the format to read is CDL then each string
@@ -340,34 +358,83 @@ _docstring_substitution_definitions = {
     # read netcdf_backend
     "{{read netcdf_backend: `None` or (sequence of) `str`, optional}}": """netcdf_backend: `None` or (sequence of) `str`, optional
             Which library or libraries to use for reading a
-            dataset. An attempt to open a dataset is made by the given
-            backends in the order in which they are provided, stopping
-            after the first successful read.
+            dataset.
 
-            The available backends are:
-
-            =================  ======================
-            Backend            Library
-            =================  ======================
-            ``'pyfive'``       `pyfive`
-            ``'zarr'``         `zarr`
-            ``'netCDF4'``      `netCDF4`
-            ``'netcdf_file'``  `scipy.io.netcdf_file`
-            ``'h5py'``         `h5py`
-            =================  ======================
-
+            Deprecated at version (cfdm) NEXTVERSION. Use the
+            *backend* parameter instead.""",
+    # read backend
+    "{{read backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
+            Which library or libraries to use for opening a
+            string-like, file-like, or directory-like dataset given by
+            the *dataset* parameter. An attempt to read the dataset is
+            made by the given backends in the order in which they are
+            provided, stopping after the first successful
+            read. Performance may be improved by specifiying a backend
+            library, because it reduces or removes any unsuccessful
+            dataset read attempts, which can be expensive, especially
+            for remote datasets.
+            
+            The available backends, and the formats they can read,
+            are:
+            
+            =================  ======================  ===================
+            Backend            Library                 Formats
+            =================  ======================  ===================
+            ``'pyfive'``       `pyfive`                netCDF-4
+            ``'zarr'``         `zarr`                  Zarr, Kerchunk
+            ``'ppfive'``       `ppfive`                PP, fields file
+            ``'netCDF4'``      `netCDF4`               netCDF-4, netCDF-3
+            ``'netcdf_file'``  `scipy.io.netcdf_file`  netCDF-3
+            ``'h5py'``         `h5py`                  netCDF-4
+            ``'xarray'``       `xarray`                netCDF-4, netCDF-3,
+                                                       Zarr, Kerchunk,
+                                                       GRIB
+            =================  ======================  ===================
+            
             By default *backend* is `None`, which is equivalent to
             providing the ordered sequence of backends:
-
-            ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
-
+            
+            ``('pyfive', 'zarr' 'ppfive', 'netCDF4', 'netcdf_file',
+            'h5py', 'xarray')``
+            
+            Note that the `xarray` library also uses other backends to
+            access the dataset, which can be configured via the
+            *xarray_options* parameter.
+            
+            If *dataset* is given as (a subclass of) a backend object
+            then *backend* should be `None` or include the name of
+            that backend, otherwise an exception will be raised. For
+            instance, if *dataset* is a `pyfive.File` object then
+            *backend* should be `None`, the string ``'pyfive'``, or be
+            a sequence that includes the string ``'pyfive'``.
+            
             *Example:*
               To only attempt ``'netCDF4'``: ``'netCDF4'`` or
               ``['netCDF4']``
-
+            
             *Example:*
               To only attempt ``'netCDF4'`` or ``'pyfive'``, in that
               order: ``('netCDF4', 'pyfive')``""",
+    # read backend_options
+    "{{read backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
+
+            The options to use with each backe TODOP
+    
+            =================  ======================  =========================
+            Backend            Backend dataset object  Dataset formats
+            =================  ======================  =========================
+            ``'pyfive'``       `pyfive.File`           ``'pyfive_options'``
+            ``'zarr'``         `zarr.open`             ``'zarr_options'``
+            ``'ppfive'``       `ppfive.File`           ``'ppfive_options'``
+            ``'netCDF4'``      `netCDF4.Dataset`       ``'netCDF4_options'``
+            ``'netcdf_file'``  `scipy.io.netcdf_file`  ``'netcdf_file_options'``
+            ``'h5py'``         `h5py.File`             ``'h5py_options'``
+            ``'xarray'``       `xarray.open_dataset`,  ``'xarray_options'``
+                               `xarray.open_datatree`  
+            =================  ======================  ========================
+            
+            By default *backend* is `None`, whic
+            TODOP""",    
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
             A pre-authenticated file system object (for example an
@@ -1383,6 +1450,8 @@ _docstring_substitution_definitions = {
                 ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``""",
     # init backend_options
     "{{init backend_options: `None` or `dict`, optional}}": """init backend_options: `None` or `dict`, optional
+                The 
+    
                 TODOP""",
     # _force_mask_hardness
     "{{_force_mask_hardness: `bool`, optional}}": """_force_mask_hardness: `bool`, optional

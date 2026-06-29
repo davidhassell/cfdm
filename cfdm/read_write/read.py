@@ -149,7 +149,6 @@ class read(ReadWrite):
             .. versionadded:: (cfdm) 1.9.0.0
 
         {{read netcdf_backend: `None` or (sequence of) `str`, optional}}
-            TODOP - deprecate
 
             .. versionadded:: (cfdm) 1.11.2.0
 
