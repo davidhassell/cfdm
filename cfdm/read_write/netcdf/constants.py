@@ -70,6 +70,9 @@ NETCDF4_FMTS = ("NETCDF4", "NETCDF4_CLASSIC")
 # Zarr dataset formats
 ZARR_FMTS = ("ZARR3",)
 
+# xarray dataset formats
+XARRAY_FMTS = ("XARRAY",)
+
 # PP/UM file magic numbers
 PP_UM_MAGIC_NUMBERS = (
     0,  # UM little/big endian

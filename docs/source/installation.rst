@@ -115,7 +115,7 @@ To install from source:
 1. Download the cfdm package from https://pypi.org/project/cfdm
 
 2. Unpack the library (replacing ``<version>`` with the version that
-   you want to install, e.g. ``1.13.0.0``):
+   you want to install, e.g. ``1.13.2.0``):
 
    .. code:: console
 	 
@@ -256,6 +256,12 @@ environments for which these features are not required.
 
   For reading and writing Zarr datasets, and reading Kerchunk
   datasets.
+
+.. rubric:: xarray
+
+* `xarray <https://pypi.org/project/xarray>`_, version 2026.2.0 or newer.
+
+  For converting fields and domains to `xarray` datasets in memory.
 
 ----
 

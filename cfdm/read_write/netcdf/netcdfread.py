@@ -11,7 +11,6 @@ from functools import reduce
 from math import log, nan, prod
 from numbers import Integral
 from os.path import isdir, isfile, join
-from pprint import pformat
 from typing import Any
 
 import numpy as np
@@ -22,11 +21,6 @@ from ...decorators import _manage_log_level_via_verbosity
 from ...functions import abspath, is_log_level_debug, is_log_level_detail
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
-from .cf_resolve_references import (
-    resolve_reference,
-    resolve_references,
-    search_by_proximity,
-)
 from .checker import NetCDFCheckerMixin
 from .constants import (
     CF_QUANTIZATION_PARAMETERS,
@@ -34,6 +28,7 @@ from .constants import (
     NETCDF_QUANTIZATION_PARAMETERS,
     PP_UM_MAGIC_NUMBERS,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -1081,7 +1076,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                              but for now it is only available pretty-printed
                              from the nested machine-parsable structure.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.2.0
 
             _file_systems: `dict`, optional
                 Provide any already-open S3 file systems.
@@ -2190,6 +2185,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             for x in out:
                 noncompliance_dict = x.dataset_compliance()
                 if noncompliance_dict:
+                    from pprint import pformat
+
                     logger.warning(
                         f"\nWARNING: {x.__class__.__name__} incomplete or "
                         "non-standard due to non-CF-compliant dataset. "
@@ -3743,6 +3740,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         f"for {field_ncvar!r}."
                     )
                     if is_log_level_debug(logger):
+                        from pprint import pformat
+
                         logger.debug(
                             f"Mesh dictionary is: {pformat(g['mesh'])}"
                         )

@@ -118,16 +118,11 @@ _docstring_substitution_definitions = {
             The dataset, or datasets, from which to read field or
             domain constructs.
 
-            May be a string-valued path, a file-like object (such as
+            TODOP May be a string-valued path, a file-like object (such as
             `io.BufferedReader`), or a directory-like object (such as
-<<<<<<< HEAD
             `fsspec.mapping.FSMap`), or a (subclass of a)
             `pyfive.File` object; or a sequence of any combination of
             these types.
-=======
-            `fsspec.mapping.FSMap`); or a sequence of any combination
-            of these types.
->>>>>>> delme-373
 
             Note that a Kerchunk dataset may be only read from a
             directory-like object. For instance::
@@ -364,40 +359,7 @@ _docstring_substitution_definitions = {
             By default *backend* is `None`, which is equivalent to
             providing the ordered sequence of backends:
 
-<<<<<<< HEAD
             ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
-=======
-            * ``'netCDF4'``
-
-              - The `netCDF4` library.
-              - Reads local and remote (http) netCDF-3 and netCDF-4
-                datasets.
-              - Parallelised reading is not possible.
-
-            * ``'h5netcdf-h5py'``
-
-              - The `h5netcdf` library using `h5py` as its backend.
-              - Reads local and remote (http and s3) netCDF-4
-                datasets.
-              - Parallelised reading is not possible.
-
-            * ``'netcdf_file'``
-
-              - The `scipy.io.netcdf_file` library.
-              - Reads local netCDF-3 datasets.
-              - Allows parallelised reading.
-              - Treats unlimited dimensions in the dataset as not
-                unlimited.
-
-            By default *netcdf_backend* is `None`, which is equivalent
-            to providing the ordered sequence:
-
-            ``('h5netcdf-pyfive', 'h5netcdf-h5py', 'netCDF4', 'netcdf_file')``
-
-            which means that by default, reading a netCDF dataset is
-            first attempted with the `h5netcdf` library using `pyfive`
-            backend.
->>>>>>> delme-373
 
             *Example:*
               To only attempt ``'netCDF4'``: ``'netCDF4'`` or
@@ -408,9 +370,14 @@ _docstring_substitution_definitions = {
               order: ``('netCDF4', 'pyfive')``""",
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
-            A pre-authenticated filesystem object (for instance an
-            `fsspec` filesystem instance) to use for opening the
-            dataset.
+            A pre-authenticated file system object (for example an
+            `fsspec.filesystem` instance) to use for opening the
+            dataset. When provided, *datasets* values are treated as
+            paths understood by *filesystem*, and local string
+            pre-processing (tilde/variable expansion, globbing and
+            directory walking) is bypassed. The file is opened by
+            calling ``filesystem.open(dataset, 'rb')``, which returns
+            a file-like object that is passed to the netCDF backend.
 
             If `None` (the default) and *storage_options* is also
             `None`, then a dataset is treated as described by the
@@ -923,6 +890,25 @@ _docstring_substitution_definitions = {
         computed and cached in memory. This can avoid the expense of
         re-reading the data from disk, or re-computing it, when the
         data is accessed on multiple occasions.""",
+    # cf_xarray
+    "{{cf_xarray description}}": """If the `cf_xarray` package (https://cf-xarray.readthedocs.io)
+        is installed then the `cf_xarray` accessors that allow some
+        interpretation of CF attributes will be present on
+        `xarray.DataArray` and `xarray.Dataset` objects.""",
+    # sharding
+    "{{sharding description}}": """
+        When writing to a Zarr dataset, sharding provides a mechanism
+        to store multiple dataset chunks in a single storage object or
+        file. Without sharding, each dataset chunk is written to its
+        own file. Traditional file systems and object storage systems
+        may have performance issues storing and accessing large number
+        of files, and small files can be inefficient to store if they
+        are smaller than the block size of the file system. Sharding
+        can improve performance by creating fewer, and larger, files
+        for storing the dataset chunks.
+
+        The sharding strategy is ignored when writing to a non-Zarr
+        dataset.""",
     # ----------------------------------------------------------------
     # Method description substitutions (3 levels of indentation)
     # ------------------------1----------------------------------------
@@ -1596,20 +1582,16 @@ _docstring_substitution_definitions = {
 
                 Note that whenever data elements are displayed, they
                 are cached for fast future retrieval.""",
-    # sharding
-    "{{sharding description}}": """
-        When writing to a Zarr dataset, sharding provides a mechanism
-        to store multiple dataset chunks in a single storage object or
-        file. Without sharding, each dataset chunk is written to its
-        own file. Traditional file systems and object storage systems
-        may have performance issues storing and accessing large number
-        of files, and small files can be inefficient to store if they
-        are smaller than the block size of the file system. Sharding
-        can improve performance by creating fewer, and larger, files
-        for storing the dataset chunks.
+    # xarray
+    "{{Returns xarray}}": """`xarray.Dataset` or `xarray.DataTree`
+                The equivalent `xarray` dataset.
 
-        The sharding strategy is ignored when writing to a non-Zarr
-        dataset.""",
+                If there are no sub-groups of the root group, or if
+                *group* is False, then an `xarray.Dataset` is
+                returned.
+
+                If there are sub-groups of the root group and *group*
+                is True, then an `xarray.DataTree` is returned.""",
     # ----------------------------------------------------------------
     # Method description substitutions (4 levels of indentation)
     # ----------------------------------------------------------------
