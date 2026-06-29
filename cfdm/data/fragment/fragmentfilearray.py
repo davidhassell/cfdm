@@ -140,17 +140,12 @@ class FragmentFileArray(
     def _get_array(self, index=None):
         """Returns a subspace of the dataset variable.
 
-        The method acts as a factory for either a
-        `PyfiveFragmentArray`, `NetCDF4FragmentArray`,
-        `H5pyFragmentArray`, or `UMFragmentArray` class, and it is the
-        result of calling `!_get_array` on the newly created instance
-        that is returned.
+        The method acts as a factory for an `XnetcdfFragmentArray` and
+        it is the result of calling `!_get_array` on the newly created
+        instance that is returned.
 
-        `H5pyFragmentArray` will only be used if
-        `NetCDF4FragmentArray` returns a `FileNotFoundError`
-        exception; and `UMFragmentArray` will only be used if
-        `H5pyFragmentArray` returns an `Exception`.
-
+        
+        
         .. versionadded:: (cfdm) 1.12.0.0
 
         .. seealso:: `__array__`, `index`
@@ -168,10 +163,9 @@ class FragmentFileArray(
                 The subspace.
 
         """
-        # Loop round the fragment array backends, in the order
-        # given by the `_FragmentArrays` attribute (which is
-        # defined in `__new__`), until we find one that can open
-        # the file.
+        # Loop round the fragment array backends, in the order given
+        # by the `__FragmentArrays` attribute, until we find one that
+        # can open the file.
         if index is None:
             index = self.index()
 

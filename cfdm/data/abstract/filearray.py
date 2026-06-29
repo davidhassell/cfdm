@@ -504,12 +504,11 @@ class FileArray(Array):
          'client_kwargs': {'region_name': 'fr-par'}}
 
         """
-        _DEPRECATION_ERROR_METHOD(
-            self,
-            "get_storage_options",
-            version="NEXTVERSION",
-            removed_at="1.14.0.0",
-        )  # pragma: no cover
+        fs = self.get_filesystem()
+        if fs is None:
+            return {}
+
+        return fs.storage_options.copy()
 
     def get_variable(self, default=AttributeError()):
         """Get the open dataset variable object for the data.
