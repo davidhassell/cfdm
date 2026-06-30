@@ -410,8 +410,10 @@ _docstring_substitution_definitions = {
               order: ``('netCDF4', 'pyfive')``""",
     # read backend_options
     "{{read backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
-
+             
             The options to use with each backe TODOP
+
+            Options for a backend are provided as a 
     
             =================  ======================  =========================
             Backend            Backend dataset object  Dataset formats
