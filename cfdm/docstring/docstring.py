@@ -365,21 +365,21 @@ _docstring_substitution_definitions = {
             Which library to use for opening a string-like, file-like,
             or directory-like dataset. An attempt to read the dataset
             is made by the given backends in the order in which they
-            are provided, stopping after the first successful
-            read. Performance may be improved by specifiying a backend
-            library, because it reduces or removes any unsuccessful
-            dataset read attempts, which can be expensive, especially
-            for remote datasets.
-    
+            are provided, stopping after the first successful read.
             By default *backend* is `None`, which is equivalent to
             providing the ordered sequence of backends:
-    
+
             ``('pyfive', 'zarr' 'ppfive', 'netCDF4', 'netcdf_file',
             'h5py', 'xarray')``
 
-            If the dataset is given as a backend object, then that
-            backend must be one of the backends identified by the
-            *backend* parameter
+            If the dataset is given as a (subclass of a) backend
+            object, then that backend must be one of the backends
+            identified by the *backend* parameter.
+
+            Performance may be improved by specifiying a backend
+            library, as this reduces or removes unsuccessful dataset
+            read attempts, which can be expensive, especially for
+            remote datasets.
     
             The available backends, and the formats they can read,
             are:
@@ -411,8 +411,85 @@ _docstring_substitution_definitions = {
     # read backend_options
     "{{read backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
              
-            The options to use with each backe TODOP
+            The options to use with each backend when openined a
+            string-like, file-like, or directory-like dataset.
 
+            A backend's options are given defined by the following
+            dictionary keys, each of which has  a value TODOPs are dictionaryas dictionary of keyword keyword arguments,
+            key
+    
+                Which library to use for opening a string-like, file-like,
+            or directory-like dataset. An attempt to read the dataset
+            is made by the given backends in the order in which they
+            are provided, stopping after the first successful read.
+            By default *backend* is `None`, which is equivalent to
+            providing the ordered sequence of backends:
+
+            * ``'pyfive_options'``
+    
+                Keyword arguments that are passed to `pyfive.File`
+                when opening a dataset with the ``'pyfive'`` backend.
+                The keyword argument ``mode='r'`` is always
+                automatically applied, even when not provided, and
+                can't be set to a different value.
+    
+            * ``'ppfive_options'``
+    
+                Keyword arguments that are passed to `ppfive.File`
+                when opening a dataset with the ``'ppfive'``
+                backend. The keyword argument ``mode='r'`` is always
+                automatically applied, even when not provided, and
+                can't be set to a different value.
+    
+            * ``'netCDF4_options'``
+
+                Keyword arguments that are passed to `netCDF4.Dataset`
+                when opening a dataset with the ``'netCDF4'`` backend.
+                The keyword argument ``mode='r'`` is always
+                automatically applied, even when not provided, and
+                can't be set to a different value.
+    
+            * ``'netcdf_file_options'``
+
+                Keyword arguments that are passed to
+                `scipy.io.netcdf_file` when opening a dataset with the
+                ``'netcdf_file'`` backend. The keyword arguments
+                ``mode='r'`` and ``mmap=True`` are always
+                automatically applied, even when not provided, and
+                can't be set to different values.
+    
+            * ``'`h5py_options'``
+
+                Keyword arguments that are passed to `h5py.File` when
+                opening a dataset with the ``'h5py'`` backend. The
+                keyword argument ``mode='r'`` is always automatically
+                applied, even when not provided, and can't be set to a
+                different value. It is recommended to set
+                ``rdcc_nbytes``, ``rdcc_w0``, and ``rdcc_nslots``
+                keywords to reduce the risk of poor HDF5 chunk-access
+                performance with the ``'h5py'`` backend (see
+                https://docs.h5py.org/en/stable/high/file.html#chunk-cache
+                for details).
+    
+            * ``'xarray_options'``
+                Keyword arguments that are passed to
+                `xarray.open_datatree` when opening a dataset with the
+                ``'xarray'`` backend. The keyword arguments
+                ``mask_and_scale=False``, ``decode_cf=False``, and
+                ``chunks='auto'`` are always automatically applied,
+                even when not provided. The ``mask_and_scale`` and
+                `decode_cf`` arguments can't be set to different
+                values, but ``chunks`` may be redefined.
+    
+            * ``'zarr_options'``: `dict` or `None`, optional
+
+                Keyword arguments that are passed to `zarr.open` when
+                opening a dataset with the ``'zarr'`` backend. The
+                keyword argument ``mode='r'`` is always automatically
+                applied, even when not provided, and can't be set to a
+                different value.
+
+    
             Options for a backend are provided as a 
     
             =================  ======================  =========================
@@ -424,8 +501,7 @@ _docstring_substitution_definitions = {
             ``'netCDF4'``      `netCDF4.Dataset`       ``'netCDF4_options'``
             ``'netcdf_file'``  `scipy.io.netcdf_file`  ``'netcdf_file_options'``
             ``'h5py'``         `h5py.File`             ``'h5py_options'``
-            ``'xarray'``       `xarray.open_dataset`,  ``'xarray_options'``
-                               `xarray.open_datatree`  
+            ``'xarray'``       `xarray.open_datatree`  ``'xarray_options'``
             =================  ======================  ========================
             
             By default *backend* is `None`, whic
