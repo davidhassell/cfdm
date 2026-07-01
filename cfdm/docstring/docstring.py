@@ -122,7 +122,7 @@ _docstring_substitution_definitions = {
 
             * A string-like path name to the dataset (such as `str` or
               `pathlib.Path` instance)
-    
+
               - Local names may be relative paths and will have tilde
                 and shell environment variables expansions applied to
                 them, followed by the replacement of any UNIX
@@ -130,25 +130,25 @@ _docstring_substitution_definitions = {
                 the list of matching names. Remote names (i.e. those
                 with an http or s3 schema), however, are not
                 transformed in any way.
-  
+
                 *Example:*
                   The local dataset ``file.nc`` in the user's home
                   directory could be described by any of the
                   following: ``'$HOME/file.nc'``,
                   ``'${HOME}/file.nc'``, ``'~/file.nc'``,
                   ``'~/tmp/../file.nc'``
-    
+
                 *Example:*
                   The local datasets ``file1.nc`` and ``file2.nc``
                   could be described by any of the following:
                   ``['file1.nc', 'file2.nc']``, ``'file[12].nc'``
-    
+
               - A path of a directory will be walked through to find
                 its contents (recursively if *recursive* is True),
                 unless the directory defines a Zarr dataset (which is
                 ascertained by presence in the directory of
                 appropriate Zarr metadata files).
-  
+
               - If a file system has been defined by the *filesystem*
                 or *storage_options* parameters, then the path is
                 assumed to be in that file system. If a file system
@@ -179,7 +179,7 @@ _docstring_substitution_definitions = {
               - If the *cdl_string* parameter is True, then the
                 string-like dataset is nterpreted as an actual CDL
                 representation of a dataset, rather than a path name.
-    
+
             * A file-like object that accesses the dataset (such as
               `io.BufferedReader` or the result of an `fsspec` file
               system open)
@@ -380,7 +380,7 @@ _docstring_substitution_definitions = {
             library, as this reduces or removes unsuccessful dataset
             read attempts, which can be expensive, especially for
             remote datasets.
-    
+
             The available backends, and the formats they can read,
             are:
 
@@ -397,7 +397,7 @@ _docstring_substitution_definitions = {
                                                        Zarr, Kerchunk,
                                                        GRIB
             =================  ======================  ===================
-    
+
             Note that the `xarray` library is itself an interface to
             other backends.
 
@@ -410,45 +410,45 @@ _docstring_substitution_definitions = {
               order: ``('netCDF4', 'pyfive')``""",
     # read backend_options
     "{{read backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
-             
-            The options to use with each backend when openined a
+            The options to use with each backend when opening a
             string-like, file-like, or directory-like dataset.
 
-            A backend's options are given defined by the following
-            dictionary keys, each of which has  a value TODOPs are dictionaryas dictionary of keyword keyword arguments,
-            key
-    
-                Which library to use for opening a string-like, file-like,
-            or directory-like dataset. An attempt to read the dataset
-            is made by the given backends in the order in which they
-            are provided, stopping after the first successful read.
-            By default *backend* is `None`, which is equivalent to
-            providing the ordered sequence of backends:
+            Each backend's options may be defined with the following
+            dictionary keys, which take a value of a dictionary of
+            keyword arguments to the approriate backend library
+            object. Each backend has default options, which are used
+            when the corresponding key has not been set.
 
             * ``'pyfive_options'``
-    
+
                 Keyword arguments that are passed to `pyfive.File`
                 when opening a dataset with the ``'pyfive'`` backend.
                 The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
-                can't be set to a different value.
-    
+                can't be set to a different value. The ``filename``
+                argument can not be provided (as the dataset is
+                defined by the *dataset* parameter).
+
             * ``'ppfive_options'``
-    
+
                 Keyword arguments that are passed to `ppfive.File`
                 when opening a dataset with the ``'ppfive'``
                 backend. The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
-                can't be set to a different value.
-    
+                can't be set to a different value. The ``filename``
+                argument can not be provided (as the dataset is
+                defined by the *dataset* parameter).
+
             * ``'netCDF4_options'``
 
                 Keyword arguments that are passed to `netCDF4.Dataset`
                 when opening a dataset with the ``'netCDF4'`` backend.
                 The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
-                can't be set to a different value.
-    
+                can't be set to a different value. The ``filename``
+                argument can not be provided (as the dataset is
+                defined by the *dataset* parameter).
+
             * ``'netcdf_file_options'``
 
                 Keyword arguments that are passed to
@@ -456,22 +456,27 @@ _docstring_substitution_definitions = {
                 ``'netcdf_file'`` backend. The keyword arguments
                 ``mode='r'`` and ``mmap=True`` are always
                 automatically applied, even when not provided, and
-                can't be set to different values.
-    
+                can't be set to different values. The ``filename``
+                argument can not be provided (as the dataset is
+                defined by the *dataset* parameter).
+
             * ``'`h5py_options'``
 
                 Keyword arguments that are passed to `h5py.File` when
                 opening a dataset with the ``'h5py'`` backend. The
                 keyword argument ``mode='r'`` is always automatically
                 applied, even when not provided, and can't be set to a
-                different value. It is recommended to set
-                ``rdcc_nbytes``, ``rdcc_w0``, and ``rdcc_nslots``
-                keywords to reduce the risk of poor HDF5 chunk-access
-                performance with the ``'h5py'`` backend (see
+                different value. The ``name`` argument can not be
+                provided (as the dataset is defined by the *dataset*
+                parameter). It is recommended to set ``rdcc_nbytes``,
+                ``rdcc_w0``, and ``rdcc_nslots`` keywords to reduce
+                the risk of poor HDF5 chunk-access performance with
+                the ``'h5py'`` backend (see
                 https://docs.h5py.org/en/stable/high/file.html#chunk-cache
                 for details).
-    
+
             * ``'xarray_options'``
+
                 Keyword arguments that are passed to
                 `xarray.open_datatree` when opening a dataset with the
                 ``'xarray'`` backend. The keyword arguments
@@ -479,33 +484,29 @@ _docstring_substitution_definitions = {
                 ``chunks='auto'`` are always automatically applied,
                 even when not provided. The ``mask_and_scale`` and
                 `decode_cf`` arguments can't be set to different
-                values, but ``chunks`` may be redefined.
-    
+                values, but ``chunks`` may be redefined. The
+                ``filename_or_obj`` argument can not be provided (as
+                the dataset is defined by the *dataset* parameter).
+
             * ``'zarr_options'``: `dict` or `None`, optional
 
                 Keyword arguments that are passed to `zarr.open` when
                 opening a dataset with the ``'zarr'`` backend. The
                 keyword argument ``mode='r'`` is always automatically
                 applied, even when not provided, and can't be set to a
-                different value.
+                different value. The ``store`` argument can not be
+                provided (as the dataset is defined by the *dataset*
+                parameter).
 
-    
-            Options for a backend are provided as a 
-    
-            =================  ======================  =========================
-            Backend            Backend dataset object  Dataset formats
-            =================  ======================  =========================
-            ``'pyfive'``       `pyfive.File`           ``'pyfive_options'``
-            ``'zarr'``         `zarr.open`             ``'zarr_options'``
-            ``'ppfive'``       `ppfive.File`           ``'ppfive_options'``
-            ``'netCDF4'``      `netCDF4.Dataset`       ``'netCDF4_options'``
-            ``'netcdf_file'``  `scipy.io.netcdf_file`  ``'netcdf_file_options'``
-            ``'h5py'``         `h5py.File`             ``'h5py_options'``
-            ``'xarray'``       `xarray.open_datatree`  ``'xarray_options'``
-            =================  ======================  ========================
-            
-            By default *backend* is `None`, whic
-            TODOP""",    
+            *Example:*
+              ``backend_options={'pyfive_options':
+              {'metadata_buffer_size': 2}}``
+
+            *Example:*
+              ``backend_options={'pyfive_options':
+              {'metadata_buffer_size': 2}, 'ppfive_options':
+              {'height_at_top_of_model': 85000, 'local_os_cache':
+              False}}``""",
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
             A pre-authenticated file system object (for example an
@@ -1497,33 +1498,6 @@ _docstring_substitution_definitions = {
 
                 If `None` (the default) then *filename*, regardless of
                 its type, is passed unchanged to the backends.""",
-    # init backend
-    "{{init backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
-
-                Which library or libraries to use for reading
-                *filename*. An attempt to open the dataset is made by
-                the given backends in order, stopping after the first
-                successful read. If `None` the theThe available backends are: TODOP5
-
-                =================  ======================
-                Backend            Library
-                =================  ======================
-                ``'pyfive'``       `pyfive`
-                ``'zarr'``         `zarr`
-                ``'netCDF4'``      `netCDF4`
-                ``'netcdf_file'``  `scipy.io.netcdf_file`
-                ``'h5py'``         `h5py`
-                =================  ======================
-
-                By default *backend* is `None`, which is equivalent to
-                providing the ordered sequence of backends:
-
-                ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``""",
-    # init backend_options
-    "{{init backend_options: `None` or `dict`, optional}}": """init backend_options: `None` or `dict`, optional
-                The 
-    
-                TODOP""",
     # _force_mask_hardness
     "{{_force_mask_hardness: `bool`, optional}}": """_force_mask_hardness: `bool`, optional
                 If True (the default) then force the mask hardness of

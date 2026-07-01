@@ -18,7 +18,7 @@ import numpy as np
 from ...conformance import FieldChecker, VariableNonConformance
 from ...data.netcdfindexer import netcdf_indexer
 from ...decorators import _manage_log_level_via_verbosity
-from ...functions import abspath, is_log_level_debug, is_log_level_detail
+from ...functions import abspath, is_log_level_debug
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
 from .cf_resolve_references import (
@@ -33,7 +33,6 @@ from .constants import (
     NETCDF_QUANTIZATION_PARAMETERS,
     PP_UM_MAGIC_NUMBERS,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -1295,10 +1294,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if backend_options is None:
             backend_options = {}
         elif not isinstance(backend_options, dict):
-            raise  ValueError("TODOP")
+            raise ValueError("TODOP")
         else:
             valid_options = [f"{b}_options" for b in xnetcdf.backends]
-            if not set(backend_options).issubset( valid_options):
+            if not set(backend_options).issubset(valid_options):
                 raise ValueError("TODOP")
 
         # ------------------------------------------------------------
@@ -2454,7 +2453,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         external_files = read_vars["external_files"]
         datasets = read_vars["datasets"]
 
-        found_external_variables = []
+        #        found_external_variables = []
 
         for external_file in external_files:
             logger.info(
@@ -2480,9 +2479,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             datasets.append(external_read_vars["nc"])
 
-            error = False
+            #           error = False
             for original_ncvar in external_variables:
-                found_external_variable = []
+                #                found_external_variable = []
 
                 ncvar = None
                 for e_var in external_read_vars["variables"].values():
@@ -2492,7 +2491,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                     ncvar = None
 
-                if ncvar is None:  # not found_external_variables:
+                if ncvar is None:
                     # Didn't find the variable in this external file
                     continue
 

@@ -16,6 +16,7 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
         shape=None,
         filesystem=None,
         backend=None,
+        backend_options=None,
         unpack_aggregated_data=True,
         aggregated_attributes=None,
         source=None,
@@ -54,7 +55,11 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{init backend: `None` or (sequence of) `str`, optional}}
+            {{read backend: `None` or (sequence of) `str`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{read  backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -76,6 +81,7 @@ class FragmentFileArrayMixin(FragmentArrayMixin):
             attributes=None,
             filesystem=filesystem,
             backend=backend,
+            backend_options=backend_options,
             source=source,
             copy=copy,
         )

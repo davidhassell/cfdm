@@ -78,11 +78,11 @@ class AggregatedArray(abstract.FileArray):
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
-            {{init backend: `None` or (sequence of) `str`, optional}}
+            {{read backend: `None` or (sequence of) `str`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{init backend_options: `None` or `dict`, optional}}
+            {{read  backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 

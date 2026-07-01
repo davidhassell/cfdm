@@ -72,11 +72,11 @@ class FragmentFileArray(
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{init backend: `None` or (sequence of) `str`, optional}}
+            {{read backend: `None` or (sequence of) `str`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{init backend_options: `None` or `dict`, optional}}
+            {{read backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -144,8 +144,8 @@ class FragmentFileArray(
         it is the result of calling `!_get_array` on the newly created
         instance that is returned.
 
-        
-        
+
+
         .. versionadded:: (cfdm) 1.12.0.0
 
         .. seealso:: `__array__`, `index`
