@@ -411,11 +411,11 @@ _docstring_substitution_definitions = {
     # read backend_options
     "{{read backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
             The options to use with each backend when opening a
-            string-like, file-like, or directory-like dataset.
+            dataset.
 
             Each backend's options may be defined with the following
             dictionary keys, which take a value of a dictionary of
-            keyword arguments to the approriate backend library
+            keyword arguments to the appropriate backend library
             object. Each backend has default options, which are used
             when the corresponding key has not been set.
 
@@ -426,8 +426,7 @@ _docstring_substitution_definitions = {
                 The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
-                argument can not be provided (as the dataset is
-                defined by the *dataset* parameter).
+                argument can not be provided.
 
             * ``'ppfive_options'``
 
@@ -436,8 +435,7 @@ _docstring_substitution_definitions = {
                 backend. The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
-                argument can not be provided (as the dataset is
-                defined by the *dataset* parameter).
+                argument can not be provided.
 
             * ``'netCDF4_options'``
 
@@ -446,8 +444,7 @@ _docstring_substitution_definitions = {
                 The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
-                argument can not be provided (as the dataset is
-                defined by the *dataset* parameter).
+                argument can not be provided.
 
             * ``'netcdf_file_options'``
 
@@ -457,8 +454,7 @@ _docstring_substitution_definitions = {
                 ``mode='r'`` and ``mmap=True`` are always
                 automatically applied, even when not provided, and
                 can't be set to different values. The ``filename``
-                argument can not be provided (as the dataset is
-                defined by the *dataset* parameter).
+                argument can not be provided.
 
             * ``'`h5py_options'``
 
@@ -467,8 +463,7 @@ _docstring_substitution_definitions = {
                 keyword argument ``mode='r'`` is always automatically
                 applied, even when not provided, and can't be set to a
                 different value. The ``name`` argument can not be
-                provided (as the dataset is defined by the *dataset*
-                parameter). It is recommended to set ``rdcc_nbytes``,
+                provided. It is recommended to set ``rdcc_nbytes``,
                 ``rdcc_w0``, and ``rdcc_nslots`` keywords to reduce
                 the risk of poor HDF5 chunk-access performance with
                 the ``'h5py'`` backend (see
@@ -483,10 +478,9 @@ _docstring_substitution_definitions = {
                 ``mask_and_scale=False``, ``decode_cf=False``, and
                 ``chunks='auto'`` are always automatically applied,
                 even when not provided. The ``mask_and_scale`` and
-                `decode_cf`` arguments can't be set to different
+                ``decode_cf`` arguments can't be set to different
                 values, but ``chunks`` may be redefined. The
-                ``filename_or_obj`` argument can not be provided (as
-                the dataset is defined by the *dataset* parameter).
+                ``filename_or_obj`` argument can not be provided.
 
             * ``'zarr_options'``: `dict` or `None`, optional
 
@@ -495,18 +489,15 @@ _docstring_substitution_definitions = {
                 keyword argument ``mode='r'`` is always automatically
                 applied, even when not provided, and can't be set to a
                 different value. The ``store`` argument can not be
-                provided (as the dataset is defined by the *dataset*
-                parameter).
+                provided.
 
             *Example:*
-              ``backend_options={'pyfive_options':
-              {'metadata_buffer_size': 2}}``
+              ``{'pyfive_options': {'metadata_buffer_size': 2}}``
 
             *Example:*
-              ``backend_options={'pyfive_options':
-              {'metadata_buffer_size': 2}, 'ppfive_options':
-              {'height_at_top_of_model': 85000, 'local_os_cache':
-              False}}``""",
+              ``{'pyfive_options': {'metadata_buffer_size': 2},
+              'ppfive_options': {'height_at_top_of_model': 85000,
+              'local_os_cache': False}}``""",    
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
             A pre-authenticated file system object (for example an
@@ -879,6 +870,13 @@ _docstring_substitution_definitions = {
             *Example:*
               To only attempt ``'netCDF4'`` or ``'pyfive'``, in that
               order: ``('netCDF4', 'pyfive')``""",
+    # read cfa_backend_options
+    "{{read cfa_backend_options: `None` or `dict`, optional}}": """cfa_backend_options: `None` or `dict`, optional
+
+            The options to use with each backend when opening an
+            aggregated dataset.
+
+            Set as for the *backend_options* parmaeter.""",
     # read cfa_filesystem
     "{{read cfa_filesystem: `None` or filesystem, optional}}": """cfa_filesystem: `None` or filesystem, optional
             A pre-authenticated filesystem object (for example an
@@ -1510,6 +1508,13 @@ _docstring_substitution_definitions = {
                 state of the Dask graph, or is to add to the returned
                 Dask graph further operations to which can correctly
                 manage the mask hardness.""",
+    # init backend
+    "{{init backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
+                Which library to use for opening a dataset.""",
+    # init backend_options
+    "{{init backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
+                The options to use with each backend when opening a
+                dataset.""",          
     # _force_to_memory
     "{{_force_to_memory: `bool`, optional}}": """_force_to_memory: `bool`, optional
                 If True (the default) then force the data resulting

@@ -72,11 +72,11 @@ class FragmentFileArray(
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{read backend: `None` or (sequence of) `str`, optional}}
+            {{init backend: `None` or (sequence of) `str`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{read backend_options: `None` or `dict`, optional}}
+            {{init backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 

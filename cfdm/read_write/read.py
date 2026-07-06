@@ -151,7 +151,7 @@ class read(ReadWrite):
         {{read netcdf_backend: `None` or (sequence of) `str`, optional}}
 
             .. versionadded:: (cfdm) 1.11.2.0
-
+    
         backend: `None` or (sequence of) `str`, optional
             Which library or libraries to use for reading a
             dataset. An attempt to open a dataset is made by the given
@@ -185,8 +185,7 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) NEXTVERSION
 
-        backend_options: `None` or `dict`
-            TODOP
+        {{read backend_options: `None` or `dict`, optional}}
 
             .. versionadded:: (cfdm) NEXTVERSION
 
@@ -230,8 +229,7 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) NEXTVERSION
 
-        cfa_backend_options: `None` or `dict`
-            TODOP
+        {{cfa_backend_options: `None` or `dict`, optional}}
 
             .. versionadded:: (cfdm) NEXTVERSION
 

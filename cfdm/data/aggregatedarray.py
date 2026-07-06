@@ -82,7 +82,7 @@ class AggregatedArray(abstract.FileArray):
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{read  backend_options: `None` or `dict`, optional}}
+            {{init backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -123,7 +123,8 @@ class AggregatedArray(abstract.FileArray):
                 .. versionadded:: (cfdm) NEXTVERSION
 
             fragment_backend_options: `None` or `dict`, optional
-                TODOP
+                The options to use with each backend when opening a
+                fragment dataset.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 

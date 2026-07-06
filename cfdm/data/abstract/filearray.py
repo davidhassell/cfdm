@@ -61,11 +61,11 @@ class FileArray(Array):
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
-            {{read backend: `None` or (sequence of) `str`, optional}}
+            {{init backend: `None` or (sequence of) `str`, optional}}
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
-            {{read backend_options: `None` or `dict`, optional}}
+            {{init backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
