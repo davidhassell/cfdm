@@ -1237,7 +1237,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             elif d_type in ("Zarr", "Kerchunk"):
                 netcdf_backend = ("zarr", "xarray")
             elif d_type == "UM":
-                netcdf_backend = "ppfive"
+                netcdf_backend = "umfive"
         else:
             import xnetcdf
 
@@ -1267,7 +1267,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         #        "netcdf_file",  # netCDF-3
         #        "h5py",  # netCDF-4
         #        "netCDF4",  # netCDF-3 and netCDF-4
-        #        "ppfive",
+        #        "umfive",
         #    )
         # else:
         #    valid_netcdf_backends = (
@@ -1276,7 +1276,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         #        "h5py",
         #        "netCDF4",
         #        "zarr",
-        #        "ppfive",
+        #        "umfive",
         #    )
         #    if isinstance(netcdf_backend, str):
         #        netcdf_backend = (netcdf_backend,)
@@ -1436,11 +1436,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     f"{tuple(diff)}"
                 )
 
-            ppfive_options = backend_options.get("ppfive_options")
-            if ppfive_options is None:
-                backend_options["ppfive_options"] = um_config
+            umfive_options = backend_options.get("umfive_options")
+            if umfive_options is None:
+                backend_options["umfive_options"] = um_config
             else:
-                backend_options["ppfive_options"] = ppfive_options | um_config
+                backend_options["umfive_options"] = umfive_options | um_config
 
         # ------------------------------------------------------------
         # Initialise netCDF read parameters
@@ -5980,7 +5980,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             else:
                 # For some backends, it's OK to store the actual
                 # variable inside the Dask array
-                if backend in ("pyfive", "zarr", "ppfive"):
+                if backend in ("pyfive", "zarr", "umfive"):
                     kwargs["variable"] = variable
 
                 array = self.implementation.initialise_XnetcdfArray(**kwargs)

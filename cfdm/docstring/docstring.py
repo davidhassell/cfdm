@@ -189,7 +189,7 @@ _docstring_substitution_definitions = {
 
             * Any of the following backend objects (see the *backend*
               parameter) that accesses the dataset: `pyfive.File`,
-              `zarr.Group`, `ppfive.File`, `netCDF4.Dataset`,
+              `zarr.Group`, `umfive.File`, `netCDF4.Dataset`,
               `scipy.io.netcdf_file`, `h5py.File`, `xarray.Dataset`,
               and `xarray.DataTree`.
 
@@ -369,7 +369,7 @@ _docstring_substitution_definitions = {
             By default *backend* is `None`, which is equivalent to
             providing the ordered sequence of backends:
 
-            ``('pyfive', 'zarr' 'ppfive', 'netCDF4', 'netcdf_file',
+            ``('pyfive', 'zarr' 'umfive', 'netCDF4', 'netcdf_file',
             'h5py', 'xarray')``
 
             If the dataset is given as a (subclass of a) backend
@@ -389,7 +389,7 @@ _docstring_substitution_definitions = {
             =================  ======================  ===================
             ``'pyfive'``       `pyfive`                netCDF-4
             ``'zarr'``         `zarr`                  Zarr, Kerchunk
-            ``'ppfive'``       `ppfive`                PP, fields file
+            ``'umfive'``       `umfive`                PP, fields file
             ``'netCDF4'``      `netCDF4`               netCDF-4, netCDF-3
             ``'netcdf_file'``  `scipy.io.netcdf_file`  netCDF-3
             ``'h5py'``         `h5py`                  netCDF-4
@@ -428,10 +428,10 @@ _docstring_substitution_definitions = {
                 can't be set to a different value. The ``filename``
                 argument can not be provided.
 
-            * ``'ppfive_options'``
+            * ``'umfive_options'``
 
-                Keyword arguments that are passed to `ppfive.File`
-                when opening a dataset with the ``'ppfive'``
+                Keyword arguments that are passed to `umfive.File`
+                when opening a dataset with the ``'umfive'``
                 backend. The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
@@ -496,7 +496,7 @@ _docstring_substitution_definitions = {
 
             *Example:*
               ``{'pyfive_options': {'metadata_buffer_size': 2},
-              'ppfive_options': {'height_at_top_of_model': 85000,
+              'umfive_options': {'height_at_top_of_model': 85000,
               'local_os_cache': False}}``""",    
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
