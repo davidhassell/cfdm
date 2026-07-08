@@ -156,6 +156,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
     }
 
     def __init__(self, implementation=None):
+        """**Initialisation**"""
         FieldChecker.__init__(self)
         self.implementation = implementation  # from IORead
 
@@ -1298,6 +1299,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 f"Got: {backend_options!r}"
             )
         else:
+            import xnetcdf
+
             valid_options = [f"{b}_options" for b in xnetcdf.backends]
             if not set(backend_options).issubset(valid_options):
                 raise ValueError(
@@ -5987,7 +5990,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # Assuming that the xarray 'chunks' argument was not
                 # `None`, this will be Dask array, otherwise it might
                 # be (e.g.) a numpy array in memory.
-                array = variable.data
+                array = variable.backend_accessor.data
             else:
                 # For some backends, it's OK to store the actual
                 # variable inside the Dask array

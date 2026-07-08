@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..cfdmimplementation import implementation
+from ..functions import _DEPRECATION_ERROR_FUNCTION_KWARGS
 from .abstract import ReadWrite
 from .netcdf import NetCDFWrite
 

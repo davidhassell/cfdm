@@ -83,13 +83,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        bounds_ncvar_attrs = self.read_vars["variables"][bounds_ncvar].attrs
-        self._check_standard_names(
-            parent_ncvar,
-            bounds_ncvar,
-            bounds_ncvar_attrs,
-        )
-
         if bounds_ncvar not in g["internal_variables"]:
             bounds_ncvar, message = self._missing_variable(
                 bounds_ncvar, variable_type
@@ -99,9 +92,16 @@ class NetCDFCheckerMixin(Report):
                 bounds_ncvar,
                 message=message,
                 attribute=attribute,
-                variable=coord_ncvar,
+                direct_parent_ncvar=coord_ncvar,
             )
             return False
+
+        bounds_ncvar_attrs = self.read_vars["variables"][bounds_ncvar].attrs
+        self._check_standard_names(
+            parent_ncvar,
+            bounds_ncvar,
+            bounds_ncvar_attrs,
+        )
 
         ok = True
 
@@ -115,8 +115,8 @@ class NetCDFCheckerMixin(Report):
                     bounds_ncvar,
                     message=incorrect_dimensions,
                     attribute=attribute,
-                    dimensions=g["variable_dimension_paths"][bounds_ncvar],
-                    variable=coord_ncvar,
+                    dimensions=g["variable_dimensions"][bounds_ncvar],
+                    direct_parent_ncvar=coord_ncvar,
                 )
                 ok = False
 
@@ -126,8 +126,8 @@ class NetCDFCheckerMixin(Report):
                 bounds_ncvar,
                 message=incorrect_dimensions,
                 attribute=attribute,
-                dimensions=g["variable_dimension_paths"][bounds_ncvar],
-                variable=coord_ncvar,
+                dimensions=g["variable_dimensions"][bounds_ncvar],
+                direct_parent_ncvar=coord_ncvar,
             )
             ok = False
 
@@ -183,7 +183,7 @@ class NetCDFCheckerMixin(Report):
                 node_ncvar,
                 message=message,
                 attribute=attribute,
-                variable=field_ncvar,
+                direct_parent_ncvar=field_ncvar,
             )
             return False
 
@@ -198,7 +198,7 @@ class NetCDFCheckerMixin(Report):
                     "not in node_coordinates",
                 ),
                 attribute=attribute,
-                variable=field_ncvar,
+                direct_parent_ncvar=field_ncvar,
             )
             ok = False
 
@@ -516,12 +516,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        coord_ncvar_attrs = g["variables"][coord_ncvar].attrs
-        self._check_standard_names(
-            parent_ncvar,
-            coord_ncvar,
-            coord_ncvar_attrs,
-        )
         self._include_component_report(
             parent_ncvar,
             coord_ncvar,
@@ -547,6 +541,13 @@ class NetCDFCheckerMixin(Report):
                 conformance="5.requirement.5",
             )
             return False
+
+        coord_ncvar_attrs = g["variables"][coord_ncvar].attrs
+        self._check_standard_names(
+            parent_ncvar,
+            coord_ncvar,
+            coord_ncvar_attrs,
+        )
 
         # Check that the variable's dimensions span a subset of the
         # parent variable's dimensions (allowing for char variables
@@ -1414,7 +1415,7 @@ class NetCDFCheckerMixin(Report):
                             "is incorrectly formatted",
                         ),
                         attribute=attribute,
-                        variable=coord_ncvar,
+                        direct_parent_ncvar=coord_ncvar,
                     )
 
                 for x in parsed_bounds_formula_terms:
@@ -1431,7 +1432,7 @@ class NetCDFCheckerMixin(Report):
                                 "is incorrectly formatted",
                             ),
                             attribute=bounds_attribute,
-                            variable=coord_ncvar,
+                            direct_parent_ncvar=coord_ncvar,
                         )
                         continue
 
@@ -1447,7 +1448,7 @@ class NetCDFCheckerMixin(Report):
                             ncvar,
                             message=message,
                             attribute=bounds_attribute,
-                            variable=coord_ncvar,
+                            direct_parent_ncvar=coord_ncvar,
                         )
                         continue
 
@@ -1460,7 +1461,7 @@ class NetCDFCheckerMixin(Report):
                                 "has incompatible terms",
                             ),
                             attribute=bounds_attribute,
-                            variable=coord_ncvar,
+                            direct_parent_ncvar=coord_ncvar,
                         )
                         continue
 
@@ -1484,7 +1485,7 @@ class NetCDFCheckerMixin(Report):
                                     "coordinate variable",
                                 ),
                                 attribute=bounds_attribute,
-                                variable=coord_ncvar,
+                                direct_parent_ncvar=coord_ncvar,
                             )
                             continue
 
@@ -1498,7 +1499,7 @@ class NetCDFCheckerMixin(Report):
                             ),
                             attribute=bounds_attribute,
                             dimensions=dimensions,
-                            variable=coord_ncvar,
+                            direct_parent_ncvar=coord_ncvar,
                         )
                         continue
                     # WRONG - need to account for char arrays:
@@ -1512,7 +1513,7 @@ class NetCDFCheckerMixin(Report):
                             ),
                             attribute=bounds_attribute,
                             dimensions=dimensions,
-                            variable=coord_ncvar,
+                            direct_parent_ncvar=coord_ncvar,
                         )
                         continue
 
@@ -1530,7 +1531,7 @@ class NetCDFCheckerMixin(Report):
                             "has incompatible terms",
                         ),
                         attribute=bounds_attribute,
-                        variable=coord_ncvar,
+                        direct_parent_ncvar=coord_ncvar,
                     )
 
             else:
@@ -1585,7 +1586,7 @@ class NetCDFCheckerMixin(Report):
                                 "has no bounds",
                             ),
                             attribute=attribute,
-                            variable=coord_ncvar,
+                            direct_parent_ncvar=coord_ncvar,
                         )
 
     def _missing_variable(self, ncvar, message0):
@@ -1939,7 +1940,7 @@ class NetCDFCheckerMixin(Report):
                 mesh_ncvar,
                 message=message,
                 attribute={f"{location_index_set_ncvar}:mesh": mesh_ncvar},
-                variable=location_index_set_ncvar,
+                direct_parent_ncvar=location_index_set_ncvar,
             )
             ok = False
         elif mesh_ncvar not in g["mesh"]:
@@ -2052,7 +2053,7 @@ class NetCDFCheckerMixin(Report):
                 mesh_ncvar,
                 message=message,
                 attribute={f"{location_index_set_ncvar}:mesh": mesh_ncvar},
-                variable=location_index_set_ncvar,
+                direct_parent_ncvar=location_index_set_ncvar,
             )
             ok = False
         elif mesh_ncvar not in g["mesh"]:
@@ -2226,7 +2227,7 @@ class NetCDFCheckerMixin(Report):
                 parent_ncvar,
                 connectivity_ncvar,
                 message=(f"{connectivity_attr} attribute", "is missing"),
-                variable=mesh_ncvar,
+                direct_parent_ncvar=mesh_ncvar,
             )
             ok = False
             return ok
@@ -2242,7 +2243,7 @@ class NetCDFCheckerMixin(Report):
                 attribute={
                     f"{mesh_ncvar}:{connectivity_attr}": connectivity_ncvar
                 },
-                variable=mesh_ncvar,
+                direct_parent_ncvar=mesh_ncvar,
             )
             ok = False
             return ok
