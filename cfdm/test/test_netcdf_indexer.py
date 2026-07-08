@@ -31,13 +31,7 @@ def _remove_tmpfiles():
 
 atexit.register(_remove_tmpfiles)
 
-# netcdf_backends = (
-#    "netCDF4",
-#    "h5netcdf-pyfive",
-#    "h5netcdf-h5py",
-#    "netcdf_file",
-# )
-netcdf_backends = (
+backends = (
     "pyfive",
     "h5py",
     "netCDF4",
@@ -92,7 +86,7 @@ class netcdf_indexerTest(unittest.TestCase):
         fields.append(f)
 
         # Check against netCDF4 with set_auto_maskandscale(True)
-        for backend in netcdf_backends:
+        for backend in backends:
             if backend == "netcdf_file":
                 fmt = "NETCDF3_CLASSIC"
             else:
@@ -103,7 +97,7 @@ class netcdf_indexerTest(unittest.TestCase):
             nc = netCDF4.Dataset(tmpfile, "r")
             nc.set_auto_maskandscale(True)
             nc.set_always_mask(True)
-            f = cfdm.read(tmpfile, netcdf_backend=backend)
+            f = cfdm.read(tmpfile, backend=backend)
 
             for g in f:
                 ncvar = g.nc_get_variable()
@@ -130,7 +124,7 @@ class netcdf_indexerTest(unittest.TestCase):
         f.set_property("missing_value", 999)
 
         # Check against netCDF4 with set_auto_maskandscale(True)
-        for backend in netcdf_backends:
+        for backend in backends:
             if backend == "netcdf_file":
                 fmt = "NETCDF3_CLASSIC"
             else:
@@ -142,7 +136,7 @@ class netcdf_indexerTest(unittest.TestCase):
             nc.set_auto_maskandscale(True)
             nc.set_always_mask(True)
 
-            for g in cfdm.read(tmpfile, netcdf_backend=backend):
+            for g in cfdm.read(tmpfile, backend=backend):
                 ncvar = g.nc_get_variable()
                 n = nc.variables[ncvar]
                 na = n[...]

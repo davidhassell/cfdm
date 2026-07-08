@@ -490,26 +490,26 @@ class AggregatedArray(abstract.FileArray):
         :Returns:
 
             `None` or sequence of `str`
-                The backend names, or `None` if none have not been
-                provided. When accessing the fragment, the backends
-                are tried in order until one succeessfully reads the
-                dataset.
+                The backend name or names, or `None` if none have not
+                been provided. When accessing the fragment dataset,
+                the backends are tried in order until one
+                succeessfully reads the dataset. If no backends have
+                been provided then the default backends for `xnetcdf`
+                are used.
 
         """
         return self._get_component("fragment_backend", None)
 
     def get_fragment_backend_options(self):
-        """TODOP.
+        """Backend options when opening a fragment dataset.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             `dict`
-                TODOP  The backend names, or `None` if none have not been
-                provided. When accessing the fragment, the backends
-                are tried in order until one succeessfully reads the
-                dataset.
+                The options to use with each backend when opening the
+                fragment dataset.
 
         """
         return self._get_component("fragment_backend_options", {})

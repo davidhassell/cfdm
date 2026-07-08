@@ -497,7 +497,7 @@ _docstring_substitution_definitions = {
             *Example:*
               ``{'pyfive_options': {'metadata_buffer_size': 2},
               'umfive_options': {'height_at_top_of_model': 85000,
-              'local_os_cache': False}}``""",    
+              'local_os_cache': False}}``""",
     # read filesystem
     "{{read filesystem: optional}}": """filesystem: optional
             A pre-authenticated file system object (for example an
@@ -872,7 +872,6 @@ _docstring_substitution_definitions = {
               order: ``('netCDF4', 'pyfive')``""",
     # read cfa_backend_options
     "{{read cfa_backend_options: `None` or `dict`, optional}}": """cfa_backend_options: `None` or `dict`, optional
-
             The options to use with each backend when opening an
             aggregated dataset.
 
@@ -1021,6 +1020,61 @@ _docstring_substitution_definitions = {
                       named in a manner that is inconsistent with CF
                       rules defined by the CF conventions (section 2.7
                       Groups).""",
+    # read um
+    "{{read um: `dict` or `None`, optional}}": """um: `dict` or `None`, optional
+            For Met Office (UK) PP files and Met Office (UK) fields
+            files only, provide extra decoding instructions. This
+            option is ignored for input files which are not PP or
+            fields files. In most cases, how to decode a file is
+            inferrable from the file's contents via the lookup
+            headers, but when that it os not possible then any of the
+            following key/value pairs in the dictionary may be used to
+            guide the decoding:
+
+            * ``'um_version'``: `str`
+
+              The UM version to be used when decoding the
+              header. Valid versions are, for example, ``4.2``,
+              ``'6.6.3'`` and ``'8.2'``. In general, a given version
+              is ignored if it can be inferred from the header (which
+              is usually the case for files created by the UM at
+              versions 5.3 and later). The exception to this is when
+              the given version has a third element (such as the 3 in
+              6.6.3), in which case any version in the header is
+              ignored. The default version is ``4.5``.
+
+            * ``'height_at_top_of_model'``: number
+
+              The height in metres of the upper boundary of the top
+              model level of the atmosphere (TOA). By default the TOA
+              is taken from the top level's upper bound defined by
+              BRSVD1 in the lookup header. If the height can't be
+              determined from the header, or the given height is less
+              than or equal to 0, then a coordinate reference system
+              will still be created that contains the 'a' and 'b'
+              formula term values, but without an atmosphere hybrid
+              height dimension coordinate construct.
+
+              .. note:: A current limitation is that if pseudolevels
+                        and atmosphere hybrid height coordinates are
+                        defined by same the lookup headers then the
+                        height **can't be determined
+                        automatically**. In this case the height may
+                        be found after reading as the maximum value of
+                        the bounds of the domain ancillary construct
+                        containing the 'a' formula term. The file can
+                        then be re-read with this height as a *um*
+                        parameter.
+
+            *Example:*
+              To specify that the input files from version 6.6.3 of
+              the UM: ``um_config={'um_version': '6.6.3'}``
+
+            *Example:*
+              To specify that the input files from version 6.6.3 of
+              the UM, and the height at top of the model is 85000
+              metres: ``um_config={'height_at_top_of_model': '6.6.3',
+              'um_version': 85000}``""",
     # persist
     "{{persist description}}": """Persisting turns an underlying lazy dask array into an
         equivalent chunked dask array, but now with the results fully
@@ -1514,7 +1568,7 @@ _docstring_substitution_definitions = {
     # init backend_options
     "{{init backend_options: `None` or `dict`, optional}}": """backend_options: `None` or `dict`, optional
                 The options to use with each backend when opening a
-                dataset.""",          
+                dataset.""",
     # _force_to_memory
     "{{_force_to_memory: `bool`, optional}}": """_force_to_memory: `bool`, optional
                 If True (the default) then force the data resulting

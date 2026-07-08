@@ -225,14 +225,12 @@ class read_writeTest(unittest.TestCase):
         cfdm.write(g, tmpfile, fmt="NETCDF4", mode="w")  # 1. overwrite to wipe
         f = cfdm.read(tmpfile)
         with self.assertRaises(ValueError):
-            cfdm.write(
-                g, tmpfile, fmt="NETCDF4", mode="a", netcdf_backend="netCDF4"
-            )
+            cfdm.write(g, tmpfile, fmt="NETCDF4", mode="a", backend="netCDF4")
 
         # Append isn't avaialable for some backends
         for backend in ("h5py", "zarr"):
             with self.assertRaises(ValueError):
-                cfdm.write(self.f0, tmpfile, mode="a", netcdf_backend=backend)
+                cfdm.write(self.f0, tmpfile, mode="a", backend=backend)
 
         # Test special case #2: attempt to append fields with contradictory
         # featureType to the original file:
@@ -248,9 +246,7 @@ class read_writeTest(unittest.TestCase):
         h = cfdm.example_field(3)
         h.nc_set_global_attribute("featureType", "timeSeries")
         with self.assertRaises(ValueError):
-            cfdm.write(
-                h, tmpfile, fmt="NETCDF4", mode="a", netcdf_backend="netCDF4"
-            )
+            cfdm.write(h, tmpfile, fmt="NETCDF4", mode="a", backend="netCDF4")
         # Now remove featureType attribute for subsquent tests:
         g_attrs = g.nc_clear_global_attributes()
         del g_attrs["featureType"]
@@ -312,7 +308,7 @@ class read_writeTest(unittest.TestCase):
                     tmpfile,
                     fmt=fmt,
                     mode="a",
-                    netcdf_backend="netCDF4",
+                    backend="netCDF4",
                 )
                 f = cfdm.read(tmpfile)
 
@@ -359,7 +355,7 @@ class read_writeTest(unittest.TestCase):
                 tmpfile,
                 fmt=fmt,
                 mode="a",
-                netcdf_backend="netCDF4",
+                backend="netCDF4",
             )  # 2. now append
             f = cfdm.read(tmpfile)
             self.assertEqual(len(f), overall_length)
@@ -371,7 +367,7 @@ class read_writeTest(unittest.TestCase):
                 tmpfile,
                 fmt=fmt,
                 mode="r+",
-                netcdf_backend="netCDF4",
+                backend="netCDF4",
             )  # 2. now append
             f = cfdm.read(tmpfile)
             self.assertEqual(len(f), overall_length)
@@ -489,9 +485,7 @@ class read_writeTest(unittest.TestCase):
             cfdm.write(g_new, tmpfile, fmt=fmt, mode="w")  # overwrite to wipe
 
             #   2. Conduct the test by appending the identical field g_copy
-            cfdm.write(
-                g_copy, tmpfile, fmt=fmt, mode="a", netcdf_backend="netCDF4"
-            )
+            cfdm.write(g_copy, tmpfile, fmt=fmt, mode="a", backend="netCDF4")
             f = cfdm.read(tmpfile)
             self.assertEqual(len(f), 2)
             self.assertTrue(
@@ -627,7 +621,7 @@ class read_writeTest(unittest.TestCase):
             else:
                 backend = None
 
-            g = cfdm.read(tmpfile, netcdf_backend=backend)[0]
+            g = cfdm.read(tmpfile, backend=backend)[0]
             domain_axes = g.domain_axes()
             self.assertTrue(domain_axes["domainaxis0"].nc_is_unlimited(), fmt)
 
@@ -756,8 +750,8 @@ class read_writeTest(unittest.TestCase):
 
     def test_read_write_string(self):
         """Test the `string` keyword argument to `read` and `write`."""
-        fN = cfdm.read(self.string_filename, netcdf_backend="netCDF4")
-        fH = cfdm.read(self.string_filename, netcdf_backend="pyfive")
+        fN = cfdm.read(self.string_filename, backend="netCDF4")
+        fH = cfdm.read(self.string_filename, backend="pyfive")
 
         n = int(len(fN) / 2)
 
@@ -1003,7 +997,7 @@ class read_writeTest(unittest.TestCase):
 
         cfdm.write(f, tmpfile)
 
-        cfdm.write(f, tmpfile, omit_data="all", netcdf_backend="netCDF4")
+        cfdm.write(f, tmpfile, omit_data="all", backend="netCDF4")
         g = cfdm.read(tmpfile)
         self.assertEqual(len(g), 1)
         g = g[0]
@@ -1019,7 +1013,7 @@ class read_writeTest(unittest.TestCase):
             f,
             tmpfile,
             omit_data=("field", "dimension_coordinate"),
-            netcdf_backend="netCDF4",
+            backend="netCDF4",
         )
         g = cfdm.read(tmpfile)[0]
 
@@ -1029,7 +1023,7 @@ class read_writeTest(unittest.TestCase):
         self.assertFalse(np.ma.count(g.construct("grid_latitude").array))
         self.assertTrue(np.ma.count(g.construct("latitude").array))
 
-        cfdm.write(f, tmpfile, omit_data="field", netcdf_backend="netCDF4")
+        cfdm.write(f, tmpfile, omit_data="field", backend="netCDF4")
         g = cfdm.read(tmpfile)[0]
 
         # Check that only the field data are missing
@@ -1086,7 +1080,7 @@ class read_writeTest(unittest.TestCase):
         """Test reading remote url."""
         for scheme in ("http", "https"):
             remote = f"{scheme}:///psl.noaa.gov/thredds/dodsC/Datasets/cru/crutem5/Monthlies/air.mon.anom.nobs.nc"
-            f = cfdm.read(remote, netcdf_backend="netCDF4")
+            f = cfdm.read(remote, backend="netCDF4")
             self.assertEqual(len(f), 1)
 
     def test_write_parametric_Z_coordinate(self):
@@ -1227,7 +1221,7 @@ class read_writeTest(unittest.TestCase):
         f = self.f0
         cfdm.write(f, tmpfile)
 
-        f = cfdm.read(tmpfile, netcdf_backend="pyfive")[0]
+        f = cfdm.read(tmpfile, backend="pyfive")[0]
         for d in (f.data.todict(), f.coordinate("longitude").data.todict()):
             on_disk = False
             for v in d.values():
@@ -1429,19 +1423,19 @@ class read_writeTest(unittest.TestCase):
         for a, b in zip(f01, g01):
             self.assertTrue(b.equals(a))
 
-    def test_write_netcdf_backend(self):
-        """Test cfdm.write with different netCDF backends."""
+    def test_write_backend(self):
+        """Test cfdm.write with different backends."""
         f = self.f0
 
-        cfdm.write(f, tmpfile0, netcdf_backend="h5netcdf-h5py")
-        cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+        cfdm.write(f, tmpfile0, backend="h5netcdf-h5py")
+        cfdm.write(f, tmpfile1, backend="netCDF4")
         f0 = cfdm.read(tmpfile0)[0]
         f1 = cfdm.read(tmpfile1)[0]
         self.assertTrue(f1.equals(f0))
 
         f = cfdm.read(filename)
-        cfdm.write(f, tmpfile0, netcdf_backend="h5netcdf-h5py")
-        cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+        cfdm.write(f, tmpfile0, backend="h5netcdf-h5py")
+        cfdm.write(f, tmpfile1, backend="netCDF4")
         f0 = cfdm.read(tmpfile0)[0]
         f1 = cfdm.read(tmpfile1)[0]
         self.assertTrue(f1.equals(f0))
@@ -1449,17 +1443,15 @@ class read_writeTest(unittest.TestCase):
         # Bad fmt/backend combinations
         for backend in ("netCDF4", "h5netcdf-h5py"):
             with self.assertRaises(ValueError):
-                cfdm.write(f, tmpfile, fmt="ZARR3", netcdf_backend=backend)
+                cfdm.write(f, tmpfile, fmt="ZARR3", backend=backend)
 
         for backend in ("zarr", "h5netcdf-h5py"):
             with self.assertRaises(ValueError):
-                cfdm.write(
-                    f, tmpfile, fmt="NETCDF3_CLASSIC", netcdf_backend=backend
-                )
+                cfdm.write(f, tmpfile, fmt="NETCDF3_CLASSIC", backend=backend)
 
         for backend in ("zarr",):
             with self.assertRaises(ValueError):
-                cfdm.write(f, tmpfile, fmt="NETCDF4", netcdf_backend=backend)
+                cfdm.write(f, tmpfile, fmt="NETCDF4", backend=backend)
 
     def test_write_h5py_options(self):
         """Test cfdm.write with h5py_options."""
@@ -1474,7 +1466,7 @@ class read_writeTest(unittest.TestCase):
         cfdm.write(
             f,
             tmpfile1,
-            netcdf_backend="h5netcdf-h5py",
+            backend="h5netcdf-h5py",
             h5py_options=h5py_options,
         )
         self.assertTrue(os.path.getsize(tmpfile1) > size)
@@ -1487,7 +1479,7 @@ class read_writeTest(unittest.TestCase):
             cfdm.write(
                 f,
                 tmpfile0,
-                netcdf_backend="netCDF4",
+                backend="netCDF4",
                 h5py_options=h5py_options,
             )
 
@@ -1501,7 +1493,7 @@ class read_writeTest(unittest.TestCase):
         f = self.f0
 
         cfdm.write(f, tmpfile, fmt="NETCDF3_CLASSIC")
-        g = cfdm.read(tmpfile, netcdf_backend="netcdf_file")[0]
+        g = cfdm.read(tmpfile, backend="netcdf_file")[0]
 
         self.assertTrue(g.equals(f))
 
@@ -1563,7 +1555,7 @@ class read_writeTest(unittest.TestCase):
         # Check failure with backend other than h5netcdf-pyfive
         # result = cfdm.read(
         #     tmpfile,
-        #     netcdf_backend="h5netcdf-h5py",
+        #     backend="h5netcdf-h5py",
         #     filesystem=local_fs,
         # )
         # self.assertEqual(len(result), len(expected))

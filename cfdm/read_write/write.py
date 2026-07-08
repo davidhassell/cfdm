@@ -802,7 +802,7 @@ class write(ReadWrite):
 
             .. versionadded:: (cfdm) 1.11.2.0
 
-        netcdf_backend: `str` or `None`, optional
+        backend: `str` or `None`, optional
             Which backend library to use for creating the dataset.
 
             The allowed backends are:
@@ -847,7 +847,7 @@ class write(ReadWrite):
             .. versionadded:: (cfdm) 1.13.1.0
 
         h5py_options: `dict` or `None`, optional
-            When the *netcdf_backend* is ``h5netcdf-h5py``, provide
+            When the *backend* is ``h5netcdf-h5py``, provide
             additional keyword arguments to be passed to the
             `h5py.File` file constructor. In particular, these
             keywords can be used to control the structure of the HDF5
@@ -874,6 +874,9 @@ class write(ReadWrite):
 
         filename: Deprecated at version 1.13.0.0
             Use *dataset_name* instead.
+
+        netcdf_backend: Deprecated at version NEXTVERSION
+            Use *backend* instead.
 
     :Returns:
 
@@ -928,10 +931,20 @@ class write(ReadWrite):
         dataset_shards=None,
         cfa="auto",
         extra_write_vars=None,
-        netcdf_backend=None,
+        backend=None,
         h5py_options=None,
+        netcdf_backend=None,
     ):
         """Write field and domain constructs to a dataset."""
+        if netcdf_backend is not None:
+            _DEPRECATION_ERROR_FUNCTION_KWARGS(
+                "cfdm.write",
+                {"netcdf_backend": netcdf_backend},
+                "Use keyword 'backend' instead",
+                version="NEXTVERSION",
+                removed_at="1.15.0.0",
+            )  # pragma: no cover
+
         # Flatten the sequence of intput fields
         fields = tuple(cls._flat(fields))
         if not fields:
@@ -993,6 +1006,6 @@ class write(ReadWrite):
             dataset_chunks=dataset_chunks,
             dataset_shards=dataset_shards,
             cfa=cfa,
-            netcdf_backend=netcdf_backend,
+            backend=backend,
             h5py_options=h5py_options,
         )

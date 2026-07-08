@@ -5,7 +5,11 @@ from os import walk
 from os.path import expanduser, expandvars, isdir, join
 
 from cfdm.decorators import _manage_log_level_via_verbosity
-from cfdm.functions import abspath, is_log_level_info
+from cfdm.functions import (
+    _DEPRECATION_ERROR_FUNCTION_KWARGS,
+    abspath,
+    is_log_level_info,
+)
 
 from .abstract import ReadWrite
 from .exceptions import DatasetTypeError
@@ -84,6 +88,13 @@ class read(ReadWrite):
     constructs in memory will be created with data with all missing
     values.
 
+    **PP and UM fields files**
+
+    32-bit and 64-bit Met Office (UK) PP files and Met Office (UK)
+    fields files of any endian-ness can be read. 2-d "slices" within a
+    single file are combined, where possible, into field constructs
+    with 3-d, 4-d or 5-d data.
+
     **Performance**
 
     Descriptive properties are always read into memory, but lazy
@@ -148,40 +159,7 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.9.0.0
 
-        {{read netcdf_backend: `None` or (sequence of) `str`, optional}}
-
-            .. versionadded:: (cfdm) 1.11.2.0
-    
-        backend: `None` or (sequence of) `str`, optional
-            Which library or libraries to use for reading a
-            dataset. An attempt to open a dataset is made by the given
-            backends in the order in which they are provided, stopping
-            after the first successful read.
-
-            The available backends are:
-
-            =================  ======================
-            Backend            Library
-            =================  ======================
-            ``'pyfive'``       `pyfive`
-            ``'zarr'``         `zarr`
-            ``'netCDF4'``      `netCDF4`
-            ``'netcdf_file'``  `scipy.io.netcdf_file`
-            ``'h5py'``         `h5py`
-            =================  ======================
-
-            By default *backend* is `None`, which is equivalent to
-            providing the ordered sequence of backends:
-
-            ``('pyfive', 'zarr', 'netCDF4', 'netcdf_file', 'h5py')``
-
-            *Example:*
-              To only attempt ``'netCDF4'``: ``'netCDF4'`` or
-              ``['netCDF4']``
-
-            *Example:*
-              To only attempt ``'netCDF4'`` or ``'pyfive'``, in that
-              order: ``('netCDF4', 'pyfive')``
+        {{read backend: `None` or (sequence of) `str`, optional}}
 
             .. versionadded:: (cfdm) NEXTVERSION
 
@@ -249,59 +227,7 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.13.0.0
 
-        um: `dict`, optional
-            For Met Office (UK) PP files and Met Office (UK) fields
-            files only, provide extra decoding instructions. This
-            option is ignored for input files which are not PP or
-            fields files. In most cases, how to decode a file is
-            inferrable from the file's contents, but if not then any
-            of the following key/value pairs in the dictionary may be
-            used to guide the decoding:
-
-            * ``'um_version'``: `str`
-
-              The UM version to be used when decoding the
-              header. Valid versions are, for example, ``4.2``,
-              ``'6.6.3'`` and ``'8.2'``. In general, a given version
-              is ignored if it can be inferred from the header (which
-              is usually the case for files created by the UM at
-              versions 5.3 and later). The exception to this is when
-              the given version has a third element (such as the 3 in
-              6.6.3), in which case any version in the header is
-              ignored. The default version is ``4.5``.
-
-            * ``'height_at_top_of_model'``: `float`
-
-              The height in metres of the upper bound of the top model
-              level (TOA). By default the height at top model is taken
-              from the top level's upper bound defined by BRSVD1 in
-              the lookup header. If the height can't be determined
-              from the header, or the given height is less than or
-              equal to 0, then a coordinate reference system will
-              still be created that contains the 'a' and 'b' formula
-              term values, but without an atmosphere hybrid height
-              dimension coordinate construct.
-
-              .. note:: A current limitation is that if pseudolevels
-                        and atmosphere hybrid height coordinates are
-                        defined by same the lookup headers then the
-                        height **can't be determined
-                        automatically**. In this case the height may
-                        be found after reading as the maximum value of
-                        the bounds of the domain ancillary construct
-                        containing the 'a' formula term. The file can
-                        then be re-read with this height as a *um*
-                        parameter.
-
-            *Example:*
-              To specify that the input files from version 6.6.3 of
-              the UM: ``um_config={'um_version': '6.6.3'}``
-
-            *Example:*
-              To specify that the input files from version 6.6.3 of
-              the UM, and the height at top of the model is 85000
-              metres: ``um_config={'height_at_top_of_model': '6.6.3',
-              'um_version': 85000}``
+        {{read um: `dict` or `None`, optional}}
 
             .. versionadded:: NEXTVERSION
 
@@ -336,6 +262,9 @@ class read(ReadWrite):
 
         ignore_unknown_type: Deprecated at version 1.12.2.0
             Use *dataset_type* instead.
+
+        netcdf_backend: Deprecated at version NEXTVERSION
+            Use *backend* instead.
 
     :Returns:
 
@@ -377,7 +306,7 @@ class read(ReadWrite):
         mask=True,
         unpack=True,
         domain=False,
-        netcdf_backend=None,
+        backend=None,
         backend_options=None,
         storage_options=None,
         filesystem=None,
@@ -399,7 +328,7 @@ class read(ReadWrite):
         cdl_string=False,
         extra_read_vars=None,
         group_dimension_search="closest_ancestor",
-        um_config=None,
+        um=None,
         _noncompliance_report=False,
         **kwargs,
     ):
@@ -408,6 +337,15 @@ class read(ReadWrite):
         .. versionadded:: (cfdm) 1.12.2.0
 
         """
+        if kwargs.get("netcdf_backend") is not None:
+            _DEPRECATION_ERROR_FUNCTION_KWARGS(
+                "cfdm.read",
+                {"netcdf_backend": kwargs["netcdf_backend"]},
+                "Use keyword 'backend' instead",
+                version="NEXTVERSION",
+                removed_at="1.15.0.0",
+            )  # pragma: no cover
+
         kwargs = locals()
         kwargs.update(kwargs.pop("kwargs"))
 
@@ -754,7 +692,7 @@ class read(ReadWrite):
                         "domain",
                         "storage_options",
                         "filesystem",
-                        "netcdf_backend",
+                        "backend",
                         "backend_options",
                         "cache",
                         "dask_chunks",
@@ -772,7 +710,7 @@ class read(ReadWrite):
                         "cdl_string",
                         "extra_read_vars",
                         "group_dimension_search",
-                        "um_config",
+                        "um",
                         "_noncompliance_report",
                     )
                 }

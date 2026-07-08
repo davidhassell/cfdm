@@ -81,10 +81,10 @@ class FileArray(Array):
 
             {{init copy: `bool`, optional}}
 
-            storage_options: Deprecated at version NEXTVERSION
+            storage_options: Deprecated at version (cfdm) NEXTVERSION
                 Use *filesystem* instead.
 
-            storage_protocol: Deprecated at version NEXTVERSION
+            storage_protocol: Deprecated at version (cfdm) NEXTVERSION
                 Use *filesystem* instead.
 
         """
@@ -321,24 +321,21 @@ class FileArray(Array):
                 been provided. When accessing the dataset, the
                 backends are tried in order until one succeessfully
                 reads the dataset. If no backends have been provided
-                then the default backend(s) for are used.
+                then the default backends for `xnetcdf` are used.
 
         """
         return self._get_component("backend", None)
 
     def get_backend_options(self):
-        """TODOP The names of the packages for accessing the dataset.
+        """Backend options when opening a dataset.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             `dict`
-                TODOP The backend name or names, or `None` if none have not
-                been provided. When accessing the dataset, the
-                backends are tried in order until one succeessfully
-                reads the dataset. If no backends have been provided
-                then the default backend(s) for are used.
+                The options to use with each backend when opening the
+                dataset.
 
         """
         return self._get_component("backend_options", {})

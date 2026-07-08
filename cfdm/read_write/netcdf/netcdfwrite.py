@@ -5387,7 +5387,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         dataset_shards=None,
         cfa="auto",
         reference_datetime=None,
-        netcdf_backend=None,
+        backend=None,
         h5py_options=None,
     ):
         """Write field and domain constructs to a dataset.
@@ -5641,7 +5641,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 .. versionadded:: (cfdm) 1.11.2.0
 
-            netcdf_backend: `str` or `None`, optional
+            backend: `str` or `None`, optional
                 Which library to use for creating the dataset. The
                 default value is `None`. See `cfdm.write` for details.
 
@@ -5696,7 +5696,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # Format of output dataset
             "fmt": fmt,
             # Backend for writing to the dataset
-            "backend": netcdf_backend,
+            "backend": backend,
             # Whether the output datset is a file or a directory
             "dataset_type": None,
             # netCDF4.Dataset instance
@@ -5941,7 +5941,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         if self.write_vars["omit_data"] and backend != "netCDF4":
             raise ValueError(
-                "Can only set omit_data=True when netcdf_backend='netCDF4'"
+                "Can only set omit_data=True when backend='netCDF4'"
             )
 
         # Parse the 'h5py_options' parameter
@@ -5949,10 +5949,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             self.write_vars["h5py_options"] = {}
         elif backend != "h5netcdf-h5py":
             raise ValueError(
-                "Can only set h5py_options when "
-                "netcdf_backend='h5netcdf-h5py'. "
-                f"Got: netcdf_backend={backend!r}, "
-                f"h5py_options={h5py_options!r}"
+                "Can only set h5py_options when backend='h5netcdf-h5py'. "
+                f"Got: backend={backend!r}, h5py_options={h5py_options!r}"
             )
 
         # ------------------------------------------------------------
@@ -6012,7 +6010,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
             # First read in the fields from the existing dataset:
             effective_fields = self._NetCDFRead(self.implementation).read(
-                dataset_name, netcdf_backend="netCDF4"
+                dataset_name, backend="netCDF4"
             )
 
             # Read rather than append for the first iteration to ensure nothing

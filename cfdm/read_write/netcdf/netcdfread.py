@@ -567,7 +567,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         try:
             nc = xnetcdf.Dataset(
                 dataset,
-                backend=g["netcdf_backend"],
+                backend=g["backend"],
                 zarr_dimension_search=g["group_dimension_search"],
                 structural_metadata_strategy="maximal",
                 **g["backend_options"],
@@ -879,7 +879,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         domain=False,
         storage_options=None,
         filesystem=None,
-        netcdf_backend=None,
+        backend=None,
         backend_options=None,
         cache=True,
         dask_chunks="storage-aligned",
@@ -897,7 +897,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         cdl_string=False,
         ignore_unknown_type=False,
         group_dimension_search="closest_ancestor",
-        um_config=None,
+        um=None,
         _noncompliance_report=False,
     ):
         """Reads a netCDF or Zarr dataset from file or OPenDAP URL.
@@ -958,7 +958,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
-            netcdf_backend: `None` or `str`, optional
+            backend: `None` or `str`, optional
                 See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) 1.11.2.0
@@ -1015,9 +1015,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 .. versionadded:: (cfdm) NEXTVERSION
 
             cfa_backend_options: `None` or `dict`, optional
-                TODOP Which library or libraries to use for reading the
-                dataset fragments indicated in a CF-netCDF aggregation
-                file. See `cfdm.read` for details.
+                The options to use with each backend when opening an
+                aggregated dataset.See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1093,7 +1092,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                 .. versionadded:: (cfdm) 1.13.0.0
 
-            um_config: `dict` or `None`, optional
+            um: `dict` or `None`, optional
                 Configuration options for decoding UM datasets. See
                 `cfdm.read` for details.
 
@@ -1229,25 +1228,25 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             return []
 
         # ------------------------------------------------------------
-        # Parse the 'netcdf_backend' keyword parameter
+        # Parse the 'backend' keyword parameter
         # ------------------------------------------------------------
-        if netcdf_backend is None:
+        if backend is None:
             if d_type in ("netCDF", "CDL"):
-                netcdf_backend = ("pyfive", "netCDF4", "h5py", "xarray")
+                backend = ("pyfive", "netCDF4", "h5py", "xarray")
             elif d_type in ("Zarr", "Kerchunk"):
-                netcdf_backend = ("zarr", "xarray")
+                backend = ("zarr", "xarray")
             elif d_type == "UM":
-                netcdf_backend = "umfive"
+                backend = "umfive"
         else:
             import xnetcdf
 
-            if isinstance(netcdf_backend, str):
-                netcdf_backend = (netcdf_backend,)
+            if isinstance(backend, str):
+                backend = (backend,)
 
-            if not set(netcdf_backend).issubset(xnetcdf.backends):
+            if not set(backend).issubset(xnetcdf.backends):
                 raise ValueError(
-                    "Invalid netCDF backend given by the 'netcdf_backend' "
-                    f"parameter. Got {netcdf_backend}, expected a subset "
+                    "Invalid netCDF backend given by the 'backend' "
+                    f"parameter. Got {backend}, expected a subset "
                     f"of {xnetcdf.backends}"
                 )
         #        else:
@@ -1294,11 +1293,18 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if backend_options is None:
             backend_options = {}
         elif not isinstance(backend_options, dict):
-            raise ValueError("TODOP")
+            raise ValueError(
+                "'backend_options' parameter must be a dictionary or None"
+                f"Got: {backend_options!r}"
+            )
         else:
             valid_options = [f"{b}_options" for b in xnetcdf.backends]
             if not set(backend_options).issubset(valid_options):
-                raise ValueError("TODOP")
+                raise ValueError(
+                    "Invalid key in 'backend_options' dictionary"
+                    f"Got {backend_options!r}, expected a subset "
+                    f"of {valid_options}"
+                )
 
         # ------------------------------------------------------------
         # Parse the 'external' keyword parameter
@@ -1420,27 +1426,22 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # ------------------------------------------------------------
         # Parse the 'um' keyword parameter
         # ------------------------------------------------------------
-        if not (um_config is None or isinstance(um_config, dict)):
+        if not (um is None or isinstance(um, dict)):
             raise ValueError(
-                "'um_config' parameter must be a dict or None. "
-                f"Got {um_config!r}"
+                f"'um' parameter must be a dictionary or None. Got: {um!r}"
             )
 
-        if um_config:
-            diff = set(um_config).difference(
-                ("um_version", "height_at_top_of_model")
-            )
-            if diff:
+        if um:
+            if not set(um).issubset(("um_version", "height_at_top_of_model")):
                 raise ValueError(
-                    "Invaid 'um_config' parameter dictionary keys: "
-                    f"{tuple(diff)}"
+                    f"Invalid 'um' parameter dictionary keys: {um!r}"
                 )
 
             umfive_options = backend_options.get("umfive_options")
             if umfive_options is None:
-                backend_options["umfive_options"] = um_config
+                backend_options["umfive_options"] = um
             else:
-                backend_options["umfive_options"] = umfive_options | um_config
+                backend_options["umfive_options"] = umfive_options | um
 
         # ------------------------------------------------------------
         # Initialise netCDF read parameters
@@ -1558,7 +1559,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # --------------------------------------------------------
             # Dataset backend
             # --------------------------------------------------------
-            "netcdf_backend": netcdf_backend,
+            "backend": backend,
             "backend_options": backend_options,
             # --------------------------------------------------------
             # S3
@@ -1621,7 +1622,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # --------------------------------------------------------
             # UM configuration options
             # --------------------------------------------------------
-            "um_config": um_config,
+            "um": um,
         }
 
         g = self.read_vars
@@ -4745,7 +4746,17 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         """
         datatype = self.read_vars["variables"][ncvar].dtype
-        return datatype is not str and datatype.kind in "SU"
+        char = datatype is not str and datatype.kind in "SU"
+        if not char:
+            return False
+
+        if datatype.kind == "S" and datatype.itemsize == 1:
+            return True
+
+        if datatype.kind == "U" and datatype.itemsize == 4:
+            return True
+
+        return False
 
     def _has_identity(self, construct, identity):
         """TODO.
@@ -7452,7 +7463,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Deal with strings
         variable = g["variables"][ncvar]
         match variable.backend_api:
-            case "pyfive" | "h5py" | "netCDF4":
+            case "pyfive" | "h5py" | "netCDF4" | "umfive":
                 if array.dtype is None:
                     array = variable[...]
 

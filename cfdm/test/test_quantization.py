@@ -78,7 +78,7 @@ class quantizationTest(unittest.TestCase):
         f.set_quantize_on_write(q0)
 
         # Write the field and read it back in
-        cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+        cfdm.write(f, tmpfile1, backend="netCDF4")
         g = cfdm.read(tmpfile1)[0]
 
         # Check that f and g have different data (i.e. that
@@ -191,39 +191,39 @@ class quantizationTest(unittest.TestCase):
         # digit_round
         f.set_quantize_on_write(algorithm="digitround", quantization_nsd=2)
         with self.assertRaises(ValueError):
-            cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+            cfdm.write(f, tmpfile1, backend="netCDF4")
 
         # NetCDF3 formats
         for fmt in self.netcdf3_fmts:
             with self.assertRaises(ValueError):
-                cfdm.write(f, tmpfile1, fmt=fmt, netcdf_backend="netCDF4")
+                cfdm.write(f, tmpfile1, fmt=fmt, backend="netCDF4")
 
         # Integer data type
         f.data.dtype = int
         with self.assertRaises(ValueError):
-            cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+            cfdm.write(f, tmpfile1, backend="netCDF4")
 
         # Out-of-range quantization_nsd
         f.data.dtype = "float32"
         f.set_quantize_on_write(algorithm="bitgroom", quantization_nsd=8)
         with self.assertRaises(ValueError):
-            cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+            cfdm.write(f, tmpfile1, backend="netCDF4")
 
         f.data.dtype = "float64"
         f.set_quantize_on_write(algorithm="bitgroom", quantization_nsd=16)
         with self.assertRaises(ValueError):
-            cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+            cfdm.write(f, tmpfile1, backend="netCDF4")
 
         # Out-of-range quantization_nsb
         f.data.dtype = "float32"
         f.set_quantize_on_write(algorithm="bitround", quantization_nsb=24)
         with self.assertRaises(ValueError):
-            cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+            cfdm.write(f, tmpfile1, backend="netCDF4")
 
         f.data.dtype = "float64"
         f.set_quantize_on_write(algorithm="bitround", quantization_nsb=53)
         with self.assertRaises(ValueError):
-            cfdm.write(f, tmpfile1, netcdf_backend="netCDF4")
+            cfdm.write(f, tmpfile1, backend="netCDF4")
 
     def test_quantization_copy(self):
         """Test that quantization information gets copied."""
@@ -248,14 +248,14 @@ class quantizationTest(unittest.TestCase):
 
         # Backends that allow quantisation-on-write
         for backend in ("netCDF4",):
-            cfdm.write(f, tmpfile1, netcdf_backend=backend)
+            cfdm.write(f, tmpfile1, backend=backend)
 
         # Backends that do not allow quantisation-on-write
         with self.assertRaises(NotImplementedError):
-            cfdm.write(f, tmpdir, fmt="ZARR3", netcdf_backend="zarr")
+            cfdm.write(f, tmpdir, fmt="ZARR3", backend="zarr")
 
         with self.assertRaises(NotImplementedError):
-            cfdm.write(f, tmpfile1, netcdf_backend="h5netcdf-h5py")
+            cfdm.write(f, tmpfile1, backend="h5netcdf-h5py")
 
 
 if __name__ == "__main__":
