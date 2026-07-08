@@ -32,6 +32,16 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
                 `contextlib.nullcontext` object whcih does no locking.
 
         """
+        # Get the backend, if possible.
+        variable = self.get_variable(None)
+        if variable is not None:
+            backend = variable.backend_api
+        else:
+            backend = self.get_backend()
+            if not isinstance(backend, str):
+                backend = None
+
+        # Choose the lock based on the backend
         match self.get_backend():
             case "netCDF4" | "h5py" | None:
                 return netcdf_lock

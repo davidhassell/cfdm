@@ -140,11 +140,9 @@ class FragmentFileArray(
     def _get_array(self, index=None):
         """Returns a subspace of the dataset variable.
 
-        The method acts as a factory for an `XnetcdfFragmentArray` and
-        it is the result of calling `!_get_array` on the newly created
-        instance that is returned.
-
-
+        The method acts as a factory for an `XnetcdfFragmentArray`
+        instance and it is the result of calling `!_get_array` on the
+        newly created instance that is returned.
 
         .. versionadded:: (cfdm) 1.12.0.0
 

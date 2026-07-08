@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Version NEXTVERSION
 ----------------
 
@@ -8,7 +7,9 @@ Version NEXTVERSION
   `xnetcdf` (https://github.com/NCAS-CMS/cfdm/issues/???)
 * New dependency: ``xnetcdf>=0.1.0``
 * Removed dependency (now optional): ``pyfive``
-=======
+
+----
+
 Version 1.13.2.1
 ----------------
 
@@ -17,7 +18,6 @@ Version 1.13.2.1
 * Fix bug that prevented some datasets being read due to `cfdm.read`
   hitting a `TypeError`
   (https://github.com/NCAS-CMS/cfdm/pull/410)
->>>>>>> 5080a9f441641a37525fc9892392425d62f5f335
 
 ----
 
