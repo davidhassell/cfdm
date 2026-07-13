@@ -5993,6 +5993,122 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         effective_mode = mode  # actual mode to use for the first IO iteration
         effective_fields = fields
 
+        # ------------------------------------------------------------
+        # Estimate the h5py meta_block_size option, and apply it
+        # unless it has been set by the user via `h5py_options`
+        # ------------------------------------------------------------
+        if 1: #'meta_block_size' not in self.write_vars["h5py_options"]:
+            n_groups = 1
+            n_variables = 0
+
+
+            # Track 2: The Object Header Track (H5FD_MEM_OHDR)
+            track_1 = 0
+            track_2 = 2048 + 4096
+            track_3 = 0
+            track_4 = 0
+            
+            # Track 1: The File Driver Track (H5FD_MEM_SUPER)
+            superblock = 96
+            track_1 += superblock
+
+             
+            size_for_chunks = 0
+            for f in fields:
+                data = [f.get_data(None)]
+                data.extend(
+                    c.get_data(None)
+                    for c in f.constructs.filter_by_data(todict=True).values()
+                )
+                for d in data:                
+                    if data is None:
+                        continue
+                    
+                    n_variables += 1
+                    try:
+                        d =  d.compressed_array
+                    except ValueError:
+                        pass
+    
+                    contiguous, chunksizes, _= self._chunking_parameters(
+                        d, None)
+                    n_chunks = self._n_chunks(d, contiguous, chunksizes)
+                    track_4 += max(1024, n_chunks*40)
+
+                    # The "DIMENSION_LIST" Attribute
+                    track_2 += 56 + 8 * data.ndim
+                    
+                # Variable Object Headers
+                track_2 += n_groups * 64
+                track_2 += n_variables * 64
+                
+                variable_names = [
+                    self._create_variable_name(f, 'default_name')
+                ]
+                variable_names.extend(
+                    self._create_variable_name(c, 'default_name')
+                    for c in f.constructs.filter_by_data(todict=True).values()
+                )
+                for name in variable_names:
+                    # Raw string names of the variables
+                    track_3 += len(name.encode("utf-8"))
+                 
+            track_2 += n_groups * 64                   
+            track_2 += n_variables * 64
+                    
+            for f in fields:
+    
+                for c in f.dimension_coordinates().values():
+                    track_2 += 72 + 57 + self._create_variable_name(c, 'default_name')
+
+                # Need to include dimensions with no dimension
+                # coordinates: 72 + 57 + len(dim_name)
+                
+                for c in f.constructs.filter_by_data(todict=True).values():
+                    if c.ndim:
+                        track_2 += 112 + (9 * c.ndim) + sum_len(dim_names)
+                    # need to do same addition for coordinate bounds
+                    
+                
+            size_for_attributes = 0
+            for f in fields:
+                attributes = [f.properties()]
+                for c in f.constructs.values():
+                    try:
+                        attributes.append(c.properties())
+                    except AttributeError:
+                        pass
+    
+    # one attribute: 50 B + (utf-8 size of name) + 1 + (size of value (utf-8 for strings))
+    # 1 = the terminator
+                for a in attributes:
+                    for key, value in a.items():
+                        size = 51 + len(key.encode("utf-8")) 
+                        try:
+                            size += len(value.encode("utf-8"))
+                        except AttributeError:
+                            size += np.asanyarray(value).nbytes
+
+                        if size <= 64:
+                            # Small Attributes
+                            track_2 += size
+                        else:
+                            # Oversized attributes
+                            track_3 += size
+                        
+            page_size = 4096
+            print (track_1, track_2, track_3, track_4)
+            track_2 = ((track_2 + page_size - 1) // page_size) * page_size  
+            track_3 = ((track_3 + page_size - 1) // page_size) * page_size  
+            track_4 = ((track_4 + page_size - 1) // page_size) * page_size  
+                         
+            print (track_1, track_2, track_3, track_4)
+            total = track_1 + track_2 + track_3 + track_4
+
+            self.write_vars["h5py_options"] = self.write_vars["h5py_options"].copy()
+            self.write_vars["h5py_options"]['meta_block_size'] = total
+            print(self.write_vars["h5py_options"])
+                                    
         if mode == "a":
             if self.write_vars["backend"] in ("h5netcdf-h5py", "zarr"):
                 raise ValueError(
@@ -6515,7 +6631,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # Still here? Then work out the chunks from both the
         # size-in-bytes given by dataset_chunks (e.g. 1024, or '1
         # KiB'), and the data shape (e.g. (12, 73, 96)).
-        if self._compressed_data(ncdimensions):
+        if ncdimensions is not None and self._compressed_data(ncdimensions):
             # Base the dataset chunks on the compressed data that is
             # going into the dataset
             d = self.implementation.get_compressed_array(data)
@@ -6542,6 +6658,17 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # data contiguously.
             return True, None, None
 
+    def _n_chunks(self, data,  contiguous, chunksizes):
+        if contiguous:
+            return 1
+
+        shape = np.array(data.shape)
+        chunks = np.array(chunksizes)
+        chunks_per_dim = np.ceil(shape / chunks).astype(int)
+        total_chunks = np.prod(chunks_per_dim)        
+        return int(total_chunks)
+
+        
     def _compressed_data(self, ncdimensions):
         """Whether or not the data is being written in compressed form.
 
