@@ -21,8 +21,16 @@ logger = getLogger(__name__)
 class read(ReadWrite):
     """Read field or domain constructs from a dataset.
 
-    The following dataset formats are supported: netCDF, CDL, Zarr,
-    and Kerchunk.
+    The following dataset formats are supported:
+
+    * netCDF-4
+    * netCDF-3
+    * Zarr v3
+    * Zarr v2
+    * Kerchunk
+    * UK Met Office PP
+    * UK Met Office fields file
+    * GRIB
 
     Datasets may be on local disk or in remote storage.
 
