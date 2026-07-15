@@ -22,7 +22,7 @@ class read(ReadWrite):
     """Read field or domain constructs from a dataset.
 
     The following dataset formats are supported: netCDF, CDL, Zarr,
-    and Kerchunk.
+    Kerchunk, UK Met Office PP, and UK Met Office fields file.
 
     Datasets may be on local disk or in remote storage.
 
@@ -131,6 +131,8 @@ class read(ReadWrite):
             ``'CDL'``       A text CDL file of a netCDF dataset
             ``'Zarr'``      A Zarr v2 (xarray) or Zarr v3 dataset
             ``'Kerchunk'``  A Kerchunked dataset
+            ``'UM'``        A UK Met Office PP or fields file dataset
+            ``'GRIB'``      A GRIB dataset
             ==============  ==========================================
 
             .. versionadded:: (cfdm) 1.12.2.0

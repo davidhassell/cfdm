@@ -76,9 +76,7 @@ Data classes
    :toctree: class/
 
    cfdm.Data
-   cfdm.NetCDF4Array
-   cfdm.H5netcdfArray
-   cfdm.ZarrArray
+   cfdm.XnetcdfArray
    cfdm.Array
 
 Data compression classes
