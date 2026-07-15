@@ -42,8 +42,8 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
                 backend = None
 
         # Choose the lock based on the backend
-        match self.get_backend():
-            case "netCDF4" | "h5py" | None:
+        match backend:
+            case "netCDF4" | "h5py" | "xarray" | None:
                 return netcdf_lock
             case _:
                 return no_lock

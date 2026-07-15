@@ -5987,9 +5987,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 return kwargs
 
             if backend == "xarray":
-                # Assuming that the xarray 'chunks' argument was not
-                # `None`, this will be Dask array, otherwise it might
-                # be (e.g.) a numpy array in memory.
+                # For xarray, we don't wnt to create an `XnetcdfArray`
+                # instance, because 'variable' will wither contain ist
+                # own Dask array (if the xarray 'chunks' argument was
+                # not `None`), or a `numpy` array (or similar).
                 array = variable.backend_accessor.data
             else:
                 # For some backends, it's OK to store the actual

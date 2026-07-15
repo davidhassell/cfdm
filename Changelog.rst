@@ -6,7 +6,8 @@ Version NEXTVERSION
 * Dataset read backends in `cfdm.read` are now entirely managed by
   `xnetcdf` (https://github.com/NCAS-CMS/cfdm/issues/???)
 * New dependency: ``xnetcdf>=0.1.0``
-* Removed dependency (now optional): ``pyfive``
+* Removed dependency (now incorporated into `xnetcdf`): ``pyfive>=1.1.1``
+* Removed dependency: ``s3fs>=2024.6.0``
 
 ----
 
