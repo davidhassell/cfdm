@@ -94,7 +94,31 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 The new group object.
 
         """
+        self.write_vars['ddd'].append(
+            ('_createGroup_2', {'parent':parent, 'group':name})
+        )
+        
+    def _createGroup_2(self, parent, group_name):
+        """Creates a new dataset group object.
+
+        .. versionadded:: (cfdm) 1.8.6.0
+
+        :Parameters:
+
+            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
+                The group in which to create the new group.
+
+            group_name: `str`
+                The name of the group.
+
+        :Returns:
+
+                The new group object.
+
+        """
         g = self.write_vars
+        parent = g['groups'][parent]
+        
         match g["backend"]:
             case "h5netcdf-h5py":
                 if group_name in parent:
@@ -359,13 +383,41 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `None`
 
         """
+        self.write_vars['ddd'].append(
+            ('_set_attributes_2',
+            {'ncvar': ncvar, 'group': group, 'attributes': attributes})
+        )
+
+    def _set_attributes_2(self, attributes, ncvar=None, group=None):
+        """Set dataset attributes on a variable or group.
+
+        .. versionadded:: (cfdm) 1.13.0.0
+
+        :Parameters:
+
+            attributes: `dict`
+                The attributes.
+
+            ncvar: `str`, optional
+                The variable on which to set the attributes. Must be
+                set if *group* is `None`.
+
+            group: `str`, optional
+                The group on which to set the attributes. Must be set
+                if *ncvar* is `None`.
+
+        :Returns:
+
+            `None`
+
+        """
         g = self.write_vars
         if ncvar is not None:
             # Set variable attributes
             x = g["nc"][ncvar]
         elif group is not None:
             # Set group-level attributes
-            x = group
+            x = g['groups'][group]
         else:
             raise ValueError("Must set ncvar or group")
 
@@ -570,11 +622,19 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
     def _createDimension(self, group, ncdim, size):
         """Create a dataset dimension in group.
 
+        """
+        self.write_vars['ddd'].append(
+            ('_createDimension_2',
+             {'group': group, 'ncdim': ncdim, 'size': size})
+        )
+    def _createDimension_2(self, group, ncdim, size):
+        """Create a dataset dimension in group.
+
         .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
-            group:
+            group: `str`
                 The group in which to create the dimension.
 
             ncdim: `str`
@@ -588,10 +648,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `None`
 
         """
-        match self.write_vars["backend"]:
+        g = self.write_vars            
+        match g["backend"]:
             case "h5netcdf-h5py":
+                group = g['groups'][group]
                 group.dimensions[ncdim] = size
             case "netCDF4" | "xarray":
+                group = g['groups'][group]
                 group.createDimension(ncdim, size)
             case "zarr":
                 # Dimensions are not created in Zarr datasets
@@ -599,7 +662,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             case _:
                 raise NotImplementedError(
                     "Need to implement _createDimension for backend "
-                    f"{self.write_vars['backend']!r}"
+                    f"{g['backend']!r}"
                 )
 
     def _dataset_dimensions(self, field, key, construct):
@@ -1894,20 +1957,33 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         """
         g = self.write_vars
 
-        parent_group = g["dataset"]
-
-        if not g["group"] or "/" not in name:
-            return parent_group
+        if "/" not in name:
+            return "/"
 
         if not name.startswith("/"):
             raise ValueError(
                 f"Invalid dataset name {name!r}: missing a leading '/'"
             )
+        
+        group = '/'.join(name.split("/")[:-1])
+        if not group:
+            group = "/"
 
-        for group_name in name.split("/")[1:-1]:
-            parent_group = self._createGroup(parent_group, group_name)
-
-        return parent_group
+        return group
+#        parent_group = g["dataset"]
+#
+#        if not g["group"] or "/" not in name:
+#            return parent_group
+#
+#        if not name.startswith("/"):
+#            raise ValueError(
+#                f"Invalid dataset name {name!r}: missing a leading '/'"
+#            )
+#
+#        for group_name in name.split("/")[1:-1]:
+#            parent_group = self._createGroup(parent_group, group_name)
+#
+#        return parent_group
 
     def _remove_group_structure(self, name, return_groups=False):
         """Strip off any group structure from the name.
@@ -2619,7 +2695,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                             sorted(external_variables)
                         )
                     },
-                    group=g["dataset"],
+                    group="/" #g["dataset"],
                 )
 
     def _create_external(
@@ -2664,6 +2740,17 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         return external
 
     def _createVariable(self, **kwargs):
+        """Create a variable in the dataset.
+
+        Each backend needs a separate parsing of the input kwargs to suit
+        its API.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        """
+        self.write_vars['ddd'].append(('_createVariable_2',kwargs))
+        
+    def _createVariable_2(self, **kwargs):
         """Create a variable in the dataset.
 
         Each backend needs a separate parsing of the input kwargs to suit
@@ -3532,6 +3619,35 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         return data, ncdimensions
 
     def _write_data(
+        self,
+        data,
+        cfvar,
+        ncvar,
+        ncdimensions,
+        domain_axes=None,
+        unset_values=(),
+        compressed=False,
+        attributes=None,
+        construct_type=None,
+        cfa=None,
+    ):
+        self.write_vars['ddd'].append(
+            (
+                '_write_data_2',
+                {'data':data,
+                 'cfvar':cfvar,
+                 'ncvar':ncvar,
+                 'ncdimensions':ncdimensions,
+                 'domain_axes':domain_axes,
+                 'unset_values':unset_values,
+                 'compressed':compressed,
+                 'attributes':attributes,
+                 'construct_type':construct_type,
+                 'cfa':cfa}
+            )
+        )
+
+    def _write_data_2(
         self,
         data,
         cfvar,
@@ -4966,7 +5082,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             nc = self._get_group(g["dataset"], groups)
 
             if not g["dry_run"]:
-                self._set_attributes(this_group_attributes, group=nc)
+                self._set_attributes(this_group_attributes, group=groups) #nc)
 
             group_attributes[groups] = tuple(this_group_attributes)
 
@@ -5174,7 +5290,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # ------------------------------------------------------------
             attrs.update(force_global)
 
-            self._set_attributes(attrs, group=g["dataset"])
+            self._set_attributes(attrs, group="/") #g["dataset"])
 
         g["global_attributes"] = global_attributes
 
@@ -5998,10 +6114,17 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # unless it has been set by the user via `h5py_options`
         # ------------------------------------------------------------
         if 1: #'meta_block_size' not in self.write_vars["h5py_options"]:
-            n_groups = 1
-            n_variables = 0
+            page_size = 4096
 
+            # Space for file header, file-space manager
+            file_superblock = 2048
+            
+            m = file_superblock
 
+            print(m)
+
+            m = (1 + m // page_size ) * page_size
+            print(m)
             # Track 2: The Object Header Track (H5FD_MEM_OHDR)
             track_1 = 0
             track_2 = 2048 + 4096
@@ -6012,98 +6135,173 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             superblock = 96
             track_1 += superblock
 
-             
-            size_for_chunks = 0
+            groups = set()
+            
+
+            constructs = []
+
+            # Data chunks
             for f in fields:
                 data = [f.get_data(None)]
-                data.extend(
-                    c.get_data(None)
-                    for c in f.constructs.filter_by_data(todict=True).values()
-                )
-                for d in data:                
-                    if data is None:
-                        continue
-                    
-                    n_variables += 1
-                    try:
-                        d =  d.compressed_array
-                    except ValueError:
-                        pass
-    
-                    contiguous, chunksizes, _= self._chunking_parameters(
-                        d, None)
-                    n_chunks = self._n_chunks(d, contiguous, chunksizes)
-                    track_4 += max(1024, n_chunks*40)
 
-                    # The "DIMENSION_LIST" Attribute
-                    track_2 += 56 + 8 * data.ndim
-                    
-                # Variable Object Headers
-                track_2 += n_groups * 64
-                track_2 += n_variables * 64
-                
-                variable_names = [
-                    self._create_variable_name(f, 'default_name')
-                ]
-                variable_names.extend(
-                    self._create_variable_name(c, 'default_name')
-                    for c in f.constructs.filter_by_data(todict=True).values()
-                )
-                for name in variable_names:
-                    # Raw string names of the variables
-                    track_3 += len(name.encode("utf-8"))
-                 
-            track_2 += n_groups * 64                   
-            track_2 += n_variables * 64
-                    
-            for f in fields:
-    
-                for c in f.dimension_coordinates().values():
-                    track_2 += 72 + 57 + self._create_variable_name(c, 'default_name')
-
-                # Need to include dimensions with no dimension
-                # coordinates: 72 + 57 + len(dim_name)
-                
                 for c in f.constructs.filter_by_data(todict=True).values():
-                    if c.ndim:
-                        track_2 += 112 + (9 * c.ndim) + sum_len(dim_names)
-                    # need to do same addition for coordinate bounds
-                    
+                    skip = False
+                    for x in constructs:
+                        if x.equals(c):
+                            skip = True
+                            break
+
+                    if not skip:
+                        constructs.append(c)
+                        data.append(c.get_data(None))
                 
-            size_for_attributes = 0
+#                data.extend(
+#                    c.get_data(None)
+#                    for c in f.constructs.filter_by_data(todict=True).values()
+#                )
+
+               #for d in data:                
+               #    if data is None:
+               #        continue
+               #
+               #    groups.add(f.nc_variable_groups())
+               #    
+#              #     n_variables += 1
+               #    try:
+               #        d =  d.compressed_array
+               #    except ValueError:
+               #        pass
+               #
+               #    contiguous, chunksizes, _= self._chunking_parameters(
+               #        d, None)
+               #
+               #    # Space for a variable, excluding attribtues 
+               #    if contiguous:
+               #        v = 1500 + 512
+               #    else:
+               #        n_chunks = self._n_chunks(d, contiguous, chunksizes)
+               #        v =  2048 + 512 + 128 * n_chunks
+               #        if v <= 4096:
+               #            v = 4096
+               #        elif len(fields) == 1:
+               #            # Round up to nearest 4096
+               #            v = (1 + v // 4096 ) * 4096
+               #
+               #    m += v
+               #    print(m, n_chunks, contiguous, chunksizes)
+               #    
+               #    #track_4 += max(1024, n_chunks*40)
+               #    #
+               #    ## The "DIMENSION_LIST" attribute
+               #    #track_2 += 56 + 8 * data.ndim
+               #    #
+               #    ## _Netcdf4Dimid
+               #    #track_2 += 56 + 4 * data.ndim
+                    
+               #variable_names = [
+               #    self._create_variable_name(f, 'default_name')
+               #]
+               #variable_names.extend(
+               #    self._create_variable_name(c, 'default_name')
+               #    for c in f.constructs.filter_by_data(todict=True).values()
+               #)
+               #for name in variable_names:
+               #    # Raw string names of the variables
+               #
+               #    track_3 += len(name.encode("utf-8"))
+            print(groups, len(groups))
+
+            # Space for groups
+            m += 1024 * len(groups)
+               
+            ## Variable and Group Object Headers
+            #track_2 += n_groups * 64                   
+            #track_2 += n_variables * 64
+                    
+            #for f in fields:
+            #
+            #    for c in f.dimension_coordinates().values():
+            #        # CLASS attribute:
+            #        #
+            #        # 72 bytes = Fixed Structural Overhead: 56 bytes
+            #        #            (HDF5 attribute message wrapper) +
+            #        #            len("DIMENSION_SCALE\0") (16 bytes,
+            #        #            null-terminated)
+            #        #
+            #        # The "NAME" attribute:
+            #        #
+            #        # Fixed Structural Overhead: 56 bytes + Value
+            #        # String: len(dim_name) + 1 (The name string plus
+            #        # a 1-byte null terminator)
+            #        #
+            #        # Total: 129 + len(dim_name)
+            #        track_2 += 129 + self._create_variable_name(c, 'default_name')
+            #
+            #    # Need to include dimensions with no dimension
+            #    # coordinates: 72 + 57 + len(dim_name)
+            #
+            #    for c in f.constructs.filter_by_data(todict=True).values():
+            #        if c.ndim:                        
+            #            track_2 += 112 + (9 * c.ndim) + sum_len(dim_names)
+            #        # need to do same addition for coordinate bounds
+            #        
+            #    
+            # Attributes
+            m = (1 + m // page_size ) * page_size
+            global_attributes = {}
+            A = []
             for f in fields:
-                attributes = [f.properties()]
+                A.append(f.properties())
+
+                if not global_attributes :
+                    A.append(f.properties())
+                else:                
+                    global_attributes |= f.nc_global_attributes( values=True)
+#                    for attr in global_attributes:
+                        
+
+                
+
                 for c in f.constructs.values():
                     try:
-                        attributes.append(c.properties())
+                        A.append(c.properties())
                     except AttributeError:
                         pass
     
-    # one attribute: 50 B + (utf-8 size of name) + 1 + (size of value (utf-8 for strings))
-    # 1 = the terminator
-                for a in attributes:
+                for a in A:
                     for key, value in a.items():
-                        size = 51 + len(key.encode("utf-8")) 
+                        # one attribute: 50 B + (utf-8 size of name) +
+                        #                (size of value (utf-8 for
+                        #                strings)) + 1 ( the
+                        #                terminator)
+#                        size = 51 + len(key.encode("utf-8")) 
                         try:
-                            size += len(value.encode("utf-8"))
+                            size = len(value.encode("utf-8"))
                         except AttributeError:
-                            size += np.asanyarray(value).nbytes
+                            size = np.asanyarray(value).nbytes
 
                         if size <= 64:
                             # Small Attributes
-                            track_2 += size
+                            m += 256
                         else:
                             # Oversized attributes
-                            track_3 += size
+                            m += 512 + size
+
+                    print('     m=', m)
+#            print('A=', A)
+#            m += 256 * A
+            print('m=', m)
+
+            total = (1 + m // page_size ) * page_size
                         
-            page_size = 4096
-            print (track_1, track_2, track_3, track_4)
-            track_2 = ((track_2 + page_size - 1) // page_size) * page_size  
-            track_3 = ((track_3 + page_size - 1) // page_size) * page_size  
-            track_4 = ((track_4 + page_size - 1) // page_size) * page_size  
-                         
-            print (track_1, track_2, track_3, track_4)
-            total = track_1 + track_2 + track_3 + track_4
+            #page_size = 4096
+            #print (track_1, track_2, track_3, track_4)
+            #track_2 = ((track_2 + page_size - 1) // page_size) * page_size  
+            #track_3 = ((track_3 + page_size - 1) // page_size) * page_size  
+            #track_4 = ((track_4 + page_size - 1) // page_size) * page_size  
+            #             
+            #print (track_1, track_2, track_3, track_4)
+            #total = track_1 + track_2 + track_3 + track_4
 
             self.write_vars["h5py_options"] = self.write_vars["h5py_options"].copy()
             self.write_vars["h5py_options"]['meta_block_size'] = total
@@ -6409,8 +6607,10 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             g["overwrite"] = False
 
         g["dataset_name"] = dataset_name
-        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
+#        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
 
+        g['ddd'] = []
+        g['groups'] = {}
         if not g["dry_run"]:
             # --------------------------------------------------------
             # Write global properties to the dataset first. This is
@@ -6420,7 +6620,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # `_write_field_or_domain` method.
             # --------------------------------------------------------
             self._write_global_attributes(fields)
-
+            print(g['global_attributes'])
             # --------------------------------------------------------
             # Write group-level properties to the dataset next
             # --------------------------------------------------------
@@ -6464,6 +6664,62 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # ------------------------------------------------------------
         self._ugrid_write_mesh_variables()
 
+        # OK - now do the file open and writing
+        # get meta_block_size
+        pass
+        # OPen dataset
+        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
+        g['groups']['/'] =  g["dataset"]
+        
+        # write stuff!
+        print(g['ddd'])
+        print('--------------')
+        page_size = 4096
+        A = 0
+        C = 0
+        G = 1
+        for method, kwargs in g['ddd']:
+            getattr(self, method)(**kwargs)
+            if method == "_set_attributes_2":
+                for key, value in kwargs['attributes'].items():
+                    # one attribute: 50 B + (utf-8 size of name) +
+                    #                (size of value (utf-8 for
+                #                strings)) + 1 ( the
+                    #                terminator)
+                    #                        size = 51 + len(key.encode("utf-8"))
+                    size = 51 + len(key.encode("utf-8"))
+                    try:
+                        size += len(value.encode("utf-8"))
+                    except AttributeError:
+                        size += np.asanyarray(value).nbytes
+                        
+                    A += size
+
+                    if size > 256:
+                        A += 256
+                        
+            if method == "_createVariable_2":
+                print(kwargs, '\n')
+                v = 2048
+                if not kwargs['contiguous']:
+                    n_chunks = self._n_chunks(kwargs['shape'], False, kwargs['chunksizes'])
+                    v += 128 * n_chunks
+                    v = (1 + v // 4096 ) * 4096
+                    
+                C += v
+
+            if method == "_createGroup_2":
+                G += 1
+                
+#        A = (1 + A // page_size ) * page_size
+#        print('A=', A)
+#        C = (1 + C // page_size ) * page_size
+#        print('C=', C)
+
+        total = A + C + 4096 + 2048 + 1024 * G
+        total = (1 + total // page_size ) * page_size
+        print(total)
+        
         # ------------------------------------------------------------
         # Write all of the buffered data to disk
         # ------------------------------------------------------------
@@ -6658,11 +6914,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # data contiguously.
             return True, None, None
 
-    def _n_chunks(self, data,  contiguous, chunksizes):
+    def _n_chunks(self, shape,  contiguous, chunksizes):
         if contiguous:
             return 1
 
-        shape = np.array(data.shape)
+        shape = np.array(shape)
         chunks = np.array(chunksizes)
         chunks_per_dim = np.ceil(shape / chunks).astype(int)
         total_chunks = np.prod(chunks_per_dim)        
