@@ -1,7 +1,7 @@
 import copy
 import logging
 import os
-from math import prod
+from math import ceil, prod
 from numbers import Integral
 
 import numpy as np
@@ -24,9 +24,47 @@ from .constants import (
 from .netcdfread import NetCDFRead
 from .netcdfwrite_ugrid import NetCDFWriteUgrid
 from .xarray_dataset import XarrayDataset
+from .fff import Ax, Cx, Dx, calculate_group_metadata
 
 logger = logging.getLogger(__name__)
 
+
+#def calculate_chunk_metadata(shape, chunksizes):
+#    """
+#    Calculates the exact HDF5 B-tree metadata overhead for a chunked dataset.
+#    """
+#    if chunksizes is None:
+#        return 0  # Contiguous datasets have no chunk index
+#
+#    rank = len(shape)
+#    
+#    # 1. Total Number of Chunks
+#    num_chunks = prod([ceil(s / c) for s, c in zip(shape, chunksizes)])
+#    
+#    # 2. Maximum memory size of a single B-Tree Node for this rank
+#    entry_size = 16 + (8 * rank)
+#    node_size_bytes = 24 + (32 * entry_size) + (33 * 8)
+#    
+#    # 3. Simulate the B-Tree allocation to find total nodes
+#    current_level_nodes = ceil(num_chunks / 32.0)
+#    total_nodes = current_level_nodes
+#    
+#    while current_level_nodes > 1:
+#        current_level_nodes = ceil(current_level_nodes / 32.0)
+#        total_nodes += current_level_nodes
+#        
+#    return total_nodes * node_size_bytes
+
+## --- Testing the algorithm ---
+#
+## Your `tas` variable (8 chunks)
+#print("tas (8 chunks):", calculate_chunk_metadata((12, 64, 128), (12, 40, 40)), "bytes")
+## Output: tas (8 chunks): 1568 bytes (1 Root Node)
+#
+## Massive variable (100,000 chunks, 3D)
+#print("Massive var (100k chunks):", calculate_chunk_metadata((100, 100, 100), (1, 10, 10)), "bytes")
+## Math: total nodes = 3125 (leaves) + 98 + 4 + 1 = 3228 nodes
+## Output: Massive var (100k chunks): 5061496 bytes (~5 MB)
 
 class AggregationError(Exception):
     """An error relating to CF aggregation.
@@ -95,7 +133,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         self.write_vars['ddd'].append(
-            ('_createGroup_2', {'parent':parent, 'group':name})
+            ('_createGroup_2', {'parent':parent, 'group_name':group_name})
         )
         
     def _createGroup_2(self, parent, group_name):
@@ -117,25 +155,35 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         g = self.write_vars
-        parent = g['groups'][parent]
+
+        if parent == "/":
+            group_path = f"/{group_name}"
+        else:
+            group_path = f"{parent}/{group_name}"
+
+        group = g['groups'].get(group_path)
+        if group is not None:
+            return group
         
+        parent_group = g['groups'][parent]
+
         match g["backend"]:
             case "h5netcdf-h5py":
-                if group_name in parent:
-                    return parent[group_name]
-
-                return parent.create_group(group_name)
+                if group_name in parent_group :
+                    group = parent_group[group_name]
+                else:
+                    group = parent_group.create_group(group_name)
 
             case "netCDF4" | "xarray":
-                return parent.createGroup(group_name)
+                group = parent_group.createGroup(group_name)
 
             case "zarr":
                 if group_name in parent:
-                    return parent[group_name]
-
-                return parent.create_group(
-                    group_name, overwrite=g["overwrite"]
-                )
+                    group = parent_group[group_name]
+                else:
+                    group = parent_group.create_group(
+                        group_name, overwrite=g["overwrite"]
+                    )
 
             case _:
                 raise NotImplementedError(
@@ -143,6 +191,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     f"{g['backend']!r} backend"
                 )
 
+        g['groups'][group_path] = group
+        return group
+        
     def _create_variable_name(self, parent, default):
         """Create an appropriate name for a dataset variable.
 
@@ -417,6 +468,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             x = g["nc"][ncvar]
         elif group is not None:
             # Set group-level attributes
+            print('eeee' ,group, list(g['groups']))
             x = g['groups'][group]
         else:
             raise ValueError("Must set ncvar or group")
@@ -5079,10 +5131,21 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     f0, attr
                 )
 
-            nc = self._get_group(g["dataset"], groups)
+            parent = "/"
+            for group_name in groups:
+                group = self._createGroup(parent, group_name)
+                if parent == "/":
+                    parent += group_name
+                else:
+                    parent += f"/{group_name}"
+
+                    #            nc = self._get_group('/', groups)
+
+
+            group_name = "/" + '/'.join(groups)
 
             if not g["dry_run"]:
-                self._set_attributes(this_group_attributes, group=groups) #nc)
+                self._set_attributes(this_group_attributes, group=group_name)
 
             group_attributes[groups] = tuple(this_group_attributes)
 
@@ -5110,22 +5173,42 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 The group.
 
         """
-        match self.write_vars["backend"]:
-            case "netCDF4" | "xarray":
-                for group in groups:
-                    if group in parent.groups:
-                        parent = parent.groups[group]
-                    else:
-                        parent = self._createGroup(parent, group)
+        g = self.write_vars
+#        groups = groups.split('/')[1]
+#        parent_group = g['groups'][parent]
+                                      
+#        match g["backend"]:
+#            case "netCDF4" | "xarray":
+        for group_name in groups:
+            #if parent == "/":
+            #    abs_group_name = f"/{group_name}"
+            #else:
+            #    abs_group_name = f"{parent}/{group_name}"
+            #
+            #if abs_group_name not in g['groups']:
+            #    print('qqq', parent, group_name, abs_group_name)
+            group = self._createGroup(parent, group_name)
+            if parent == "/":
+                parent += group_name
+            else:
+                parent += f"/{group_name}"
+                    
+                    
+#                    if group in parent.groups:
+#                        parent = parent.groups[group]
+#                    else:
+#                        parent = self._createGroup("/", group)#
 
-            case "zarr":
-                group = "/".join(groups)
-                if group in parent:
-                    parent = parent[group]
-                else:
-                    parent = self._createGroup(parent, group)
+#            case "zarr":
+#                group = "/".join(groups)
+#                if group in parent:
+#                    parent = parent[group]
+#                else:
+#                    parent = self._createGroup(parent, group)
 
-        return parent
+        
+        return group
+    
 
     def _write_global_attributes(self, fields):
         """Writes all global properties to the dataset.
@@ -6108,205 +6191,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         effective_mode = mode  # actual mode to use for the first IO iteration
         effective_fields = fields
-
-        # ------------------------------------------------------------
-        # Estimate the h5py meta_block_size option, and apply it
-        # unless it has been set by the user via `h5py_options`
-        # ------------------------------------------------------------
-        if 1: #'meta_block_size' not in self.write_vars["h5py_options"]:
-            page_size = 4096
-
-            # Space for file header, file-space manager
-            file_superblock = 2048
-            
-            m = file_superblock
-
-            print(m)
-
-            m = (1 + m // page_size ) * page_size
-            print(m)
-            # Track 2: The Object Header Track (H5FD_MEM_OHDR)
-            track_1 = 0
-            track_2 = 2048 + 4096
-            track_3 = 0
-            track_4 = 0
-            
-            # Track 1: The File Driver Track (H5FD_MEM_SUPER)
-            superblock = 96
-            track_1 += superblock
-
-            groups = set()
-            
-
-            constructs = []
-
-            # Data chunks
-            for f in fields:
-                data = [f.get_data(None)]
-
-                for c in f.constructs.filter_by_data(todict=True).values():
-                    skip = False
-                    for x in constructs:
-                        if x.equals(c):
-                            skip = True
-                            break
-
-                    if not skip:
-                        constructs.append(c)
-                        data.append(c.get_data(None))
-                
-#                data.extend(
-#                    c.get_data(None)
-#                    for c in f.constructs.filter_by_data(todict=True).values()
-#                )
-
-               #for d in data:                
-               #    if data is None:
-               #        continue
-               #
-               #    groups.add(f.nc_variable_groups())
-               #    
-#              #     n_variables += 1
-               #    try:
-               #        d =  d.compressed_array
-               #    except ValueError:
-               #        pass
-               #
-               #    contiguous, chunksizes, _= self._chunking_parameters(
-               #        d, None)
-               #
-               #    # Space for a variable, excluding attribtues 
-               #    if contiguous:
-               #        v = 1500 + 512
-               #    else:
-               #        n_chunks = self._n_chunks(d, contiguous, chunksizes)
-               #        v =  2048 + 512 + 128 * n_chunks
-               #        if v <= 4096:
-               #            v = 4096
-               #        elif len(fields) == 1:
-               #            # Round up to nearest 4096
-               #            v = (1 + v // 4096 ) * 4096
-               #
-               #    m += v
-               #    print(m, n_chunks, contiguous, chunksizes)
-               #    
-               #    #track_4 += max(1024, n_chunks*40)
-               #    #
-               #    ## The "DIMENSION_LIST" attribute
-               #    #track_2 += 56 + 8 * data.ndim
-               #    #
-               #    ## _Netcdf4Dimid
-               #    #track_2 += 56 + 4 * data.ndim
-                    
-               #variable_names = [
-               #    self._create_variable_name(f, 'default_name')
-               #]
-               #variable_names.extend(
-               #    self._create_variable_name(c, 'default_name')
-               #    for c in f.constructs.filter_by_data(todict=True).values()
-               #)
-               #for name in variable_names:
-               #    # Raw string names of the variables
-               #
-               #    track_3 += len(name.encode("utf-8"))
-            print(groups, len(groups))
-
-            # Space for groups
-            m += 1024 * len(groups)
-               
-            ## Variable and Group Object Headers
-            #track_2 += n_groups * 64                   
-            #track_2 += n_variables * 64
-                    
-            #for f in fields:
-            #
-            #    for c in f.dimension_coordinates().values():
-            #        # CLASS attribute:
-            #        #
-            #        # 72 bytes = Fixed Structural Overhead: 56 bytes
-            #        #            (HDF5 attribute message wrapper) +
-            #        #            len("DIMENSION_SCALE\0") (16 bytes,
-            #        #            null-terminated)
-            #        #
-            #        # The "NAME" attribute:
-            #        #
-            #        # Fixed Structural Overhead: 56 bytes + Value
-            #        # String: len(dim_name) + 1 (The name string plus
-            #        # a 1-byte null terminator)
-            #        #
-            #        # Total: 129 + len(dim_name)
-            #        track_2 += 129 + self._create_variable_name(c, 'default_name')
-            #
-            #    # Need to include dimensions with no dimension
-            #    # coordinates: 72 + 57 + len(dim_name)
-            #
-            #    for c in f.constructs.filter_by_data(todict=True).values():
-            #        if c.ndim:                        
-            #            track_2 += 112 + (9 * c.ndim) + sum_len(dim_names)
-            #        # need to do same addition for coordinate bounds
-            #        
-            #    
-            # Attributes
-            m = (1 + m // page_size ) * page_size
-            global_attributes = {}
-            A = []
-            for f in fields:
-                A.append(f.properties())
-
-                if not global_attributes :
-                    A.append(f.properties())
-                else:                
-                    global_attributes |= f.nc_global_attributes( values=True)
-#                    for attr in global_attributes:
-                        
-
-                
-
-                for c in f.constructs.values():
-                    try:
-                        A.append(c.properties())
-                    except AttributeError:
-                        pass
-    
-                for a in A:
-                    for key, value in a.items():
-                        # one attribute: 50 B + (utf-8 size of name) +
-                        #                (size of value (utf-8 for
-                        #                strings)) + 1 ( the
-                        #                terminator)
-#                        size = 51 + len(key.encode("utf-8")) 
-                        try:
-                            size = len(value.encode("utf-8"))
-                        except AttributeError:
-                            size = np.asanyarray(value).nbytes
-
-                        if size <= 64:
-                            # Small Attributes
-                            m += 256
-                        else:
-                            # Oversized attributes
-                            m += 512 + size
-
-                    print('     m=', m)
-#            print('A=', A)
-#            m += 256 * A
-            print('m=', m)
-
-            total = (1 + m // page_size ) * page_size
-                        
-            #page_size = 4096
-            #print (track_1, track_2, track_3, track_4)
-            #track_2 = ((track_2 + page_size - 1) // page_size) * page_size  
-            #track_3 = ((track_3 + page_size - 1) // page_size) * page_size  
-            #track_4 = ((track_4 + page_size - 1) // page_size) * page_size  
-            #             
-            #print (track_1, track_2, track_3, track_4)
-            #total = track_1 + track_2 + track_3 + track_4
-
-            self.write_vars["h5py_options"] = self.write_vars["h5py_options"].copy()
-            self.write_vars["h5py_options"]['meta_block_size'] = total
-            print(self.write_vars["h5py_options"])
-                                    
+  
         if mode == "a":
             if self.write_vars["backend"] in ("h5netcdf-h5py", "zarr"):
                 raise ValueError(
@@ -6667,58 +6552,140 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # OK - now do the file open and writing
         # get meta_block_size
         pass
-        # OPen dataset
+        # Open the dataset
         g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
+
+        # Record the dataset object as the root group
         g['groups']['/'] =  g["dataset"]
         
-        # write stuff!
-        print(g['ddd'])
-        print('--------------')
-        page_size = 4096
-        A = 0
-        C = 0
-        G = 1
+        # Space for attributes
+        meta_block_attributes = 0
+        # Space for data chunk metdata
+        meta_block_chunk_metadata = 0
+        # Space for dimension metdata     
+        meta_block_dimensions = 0
+        # Space for group metdata (there is always the root group)
+        meta_block_groups = 0
+
+        # While the algorithm calculates the mathematical minimum
+        # payload for the metadata (the exact bytes needed for chunk
+        # pointers, dimension scales, and variable names), the HDF5
+        # library does not pack metadata into the file byte-for-byte.
+        #
+        # We multiply the raw sum by an amount greater than 1 to
+        # account for HDF5's dynamic, non-linear memory allocation
+        # behaviors. Specifically, it absorbs three hidden growth
+        # factors:
+        #
+        # 1. Greedy local heaps (Variable-Length
+        #    Strings/Attributes). HDF5 does not allocate exactly 12
+        #    bytes for a 12-byte string attribute. It stores
+        #    variable-length data in collections called "local heaps".
+        #    When a heap is created or becomes full, HDF5 anticipates
+        #    future additions by allocating a chunk of space much
+        #    larger than immediately needed (often doubling the heap
+        #    size, e.g. jumping from 256 to 512 bytes). The multiplier
+        #    ensures we have already budgeted for HDF5's aggressive
+        #    heap-sizing behavior.
+        #
+        # 2. Internal byte alignment and padding. To ensure fast
+        #    read/write speeds at the CPU level, the HDF5 C-library
+        #    aligns its internal Object Headers along specific byte
+        #    boundaries (usually 8-byte boundaries). This inserts
+        #    padding between metadata elements. The raw mathematical
+        #    sum counts the payload, but the multiplier accounts for
+        #    this internal piecemeal padding.
+        #
+        # 3. Preventing metadata fragmentation (spillover). The
+        #    ultimate goal of setting the meta_block_size is to force
+        #    HDF5 to write all header information in a single,
+        #    contiguous block. If the calculated size is short by even
+        #    1 byte, HDF5 is forced to allocate a completely separate
+        #    fragment elsewhere in the file to hold the overflow,
+        #    which ruins initial file read/open performance.
+        #
+        # By increasing the base estimate the aim to guarantee, most
+        # of the time, that the allocated block is large enough to
+        # absorb any of these growth factors.
+        meta_block_size_expansion_buffer = 2
+        
         for method, kwargs in g['ddd']:
+            print(method)
             getattr(self, method)(**kwargs)
+            
             if method == "_set_attributes_2":
-                for key, value in kwargs['attributes'].items():
-                    # one attribute: 50 B + (utf-8 size of name) +
-                    #                (size of value (utf-8 for
-                #                strings)) + 1 ( the
-                    #                terminator)
-                    #                        size = 51 + len(key.encode("utf-8"))
-                    size = 51 + len(key.encode("utf-8"))
-                    try:
-                        size += len(value.encode("utf-8"))
-                    except AttributeError:
-                        size += np.asanyarray(value).nbytes
-                        
-                    A += size
+                print('ATTRIBUTES', kwargs, '\n')
+                meta_block_attributes += Ax(**kwargs)
 
-                    if size > 256:
-                        A += 256
-                        
-            if method == "_createVariable_2":
-                print(kwargs, '\n')
-                v = 2048
-                if not kwargs['contiguous']:
-                    n_chunks = self._n_chunks(kwargs['shape'], False, kwargs['chunksizes'])
-                    v += 128 * n_chunks
-                    v = (1 + v // 4096 ) * 4096
-                    
-                C += v
+            elif method == "_createVariable_2":
+                print('VARIABLE', kwargs, '\n')
+                meta_block_chunk_metadata += Cx(**kwargs)
 
-            if method == "_createGroup_2":
-                G += 1
+            elif method == "_createDimension_2":
+                print('DIMENSION', kwargs, '\n')
+                ncdim = kwargs['ncdim']
+                # Find the number of variables that reference this
+                # dimension
+                n_vars = sum(                    
+                    1
+                    for m, k in g['ddd']
+                    if m == "_createVariable_2" and ncdim in k['dimensions']
+                )
+                meta_block_dimensions += Dx(n_vars)
                 
-#        A = (1 + A // page_size ) * page_size
-#        print('A=', A)
-#        C = (1 + C // page_size ) * page_size
-#        print('C=', C)
 
-        total = A + C + 4096 + 2048 + 1024 * G
-        total = (1 + total // page_size ) * page_size
-        print(total)
+        for group_path, group in g['groups'].items():
+            group_name = group_path.split('/')[-1]
+            meta_block_groups += calculate_group_metadata(
+                group_name, len(group)
+            )
+        
+        print('meta_block_attributes     =', meta_block_attributes)
+        print('meta_block_chunk_metadata =', meta_block_chunk_metadata)
+        print('meta_block_dimensions     =', meta_block_dimensions)
+        print('meta_block_groups         =', meta_block_groups)
+        total = (
+            meta_block_attributes
+            + meta_block_chunk_metadata
+            + meta_block_dimensions
+            + meta_block_groups
+        )
+        
+        total = ceil(total * meta_block_size_expansion_buffer)
+    
+        # Round the value to the nearest 4096-byte allocation block
+        # used by both operating systems (memory pages) and modern
+        # storage drives (disk sectors). Rounding our metadata block
+        # to this multiple ensures that the raw chunk data that
+        # follows begins precisely on a hardware-aligned boundary,
+        # maximizing read/write performance.
+        os_page_size = 4096
+        total = ceil(total / os_page_size) * os_page_size
+
+        # Space for the netCDF-4 overhead:
+        #        
+        # 1. _NCProperties: A hidden string attribute injected in the
+        #    root group to track library versions.
+        #
+        # 2. _Netcdf4Dimid and _Netcdf4Coordinates: Hidden structural
+        #    attributes injected into variables to bridge the gap
+        #    between HDF5 groups and netCDF dimensions.
+        #
+        # 3. The free space manager tables: HDF5 allocates hidden
+        #    overhead just to track where empty space is.
+        #
+        # 4. Object header continuations: HDF5 sometimes creates extra
+        #    "chk" messages just to link different parts of the root
+        #    header together.
+        netCDF_overhead= 16234
+        meta_block_size = total + netCDF_overhead
+
+        # ------------------------------------------------------------
+        # Estimate the h5py meta_block_size option, and apply it
+        # unless it has been sest by the user via `h5py_options`
+        # ------------------------------------------------------------
+        g["h5py_options"]['meta_block_size'] = meta_block_size
+        print(self.write_vars["h5py_options"])
         
         # ------------------------------------------------------------
         # Write all of the buffered data to disk
