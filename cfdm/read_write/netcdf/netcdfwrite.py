@@ -3683,36 +3683,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         construct_type=None,
         cfa=None,
     ):
-        self.write_vars['ddd'].append(
-            (
-                '_write_data_2',
-                {'data':data,
-                 'cfvar':cfvar,
-                 'ncvar':ncvar,
-                 'ncdimensions':ncdimensions,
-                 'domain_axes':domain_axes,
-                 'unset_values':unset_values,
-                 'compressed':compressed,
-                 'attributes':attributes,
-                 'construct_type':construct_type,
-                 'cfa':cfa}
-            )
-        )
-
-    def _write_data_2(
-        self,
-        data,
-        cfvar,
-        ncvar,
-        ncdimensions,
-        domain_axes=None,
-        unset_values=(),
-        compressed=False,
-        attributes=None,
-        construct_type=None,
-        cfa=None,
-    ):
-        """Write a data array to the dataset.
+        """Lazily write a data array to the dataset.
 
         :Parameters:
 
@@ -3746,6 +3717,48 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 fragment array variables' data.
 
                 .. versionadded:: (cfdm) 1.12.0.0
+
+        :Returns:
+
+            `None`
+
+        """
+        self.write_vars['ddd'].append(
+            (
+                # Name of the method that will do the work
+                '_write_data_2',
+                # Method arguments
+                {'data':data,
+                 'cfvar':cfvar,
+                 'ncvar':ncvar,
+                 'ncdimensions':ncdimensions,
+                 'domain_axes':domain_axes,
+                 'unset_values':unset_values,
+                 'compressed':compressed,
+                 'attributes':attributes,
+                 'construct_type':construct_type,
+                 'cfa':cfa}
+            )
+        )
+
+    def _write_data_2(
+        self,
+        data,
+        cfvar,
+        ncvar,
+        ncdimensions,
+        domain_axes=None,
+        unset_values=(),
+        compressed=False,
+        attributes=None,
+        construct_type=None,
+        cfa=None,
+    ):
+        """Write a data array to the dataset.
+
+        :Parameters:
+
+            See `_write_data` for details.
 
         :Returns:
 
@@ -5133,7 +5146,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
             parent = "/"
             for group_name in groups:
-                group = self._createGroup(parent, group_name)
+                self._createGroup(parent, group_name)
                 if parent == "/":
                     parent += group_name
                 else:
@@ -5151,63 +5164,63 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         g["group_attributes"] = group_attributes
 
-    def _get_group(self, parent, groups):
-        """Get the group of *parent* defined by *groups*.
-
-        The group will be created if it doesn't already exist.
-
-        .. versionadded:: (cfdm) 1.13.0.0
-
-        :Parameters:
-
-            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
-                The group in which to find or create new group.
-
-            groups: sequence of `str`
-                The group defined by the sequence of its subgroups
-                relative to *parent*, e.g. ``('forecast', 'model')``.
-
-        :Returns:
-
-            `netCDF4.Group` or `Zarr.Group`
-                The group.
-
-        """
-        g = self.write_vars
-#        groups = groups.split('/')[1]
-#        parent_group = g['groups'][parent]
-                                      
-#        match g["backend"]:
-#            case "netCDF4" | "xarray":
-        for group_name in groups:
-            #if parent == "/":
-            #    abs_group_name = f"/{group_name}"
-            #else:
-            #    abs_group_name = f"{parent}/{group_name}"
-            #
-            #if abs_group_name not in g['groups']:
-            #    print('qqq', parent, group_name, abs_group_name)
-            group = self._createGroup(parent, group_name)
-            if parent == "/":
-                parent += group_name
-            else:
-                parent += f"/{group_name}"
-                    
-                    
-#                    if group in parent.groups:
-#                        parent = parent.groups[group]
-#                    else:
-#                        parent = self._createGroup("/", group)#
-
-#            case "zarr":
-#                group = "/".join(groups)
-#                if group in parent:
-#                    parent = parent[group]
-#                else:
-#                    parent = self._createGroup(parent, group)
-
-        
-        return group
+#    def _get_group(self, parent, groups):
+#        """Get the group of *parent* defined by *groups*.
+#
+#        The group will be created if it doesn't already exist.
+#
+#        .. versionadded:: (cfdm) 1.13.0.0
+#
+#        :Parameters:
+#
+#            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
+#                The group in which to find or create new group.
+#
+#            groups: sequence of `str`
+#                The group defined by the sequence of its subgroups
+#                relative to *parent*, e.g. ``('forecast', 'model')``.
+#
+#        :Returns:
+#
+#            `netCDF4.Group` or `Zarr.Group`
+#                The group.
+#
+#        """
+#        g = self.write_vars
+##        groups = groups.split('/')[1]
+##        parent_group = g['groups'][parent]
+#                                      
+##        match g["backend"]:
+##            case "netCDF4" | "xarray":
+#        for group_name in groups:
+#            #if parent == "/":
+#            #    abs_group_name = f"/{group_name}"
+#            #else:
+#            #    abs_group_name = f"{parent}/{group_name}"
+#            #
+#            #if abs_group_name not in g['groups']:
+#            #    print('qqq', parent, group_name, abs_group_name)
+#            group = self._createGroup(parent, group_name)
+#            if parent == "/":
+#                parent += group_name
+#            else:
+#                parent += f"/{group_name}"
+#                    
+#                    
+##                    if group in parent.groups:
+##                        parent = parent.groups[group]
+##                    else:
+##                        parent = self._createGroup("/", group)#
+#
+##            case "zarr":
+##                group = "/".join(groups)
+##                if group in parent:
+##                    parent = parent[group]
+##                else:
+##                    parent = self._createGroup(parent, group)
+#
+#        
+#        return group
     
 
     def _write_global_attributes(self, fields):
@@ -6551,12 +6564,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         # OK - now do the file open and writing
         # get meta_block_size
-        pass
-        # Open the dataset
-        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
 
-        # Record the dataset object as the root group
-        g['groups']['/'] =  g["dataset"]
         
         # Space for attributes
         meta_block_attributes = 0
@@ -6611,17 +6619,18 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         
         for method, kwargs in g['ddd']:
             print(method)
-            getattr(self, method)(**kwargs)
-            
             if method == "_set_attributes_2":
+                # Meta block space for attributes
                 print('ATTRIBUTES', kwargs, '\n')
                 meta_block_attributes += Ax(**kwargs)
 
             elif method == "_createVariable_2":
+                # Meta block space for a variable
                 print('VARIABLE', kwargs, '\n')
                 meta_block_chunk_metadata += Cx(**kwargs)
 
             elif method == "_createDimension_2":
+                # Meta block space for a dimension
                 print('DIMENSION', kwargs, '\n')
                 ncdim = kwargs['ncdim']
                 # Find the number of variables that reference this
@@ -6632,8 +6641,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     if m == "_createVariable_2" and ncdim in k['dimensions']
                 )
                 meta_block_dimensions += Dx(n_vars)
-                
 
+        # Meta block space for groups
         for group_path, group in g['groups'].items():
             group_name = group_path.split('/')[-1]
             meta_block_groups += calculate_group_metadata(
@@ -6651,7 +6660,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             + meta_block_groups
         )
         
-        total = ceil(total * meta_block_size_expansion_buffer)
+        total = total * meta_block_size_expansion_buffer
     
         # Round the value to the nearest 4096-byte allocation block
         # used by both operating systems (memory pages) and modern
@@ -6693,6 +6702,18 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # For append mode, it is cleaner code-wise to close the
         # dataset on the read iteration and re-open it for the append
         # iteration. So we always close it here.
+
+        # Open the dataset
+        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
+
+        # Record the dataset object as the root group
+        g['groups']['/'] =  g["dataset"]
+
+        # Flush the groups, dimensins, variables, and attributes to
+        # the dataset
+        for method, kwargs in g['ddd']:
+            getattr(self, method)(**kwargs)
+            
         self.dataset_close()
 
         # ------------------------------------------------------------
