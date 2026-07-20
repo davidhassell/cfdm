@@ -8,7 +8,7 @@ import numpy as np
 
 from cfdm.data.dask_utils import cfdm_to_memory
 from cfdm.decorators import _manage_log_level_via_verbosity
-from cfdm.functions import abspath, dirname, integer_dtype
+from cfdm.functions import abspath, dirname, integer_dtype, is_log_level_debug
 
 from .. import IOWrite
 from .constants import (
@@ -22,49 +22,12 @@ from .constants import (
     ZARR_FMTS,
 )
 from .netcdfread import NetCDFRead
+from .netcdfwrite_meta_block_size import NetCDFMetaBlockSize
 from .netcdfwrite_ugrid import NetCDFWriteUgrid
 from .xarray_dataset import XarrayDataset
-from .fff import Ax, Cx, Dx, calculate_group_metadata, calculate_netcdf4_overhead
 
 logger = logging.getLogger(__name__)
 
-
-#def calculate_chunk_metadata(shape, chunksizes):
-#    """
-#    Calculates the exact HDF5 B-tree metadata overhead for a chunked dataset.
-#    """
-#    if chunksizes is None:
-#        return 0  # Contiguous datasets have no chunk index
-#
-#    rank = len(shape)
-#    
-#    # 1. Total Number of Chunks
-#    num_chunks = prod([ceil(s / c) for s, c in zip(shape, chunksizes)])
-#    
-#    # 2. Maximum memory size of a single B-Tree Node for this rank
-#    entry_size = 16 + (8 * rank)
-#    node_size_bytes = 24 + (32 * entry_size) + (33 * 8)
-#    
-#    # 3. Simulate the B-Tree allocation to find total nodes
-#    current_level_nodes = ceil(num_chunks / 32.0)
-#    total_nodes = current_level_nodes
-#    
-#    while current_level_nodes > 1:
-#        current_level_nodes = ceil(current_level_nodes / 32.0)
-#        total_nodes += current_level_nodes
-#        
-#    return total_nodes * node_size_bytes
-
-## --- Testing the algorithm ---
-#
-## Your `tas` variable (8 chunks)
-#print("tas (8 chunks):", calculate_chunk_metadata((12, 64, 128), (12, 40, 40)), "bytes")
-## Output: tas (8 chunks): 1568 bytes (1 Root Node)
-#
-## Massive variable (100,000 chunks, 3D)
-#print("Massive var (100k chunks):", calculate_chunk_metadata((100, 100, 100), (1, 10, 10)), "bytes")
-## Math: total nodes = 3125 (leaves) + 98 + 4 + 1 = 3228 nodes
-## Output: Massive var (100k chunks): 5061496 bytes (~5 MB)
 
 class AggregationError(Exception):
     """An error relating to CF aggregation.
@@ -76,7 +39,7 @@ class AggregationError(Exception):
     pass
 
 
-class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
+class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
     """A container for writing Fields to a dataset.
 
     NetCDF3, netCDF4 and Zarr output formats are supported.
@@ -114,32 +77,25 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         """Cell method qualifiers."""
         return set(("within", "where", "over", "interval", "comment"))
 
-    def _createGroup(self, parent, group_name): #parent, group_name):
+    def _createGroup(self, **kwargs):
         """Creates a new dataset group object.
 
         .. versionadded:: (cfdm) 1.8.6.0
 
         :Parameters:
 
-            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
-                The group in which to create the new group.
-
-            group_name: `str`
-                The name of the group.
+            kwargs:
+                The same keywords arguments as for `_createGroup_2`.
 
         :Returns:
 
-                The new group object.
+            `None`
 
         """
-        
-        self.write_vars['group_names'].add((parent, group_name))
-        
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars['ddd'].append(
-            ('_createGroup_2', {'parent':parent, 'group_name':group_name}) )
-        
+        self.write_vars["write_operations"].append(("_createGroup_2", kwargs))
+
     def _createGroup_2(self, *, parent, group_name):
         """Creates a new dataset group object.
 
@@ -165,15 +121,15 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         else:
             group_path = f"{parent}/{group_name}"
 
-        group = g['groups'].get(group_path)
+        group = g["groups"].get(group_path)
         if group is not None:
             return group
-        
-        parent_group = g['groups'][parent]
+
+        parent_group = g["groups"][parent]
 
         match g["backend"]:
             case "h5netcdf-h5py":
-                if group_name in parent_group :
+                if group_name in parent_group:
                     group = parent_group[group_name]
                 else:
                     group = parent_group.create_group(group_name)
@@ -195,9 +151,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     f"{g['backend']!r} backend"
                 )
 
-        g['groups'][group_path] = group
+        g["groups"][group_path] = group
         return group
-        
+
     def _create_variable_name(self, parent, default):
         """Create an appropriate name for a dataset variable.
 
@@ -415,23 +371,17 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         return netcdf_attrs
 
-    def _set_attributes(self,  **kwargs): #attributes, ncvar=None, group=None):
+    def _set_attributes(
+        self, **kwargs
+    ):  # attributes, ncvar=None, group=None):
         """Set dataset attributes on a variable or group.
 
         .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
-            attributes: `dict`
-                The attributes.
-
-            ncvar: `str`, optional
-                The variable on which to set the attributes. Must be
-                set if *group* is `None`.
-
-            group: `str`, optional
-                The group on which to set the attributes. Must be set
-                if *ncvar* is `None`.
+            kwargs:
+                The same keywords arguments as for `_set_attributes_2`.
 
         :Returns:
 
@@ -440,10 +390,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         """
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars['ddd'].append(
-            ('_set_attributes_2', kwargs))
-#            {'ncvar': ncvar, 'group': group, 'attributes': attributes})
-#        )
+        self.write_vars["write_operations"].append(
+            ("_set_attributes_2", kwargs)
+        )
 
     def _set_attributes_2(self, *, attributes, ncvar=None, group=None):
         """Set dataset attributes on a variable or group.
@@ -474,7 +423,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             x = g["nc"][ncvar]
         elif group is not None:
             # Set group-level attributes
-            x = g['groups'][group]
+            x = g["groups"][group]
         else:
             raise ValueError("Must set ncvar or group")
 
@@ -670,25 +619,36 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
             if not g["dry_run"]:
                 try:
-                    self._createDimension(group=parent_group,
-                                          ncdim=ncdim,
-                                          size=size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
                 except RuntimeError:
                     pass  # TODO convert to 'raise' via fixes upstream
 
         return ncdim
 
-    def _createDimension(self, **kwargs): #group, ncdim, size):
+    def _createDimension(self, **kwargs):  # group, ncdim, size):
         """Create a dataset dimension in group.
+
+        .. versionadded:: (cfdm) 1.13.0.0
+
+        :Parameters:
+
+            kwargs:
+                The same keywords arguments as for `_createDimension_2'.
+
+        :Returns:
+
+            `None`
 
         """
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars['ddd'].append(
-            ('_createDimension_2', kwargs))
-#             {'group': group, 'ncdim': ncdim, 'size': size})
-#        )
-    def _createDimension_2(self,*, group, ncdim, size):
+        self.write_vars["write_operations"].append(
+            ("_createDimension_2", kwargs)
+        )
+
+    def _createDimension_2(self, *, group, ncdim, size):
         """Create a dataset dimension in group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -709,13 +669,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `None`
 
         """
-        g = self.write_vars            
+        g = self.write_vars
         match g["backend"]:
             case "h5netcdf-h5py":
-                group = g['groups'][group]
+                group = g["groups"][group]
                 group.dimensions[ncdim] = size
             case "netCDF4" | "xarray":
-                group = g['groups'][group]
+                group = g["groups"][group]
                 group.createDimension(ncdim, size)
             case "zarr":
                 # Dimensions are not created in Zarr datasets
@@ -889,7 +849,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 # Create an unlimited dimension
                 size = None
                 try:
-                    self._createDimension(group=parent_group, ncdim=ncdim, size=size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
                 except RuntimeError as error:
                     message = (
                         "Can't create unlimited dimension "
@@ -910,7 +872,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     g["unlimited_dimensions"].add(ncdim)
             else:
                 try:
-                    self._createDimension(group=parent_group, ncdim=ncdim, size=size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
                 except RuntimeError as error:
                     raise RuntimeError(
                         f"Can't create size {size} dimension {ncdim!r} in "
@@ -1032,7 +996,42 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # bounds to the dataset and add the 'bounds' or
             # 'climatology' attribute (as appropriate) to a dictionary
             # of extra attributes
-            extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
+
+            # Always do sensible chunking on dimension coordinate
+            # bounds (i.e. largest possble chunks no larger than 4
+            # MiB), regardless of any chunks specified by the
+            # construct.
+            four_MiB = 4194304
+            bounds = coord.get_bounds(None)
+            if bounds is not None:
+                bounds_chunksizes = (
+                    min(
+                        bounds.shape[0],
+                        four_MiB // bounds.dtype.itemsize // bounds.shape[1],
+                    ),
+                    bounds.shape[1],
+                )
+                chunking = (
+                    False,
+                    bounds_chunksizes,
+                    ceil(bounds.shape[0] // bounds_chunksizes[0]),  # 1 shard
+                )
+            else:
+                chunking = None
+
+            extra = self._write_bounds(
+                f, coord, key, ncdimensions, ncvar, chunking=chunking
+            )
+
+            # Always do sensible chunking on dimension coordinates
+            # (i.e. largest possble chunks no larger than 4 MiB),
+            # regardless of any chunks specified by the construct.
+            chunksizes = (min(coord.size, four_MiB // coord.dtype.itemsize),)
+            chunking = (
+                False,
+                chunksizes,
+                ceil(coord.size // chunksizes[0]),  # 1 shard
+            )
 
             # Create a new dimension coordinate dataset variable
             self._write_netcdf_variable(
@@ -1041,6 +1040,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 coord,
                 self.implementation.get_data_axes(f, key),
                 extra=extra,
+                chunking=chunking,
             )
         else:
             ncvar = seen[id(coord)]["ncvar"]
@@ -1501,7 +1501,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         return ncvar
 
     def _write_bounds(
-        self, f, coord, coord_key, coord_ncdimensions, coord_ncvar=None
+        self,
+        f,
+        coord,
+        coord_key,
+        coord_ncdimensions,
+        coord_ncvar=None,
+        chunking=None,
     ):
         """Creates a bounds dataset variable.
 
@@ -1616,7 +1622,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 if not g["dry_run"]:
                     try:
                         self._createDimension(
-                            group=parent_group, ncdim=base_bounds_ncdim, size=size
+                            group=parent_group,
+                            ncdim=base_bounds_ncdim,
+                            size=size,
                         )
                     except RuntimeError:
                         raise
@@ -1662,6 +1670,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 self.implementation.get_data_axes(f, coord_key),
                 omit=omit,
                 construct_type=self.implementation.get_construct_type(coord),
+                chunking=chunking,
             )
 
         extra["bounds"] = ncvar
@@ -1803,7 +1812,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 if not g["dry_run"]:
                     # parent_group.createDimension(ncdim, size)
-                    self._createDimension(group=parent_group, ncdim=ncdim, size=size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
 
             # Set an appropriate default node coordinates dataset
             # variable name
@@ -2016,8 +2027,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `netCDF.Dataset` or `netCDF.Group` or `zarr.Group`
 
         """
-        g = self.write_vars
-
         if "/" not in name:
             return "/"
 
@@ -2025,26 +2034,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             raise ValueError(
                 f"Invalid dataset name {name!r}: missing a leading '/'"
             )
-        
-        group = '/'.join(name.split("/")[:-1])
+
+        group = "/".join(name.split("/")[:-1])
         if not group:
             group = "/"
 
         return group
-#        parent_group = g["dataset"]
-#
-#        if not g["group"] or "/" not in name:
-#            return parent_group
-#
-#        if not name.startswith("/"):
-#            raise ValueError(
-#                f"Invalid dataset name {name!r}: missing a leading '/'"
-#            )
-#
-#        for group_name in name.split("/")[1:-1]:
-#            parent_group = self._createGroup(parent_group, group_name)
-#
-#        return parent_group
 
     def _remove_group_structure(self, name, return_groups=False):
         """Strip off any group structure from the name.
@@ -2243,7 +2238,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 if not g["dry_run"]:
                     # parent_group.createDimension(ncdim, size)
-                    self._createDimension(group=parent_group, ncdim=ncdim, size=size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
 
             ncvar = self._name(ncvar)
 
@@ -2332,7 +2329,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 if not g["dry_run"]:
                     # parent_group.createDimension(ncdim, size)
-                    self._createDimension(group=parent_group, ncdim=ncdim, size=size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
 
             ncvar = self._name(ncvar)
 
@@ -2756,7 +2755,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                             sorted(external_variables)
                         )
                     },
-                    group="/" #g["dataset"],
+                    group="/",  # g["dataset"],
                 )
 
     def _create_external(
@@ -2800,20 +2799,28 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         return external
 
-    def _createVariable(self,  **kwargs):
+    def _createVariable(self, **kwargs):
         """Create a variable in the dataset.
 
-        Each backend needs a separate parsing of the input kwargs to suit
-        its API.
-
         .. versionadded:: (cfdm) 1.7.0
+
+        :Parameters:
+
+            kwargs:
+                The same keywords arguments as for `_createVariable_2'.
+
+        :Returns:
+
+            `None`
 
         """
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars['ddd'].append(('_createVariable_2', kwargs))
-        
-    def _createVariable_2(self,  **kwargs):
+        self.write_vars["write_operations"].append(
+            ("_createVariable_2", kwargs)
+        )
+
+    def _createVariable_2(self, **kwargs):
         """Create a variable in the dataset.
 
         Each backend needs a separate parsing of the input kwargs to suit
@@ -3681,20 +3688,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         return data, ncdimensions
 
-    def _write_data(
-            self,  **kwargs
-        #data,
-        #cfvar,
-        #ncvar,
-        #ncdimensions,
-        #domain_axes=None,
-        #unset_values=(),
-        #compressed=False,
-        #attributes=None,
-        #construct_type=None,
-        #cfa=None,
-    ):
-        """Lazily write a data array to the dataset.
+    def _write_data(self, **kwargs):
+        """Write a data array to the dataset.
+
+        :Parameters:
+
+            kwargs:
+                The same keywords arguments as for `_write_data_2`.
 
         :Returns:
 
@@ -3703,26 +3703,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         """
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars['ddd'].append(
-            (
-                '_write_data_2',
-                kwargs
-                #{'data':data,
-                # 'cfvar':cfvar,
-                # 'ncvar':ncvar,
-                # 'ncdimensions':ncdimensions,
-                # 'domain_axes':domain_axes,
-                # 'unset_values':unset_values,
-                # 'compressed':compressed,
-                # 'attributes':attributes,
-                # 'construct_type':construct_type,
-                # 'cfa':cfa}
-            )
-        )
+        self.write_vars["write_operations"].append(("_write_data_2", kwargs))
 
     def _write_data_2(
         self,
-            *,
+        *,
         data,
         cfvar,
         ncvar,
@@ -4766,7 +4751,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 if not g["dry_run"] and not g["post_dry_run"]:
                     try:
                         self._set_attributes(
-                            attributes={"formula_terms": formula_terms}, ncvar=ncvar
+                            attributes={"formula_terms": formula_terms},
+                            ncvar=ncvar,
                         )
                     except KeyError:
                         pass  # TODO convert to 'raise' via fixes upstream
@@ -4784,7 +4770,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     if not g["dry_run"] and not g["post_dry_run"]:
                         try:
                             self._set_attributes(
-                                attributes={"formula_terms": bounds_formula_terms},
+                                attributes={
+                                    "formula_terms": bounds_formula_terms
+                                },
                                 ncvar=bounds_ncvar,
                             )
                         except KeyError:
@@ -5161,76 +5149,16 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 else:
                     parent += f"/{group_name}"
 
-                    #            nc = self._get_group('/', groups)
-
-
-            group_name = "/" + '/'.join(groups)
+            group_name = "/" + "/".join(groups)
 
             if not g["dry_run"]:
-                self._set_attributes(attributes=this_group_attributes, group=group_name)
+                self._set_attributes(
+                    attributes=this_group_attributes, group=group_name
+                )
 
             group_attributes[groups] = tuple(this_group_attributes)
 
         g["group_attributes"] = group_attributes
-
-#    def _get_group(self, parent, groups):
-#        """Get the group of *parent* defined by *groups*.
-#
-#        The group will be created if it doesn't already exist.
-#
-#        .. versionadded:: (cfdm) 1.13.0.0
-#
-#        :Parameters:
-#
-#            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
-#                The group in which to find or create new group.
-#
-#            groups: sequence of `str`
-#                The group defined by the sequence of its subgroups
-#                relative to *parent*, e.g. ``('forecast', 'model')``.
-#
-#        :Returns:
-#
-#            `netCDF4.Group` or `Zarr.Group`
-#                The group.
-#
-#        """
-#        g = self.write_vars
-##        groups = groups.split('/')[1]
-##        parent_group = g['groups'][parent]
-#                                      
-##        match g["backend"]:
-##            case "netCDF4" | "xarray":
-#        for group_name in groups:
-#            #if parent == "/":
-#            #    abs_group_name = f"/{group_name}"
-#            #else:
-#            #    abs_group_name = f"{parent}/{group_name}"
-#            #
-#            #if abs_group_name not in g['groups']:
-#            #    print('qqq', parent, group_name, abs_group_name)
-#            group = self._createGroup(parent, group_name)
-#            if parent == "/":
-#                parent += group_name
-#            else:
-#                parent += f"/{group_name}"
-#                    
-#                    
-##                    if group in parent.groups:
-##                        parent = parent.groups[group]
-##                    else:
-##                        parent = self._createGroup("/", group)#
-#
-##            case "zarr":
-##                group = "/".join(groups)
-##                if group in parent:
-##                    parent = parent[group]
-##                else:
-##                    parent = self._createGroup(parent, group)
-#
-#        
-#        return group
-    
 
     def _write_global_attributes(self, fields):
         """Writes all global properties to the dataset.
@@ -5395,7 +5323,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # ------------------------------------------------------------
             attrs.update(force_global)
 
-            self._set_attributes(attributes=attrs, group="/") #g["dataset"])
+            self._set_attributes(attributes=attrs, group="/")  # g["dataset"])
 
         g["global_attributes"] = global_attributes
 
@@ -5600,6 +5528,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         reference_datetime=None,
         netcdf_backend=None,
         h5py_options=None,
+        hdf5_consolidated_metadata=True,
+        hdf5_expansion_factor=2.25,
     ):
         """Write field and domain constructs to a dataset.
 
@@ -5865,6 +5795,19 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
+            hdf5_consolidated_metadata: `bool`, optional
+                Whether or not to attempt to conoslidate the B-tree
+                into a single HDF5 metadata block. See `cfdm.write`
+                for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            hdf5_expansion_factor: number, optional
+                The expansion factor for the HDF5 metadata block size
+                calculation algorithm. See `cfdm.write` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `None`
@@ -5875,8 +5818,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         from packaging.version import Version
-
-        logger.info(f"Writing to {fmt}")  # pragma: no cover
 
         # Parse the 'omit_data' parameter
         if omit_data is None:
@@ -5925,10 +5866,10 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             "file_descriptors": {},
             "group": group,
             "group_attributes": {},
-            # TODO        
+            # TODO
             "groups": {},
             # TODO
-            "group_names": set((("/", ""),)),
+            #            "group_names": set((("/", ""),)),
             "bounds": {},
             # NetCDF compression/endian
             "netcdf_compression": {},
@@ -6017,6 +5958,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # UGRID:
             # --------------------------------------------------------
             "meshes": {},
+            # --------------------------------------------------------
             # Cache selected (field, coordinate reference, dimension
             # coordinate) triples
             # --------------------------------------------------------
@@ -6028,6 +5970,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # https://docs.h5py.org/en/stable/high/file.html#h5py.File
             # --------------------------------------------------------
             "h5py_options": h5py_options,
+            # Whether or not to attempt to conoslidate the B-tree into
+            # a single HDF5 metadata block
+            "hdf5_consolidated_metadata": hdf5_consolidated_metadata,
+            # Expansion factor for the algorthm that calculates the
+            # HDF5 meta_block_size
+            "hdf5_expansion_factor": hdf5_expansion_factor,
         }
 
         if mode not in ("w", "a", "r+"):
@@ -6162,7 +6110,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # Parse the 'h5py_options' parameter
         if h5py_options is None:
             self.write_vars["h5py_options"] = {}
-        elif backend != "h5netcdf-h5py":
+        elif backend == "h5netcdf-h5py":
+            self.write_vars["h5py_options"] = h5py_options.copy()
+        else:
             raise ValueError(
                 "Can only set h5py_options when "
                 "netcdf_backend='h5netcdf-h5py'. "
@@ -6217,7 +6167,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         effective_mode = mode  # actual mode to use for the first IO iteration
         effective_fields = fields
-  
+
         if mode == "a":
             if self.write_vars["backend"] in ("h5netcdf-h5py", "zarr"):
                 raise ValueError(
@@ -6497,11 +6447,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # Scalar coordinate variables
         # ------------------------------------------------------------
         g["scalar"] = scalar
-        g["overwrite"] = overwrite
 
-        # ------------------------------------------------------------
-        # Open the output dataset
-        # ------------------------------------------------------------
+        g["overwrite"] = overwrite
         if self.dataset_exists(dataset_name):
             if mode == "w" and not overwrite:
                 raise IOError(
@@ -6519,9 +6466,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         g["dataset_name"] = dataset_name
 
-        g['ddd'] = []
-#        g['groups'] = {}
-        
+        # ------------------------------------------------------------
+        # Initialise the ordered list of operations that will do the
+        # actual writing to disk
+        # ------------------------------------------------------------
+        g["write_operations"] = []
+
         if not g["dry_run"]:
             # --------------------------------------------------------
             # Write global properties to the dataset first. This is
@@ -6575,180 +6525,52 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # ------------------------------------------------------------
         self._ugrid_write_mesh_variables()
 
-        # OK - now do the file open and writing
-        # get meta_block_size
+        if is_log_level_debug(logger):
+            logger.debug("WRITE OPERATIONS:")  # pragma: no cover
+            for method, kwargs in g["write_operations"]:
+                logger.debug(f"  {method}: {kwargs}\n")  # pragma: no cover
 
-        if 'meta_block_size' not in g["h5py_options"]:
-            # Space for attributes
-            meta_block_attributes = 0
-            # Space for data chunk metdata
-            meta_block_chunk_metadata = 0
-            # Space for dimension metdata     
-            meta_block_dimensions = 0
-            # Space for group metdata (there is always the root group)
-            meta_block_groups = 0
-    
-            # While the algorithm calculates the mathematical minimum
-            # payload for the metadata (the exact bytes needed for
-            # chunk pointers, dimension scales, and variable names),
-            # the HDF5 library does not pack metadata into the file
-            # byte-for-byte.
-            #
-            # We multiply the raw sum by an amount greater than 1 to
-            # account for HDF5's dynamic, non-linear memory allocation
-            # behaviors. Specifically, it absorbs three hidden growth
-            # factors:
-            #
-            # 1. Greedy local heaps (Variable-Length
-            #    Strings/Attributes). HDF5 does not allocate exactly
-            #    12 bytes for a 12-byte string attribute. It stores
-            #    variable-length data in collections called "local
-            #    heaps".  When a heap is created or becomes full, HDF5
-            #    anticipates future additions by allocating a chunk of
-            #    space much larger than immediately needed (often
-            #    doubling the heap size, e.g. jumping from 256 to 512
-            #    bytes). The multiplier ensures we have already
-            #    budgeted for HDF5's aggressive heap-sizing behavior.
-            #
-            # 2. Internal byte alignment and padding. To ensure fast
-            #    read/write speeds at the CPU level, the HDF5
-            #    C-library aligns its internal Object Headers along
-            #    specific byte boundaries (usually 8-byte
-            #    boundaries). This inserts padding between metadata
-            #    elements. The raw mathematical sum counts the
-            #    payload, but the multiplier accounts for this
-            #    internal piecemeal padding.
-            #
-            # 3. Preventing metadata fragmentation (spillover). The
-            #    ultimate goal of setting the meta_block_size is to
-            #    force HDF5 to write all header information in a
-            #    single, contiguous block. If the calculated size is
-            #    short by even 1 byte, HDF5 is forced to allocate a
-            #    completely separate fragment elsewhere in the file to
-            #    hold the overflow, which ruins initial file read/open
-            #    performance.
-            #
-            # By increasing the base estimate the aim to guarantee,
-            # most of the time, that the allocated block is large
-            # enough to absorb any of these growth factors.
-            meta_block_size_expansion_buffer = 2
+        # for method, kwargs in g["write_operations"]:
+        #     print(f"  {method}: {kwargs}\n")
 
-            n_variables = 0
-            for method,  kwargs in g['ddd']:                             
-#                print(method)
-                if method == "_set_attributes_2":
-                    # Meta block space for attributes
-#                    print('ATTRIBUTES', kwargs, '\n')
-                    meta_block_attributes += Ax(**kwargs)
-    
-                elif method == "_createVariable_2":
-                    n_variables += 1
-                    # Meta block space for a variable
-#                    print('VARIABLE', kwargs, '\n')
-                    meta_block_chunk_metadata += Cx(**kwargs)
-    
-                elif method == "_createDimension_2":
-                    # Meta block space for a dimension
-#                    print('DIMENSION', kwargs, '\n')
-                    ncdim = kwargs['ncdim']
-                    # Find the number of variables that reference this
-                    # dimension
-                    n_vars = sum(                    
-                        1
-                        for m, k in g['ddd']
-                        if m == "_createVariable_2" and ncdim in k['dimensions']
-                    )
-                    meta_block_dimensions += Dx(n_vars)
-    
-            # Meta block space for groups
-#            print(g['group_names'])
-            for _, group_name in g['group_names']:
-                meta_block_groups += calculate_group_metadata(group_name)
-                
-            total = (
-                meta_block_attributes
-                + meta_block_chunk_metadata
-                + meta_block_dimensions
-                + meta_block_groups
-            )
-            
-           # total = total  * meta_block_size_expansion_buffer
-        
-            # Round the value to the nearest 4096-byte allocation
-            # block used by both operating systems (memory pages) and
-            # modern storage drives (disk sectors). Rounding our
-            # metadata block to this multiple ensures that the raw
-            # chunk data that follows begins precisely on a
-            # hardware-aligned boundary, maximizing read/write
-            # performance.
-            os_page_size = 4096
-#            total = ceil(total / os_page_size) * os_page_size
-    
-            # Space for the netCDF-4 overhead:
-            #        
-            # 1. _NCProperties: A hidden string attribute injected in
-            #    the root group to track library versions.
+        if (
+            g["hdf5_consolidated_metadata"]
+            and fmt in NETCDF4_FMTS
+            and g["backend"] == "h5netcdf-h5py"
+            and "meta_block_size" not in g["h5py_options"]
+        ):
+            # ---------------------------------------------------------
+            # Calculate a HDF5 meta block size that should be large
+            # enough for all internal file metadata.
             #
-            # 2. _Netcdf4Dimid and _Netcdf4Coordinates: Hidden
-            #    structural attributes injected into variables to
-            #    bridge the gap between HDF5 groups and netCDF
-            #    dimensions.
-            #
-            # 3. The free space manager tables: HDF5 allocates hidden
-            #    overhead just to track where empty space is.
-            #
-            # 4. Object header continuations: HDF5 sometimes creates
-            #    extra "chk" messages just to link different parts of
-            #    the root header together.
-            netCDF_overhead= calculate_netcdf4_overhead(n_variables)
-            
-            print('meta_block_attributes      =', meta_block_attributes)
-            print('meta_block_chunk_metadata  =', meta_block_chunk_metadata)
-            print('meta_block_dimensions      =', meta_block_dimensions)
-            print('meta_block_groups          =', meta_block_groups)
-            print('meta_block_netCDF_overhead =', netCDF_overhead)
-                
-            meta_block_size = (total + netCDF_overhead) * meta_block_size_expansion_buffer
-            meta_block_size = ceil(meta_block_size / os_page_size) * os_page_size
-            #    safety_factor : float, optional (default=2.0)
-#        A buffer multiplier applied to the estimated metadata size to prevent 
-#        "metadata spillover." 
-#        
-#        Because the underlying HDF5 library often pads data and allocates extra 
-#        hidden space behind the scenes, exact byte calculations will usually be 
-#        too small. If the initial allocated block is too small, HDF5 splits the 
-#        metadata and writes the overflow at the very end of the file. This 
-#        splitting severely degrades file-open and read performance.
-#        
-#        * Default (2.0): Highly recommended. Guarantees all metadata stays in 
-#          one fast-reading block with minimal wasted disk space.
-#        * Lower (< 1.5): Use only if you are trying to squeeze every last byte 
-#          out of storage, but you risk creating slow-reading files.
-#        * Higher (> 3.0): Unnecessary unless writing highly complex, heavily 
-#          nested variable attributes that defy standard size estimations.
-
+            # The size is based on the list of write operations
+            # (write_vars['write_opertations']) that deine what is
+            # actually going into the dataset on disk.
             # --------------------------------------------------------
-            # Estimate the h5py meta_block_size option, and apply it
-            # unless it has been sest by the user via `h5py_options`
-            # --------------------------------------------------------
-            g["h5py_options"]['meta_block_size'] = meta_block_size
-            print(self.write_vars["h5py_options"])
-        
+            g["h5py_options"][
+                "meta_block_size"
+            ] = self._calculate_meta_block_size()
+
+        logger.info(
+            f"    h5py_options: {g['h5py_options']}"
+        )  # pragma: no cover
+
         # ------------------------------------------------------------
-        # Write the groups, dimensions, variables, and attributes to
-        # disk
+        # Now flush the groups, dimensions, variables, and attributes
+        # to disk
         # ------------------------------------------------------------
         # Open the dataset
         g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
 
-        # Record the dataset object as the root group
-        g['groups']['/'] =  g["dataset"]
+        # Record the dataset object as the root group (because its
+        # creation is not stored in g["write_operations"])
+        g["groups"]["/"] = g["dataset"]
 
-        # Write the groups, dimensins, variables, and attributes to
+        # Write the groups, dimensions, variables, and attributes to
         # the dataset
-        for method, kwargs in g['ddd']:
+        for method, kwargs in g["write_operations"]:
             getattr(self, method)(**kwargs)
-            
+
         # Close the dataset
         self.dataset_close()
 
@@ -6938,17 +6760,16 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # data contiguously.
             return True, None, None
 
-    def _n_chunks(self, shape,  contiguous, chunksizes):
+    def _n_chunks(self, shape, contiguous, chunksizes):
         if contiguous:
             return 1
 
         shape = np.array(shape)
         chunks = np.array(chunksizes)
         chunks_per_dim = np.ceil(shape / chunks).astype(int)
-        total_chunks = np.prod(chunks_per_dim)        
+        total_chunks = np.prod(chunks_per_dim)
         return int(total_chunks)
 
-        
     def _compressed_data(self, ncdimensions):
         """Whether or not the data is being written in compressed form.
 
@@ -7676,7 +7497,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # Create the variable
             self._createVariable(**kwargs)
             self._set_attributes(
-                attributes=self.implementation.parameters(quantization), ncvar=ncvar
+                attributes=self.implementation.parameters(quantization),
+                ncvar=ncvar,
             )
 
         # Update the quantization dictionary

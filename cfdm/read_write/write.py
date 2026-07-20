@@ -868,6 +868,49 @@ class write(ReadWrite):
 
             .. versionadded:: (cfdm) 1.13.1.0
 
+        hdf5_consolidated_metadata: `bool`, optional
+            If True (the default) then attempt to create a single
+            consolidated metadata block in an output HDF5 dataset that
+            is large enough for the entire B-tree., but only if the
+            output dataset format is based on HDF5, the *backend* is
+            ``h5netcdf-h5py``, and ``'meta_block_size'`` has not been
+            provided in *h5py_options*. See *hdf5_expansion_factor*
+            for informatiokn on the algorthm used to estimate the
+            required HDF metadata block size, and how it can be
+            modified.
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        hdf5_expansion_factor: number, optional
+            When the *backend* is ``h5netcdf-h5py``, and
+            ``'meta_block_size'`` has not been provided in
+            *h5py_options*, then the ``'meta_block_size'`` `h5py`
+            option is automatically set to a value that is intended to
+            contain the entire HDF5 B-tree (see
+            https://docs.h5py.org/en/latest/high/file.html#meta-block-size). Such
+            a consolidated HDF5 metadata block gives huge performance
+            benefits when reading the dataset. The algorithm that
+            determines this size does so by calculating an approximate
+            amount of bytes based on the actual groups, attributes,
+            variables, and dimension that are going to be written to
+            the dataset; and then multipling this amount by the
+            *hdf5_expansion_factor* to account for the HDF5's dynamic,
+            non-linear memory allocation behaviours, which can not be
+            known in advance. The default value is ``2.25``.
+
+            Due to the approximate nature of the algorithm, it may be
+            that the calculated HDF5 metadata block size is too small
+            to contain the entire B-tree (in which case two or more
+            HDF5 metadata blocks will be created in the
+            dataset). Alternatively, the estimated HDF5 metadata block
+            size may be larger than is actually required. In both ase
+            cases the HDF5 metadata block size may be adjusted by
+            setting a different value for the *hdf5_expansion_factor*
+            (or bypassing the automatic calculation by explicitly
+            setting ``'meta_block_size'`` in the *h5py_options*).
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
         _implementation: (subclass of) `CFDMImplementation`, optional
             Define the CF data model implementation that defines field
             and metadata constructs and their components.
@@ -930,6 +973,8 @@ class write(ReadWrite):
         extra_write_vars=None,
         netcdf_backend=None,
         h5py_options=None,
+        hdf5_consolidated_metadata=True,
+        hdf5_expansion_factor=2.25,
     ):
         """Write field and domain constructs to a dataset."""
         # Flatten the sequence of intput fields
@@ -995,4 +1040,6 @@ class write(ReadWrite):
             cfa=cfa,
             netcdf_backend=netcdf_backend,
             h5py_options=h5py_options,
+            hdf5_consolidated_metadata=hdf5_consolidated_metadata,
+            hdf5_expansion_factor=hdf5_expansion_factor,
         )

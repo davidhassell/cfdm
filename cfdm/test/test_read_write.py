@@ -1631,6 +1631,49 @@ class read_writeTest(unittest.TestCase):
         # Check that we can read data after the initial scan
         self.assertEqual(f[0].coordinate("axis=T")[2].array, 2.2117104e09)
 
+    def test_write_hdf5_consolidated_metadata(self):
+        """Test cfdm.write hdf5_consolidated_metadata keyword."""
+        import pyfive
+
+        f = self.f0.copy()
+        f.nc_set_variable("/forecast/model/q")
+
+        # Non-consolidated
+        cfdm.write(f, tmpfile, hdf5_consolidated_metadata=False)
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
+        cfdm.write(
+            f,
+            tmpfile,
+            hdf5_consolidated_metadata=True,
+            h5py_options={"meta_block_size": 4096},
+        )
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
+        cfdm.write(
+            f,
+            tmpfile,
+            hdf5_consolidated_metadata=True,
+            hdf5_expansion_factor=0.5,
+        )
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
+        # Consolidated
+        cfdm.write(f, tmpfile)
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
+        cfdm.write(
+            f,
+            tmpfile,
+            hdf5_consolidated_metadata=True,
+            h5py_options={"meta_block_size": 2**20},
+        )
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
+        # Consolidated, lots of variables
+        cfdm.write([f] * 100, tmpfile)
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
