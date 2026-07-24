@@ -929,7 +929,7 @@ class write(ReadWrite):
         cfa="auto",
         extra_write_vars=None,
         netcdf_backend=None,
-        h5py_options=None,
+        h5py_options=None,ddd="4 MiB",
     ):
         """Write field and domain constructs to a dataset."""
         # Flatten the sequence of intput fields
@@ -995,4 +995,5 @@ class write(ReadWrite):
             cfa=cfa,
             netcdf_backend=netcdf_backend,
             h5py_options=h5py_options,
+            ddd=ddd,
         )
