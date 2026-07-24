@@ -859,6 +859,10 @@ class write(ReadWrite):
             https://docs.h5py.org/en/stable/high/file.html#h5py.File
             for details on which keywords are available.
 
+            .. note:: If the ``'meta_block_size'`` is not provided by
+                      _h5py_options*, then it will automatically set
+                      to a value that
+
             *Example:*
               ``h5py_options=dict(fs_strategy='page',
               fs_page_size=2**20)``
@@ -869,42 +873,47 @@ class write(ReadWrite):
             .. versionadded:: (cfdm) 1.13.1.0
 
         hdf5_consolidated_metadata: `bool`, optional
-            If True (the default) then attempt to create a single
-            consolidated metadata block in an output HDF5 dataset that
-            is large enough for the entire B-tree., but only if the
-            output dataset format is based on HDF5, the *backend* is
-            ``h5netcdf-h5py``, and ``'meta_block_size'`` has not been
-            provided in *h5py_options*. See *hdf5_expansion_factor*
-            for informatiokn on the algorthm used to estimate the
-            required HDF metadata block size, and how it can be
-            modified.
+            If True (the default) then create a single consolidated
+            metadata block in an output HDF5 dataset that should be
+            large enough for the entire B-tree. Such a consolidated
+            HDF5 metadata block gives huge performance benefits when
+            reading the dataset. Ignored unless the *backend* is
+            ``h5netcdf-h5py`` and ``'meta_block_size'`` has not been
+            provided in the *h5py_options*.
+
+            See *hdf5_expansion_factor* for information on the
+            algorithm used to estimate the required metadata block
+            size, and how it can be modified.
 
             .. versionadded:: (cfdm) NEXTVERSION
 
         hdf5_expansion_factor: number, optional
-            When the *backend* is ``h5netcdf-h5py``, and
-            ``'meta_block_size'`` has not been provided in
-            *h5py_options*, then the ``'meta_block_size'`` `h5py`
-            option is automatically set to a value that is intended to
-            contain the entire HDF5 B-tree (see
-            https://docs.h5py.org/en/latest/high/file.html#meta-block-size). Such
-            a consolidated HDF5 metadata block gives huge performance
-            benefits when reading the dataset. The algorithm that
-            determines this size does so by calculating an approximate
-            amount of bytes based on the actual groups, attributes,
-            variables, and dimension that are going to be written to
-            the dataset; and then multipling this amount by the
-            *hdf5_expansion_factor* to account for the HDF5's dynamic,
-            non-linear memory allocation behaviours, which can not be
-            known in advance. The default value is ``2.25``.
+            Configure the algorithm for calculating the size of the
+            metadata block in an output HDF5 dataset that should be
+            large enough for the entire B-tree. Ignored unless
+            *hdf5_consolidated_metadata* is True, the *backend* is
+            ``h5netcdf-h5py`` and ``'meta_block_size'`` has not been
+            provided in the *h5py_options*.
+
+            Such a consolidated HDF5 metadata block gives huge
+            performance benefits when reading the dataset. The
+            algorithm that determines this size does so by calculating
+            an approximate amount of bytes based on the actual groups,
+            attributes, variables, and dimension that are going to be
+            written to the dataset; and then multipling this amount by
+            the *hdf5_expansion_factor* to account for the HDF5's
+            dynamic, non-linear memory allocation behaviours, which
+            are not be known in advance. The default value is
+            ``2.25``.
 
             Due to the approximate nature of the algorithm, it may be
             that the calculated HDF5 metadata block size is too small
-            to contain the entire B-tree (in which case two or more
-            HDF5 metadata blocks will be created in the
+            to contain the entire B-tree (in which more than one HDF5
+            metadata block will be created in the
             dataset). Alternatively, the estimated HDF5 metadata block
-            size may be larger than is actually required. In both ase
-            cases the HDF5 metadata block size may be adjusted by
+            size may be larger than is actually required (in which
+            case there will be some unused space in the dataset). In
+            both cases the HDF5 metadata block size may be adjusted by
             setting a different value for the *hdf5_expansion_factor*
             (or bypassing the automatic calculation by explicitly
             setting ``'meta_block_size'`` in the *h5py_options*).

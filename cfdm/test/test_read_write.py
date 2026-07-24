@@ -1646,7 +1646,7 @@ class read_writeTest(unittest.TestCase):
             f,
             tmpfile,
             hdf5_consolidated_metadata=True,
-            h5py_options={"meta_block_size": 4096},
+            h5py_options={"meta_block_size": 4096},  # Small!
         )
         self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
 
@@ -1666,7 +1666,7 @@ class read_writeTest(unittest.TestCase):
             f,
             tmpfile,
             hdf5_consolidated_metadata=True,
-            h5py_options={"meta_block_size": 2**20},
+            h5py_options={"meta_block_size": 2**20},  # Large!
         )
         self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
 

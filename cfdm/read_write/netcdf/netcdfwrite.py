@@ -1,7 +1,7 @@
 import copy
 import logging
 import os
-from math import ceil, prod
+from math import prod
 from numbers import Integral
 
 import numpy as np
@@ -997,41 +997,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             # 'climatology' attribute (as appropriate) to a dictionary
             # of extra attributes
 
-            # Always do sensible chunking on dimension coordinate
-            # bounds (i.e. largest possble chunks no larger than 4
-            # MiB), regardless of any chunks specified by the
-            # construct.
-            four_MiB = 4194304
-            bounds = coord.get_bounds(None)
-            if bounds is not None:
-                bounds_chunksizes = (
-                    min(
-                        bounds.shape[0],
-                        four_MiB // bounds.dtype.itemsize // bounds.shape[1],
-                    ),
-                    bounds.shape[1],
-                )
-                chunking = (
-                    False,
-                    bounds_chunksizes,
-                    ceil(bounds.shape[0] // bounds_chunksizes[0]),  # 1 shard
-                )
-            else:
-                chunking = None
-
-            extra = self._write_bounds(
-                f, coord, key, ncdimensions, ncvar, chunking=chunking
-            )
-
-            # Always do sensible chunking on dimension coordinates
-            # (i.e. largest possble chunks no larger than 4 MiB),
-            # regardless of any chunks specified by the construct.
-            chunksizes = (min(coord.size, four_MiB // coord.dtype.itemsize),)
-            chunking = (
-                False,
-                chunksizes,
-                ceil(coord.size // chunksizes[0]),  # 1 shard
-            )
+            extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
             # Create a new dimension coordinate dataset variable
             self._write_netcdf_variable(
@@ -1040,7 +1006,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 coord,
                 self.implementation.get_data_axes(f, key),
                 extra=extra,
-                chunking=chunking,
             )
         else:
             ncvar = seen[id(coord)]["ncvar"]
@@ -1507,7 +1472,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         coord_key,
         coord_ncdimensions,
         coord_ncvar=None,
-        chunking=None,
     ):
         """Creates a bounds dataset variable.
 
@@ -1670,7 +1634,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 self.implementation.get_data_axes(f, coord_key),
                 omit=omit,
                 construct_type=self.implementation.get_construct_type(coord),
-                chunking=chunking,
+                bounds=True,
             )
 
         extra["bounds"] = ncvar
@@ -2493,6 +2457,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 # the bounds dataset variable and add the 'bounds',
                 # 'climatology' or 'nodes' attribute (as appropriate)
                 # to the dictionary of extra attributes.
+
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
                 # Create a new auxiliary coordinate variable, if it has data
@@ -3148,6 +3113,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         domain_variable=False,
         construct_type=None,
         chunking=None,
+        bounds=False,
     ):
         """Creates a new netCDF variable for a construct.
 
@@ -3198,6 +3164,11 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 data.
 
                 .. versionadded:: (cfdm) 1.12.0.0
+
+            bounds: `bool`
+                Whether or not the data represent bounds.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -3295,7 +3266,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             contiguous, chunksizes, shards = chunking
         else:
             contiguous, chunksizes, shards = self._chunking_parameters(
-                data, ncdimensions
+                data, ncdimensions, bounds
             )
 
         logger.debug(
@@ -6535,7 +6506,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         if (
             g["hdf5_consolidated_metadata"]
-            and fmt in NETCDF4_FMTS
             and g["backend"] == "h5netcdf-h5py"
             and "meta_block_size" not in g["h5py_options"]
         ):
@@ -6567,7 +6537,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         g["groups"]["/"] = g["dataset"]
 
         # Write the groups, dimensions, variables, and attributes to
-        # the dataset
+        # the dataset. This is done by executing the write operations
+        # in the order in which they were created.
         for method, kwargs in g["write_operations"]:
             getattr(self, method)(**kwargs)
 
@@ -6675,7 +6646,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         """
         pass
 
-    def _chunking_parameters(self, data, ncdimensions):
+    def _chunking_parameters(self, data, ncdimensions, bounds=False):
         """Set chunking parameters for a dataset variable.
 
         .. versionadded:: (cfdm) 1.11.2.0
@@ -6687,6 +6658,11 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
             ncdimensions: `tuple`
                 The dataset dimensions of the data.
+
+            bounds: `bool`
+                Whether or not the data represent bounds.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
@@ -6704,6 +6680,11 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         # Dataset chunk strategy: Either use that provided on the
         # data, or else work it out.
         # ------------------------------------------------------------
+        if ncdimensions is not None and self._compressed_data(ncdimensions):
+            # Base the dataset chunks on the compressed data that is
+            # going into the dataset
+            data = data.source().source()
+
         # Get the chunking strategy defined by the data itself
         chunksizes = self.implementation.nc_get_dataset_chunksizes(data)
         shards = self.implementation.nc_get_dataset_shards(data)
@@ -6722,6 +6703,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             dataset_chunks = chunksizes
         elif chunksizes is not None:
             # Chunked as defined by the tuple of int given by 'data'
+            chunksizes = self._minimum_chunksizes(data, chunksizes, bounds)
             return False, chunksizes, shards
 
         # Still here? Then work out the chunking strategy from the
@@ -6733,42 +6715,28 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         # Still here? Then work out the chunks from both the
         # size-in-bytes given by dataset_chunks (e.g. 1024, or '1
         # KiB'), and the data shape (e.g. (12, 73, 96)).
-        if ncdimensions is not None and self._compressed_data(ncdimensions):
-            # Base the dataset chunks on the compressed data that is
-            # going into the dataset
-            d = self.implementation.get_compressed_array(data)
-        else:
-            d = data
-
-        d_dtype = d.dtype
+        d_dtype = data.dtype
         dtype = g["datatype"].get(d_dtype, d_dtype)
 
         from dask import config as dask_config
         from dask.array.core import normalize_chunks
 
         with dask_config.set({"array.chunk-size": dataset_chunks}):
-            chunksizes = normalize_chunks("auto", shape=d.shape, dtype=dtype)
+            chunksizes = normalize_chunks(
+                "auto", shape=data.shape, dtype=dtype
+            )
 
         if chunksizes:
             # 'chunksizes' looks something like ((96, 96, 96, 50),
             # (250, 250, 4)). However, we only want one number per
             # dimension, so we choose the largest: [96, 250].
             chunksizes = [max(c) for c in chunksizes]
+            chunksizes = self._minimum_chunksizes(data, chunksizes, bounds)
             return False, chunksizes, shards
         else:
             # The data is scalar, so 'chunksizes' is () => write the
             # data contiguously.
             return True, None, None
-
-    def _n_chunks(self, shape, contiguous, chunksizes):
-        if contiguous:
-            return 1
-
-        shape = np.array(shape)
-        chunks = np.array(chunksizes)
-        chunks_per_dim = np.ceil(shape / chunks).astype(int)
-        total_chunks = np.prod(chunks_per_dim)
-        return int(total_chunks)
 
     def _compressed_data(self, ncdimensions):
         """Whether or not the data is being written in compressed form.
@@ -7728,3 +7696,68 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             array = array.astype(dtype)
 
         return array
+
+    def _minimum_chunksizes(self, data, chunksizes, bounds=False):
+        """Set minimum chunksizes for particular forms of data.
+
+        Return the chunksizes unchanged when
+
+        * The data is 0-d.
+
+        * The data is not 1-d when *bounds* is False.
+
+        * The data is not 2-d when *bounds* is True.
+
+        For 1-d data (or 2-d data when *bounds* is True), when the
+        chunksize is less than 4 MiB:
+
+        * If the total data size is less than 4 MiB then set the
+          chunksize so that there's a single chunk.
+
+        * If the total data size is greater than 4 MiB then set the
+          chunksize to 4 MiB.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            data: `Data`
+                The data to be chunked.
+
+            chunksizes: `tuple`
+                The original chunksizes for the data
+
+            bounds: `bool`
+                Whether or not the data represent bounds.
+
+        :Returns:
+
+            `tuple`
+                The new chunksizes.
+
+        """
+        if data is None or not chunksizes:
+            # Do nothing if there's no data, or no initial chunksizes.
+            return chunksizes
+
+        if (data.ndim != 1 and not bounds) or (data.ndim != 2 and bounds):
+            # Do nothing if the data has the wrong shape
+            return chunksizes
+
+        four_MiB = 4194304
+        itemsize = data.dtype.itemsize
+        if chunksizes and prod(chunksizes) * itemsize <= four_MiB:
+            if bounds:
+                # Shape (N, M) bounds
+                chunksizes = (
+                    min(
+                        data.shape[0],
+                        four_MiB // itemsize // data.shape[1],
+                    ),
+                    data.shape[1],
+                )
+            else:
+                # Shape (N,)
+                chunksizes = (min(data.shape[0], four_MiB // itemsize),)
+
+        return chunksizes
