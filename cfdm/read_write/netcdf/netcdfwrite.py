@@ -5385,7 +5385,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         cfa="auto",
         reference_datetime=None,
         netcdf_backend=None,
-        h5py_options=None,ddd="4 MiB"
+        h5py_options=None,
+        one_d_chunks="4 MiB",
     ):
         """Write field and domain constructs to a dataset.
 
@@ -5632,6 +5633,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 .. versionadded:: (cfdm) 1.13.0.0
 
+            one_d_chunks: ``str`, `int`, `float`, or `None`, optional
+                Set the minimum chunksizes for 1-d data. See
+                `cfdm.write` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
             cfa: `dict` or `None`, optional
                 Configure the creation of aggregation variables. See
                 `cfdm.write` for details.
@@ -5790,7 +5797,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # --------------------------------------------------------
             "dataset_chunks": dataset_chunks,
             "dataset_shards": dataset_shards,
-            "ddd": ddd,
+            "one_d_chunks": one_d_chunks,
             # --------------------------------------------------------
             # Quantization: Store unique Quantization objects, keyed
             #               by their output dataset variable names.
@@ -5843,18 +5850,18 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     f"{dataset_shards!r}."
                 )
 
-        # Parse the 'ddd' parameter
-        if ddd is not None and not isinstance(ddd, int):
+        # Parse the 'one_d_chunks' parameter
+        if one_d_chunks is not None and not isinstance(one_d_chunks, int):
             from dask.utils import parse_bytes
 
             try:
-                 self.write_vars["ddd"] = parse_bytes(ddd)
+                self.write_vars["one_d_chunks"] = parse_bytes(one_d_chunks)
             except (ValueError, AttributeError):
                 raise ValueError(
-                    "Invalid value for the 'ddd' keyword: "
-                    f"{ddd!r}."
+                    "Invalid value for the 'one_d_chunks' keyword: "
+                    f"{one_d_chunks!r}."
                 )
-        
+
         # Check fmt
         if fmt in NETCDF3_FMTS:
             if compress:
@@ -7541,7 +7548,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         * The chunksize is larger the the minimum 1-d chunksize.
 
         For 1-d data (or 2-d data when *bounds* is True), when the
-        chunksize is less than "minimum_1d_chunks":
+        chunksize is less than "one_d_chunks":
 
         * If the total data size is less than the minimum 1-d
           chunksize then set the chunksize so that there's a single
@@ -7550,7 +7557,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         * If the total data size is greater than the minimum 1-d
           chunksize then set the chunksize to the minimum 1-d
           chunksize.
-        
+
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
@@ -7570,11 +7577,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 The new chunksizes.
 
         """
-        four_MiB = self.write_vars['ddd']
-        if four_MiB is None:
-            # Do nothing if we've been asked not to
+        min_size = self.write_vars["one_d_chunks"]
+        if min_size is None:
+            # Do nothing if we've been asked to
             return chunksizes
-        
+
         if data is None or not chunksizes:
             # Do nothing if there's no data, or no initial chunksizes.
             return chunksizes
@@ -7584,19 +7591,17 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # Do nothing if the data has the wrong shape
             return chunksizes
 
-        four_MiB = self.write_vars['ddd']
-        print('ddd', four_MiB, chunksizes)
         itemsize = data.dtype.itemsize
-        if prod(chunksizes) * itemsize <= four_MiB:
+        if prod(chunksizes) * itemsize <= min_size:
             shape = data.shape
             if bounds:
-                # Shape (N, M) bounds
+                # Shape (N, M) bou
                 chunksizes = (
-                    min(shape[0], four_MiB // itemsize // shape[1]),
+                    min(shape[0], min_size // itemsize // shape[1]),
                     shape[1],
                 )
             else:
                 # Shape (N,)
-                chunksizes = (min(shape[0], four_MiB // itemsize),)
+                chunksizes = (min(shape[0], min_size // itemsize),)
 
         return chunksizes
