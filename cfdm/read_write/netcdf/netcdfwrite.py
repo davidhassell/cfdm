@@ -3045,7 +3045,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 .. versionadded:: (cfdm) 1.12.0.0
 
             bounds: `bool`
-                Whether or not the data represent bounds.
+                Whether or not the data represent cell bounds.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -6498,7 +6498,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 The dataset dimensions of the data.
 
             bounds: `bool`
-                Whether or not the data represent bounds.
+                Whether or not the data represent cell bounds. This is
+                used to inform the setting of chunksizes for the
+                bounds of 1-d coordinates.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -6541,7 +6543,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             dataset_chunks = chunksizes
         elif chunksizes is not None:
             # Chunked as defined by the tuple of int given by 'data'
-            chunksizes = self._minimum_chunksizes(data, chunksizes, bounds)
+            chunksizes = self._one_d_chunks(data, chunksizes, bounds)
             return False, chunksizes, shards
 
         # Still here? Then work out the chunking strategy from the
@@ -6569,7 +6571,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # (250, 250, 4)). However, we only want one number per
             # dimension, so we choose the largest: [96, 250].
             chunksizes = [max(c) for c in chunksizes]
-            chunksizes = self._minimum_chunksizes(data, chunksizes, bounds)
+            chunksizes = self._one_d_chunks(data, chunksizes, bounds)
             return False, chunksizes, shards
         else:
             # The data is scalar, so 'chunksizes' is () => write the
@@ -7534,10 +7536,10 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         return array
 
-    def _minimum_chunksizes(self, data, chunksizes, bounds=False):
-        """Set minimum chunksizes for particular forms of data.
+    def _one_d_chunks(self, data, chunksizes, bounds=False):
+        """Modify the chunksizes for 1-d data.
 
-        Return the chunksizes unchanged when
+        Return the input *chunksizes* unchanged when
 
         * The data is 0-d.
 
@@ -7545,14 +7547,14 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         * The data is not 2-d when *bounds* is True.
 
-        * The chunksize is larger the the minimum 1-d chunksize.
+        * The input chunksize is larger the minimum 1-d chunksize.
 
-        For 1-d data (or 2-d data when *bounds* is True), when the
-        chunksize is less than "one_d_chunks":
+        For 1-d data (and 2-d data when *bounds* is True), when the input
+        chunk size is less than "one_d_chunks":
 
-        * If the total data size is less than the minimum 1-d
-          chunksize then set the chunksize so that there's a single
-          chunk.
+        * If the total data size is less than the minimum 1-d chunk
+          size (given by `write_vars['one_d_chunks']`) then set the
+          chunksize so that there is a single chunk.
 
         * If the total data size is greater than the minimum 1-d
           chunksize then set the chunksize to the minimum 1-d
@@ -7568,8 +7570,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             chunksizes: `tuple`
                 The original chunksizes for the data
 
-            bounds: `bool`
-                Whether or not the data represent bounds.
+            bounds: `bool`, optional
+                Whether or not the data represent cell bounds.
 
         :Returns:
 
@@ -7587,7 +7589,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             return chunksizes
 
         ndim = data.ndim
-        if (bounds and ndim != 2) or (not bounds and ndim != 1):
+        if (not bounds and ndim != 1) or (bounds and ndim != 2):
             # Do nothing if the data has the wrong shape
             return chunksizes
 
@@ -7595,7 +7597,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         if prod(chunksizes) * itemsize <= min_size:
             shape = data.shape
             if bounds:
-                # Shape (N, M) bou
+                # Shape (N, M) bounds
                 chunksizes = (
                     min(shape[0], min_size // itemsize // shape[1]),
                     shape[1],

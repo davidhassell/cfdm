@@ -575,6 +575,9 @@ class write(ReadWrite):
             Ignored for netCDF3 output formats, for which all data is
             always written out contiguously.
 
+            See the *one_d_chunks* parameter for how 1-d arrays may be
+            given special treatment.
+
             .. note:: By default, a data array returned by
                       `{{package}}.read` stores its dataset chunking
                       strategy from the dataset being read. When this
@@ -678,10 +681,8 @@ class write(ReadWrite):
               dimension.
 
         one_d_chunks: `str`, `int`, `float`, or `None`, optional
-            Set the minimum chunksizes for 1-d data.
-
-            Also set the minimum chunksizes for the bounds of 1-d
-            coordinates.
+            Set the chunking strategy for 1-d data arrays, and the
+            bounds arrays of 1-d coordinates.
 
             By default, *one_d_chunks* is ``'4 MiB'``, i.e. 4194304
             bytes.
@@ -693,13 +694,13 @@ class write(ReadWrite):
               The minimum size in bytes of the dataset chunks for a
               1-d array and the bounds array of 1-d coordinates.
 
-              If a 1-d array, or the bounds array of 1-d coordinates,
-              is smaller than the minimum size then a single dataset
-              chunk of the array size will be created.
+              If a 1-d data array, or the bounds array of 1-d
+              coordinates, is smaller than the minimum size then a
+              single dataset chunk of that array size will be created.
 
-              If chunking behaviour as described by *dataset_chunks*
-              implies chunks that are larger than the minimum size,
-              then these larger chunks will be used.
+              If the chunking behaviour as described by
+              *dataset_chunks* implies chunks that are larger than the
+              minimum size, then these larger chunks will be used.
 
               A floating point value is rounded down to the nearest
               integer, and a string represents a quantity of byte
@@ -714,8 +715,8 @@ class write(ReadWrite):
             * `None`
 
               No special treatment. The dataset chunking behaviour for
-              a 1-d array, and the bounds array of 1-d coordinates, is
-              as described by *dataset_chunks*.
+              a 1-d data array, and the bounds array of 1-d
+              coordinates, is as described by *dataset_chunks*.
 
             .. versionadded:: (cfdm) NEXTVERSION
 
