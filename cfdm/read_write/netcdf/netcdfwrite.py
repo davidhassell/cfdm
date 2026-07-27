@@ -2450,6 +2450,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 # the bounds dataset variable and add the 'bounds',
                 # 'climatology' or 'nodes' attribute (as appropriate)
                 # to the dictionary of extra attributes.
+
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
                 # Create a new auxiliary coordinate variable, if it has data
@@ -6490,7 +6491,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         if (
             g["hdf5_consolidated_metadata"]
-            and fmt in NETCDF4_FMTS
             and g["backend"] == "h5netcdf-h5py"
             and "meta_block_size" not in g["h5py_options"]
         ):
@@ -6522,7 +6522,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         g["groups"]["/"] = g["dataset"]
 
         # Write the groups, dimensions, variables, and attributes to
-        # the dataset
+        # the dataset. This is done by executing the write operations
+        # in the order in which they were created.
         for method, kwargs in g["write_operations"]:
             getattr(self, method)(**kwargs)
 
@@ -6688,7 +6689,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         # Still here? Then work out the chunks from both the
         # size-in-bytes given by dataset_chunks (e.g. 1024, or '1
         # KiB'), and the data shape (e.g. (12, 73, 96)).
-        if ncdimensions is not None and self._compressed_data(ncdimensions):
+        if self._compressed_data(ncdimensions):
             # Base the dataset chunks on the compressed data that is
             # going into the dataset
             d = self.implementation.get_compressed_array(data)
