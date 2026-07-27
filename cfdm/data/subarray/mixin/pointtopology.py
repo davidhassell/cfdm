@@ -9,119 +9,83 @@ class PointTopology:
     .. versionadded:: (cfdm) 1.11.0.0
 
     """
+    
+    @staticmethod
+    def _point_point_connectivity(nc, src_neighbours, dst_neighbours):
+        """Mixin method for `__getitem__`.
 
-    def __getitem__(self, indices):
-        """Return a subspace of the uncompressed data.
+        Keyword arguments have are identical to the smae variables in
+        `__getitem__`.
 
-        x.__getitem__(indices) <==> x[indices]
-
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        from math import isnan
-
-        from scipy.sparse import csr_array
-
         from cfdm.functions import integer_dtype
 
-        start_index = self.start_index
-        node_connectivity = self._select_data(check_mask=True)
+        # Filter out invalid/masked nodes and self-loops
+        valid = (
+            (src_neighbours >= 0)
+            & (dst_neighbours >= 0)
+            & (src_neighbours != dst_neighbours)
+        )
+        src_neighbours = src_neighbours[valid]
+        dst_neighbours = dst_neighbours[valid]
+        del valid
 
-        # ------------------------------------------------------------
-        # E.g. For faces, 'node_connectivity' might be (two
-        # quadrilaterals and one triangle):
-        #
-        #      [[3 4 2 1 ]
-        #       [5 6 4 3 ]
-        #       [7 2 4 --]]
-        #
-        # E.g. For the nine edges of the above faces,
-        #      'node_connectivity' could be:
-        #
-        #      [[2 7]
-        #       [4 7]
-        #       [4 2]
-        #       [1 2]
-        #       [3 1]
-        #       [3 4]
-        #       [3 5]
-        #       [6 5]
-        #       [4 6]]
-        # ------------------------------------------------------------
+        # De-duplicate edge/neighbour pairs
+        edges = np.column_stack([src_neighbours, dst_neighbours])
+        del src_neighbours, dst_neighbours
 
-        masked = np.ma.isMA(node_connectivity)
+        unique_edges = np.unique(edges, axis=0)
+        del edges
 
-        largest_node_id = node_connectivity.max()
-        if not start_index:
-            # Add 1 to remove all zeros (0 is the fill value in the
-            # sparse array), first making sure that the datatpe can
-            # handle it.
-            if largest_node_id == np.iinfo(node_connectivity.dtype).max:
-                node_connectivity = node_connectivity.astype(int, copy=False)
+        src_neighbours_uniq = unique_edges[:, 0]
+        dst_neighbours_uniq = unique_edges[:, 1]
+        all_nodes = np.unique(unique_edges)
+        del unique_edges
 
-            node_connectivity = node_connectivity + 1
-            largest_node_id = largest_node_id + 1
+        # Sort the neighbour pairs (dst_neighbours sorted per
+        # src_node)
+        sort_idx = np.lexsort((dst_neighbours_uniq, src_neighbours_uniq))
+        src_neighbours_sorted = src_neighbours_uniq[sort_idx]
+        dst_neighbours_sorted = dst_neighbours_uniq[sort_idx]
+        del src_neighbours_uniq, dst_neighbours_uniq, sort_idx
 
-        p = 0
-        pointers = [0]
-        cols = []
-        u = []
+        # Prepend the target node itself to every group so it sits at
+        # column 0
+        src_sorted = np.concatenate([all_nodes, src_neighbours_sorted])
+        del src_neighbours_sorted
+        dst_sorted = np.concatenate([all_nodes, dst_neighbours_sorted])
+        del dst_neighbours_sorted
+        
+        num_unique_nodes = len(all_nodes)
+        del all_nodes
+        
+        # Stable sort ensures column 0 contains 'node' followed by
+        # sorted neighbours
+        final_idx = np.argsort(src_sorted, kind="mergesort")
+        src_sorted = src_sorted[final_idx]
+        dst_sorted = dst_sorted[final_idx]
+        del final_idx
 
-        pointers_append = pointers.append
-        cols_extend = cols.extend
-        u_extend = u.extend
+        # 5. Find group boundaries and maximum node degree (row width)
+        _, start_indices, counts = np.unique(
+            src_sorted, return_index=True, return_counts=True
+        )
+        del src_sorted
+        max_degree = counts.max()
 
-        unique_nodes = np.unique(node_connectivity)
-        if masked:
-            # Remove the missing value from unique nodes
-            unique_nodes = unique_nodes[:-1]
+        cols = np.arange(len(dst_sorted)) - np.repeat(start_indices, counts)
+        del start_indices
+        rows = np.repeat(np.arange(num_unique_nodes), counts)
+        del counts
+        
+        # Initialise the 2-d uncompressed matrix with -1 everywhere
+        largest_node_id = nc.max()
+        dtype = integer_dtype(largest_node_id)
+        u = np.full((num_unique_nodes, max_degree), -1, dtype=dtype)
 
-        unique_nodes = unique_nodes.tolist()
-
-        # WARNING (TODO): This loop is a potential performance bottleneck.
-        for node in unique_nodes:
-            # Find the collection of all nodes that are joined to this
-            # node via links in the mesh, including this node itself
-            # (which will be at the start of the list).
-            nodes = self._connected_nodes(node, node_connectivity, masked)
-
-            n_nodes = len(nodes)
-            p += n_nodes
-            pointers_append(p)
-            cols_extend(range(n_nodes))
-            u_extend(nodes)
-
-        del unique_nodes
-
-        u = np.array(u, dtype=integer_dtype(largest_node_id))
-        u = csr_array((u, cols, pointers))
-        u = u.toarray()
-        if any(map(isnan, self.shape)):
-            # Store the shape, now that is it known.
-            self._set_component("shape", u.shape, copy=False)
-
-        if indices is not Ellipsis:
-            u = u[indices]
-
-        # Mask all zeros
-        u = np.ma.where(u == 0, np.ma.masked, u)
-
-        # ------------------------------------------------------------
-        # E.g. For either of the face and edge examples above, 'u'
-        #      would now be:
-        #
-        #      [[1 2 3 -- --]
-        #       [2 1 4  7 --]
-        #       [3 1 4  5 --]
-        #       [4 2 3  6  7]
-        #       [5 3 6 -- --]
-        #       [6 4 5 -- --]
-        #       [7 2 4 -- --]]
-        #
-        # ------------------------------------------------------------
-
-        if not start_index:
-            # Subtract 1 to get back to zero-based node identities
-            u -= 1
+        # Fill 'u' with the node indices
+        u[rows, cols] = dst_sorted
 
         return u
