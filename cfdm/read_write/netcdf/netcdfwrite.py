@@ -1,7 +1,7 @@
 import copy
 import logging
 import os
-from math import ceil, prod
+from math import prod
 from numbers import Integral
 
 import numpy as np
@@ -996,42 +996,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             # bounds to the dataset and add the 'bounds' or
             # 'climatology' attribute (as appropriate) to a dictionary
             # of extra attributes
-
-            # Always do sensible chunking on dimension coordinate
-            # bounds (i.e. largest possble chunks no larger than 4
-            # MiB), regardless of any chunks specified by the
-            # construct.
-            four_MiB = 4194304
-            bounds = coord.get_bounds(None)
-            if bounds is not None:
-                bounds_chunksizes = (
-                    min(
-                        bounds.shape[0],
-                        four_MiB // bounds.dtype.itemsize // bounds.shape[1],
-                    ),
-                    bounds.shape[1],
-                )
-                chunking = (
-                    False,
-                    bounds_chunksizes,
-                    ceil(bounds.shape[0] // bounds_chunksizes[0]),  # 1 shard
-                )
-            else:
-                chunking = None
-
-            extra = self._write_bounds(
-                f, coord, key, ncdimensions, ncvar, chunking=chunking
-            )
-
-            # Always do sensible chunking on dimension coordinates
-            # (i.e. largest possble chunks no larger than 4 MiB),
-            # regardless of any chunks specified by the construct.
-            chunksizes = (min(coord.size, four_MiB // coord.dtype.itemsize),)
-            chunking = (
-                False,
-                chunksizes,
-                ceil(coord.size // chunksizes[0]),  # 1 shard
-            )
+            extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
             # Create a new dimension coordinate dataset variable
             self._write_netcdf_variable(
@@ -1040,7 +1005,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 coord,
                 self.implementation.get_data_axes(f, key),
                 extra=extra,
-                chunking=chunking,
             )
         else:
             ncvar = seen[id(coord)]["ncvar"]
@@ -1501,13 +1465,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         return ncvar
 
     def _write_bounds(
-        self,
-        f,
-        coord,
-        coord_key,
-        coord_ncdimensions,
-        coord_ncvar=None,
-        chunking=None,
+        self, f, coord, coord_key, coord_ncdimensions, coord_ncvar=None
     ):
         """Creates a bounds dataset variable.
 
@@ -1670,7 +1628,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 self.implementation.get_data_axes(f, coord_key),
                 omit=omit,
                 construct_type=self.implementation.get_construct_type(coord),
-                chunking=chunking,
             )
 
         extra["bounds"] = ncvar
@@ -2755,7 +2712,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                             sorted(external_variables)
                         )
                     },
-                    group="/",  # g["dataset"],
+                    group="/",
                 )
 
     def _create_external(
@@ -5323,7 +5280,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             # ------------------------------------------------------------
             attrs.update(force_global)
 
-            self._set_attributes(attributes=attrs, group="/")  # g["dataset"])
+            self._set_attributes(attributes=attrs, group="/")
 
         g["global_attributes"] = global_attributes
 
@@ -5866,10 +5823,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             "file_descriptors": {},
             "group": group,
             "group_attributes": {},
-            # TODO
+            # Mapping of group paths to dataset group objects
             "groups": {},
-            # TODO
-            #            "group_names": set((("/", ""),)),
             "bounds": {},
             # NetCDF compression/endian
             "netcdf_compression": {},
@@ -6759,16 +6714,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             # The data is scalar, so 'chunksizes' is () => write the
             # data contiguously.
             return True, None, None
-
-    def _n_chunks(self, shape, contiguous, chunksizes):
-        if contiguous:
-            return 1
-
-        shape = np.array(shape)
-        chunks = np.array(chunksizes)
-        chunks_per_dim = np.ceil(shape / chunks).astype(int)
-        total_chunks = np.prod(chunks_per_dim)
-        return int(total_chunks)
 
     def _compressed_data(self, ncdimensions):
         """Whether or not the data is being written in compressed form.
