@@ -8136,12 +8136,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if ncvar is not None:
             try:
                 nan_in_shape = isnan(data.to_dask_array().shape[0])
-            except:
+            except Exception:
                 nan_in_shape = False
 
-            if not nan_in_shape :
-#                print(9999999)
-#                print(data.array)
+            if not nan_in_shape:
                 # Store the dataset chunking, but only for data arrays
                 # that know their shape (if the shape contains nan
                 # then it is certainly an array derived from the
@@ -8153,8 +8151,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # convention (e.g. some DSG variables).
                     chunks, shape = self._get_dataset_chunks(ncvar)
                     if shape == data.shape:
-                        self.implementation.nc_set_dataset_chunksizes(data, chunks)
-    
+                        self.implementation.nc_set_dataset_chunksizes(
+                            data, chunks
+                        )
+
                 # Store the dataset sharding
                 if g["store_dataset_shards"]:
                     # Only store the dataset sharding if 'data' has
@@ -9500,7 +9500,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             ]
 
             array = self.implementation.initialise_PointTopologyArray(
-                shape=None, #(n_nodes, nan),
+                shape=(n_nodes, nan),
                 start_index=start_index,
                 cell_dimension=cell_dimension,
                 copy=False,

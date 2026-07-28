@@ -58,9 +58,10 @@ class Topology:
         ids = data[:, 0]
         id0 = ids[0]
         n_cells = ids.size
+
         relabel = not (
-            (not id0 and (ids == np.arange(n_cells)).all())
-            or (id0 == 1 and (ids == np.arange(1, n_cells + 1)).all())
+            (id0 == 0 and np.array_equal(ids, np.arange(n_cells)))
+            or (id0 == 1 and np.array_equal(ids, np.arange(1, n_cells + 1)))
         )
 
         if not relabel:

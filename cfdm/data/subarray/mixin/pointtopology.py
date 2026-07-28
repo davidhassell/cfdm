@@ -9,53 +9,88 @@ class PointTopology:
     .. versionadded:: (cfdm) 1.11.0.0
 
     """
-    
+
     @staticmethod
     def _point_point_connectivity(src_neighbours, dst_neighbours):
-        """Mixin method for `__getitem__`.
+        """Worker method for `__getitem__`.
 
-        Returns the full point_point_connectivity array derived from
-        edges or faces.
+        Returns the full point-point connectivity array derived from
+        an edge-node or face-node connectivity array.
 
-        Keyword arguments are identical to the smae variables in the
-        calling `__getitem__` method.
+        :Parameters:
+
+            src_neighbours: `numpy.ndarray`
+                A flattened array of the node indices for both ends of
+                each edge of the parent cells. The 1-d array will have
+                the same number of elements as the *node_connectivity*
+                array (which is defined in the calling `__getitem__`
+                method).
+
+                When the *node_connectivity* array contains missing
+                values (represented by `-1`), these are treated in
+                *src_neighbours* as if they were edge node indices.
+
+                E.g. If the parent cells comprise 9 edges then
+                     *src_neighbours* will have 2 * 9 = 18 elements.
+
+                E.g. If the parent cells comprise 3 faces (2 squares
+                     and one triangle) then *src_neighbours* will have
+                     2 * (3 * 4) = 24 elements.
+
+            dst_neighbours: `numpy.ndarray`
+                Similar to *src_neighbours*. The indices at position N
+                in both arrays define the two nodes at either end of
+                the same edge.
+
+                However, when the *node_connectivity* array contains
+                missing values (represented by `-1`) then to ensure
+                that every edge is represented by two real node
+                indices at least one position N in the
+                *src_neighbours* and *dst_neighbours* arrays,
+                erstwhile `-1` values in *dst_neighbours* will have to
+                be replaced with real node indices.
+
+        :Returns:
+
+            `numpy.ndarray`
+                The point-point connectivity array.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
         # ------------------------------------------------------------
-        # For instance (edges):
+        # E.g. Nine edges:
         #
-        # node_connectivity = [[0 1]
-        #                      [0 2]
-        #                      [1 3]
-        #                      [1 6]
+        # node_connectivity = [[1 6]
+        #                      [3 6]
+        #                      [3 1]
+        #                      [0 1]
+        #                      [2 0]
         #                      [2 3]
         #                      [2 4]
-        #                      [3 5]
-        #                      [3 6]
-        #                      [4 5]]
-        # src_neighbours = [0 0 1 1 2 2 3 3 4 1 2 3 6 3 4 5 6 5]
-        # dst_neighbours = [1 2 3 6 3 4 5 6 5 0 0 1 1 2 2 3 3 4]
+        #                      [5 4]
+        #                      [3 5]]
         #
-        # For instance (faces):
-        # 
-        # node_connectivity = [[ 2  3  1  0]
-        #                      [ 4  5  3  2]
-        #                      [ 6  1  3 -1]]
-        # src_neighbours = [ 2  4  6  2  4  6  3  5  1  3  5  1  1  3  3  1  3  3  0  2 -1  0  2 -1]
-        # dst_neighbours = [ 3  5  1  0  2 -1  1  3  3  2  4  6  0  2  6  3  5  1  2  4  6  1  3  3]
-        #
+        # src_neighbours = [1 6 3 6 3 1 0 1 2 0 2 3 2 4 5 4 3 5]
+        # dst_neighbours = [6 1 6 3 1 3 1 0 0 2 3 2 4 2 4 5 5 3]
         # ------------------------------------------------------------
 
-        print(src_neighbours)
-        print(dst_neighbours)
+        # ------------------------------------------------------------
+        # E.g. Two quadrilaterals and one triangle:
+        #
+        # node_connectivity = [[2 3 1 0]
+        #                      [4 5 3 2]
+        #                      [6 1 3 --]]
+        #
+        # src_neighbours = [2 3 1 0 4 5 3 2 6 1 3 -1 2 3 1 0 4 5 3 2  6 1 3 -1]
+        # dst_neighbours = [3 1 0 2 5 3 2 4 1 3 6  6 0 2 3 1 2 4 5 3 -1 6 1  3]
+        # ------------------------------------------------------------
 
         from cfdm.functions import integer_dtype
-        
-        largest_node_id = src_neighbours.max()
-        
-        # Filter out invalid/masked nodes and self-loops
+
+        # ------------------------------------------------------------
+        # Remove bad edges
+        # ------------------------------------------------------------
         valid = (
             (src_neighbours >= 0)
             & (dst_neighbours >= 0)
@@ -64,83 +99,82 @@ class PointTopology:
         src_neighbours = src_neighbours[valid]
         dst_neighbours = dst_neighbours[valid]
         del valid
-        
-        # De-duplicate edge/neighbour pairs
-        edges = np.column_stack([src_neighbours, dst_neighbours])
-        del src_neighbours, dst_neighbours
-        
+
+        # ------------------------------------------------------------
+        # De-duplication of edges
+        # ------------------------------------------------------------
+        n_edges = len(src_neighbours)
+        edges = np.empty((n_edges, 2), dtype=src_neighbours.dtype)
+        edges[:, 0] = src_neighbours
+        edges[:, 1] = dst_neighbours
+
         unique_edges = np.unique(edges, axis=0)
         del edges
-        
-        src_neighbours_uniq = unique_edges[:, 0]
-        dst_neighbours_uniq = unique_edges[:, 1]
+
+        src_uniq = unique_edges[:, 0]
+        dst_uniq = unique_edges[:, 1]
         all_nodes = np.unique(unique_edges)
         del unique_edges
-        
-        # Sort the neighbour pairs (dst_neighbours sorted per
-        # src_node)
-        sort_idx = np.lexsort((dst_neighbours_uniq, src_neighbours_uniq))
-        src_neighbours_sorted = src_neighbours_uniq[sort_idx]
-        dst_neighbours_sorted = dst_neighbours_uniq[sort_idx]
-        del src_neighbours_uniq, dst_neighbours_uniq, sort_idx
-        
-        # Prepend the target node itself to every group so it sits at
-        # column 0
-        src_sorted = np.concatenate([all_nodes, src_neighbours_sorted])
-        del src_neighbours_sorted
-        dst_sorted = np.concatenate([all_nodes, dst_neighbours_sorted])
-        del dst_neighbours_sorted
-        
-        num_unique_nodes = len(all_nodes)
-        del all_nodes
-        
-        # Stable sort ensures column 0 contains 'node' followed by
-        # sorted neighbours
-        final_idx = np.argsort(src_sorted, kind="mergesort")
-        src_sorted = src_sorted[final_idx]
-        dst_sorted = dst_sorted[final_idx]
-        del final_idx
-        
-        # 5. Find group boundaries and maximum node degree (row width)
-        _, start_indices, counts = np.unique(
+
+        # ------------------------------------------------------------
+        # Fast lexicographical sort (src_node primary, dst_node
+        # secondary)
+        # ------------------------------------------------------------
+        sort_idx = np.lexsort((dst_uniq, src_uniq))
+        src_sorted = src_uniq[sort_idx]
+        dst_sorted = dst_uniq[sort_idx]
+        del src_uniq, dst_uniq, sort_idx
+
+        # ------------------------------------------------------------
+        # Group boundaries and node offsets: Calculate neighbour
+        # counts per unique src_node
+        # ------------------------------------------------------------
+        uniq_src_nodes, src_start_idx, neighbour_counts = np.unique(
             src_sorted, return_index=True, return_counts=True
         )
-        del src_sorted
-        max_degree = counts.max()
-        
-        cols = np.arange(len(dst_sorted)) - np.repeat(start_indices, counts)
-        del start_indices
-        rows = np.repeat(np.arange(num_unique_nodes), counts)
-        del counts
-        
-        # Initialise the 2-d uncompressed matrix with -1 everywhere
+
+        # ------------------------------------------------------------
+        # Initialise the output matrix, 'u', filled with -1
+        # ------------------------------------------------------------
+        num_unique_nodes = len(all_nodes)
+        max_degree = neighbour_counts.max() + 1
+        largest_node_id = all_nodes[-1]  # all_nodes is sorted from np.unique
         dtype = integer_dtype(largest_node_id)
         u = np.full((num_unique_nodes, max_degree), -1, dtype=dtype)
-        
-        # Put the node indices into 'u'
-        u[rows, cols] = dst_sorted
-        
-        print('EEEEE@', u)
+
+        # Place the self-node at column 0 of every row
+        u[:, 0] = all_nodes
+
+        # Build the column indices for neighbours (columns
+        # 1..K).
+        cols_offset = (
+            np.arange(len(src_sorted))
+            - np.repeat(src_start_idx, neighbour_counts)
+            + 1
+        )
+        del src_sorted, src_start_idx
+
+        # Find which rows in 'u' correspond to nodes that actually
+        # have neighbours
+        node_to_row = np.searchsorted(all_nodes, uniq_src_nodes)
+        del all_nodes, uniq_src_nodes
+        rows_offset = np.repeat(node_to_row, neighbour_counts)
+        del node_to_row, neighbour_counts
+
+        # Insert neighbour IDs directly into 'u'
+        u[rows_offset, cols_offset] = dst_sorted
+        del rows_offset, cols_offset, dst_sorted
+
         # ------------------------------------------------------------
-        # For instance, BOTH of the example sets input arguments 'nc',
-        # 'src_neighbours', 'dst_neighbours' shown above:
+        # Both of the examples above give a point-point connectivity
+        # array of:
         #
-        # u = [[0, 1, 2, -1, -1],
-        #      [1, 0, 3, 6, -1],
-        #      [2, 0, 3, 4, -1],
-        #      [3, 1, 2, 5, 6],
-        #      [4, 2, 5, -1, -1],
-        #      [5, 3, 4, -1, -1],
-        #      [6, 1, 3, -1, -1]],
-        
+        # u = [[ 0  1  2 -1 -1]
+        #      [ 1  0  3  6 -1]
+        #      [ 2  0  3  4 -1]
+        #      [ 3  1  2  5  6]
+        #      [ 4  2  5 -1 -1]
+        #      [ 5  3  4 -1 -1]
+        #      [ 6  1  3 -1 -1]]
         # ------------------------------------------------------------
-        
         return u
-        
-        # u = [[ 0  1  2 -1]
-        #      [ 1  0  3  6]
-        #      [ 2  0  3  4]
-        #      [ 3  1  2  5]
-        #      [ 4  2  5 -1]
-        #      [ 5  3  4 -1]
-        #      [ 6  1 -1 -1]]

@@ -201,8 +201,8 @@ class UGRIDTest(unittest.TestCase):
         """Test the cfdm.read and cfdm.write with UGRID fields."""
         # Face, edge, and point fields that are all part of the same
         # UGRID mesh
-        tmpfile='delme.nc'
-        tmpfile1='delme1.nc'
+        tmpfile = "delme.nc"
+        tmpfile1 = "delme1.nc"
         ugrid = cfdm.example_fields(8, 9, 10)
         face, edge, point = (0, 1, 2)
 
@@ -217,7 +217,7 @@ class UGRIDTest(unittest.TestCase):
 
         # Test round-tripping of field combinations
         for cells in combinations(face, edge, point):
-            print('CELLS=',cells)
+            print("CELLS=", cells)
             f = []
             for cell in cells:
                 f.append(ugrid[cell])
@@ -229,7 +229,7 @@ class UGRIDTest(unittest.TestCase):
 
             g = cfdm.read(tmpfile)
             self.assertEqual(len(g), len(f))
-            print('DDDDD\n', g[0].domain_topology().array)
+            print("DDDDD\n", g[0].domain_topology().array)
             cfdm.write(g, tmpfile1)
 
             # Check that there's only one mesh variable in the file
