@@ -701,60 +701,159 @@ class DomainTopology(
         # Still here? Then deal with the other cell types.
         if cell == "point":
             points = self.array
-            masked = np.ma.is_masked(points)
+            is_masked = np.ma.isMA(points) and np.ma.is_masked(points)
+        
+            if is_masked:
+                # Masked elements in 'points'
+                fill_val = -1
+                points = points.filled(fill_val)
+                
+            n_neighbours = points.shape[1] - 1
+            sources = np.repeat(points[:, 0], n_neighbours)
+            targets = points[:, 1:].ravel()
+            
+            # Remove self-loops or empty padding if any
+            if is_masked:
+                # Masked elements in 'points'
+                valid = (sources != fill_val) & (targets != fill_val) & (sources != targets)
+            else:
+                # No masked elements in 'points'
+                valid = sources != targets
+                
+            u = sources[valid]
+            v = targets[valid]
 
-            # Loop round the nodes, finding the node-pairs that define
-            # the edges.
-            for row in points:
-                if masked:
-                    row = row.compressed()
+            del points, sources, targets, valid
 
-                node = int(row[0])
-                row = row[1:].tolist()
-                edges_extend(
-                    [(node, n) if node < n else (n, node) for n in row]
-                )
-
-            del points, row
+           
+            #points = self.array
+            #masked = np.ma.is_masked(points)
+            #
+            ## Loop round the nodes, finding the node-pairs that define
+            ## the edges.
+            #for row in points:
+            #    if masked:
+            #        row = row.compressed()
+            #
+            #    node = int(row[0])
+            #    row = row[1:].tolist()
+            #    edges_extend(
+            #        [(node, n) if node < n else (n, node) for n in row]
+            #    )
+            #
+            #del points, row
 
         elif cell == "face":
-            from cfdm.data.subarray import PointTopologyFromFacesSubarray
-
-            connected_nodes = PointTopologyFromFacesSubarray._connected_nodes
-
             faces = self.array
-            masked = np.ma.is_masked(faces)
+            is_masked = np.ma.is_masked(faces)
 
-            if face_nodes is None:
-                # Find the unique node ids
-                face_nodes = np.unique(faces).tolist()
-                if masked:
-                    face_nodes = face_nodes[:-1]
+            if not is_masked:
+                # No masked elements in 'faces' (i.e. all faces have
+                # the same number of vertices)
 
-            # Loop round the face nodes, finding the node-pairs that
-            # define the edges.
-            for n in face_nodes:
-                edges_extend(connected_nodes(n, faces, masked, edges=True))
-
-            del faces, face_nodes
-
+                # Roll columns to get the next neighbour in each face
+                next_vertices = np.roll(faces, shift=-1, axis=1)
+                
+                u = faces.ravel()
+                v = next_vertices.ravel()
+                del next_vertices
+            else:
+                # Masked elements in 'faces' (i.e. not all faces have
+                # the same number of vertices)
+                fill_val = -1
+                faces = faces.filled(fill_val)
+                num_cols = faces.shape[1]
+                
+                u_list = []
+                v_list = []
+                col_0 = faces[:, 0]
+                
+                for col in range(num_cols):
+                    next_col_idx = (col + 1) % num_cols
+                    
+                    u_col = faces[:, col]
+                    v_col = faces[:, next_col_idx]
+                    
+                    # For a ragged row (e.g. a triangle in a 4-node
+                    # array), wrap back to col_0 instead of creating
+                    # spurious edges to fill_val
+                    masked_next = v_col == fill_val
+                    if np.any(masked_next):
+                        v_col = np.where(masked_next, col_0, v_col)
+                        
+                    u_list.append(u_col)
+                    v_list.append(v_col)
+                    
+                del col_0, u_col, v_col, masked_next
+            
+                u = np.concatenate(u_list)
+                del u_list
+                v = np.concatenate(v_list)                
+                del v_list
+            
+                # Filter out invalid sentinel values
+                valid = (u != fill_val) & (v != fill_val) & (u != v)
+                u = u[valid]
+                v = v[valid]
+                del valid
+            
+            del faces
+            
         else:
             raise NotImplementedError(
                 f"Can't get edges from {self!r} with {cell} cells"
             )
 
-        # Remove duplicates to get the set of unique edges, because
-        # every edge currently appears twice in the 'edges' list.
-        #
-        # E.g. edge (1, 5) will appear once from processing node 1,
-        #      and once from processing node 5.
-        edges = set(edges)
+        # SHARED: Fast Canonicalization & Deduplication
+        
+        # Direct memory pre-allocation instead of np.column_stack/np.sort
+        edges = np.empty((len(u), 2), dtype=u.dtype)
+        print(u.shape, v.shape, cell, sort, u, v)
+        edges[:, 0] = np.minimum(u, v)
+        edges[:, 1] = np.maximum(u, v)
+        print(edges)
+        # De-duplicate while preserving first-appearance order
+        _, unique_idx = np.unique(edges, axis=0, return_index=True)
+        del _
+#        if sort:
+#            unique_idx = np.sort(unique_idx)
 
-        if sort:
-            edges = sorted(edges)
-        else:
-            edges = list(edges)
+        print ('unique_idx=',unique_idx)
+        edges = edges[unique_idx]
+        del unique_idx
+        
+            #from cfdm.data.subarray import PointTopologyFromFacesSubarray
+            #
+            #connected_nodes = PointTopologyFromFacesSubarray._connected_nodes
+            #
+            #faces = self.array
+            #masked = np.ma.is_masked(faces)
+            #
+            #if face_nodes is None:
+            #    # Find the unique node ids
+            #    face_nodes = np.unique(faces).tolist()
+            #    if masked:
+            #        face_nodes = face_nodes[:-1]
+            #
+            ## Loop round the face nodes, finding the node-pairs that
+            ## define the edges.
+            #for n in face_nodes:
+            #    edges_extend(connected_nodes(n, faces, masked, edges=True))
+            #
+            #del faces, face_nodes
 
+#        # Remove duplicates to get the set of unique edges, because
+#        # every edge currently appears twice in the 'edges' list.
+#        #
+#        # E.g. edge (1, 5) will appear once from processing node 1,
+#        #      and once from processing node 5.
+#        edges = set(edges)
+#
+#        if sort:
+#            edges = sorted(edges)
+#        else:
+#            edges = list(edges)
+        print(cell,sort ,'\n', edges)
         edges = self._Data(edges, dtype=self.dtype)
 
         out = self.copy()

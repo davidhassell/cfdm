@@ -1488,7 +1488,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             extra = set(extra)
         else:
             extra = set()
-        print(1)
+
         # ------------------------------------------------------------
         # Parse 'dask_chunks' keyword parameter
         # ------------------------------------------------------------
@@ -1562,7 +1562,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         else:
             to_memory = ()
 
-        print(2)
         # ------------------------------------------------------------
         # Parse the 'cdl_string' keyword parameter
         # ------------------------------------------------------------
@@ -1880,7 +1879,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         flattener_dimensions = {}
         flattener_attributes = {}
 
-        print(3)
         if has_groups:
             flattener_name_mapping_variables = getattr(
                 nc, flattener_variable_map, None
@@ -1951,7 +1949,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             ):
                 g["global_attributes"].pop(attr, None)
 
-        print(4)
         for ncvar, variable in self._file_variables(nc).items():
             ncvar_basename = ncvar
             groups = ()
@@ -2056,7 +2053,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 nc, ncdim_org
             )
 
-        print(5)
         if has_groups:
             variable_dimensions = {
                 name: tuple([flattener_dimensions[ncdim] for ncdim in value])
@@ -2125,7 +2121,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 for name, value in internal_dimension_sizes.items()
             }
 
-        print(6)
         g["internal_dimension_sizes"] = internal_dimension_sizes
 
         # The group structure for each variable. Variables in the root
@@ -2258,7 +2253,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # variable
             g["do_not_create_field"].add(ncvar)
 
-        print(7)
         # ------------------------------------------------------------
         # DSG variables (CF>=1.6)
         #
@@ -2405,21 +2399,16 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Parse UGRID mesh topologies
         # ------------------------------------------------------------
         if g["UGRID_version"] is not None:
-            print(8.1)
             for ncvar, attributes in variable_attributes.items():
-                print(8.2, ncvar)
                 if "topology_dimension" in attributes:
                     # This variable is a mesh topology
-                    print(8.21)
                     self._ugrid_parse_mesh_topology(ncvar, attributes)
-                    print(8.211)
+
                 if "location_index_set" in attributes:
                     # This data variable has a domain defined by a
                     # location_index_set
                     self._ugrid_parse_location_index_set(attributes)
-                    print(8.22)
 
-                print(8.23)
             if debug:
                 from pprint import pformat
 
@@ -2427,8 +2416,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     f"    UGRID meshes:\n       {pformat(g['mesh'])}"
                 )  # pragma: no cover
 
-            print(8.3)
-        print(9)
         # ------------------------------------------------------------
         # Identify and parse all quantization container variables
         # (CF>=1.12)
@@ -2570,7 +2557,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 f"            {g['referencers']}"
             )  # pragma: no cover
 
-        print(10)
         # ------------------------------------------------------------
         # Discard fields/domains created from netCDF variables that
         # are referenced by other netCDF variables
@@ -2683,7 +2669,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 ).values():
                     self._warn_valid(f, c)
 
-        print(11)
         # ------------------------------------------------------------
         # Close all opened netCDF datasets
         # ------------------------------------------------------------
@@ -8154,9 +8139,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             except:
                 nan_in_shape = False
 
-            if nan_in_shape :
-                print(9999999)
-                print(data.array)
+            if not nan_in_shape :
+#                print(9999999)
+#                print(data.array)
                 # Store the dataset chunking, but only for data arrays
                 # that know their shape (if the shape contains nan
                 # then it is certainly an array derived from the
@@ -9505,7 +9490,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         cell_dimension = self._ugrid_cell_dimension(
             loc, connectivity_ncvar, mesh
         )
-        print(2.5, cell, cell_dimension )
 
         # Create data
         if cell == "point":
@@ -9514,7 +9498,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             n_nodes = self.read_vars["internal_dimension_sizes"][
                 mesh.ncdim[location]
             ]
-            print(2.51)
+
             array = self.implementation.initialise_PointTopologyArray(
                 shape=None, #(n_nodes, nan),
                 start_index=start_index,
@@ -9522,7 +9506,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 copy=False,
                 **{connectivity_attr: indices},
             )
-            print(2.52)
+
             attributes = kwargs["attributes"]
             data = self._create_Data(
                 array,
@@ -9531,7 +9515,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 ncvar=connectivity_ncvar,
                 compressed=True,
             )
-            print(2.53)
         else:
             # Edge or face cells
             data = self._create_data(
@@ -9539,7 +9522,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
             if cell_dimension == 1:
                 data = data.transpose()
-        print(2.6)
+
         # Initialise the domain topology variable
         domain_topology = self.implementation.initialise_DomainTopology(
             cell=cell,
@@ -9547,7 +9530,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             data=data,
             copy=False,
         )
-        print(2.7)
+
         # Set the netCDF variable name and the original file names
         self.implementation.nc_set_variable(
             domain_topology, connectivity_ncvar
@@ -9555,7 +9538,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         self.implementation.set_original_filenames(
             domain_topology, self.read_vars["dataset"]
         )
-        print(2.8)
+
         index_set = mesh.index_set
         if index_set is not None:
             # Apply a location index set
