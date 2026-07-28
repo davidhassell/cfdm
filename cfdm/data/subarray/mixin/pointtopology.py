@@ -14,12 +14,42 @@ class PointTopology:
     def _point_point_connectivity(nc, src_neighbours, dst_neighbours):
         """Mixin method for `__getitem__`.
 
-        Keyword arguments have are identical to the smae variables in
-        `__getitem__`.
+        Returns the full point_point_connectivity array.
+
+        Keyword arguments are identical to the smae variables in the
+        calling `__getitem__` method.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
+        # ------------------------------------------------------------
+        # For instance (edges):
+        #
+        # nc = [[1 6]
+        #       [3 6]
+        #       [3 1]
+        #       [0 1]
+        #       [2 0]
+        #       [2 3]
+        #       [2 4]
+        #       [5 4]
+        #       [3 5]]
+        # src_neighbours = [1 3 3 0 2 2 2 5 3 6 6 1 1 0 3 4 4 5]
+        # dst_neighbours = [6 6 1 1 0 3 4 4 5 1 3 3 0 2 2 2 5 3]
+        #
+        # For instance (faces):
+        # 
+        # nc = [[ 2  3  1  0]
+        #       [ 4  5  3  2]
+        #       [ 6  1  3 -1]]
+        # src_neighbours = [ 2  3  1  0  4  5  3  2  6  1  3 -1  2  3  1  0  4  5  3  2  6  1  3 -1]
+        # dst_neighbours = [ 0  2  3  1  2  4  5  3 -1  6  1  3  3  1  0  2  5  3  2  4  1  3 -1  6]
+        # ------------------------------------------------------------
+
+        print(nc)
+        print(src_neighbours)
+        print(dst_neighbours)
+        
         from cfdm.functions import integer_dtype
 
         # Filter out invalid/masked nodes and self-loops
@@ -85,7 +115,22 @@ class PointTopology:
         dtype = integer_dtype(largest_node_id)
         u = np.full((num_unique_nodes, max_degree), -1, dtype=dtype)
 
-        # Fill 'u' with the node indices
+        # Put the node indices into 'u'
         u[rows, cols] = dst_sorted
+
+        print(u)
+        # ------------------------------------------------------------
+        # For instance, BOTH of the example sets input arguments 'nc',
+        # 'src_neighbours', 'dst_neighbours' shown above:
+        #
+        # u = [[ 0  1  2 -1]
+        #      [ 1  0  3  6]
+        #      [ 2  0  3  4]
+        #      [ 3  1  2  5]
+        #      [ 4  2  5 -1]
+        #      [ 5  3  4 -1]
+        #      [ 6  1 -1 -1]]
+        #
+        # ------------------------------------------------------------
 
         return u

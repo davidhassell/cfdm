@@ -65,7 +65,7 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
         u = np.ma.where(u == -1, np.ma.masked, u)
 
         # ------------------------------------------------------------
-        # E.g. For face_node_connectivity example above, 'u' would be:
+        # E.g. For 'node_connectivity' example above, 'u' would be:
         #
         #      [[0 1 2 -- --]
         #       [1 0 3 6 --]

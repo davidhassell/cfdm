@@ -105,7 +105,7 @@ class PointTopologyFromEdgesSubarray(PointTopology, MeshSubarray):
         src_neighbours = np.concatenate([n1, n2])
         dst_neighbours = np.concatenate([n2, n1])
 
-        u = self._point_connectivity_matrix(nc, src_neighbours, dst_neighbours)
+        u = self._point_point_connectivity(nc, src_neighbours, dst_neighbours)
         
         if any(map(isnan, self.shape)):
             # Store the shape, now that it is known.

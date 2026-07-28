@@ -8156,6 +8156,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             if nan_in_shape :
                 print(9999999)
+                print(data.array)
                 # Store the dataset chunking, but only for data arrays
                 # that know their shape (if the shape contains nan
                 # then it is certainly an array derived from the
