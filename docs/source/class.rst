@@ -10,6 +10,8 @@
 
 Version |release| for version |version| of the CF conventions.
 
+.. note:: See also the :ref:`class_core`.
+
 
 Field construct class
 ---------------------
@@ -82,6 +84,10 @@ Array classes
 -------------
 
 Classes that support the creation and storage of arrays.
+
+.. autosummary::
+   :nosignatures:
+   :toctree: class/
 
    cfdm.Array
    cfdm.NetCDF4Array
