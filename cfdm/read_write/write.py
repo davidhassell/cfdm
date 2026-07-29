@@ -601,18 +601,22 @@ class write(ReadWrite):
 
             * `int` or `float` or `str`
 
-              The size in bytes of the dataset chunks. A floating
-              point value is rounded down to the nearest integer, and
-              a string represents a quantity of byte
-              units. "Square-like" chunk shapes are preferred,
-              maximising the amount of chunks that are completely
-              filled with data values. For instance a chunksize of
-              1024 bytes may be specified with any of ``1024``,
-              ``1024.9``, ``'1024'``, ``'1024.9'``, ``'1024 B'``, ``'1
-              KiB'``, ``'0.001024 MB'``, etc. Recognised byte units
-              are (case insensitive): ``B``, ``KiB``, ``MiB``,
-              ``GiB``, ``TiB``, ``PiB``, ``KB``, ``MB``, ``GB``,
-              ``TB``, and ``PB``. Spaces in strings are optional.
+              The size in bytes of the dataset chunks. "Square-like"
+              chunk shapes are preferred, maximising the amount of
+              chunks that are completely filled with data values.
+
+              Values are parsed as bytes with optional units as
+              accepted by `dask.utils.parse_bytes`, where a string
+              represents a quantity of byte units and a floating point
+              value is rounded down to the nearest integer.
+              
+              For instance a chunksize of 1024 bytes may be specified
+              with any of ``1024``, ``1024.9``, ``'1024'``,
+              ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024
+              MB'``, etc. Recognised byte units are (case
+              insensitive): ``B``, ``KiB``, ``MiB``, ``GiB``, ``TiB``,
+              ``PiB``, ``KB``, ``MB``, ``GB``, ``TB``, and
+              ``PB``. Spaces in strings are optional.
 
             .. note:: When the dataset chunk size is defined by a
                       number of bytes (taken either from the
@@ -703,13 +707,12 @@ class write(ReadWrite):
               minimum size, then these larger chunks will be used.
 
               Values are parsed as bytes with optional units as
-              accepted by `dask.utils.parse_bytes`, where
-              a string represents a quantity of byte
-              units and a floating point value is rounded down
-              to the nearest integer.
+              accepted by `dask.utils.parse_bytes`, where a string
+              represents a quantity of byte units and a floating point
+              value is rounded down to the nearest integer.
               
-              For instance a chunksize of 1024 bytes may be
-              specified with any of ``1024``, ``1024.9``, ``'1024'``,
+              For instance a chunksize of 1024 bytes may be specified
+              with any of ``1024``, ``1024.9``, ``'1024'``,
               ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024
               MB'``, etc. Recognised byte units are (case
               insensitive): ``B``, ``KiB``, ``MiB``, ``GiB``, ``TiB``,
