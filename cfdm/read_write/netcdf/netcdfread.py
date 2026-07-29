@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import reduce
-from math import isnan, log, nan, prod
+from math import log, nan, prod
 from numbers import Integral
 from os.path import isdir, isfile, join
 from typing import Any
@@ -8027,6 +8027,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         ncdimensions=None,
         compressed=False,
         construct_type=None,
+        chunks=None,
         **kwargs,
     ):
         """Create a Data object from a netCDF variable.
@@ -8060,6 +8061,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 to `None` if the array does not belong to a construct.
 
                 .. versionadded:: (cfdm) 1.12.0.0
+
+            chunks: optional
+                Set the dask chunking strategy. If set to `None` (the
+                default) then the Dask chunking strategy will be set
+                by `_dask_chunks`.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
             kwargs: optional
                 Extra parameters to pass to the initialisation of the
@@ -8114,10 +8122,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     )
                     array = np.ma.masked_values(array, "")
 
-        # Set the dask chunking strategy
-        chunks = self._dask_chunks(
-            array, ncvar, compressed, construct_type=construct_type
-        )
+        # Set the Dask chunking strategy
+        if chunks is None:
+            chunks = self._dask_chunks(
+                array, ncvar, compressed, construct_type=construct_type
+            )
 
         # Set whether or not to read the data into memory
         to_memory = g["to_memory"]
@@ -8135,15 +8144,19 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         if ncvar is not None:
             try:
-                nan_in_shape = isnan(data.to_dask_array().shape[0])
+                nan_in_shape = np.isnan(data.to_dask_array().shape).any()
             except Exception:
                 nan_in_shape = False
 
+            if nan_in_shape:
+                print(ncvar)
             if not nan_in_shape:
                 # Store the dataset chunking, but only for data arrays
-                # that know their shape (if the shape contains nan
-                # then it is certainly an array derived from the
-                # dataset, and chunking is not relevant)
+                # that know their shape (i.e. the shape does not
+                # contain NaN). If the shape contains NaN then it is
+                # certainly data that is not identical to an array in
+                # the dataset being read, and so chunking is not
+                # relevant).
                 if g["store_dataset_chunks"]:
                     # Only store the dataset chunking if 'data' has
                     # the same shape as its netCDF variable. This may
@@ -9508,12 +9521,17 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
 
             attributes = kwargs["attributes"]
+
+            # Create the data with a single Dask chunk (chunks=-1),
+            # because the entire point-point connectivity array needs
+            # to be created to find any subspace.
             data = self._create_Data(
                 array,
                 units=attributes.get("units"),
                 calendar=attributes.get("calendar"),
                 ncvar=connectivity_ncvar,
                 compressed=True,
+                chunks=-1,
             )
         else:
             # Edge or face cells

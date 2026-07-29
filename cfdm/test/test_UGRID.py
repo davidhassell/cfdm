@@ -201,8 +201,6 @@ class UGRIDTest(unittest.TestCase):
         """Test the cfdm.read and cfdm.write with UGRID fields."""
         # Face, edge, and point fields that are all part of the same
         # UGRID mesh
-        tmpfile = "delme.nc"
-        tmpfile1 = "delme1.nc"
         ugrid = cfdm.example_fields(8, 9, 10)
         face, edge, point = (0, 1, 2)
 
@@ -217,7 +215,6 @@ class UGRIDTest(unittest.TestCase):
 
         # Test round-tripping of field combinations
         for cells in combinations(face, edge, point):
-            print("CELLS=", cells)
             f = []
             for cell in cells:
                 f.append(ugrid[cell])
@@ -229,7 +226,7 @@ class UGRIDTest(unittest.TestCase):
 
             g = cfdm.read(tmpfile)
             self.assertEqual(len(g), len(f))
-            print("DDDDD\n", g[0].domain_topology().array)
+
             cfdm.write(g, tmpfile1)
 
             # Check that there's only one mesh variable in the file
@@ -315,3 +312,46 @@ if __name__ == "__main__":
     cfdm.environment()
     print("")
     unittest.main(verbosity=2)
+
+# In [4]: %time f = cfdm.read('~/Downloads/lfric_orog.c48.nc')
+# dynamics_face_nodes
+# CPU times: user 132 ms, sys: 1.98 ms, total: 134 ms
+# Wall time: 134 ms
+#
+# In [5]: %time f = cfdm.read('~/Downloads/lfric_orog.c192.nc')
+# dynamics_face_nodes
+# CPU times: user 1.89 s, sys: 22.1 ms, total: 1.91 s
+# Wall time: 1.91 s
+#
+# In [6]: %time f = cfdm.read('~/Downloads/lfric_orog.c768.nc')
+# dynamics_face_nodes
+# CPU times: user 53.6 s, sys: 966 ms, total: 54.5 s
+# Wall time: 54.6 s
+#
+# In [7]: %time f = cfdm.read('~/Downloads/lfric_orog.c896.nc')
+# dynamics_face_nodes
+# CPU times: user 1min 6s, sys: 929 ms, total: 1min 6s
+# Wall time: 1min 7s
+
+
+# In [5]: %time f = cfdm.read('~/Downloads/lfric_orog.c48.nc')
+# dynamics_face_nodes
+# CPU times: user 47.1 ms, sys: 1.02 ms, total: 48.1 ms
+# Wall time: 48 ms
+#
+# In [6]: %time f = cfdm.read('~/Downloads/lfric_orog.c192.nc')
+# dynamics_face_nodes
+# CPU times: user 54.7 ms, sys: 997 μs, total: 55.7 ms
+# Wall time: 54.8 ms
+#
+# In [7]: %time f = cfdm.read('~/Downloads/lfric_orog.c768.nc')
+# dynamics_face_nodes
+# CPU times: user 50.2 ms, sys: 3.87 ms, total: 54.1 ms
+# Wall time: 53.6 ms
+#
+# In [8]: %time f = cfdm.read('~/Downloads/lfric_orog.c896.nc')
+# dynamics_face_nodes
+# CPU times: user 58.5 ms, sys: 2.04 ms, total: 60.5 ms
+# Wall time: 59.7 ms
+#
+# In [9]:

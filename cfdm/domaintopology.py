@@ -419,16 +419,35 @@ class DomainTopology(
 
         if cell in ("edge", "face"):
             # Normalise node ids for edge or face cells.
-            mask = np.ma.getmaskarray(data)
-            n, b = np.where(~mask)
-            data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
+            if np.ma.is_masked(data):
+                # Masked elements
+                mask = data.mask
+
+                # Get 1-d array of unmasked values
+                unmasked_vals = data.compressed()
+
+                # Re-map unique node IDs to compact rank indices [0, 1,
+                # ..., N-1]
+                inverse = np.unique(unmasked_vals, return_inverse=True)[1]
+
+                if start_index:
+                    inverse += start_index
+
+                # Assign directly back into 'data'
+                data.data[~mask] = inverse
+            else:
+                # No masked elements
+                inverse = np.unique(data, return_inverse=True)[1]
+
+                if start_index:
+                    inverse += start_index
+
+                data = inverse.reshape(data.shape)
 
             if remove_empty_columns:
                 # Discard columns that are all missing data
                 data = self._remove_empty_columns(data)
 
-            if start_index:
-                data += 1
         elif cell == "point":
             # Normalise cell ids for point cells
             data = self._normalise_cell_ids(
