@@ -7539,7 +7539,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
     def _one_d_chunks(self, data, chunksizes, bounds=False):
         """Modify the chunksizes for 1-d data.
 
-        Return the input *chunksizes* unchanged when
+        Return the input *chunksizes* unchanged when:
 
         * The data is 0-d.
 
@@ -7547,13 +7547,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         * The data is not 2-d when *bounds* is True.
 
-        * The input chunksize is larger the minimum 1-d chunksize.
+        * The input chunksize is larger than the minimum 1-d chunksize.
 
         For 1-d data (and 2-d data when *bounds* is True), when the input
-        chunk size is less than "one_d_chunks":
+        chunksize is less than "one_d_chunks":
 
-        * If the total data size is less than the minimum 1-d chunk
-          size (given by `write_vars['one_d_chunks']`) then set the
+        * If the total data size is less than the minimum 1-d chunksize
+          (given by `write_vars['one_d_chunks']`) then set the
           chunksize so that there is a single chunk.
 
         * If the total data size is greater than the minimum 1-d
@@ -7568,7 +7568,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 The data to be chunked.
 
             chunksizes: `tuple`
-                The original chunksizes for the data
+                The original chunksizes for the data.
 
             bounds: `bool`, optional
                 Whether or not the data represent cell bounds.
