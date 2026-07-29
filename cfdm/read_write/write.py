@@ -702,9 +702,13 @@ class write(ReadWrite):
               *dataset_chunks* implies chunks that are larger than the
               minimum size, then these larger chunks will be used.
 
-              A floating point value is rounded down to the nearest
-              integer, and a string represents a quantity of byte
-              units. For instance a chunksize of 1024 bytes may be
+              Values are parsed as bytes with optional units as
+              accepted by `dask.utils.parse_bytes`, where
+              a string represents a quantity of byte
+              units and a floating point value is rounded down
+              to the nearest integer.
+              
+              For instance a chunksize of 1024 bytes may be
               specified with any of ``1024``, ``1024.9``, ``'1024'``,
               ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024
               MB'``, etc. Recognised byte units are (case
