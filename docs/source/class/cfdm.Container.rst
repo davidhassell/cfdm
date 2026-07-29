@@ -6,7 +6,7 @@ cfdm.TODO
 
 ----
 
-.. autoclass:: cfdm.TODO
+.. autoclass:: cfdm.Container
    :no-members:
    :no-inherited-members:
 
@@ -20,4 +20,4 @@ Methods
    :toctree: ../method/
    :template: method.rst
 
-   ~cfdm.TODO
+   ~cfdm.Container.copy

@@ -1,12 +1,12 @@
 .. currentmodule:: cfdm
 .. default-role:: obj
 
-cfdm.TODO
-==========
+cfdm.Implementation
+===================
 
 ----
 
-.. autoclass:: cfdm.TODO
+.. autoclass:: cfdm.Implementation
    :no-members:
    :no-inherited-members:
 
@@ -20,4 +20,8 @@ Methods
    :toctree: ../method/
    :template: method.rst
 
-   ~cfdm.TODO
+   ~cfdm.Implementation.classes
+   ~cfdm.Implementation.copy
+   ~cfdm.Implementation.get_cf_version
+   ~cfdm.Implementation.get_class
+   ~cfdm.Implementation.set_class
