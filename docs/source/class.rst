@@ -94,27 +94,13 @@ Classes that support the creation and storage of arrays.
    cfdm.H5netcdfArray
    cfdm.ZarrArray
    cfdm.AggregatedArray
-   cfdm.BiLinearSubarray
-   cfdm.BiQuadraticLatitudeLongitudeSubarray
-   cfdm.BoundsFromNodesArray
-   cfdm.BoundsFromNodesSubarray
-   cfdm.CellConnectivityArray
-   cfdm.CellConnectivitySubarray
    cfdm.FullArray
-   cfdm.GatheredSubarray
-   cfdm.InterpolationSubarray
-   cfdm.LinearSubarray
    cfdm.NetCDFArray
    cfdm.NumpyArray
-   cfdm.PointTopologyArray
    cfdm.PyfiveArray
-   cfdm.QuadraticLatitudeLongitudeSubarray
-   cfdm.QuadraticSubarray
    cfdm.ScipyNetcdfFileArray
    cfdm.SparseArray
-   cfdm.Subarray
-   cfdm.SubsampledArray
-   cfdm.SubsampledSubarray
+
 
 Data compression classes
 ------------------------
@@ -136,6 +122,31 @@ Classes that support the creation and storage of compressed arrays.
    cfdm.RaggedIndexedContiguousArray
    cfdm.CompressedArray
    cfdm.Quantization
+   cfdm.BiLinearSubarray
+   cfdm.BiQuadraticLatitudeLongitudeSubarray
+   cfdm.GatheredSubarray
+   cfdm.InterpolationSubarray
+   cfdm.LinearSubarray
+   cfdm.QuadraticLatitudeLongitudeSubarray
+   cfdm.QuadraticSubarray
+   cfdm.Subarray
+   cfdm.SubsampledArray
+   cfdm.SubsampledSubarray
+
+UGRID related classes
+---------------------
+
+Classes that support the creation and storage of UGRID related arrays.
+
+.. autosummary::
+   :nosignatures:
+   :toctree: class/
+
+   cfdm.BoundsFromNodesArray
+   cfdm.BoundsFromNodesSubarray
+   cfdm.CellConnectivityArray
+   cfdm.CellConnectivitySubarray
+   cfdm.PointTopologyArray
 
 Abstract base classes
 ---------------------
