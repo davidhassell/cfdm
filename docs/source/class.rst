@@ -76,10 +76,39 @@ Data classes
    :toctree: class/
 
    cfdm.Data
+
+
+Array classes
+-------------
+
+Classes that support the creation and storage of arrays.
+
+   cfdm.Array
    cfdm.NetCDF4Array
    cfdm.H5netcdfArray
    cfdm.ZarrArray
-   cfdm.Array
+   cfdm.AggregatedArray
+   cfdm.BiLinearSubarray
+   cfdm.BiQuadraticLatitudeLongitudeSubarray
+   cfdm.BoundsFromNodesArray
+   cfdm.BoundsFromNodesSubarray
+   cfdm.CellConnectivityArray
+   cfdm.CellConnectivitySubarray
+   cfdm.FullArray
+   cfdm.GatheredSubarray
+   cfdm.InterpolationSubarray
+   cfdm.LinearSubarray
+   cfdm.NetCDFArray
+   cfdm.NumpyArray
+   cfdm.PointTopologyArray
+   cfdm.PyfiveArray
+   cfdm.QuadraticLatitudeLongitudeSubarray
+   cfdm.QuadraticSubarray
+   cfdm.ScipyNetcdfFileArray
+   cfdm.SparseArray
+   cfdm.Subarray
+   cfdm.SubsampledArray
+   cfdm.SubsampledSubarray
 
 Data compression classes
 ------------------------
@@ -94,11 +123,38 @@ Classes that support the creation and storage of compressed arrays.
    cfdm.Index
    cfdm.List
    cfdm.GatheredArray
+   cfdm.RaggedArray
+   cfdm.RaggedSubarray
    cfdm.RaggedContiguousArray
    cfdm.RaggedIndexedArray
    cfdm.RaggedIndexedContiguousArray
    cfdm.CompressedArray
    cfdm.Quantization
+
+Abstract base classes
+---------------------
+
+Abstract base classes that provide the basis for constructs and
+construct components.
+
+.. autosummary::
+   :nosignatures:
+   :toctree: class/
+
+   cfdm.NodeCountProperties
+   cfdm.PartNodeCountProperties
+   cfdm.Container
+
+Implementation classes
+----------------------
+
+.. autosummary::
+   :nosignatures:
+   :toctree: class/
+
+   cfdm.Implementation
+   cfdm.CFDMImplementation
+
 
 Miscellaneous classes
 ---------------------
@@ -109,4 +165,6 @@ Miscellaneous classes
 
    cfdm.Constant
    cfdm.Configuration
-
+   cfdm.InterpolationParameter
+   cfdm.TiePointIndex
+   cfdm.Units

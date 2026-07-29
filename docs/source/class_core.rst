@@ -105,4 +105,4 @@ Miscellaneous
    :toctree: class/
 
    cfdm.core.DocstringRewriteMeta
-   
+   cfdm.core.Topology
