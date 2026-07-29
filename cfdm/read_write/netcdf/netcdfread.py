@@ -610,6 +610,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 f"\n    Input netCDF dataset:\n{nc.dump(display=False)}\n"
             )  # pragma: no cover
 
+        # Resolve references inside attributes to variables and
+        # dimensions to absolute paths
         resolve_references(nc)
 
         if g["debug"]:
@@ -1148,15 +1150,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Dataset representation
         # ------------------------------------------------------------
         representation = self.dataset_representation(dataset)
-        #        if representation == "kerchunk_dict":
-        #            raise ValueError(
-        #                f"Can't read a {representation!r} dataset. Convert it to a "
-        #                "Kerchunk mapper and read that instead. For instance:\n\n"
-        #                ">>> fs = fsspec.filesystem('reference', fo=kerchunk_dict, "
-        #                "<options>)\n"
-        #                ">>> kerchunk_mapper = fs.get_mapper()"
-        #            )
-
         if representation == "kerchunk_bytes":
             raise ValueError(
                 f"Can't read a {representation!r} dataset. Convert it to a "
@@ -1250,43 +1243,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     f"parameter. Got {backend}, expected a subset "
                     f"of {xnetcdf.backends}"
                 )
-        #        else:
-        #            netcdf_backend = None
-        # elif d_type is None:
-        #    # Don't need a backend for `pyfive`-like or `xarray`-like
-        #    # instances
-        #    netcdf_backend = None
-        # elif netcdf_backend is None:
-        #    # By default, try netCDF backends in the following order.
-        #    #
-        #    # Note: If this order is ever changed, then the
-        #    #       netcdf_backend parameter docstring must also be
-        #    #       updated.
-        #    netcdf_backend = (
-        #        "pyfive",  # netCDF-4
-        #        "netcdf_file",  # netCDF-3
-        #        "h5py",  # netCDF-4
-        #        "netCDF4",  # netCDF-3 and netCDF-4
-        #        "umfive",
-        #    )
-        # else:
-        #    valid_netcdf_backends = (
-        #        "pyfive",
-        #        "netcdf_file",
-        #        "h5py",
-        #        "netCDF4",
-        #        "zarr",
-        #        "umfive",
-        #    )
-        #    if isinstance(netcdf_backend, str):
-        #        netcdf_backend = (netcdf_backend,)
-        #
-        #    if not set(netcdf_backend).issubset(valid_netcdf_backends):
-        #        raise ValueError(
-        #            "Invalid netCDF backend given by the 'netcdf_backend' "
-        #            f"parameter. Got {netcdf_backend}, expected a subset "
-        #            f"of {valid_netcdf_backends}"
-        #        )
 
         # ------------------------------------------------------------
         # Parse the 'backend_options' keyword parameter
@@ -1734,7 +1690,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Aggregation variables (CF>=1.12)
         # ------------------------------------------------------------
         if g["CF>=1.12"]:
-            # for ncvar, attributes in variable_attributes.items():
             for ncvar, variable in g["variables"].items():
                 attributes = variable.attrs
                 aggregated_dimensions = attributes.get("aggregated_dimensions")
@@ -1804,7 +1759,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 g["featureType"] = featureType
 
                 sample_dimension = None
-                # for ncvar, attributes in variable_attributes.items():
                 for ncvar, variable in g["variables"].items():
                     sample_dimension = variable.attrs.get("sample_dimension")
                     if sample_dimension is None:
@@ -1833,9 +1787,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     break
 
                 instance_dimension = None
-                #  for ncvar, attributes in variable_attributes.items():
                 for ncvar, variable in g["variables"].items():
-                    #                    attributes = variable.attrs
                     instance_dimension = variable.attrs.get(
                         "instance_dimension"
                     )
@@ -1880,7 +1832,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # (CF>=1.8)
         # ------------------------------------------------------------
         if g["CF>=1.8"]:
-            # for ncvar, attributes in variable_attributes.items():
             for ncvar, variable in g["variables"].items():
                 attributes = variable.attrs
                 if "geometry" not in attributes:
@@ -1929,7 +1880,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Compression by coordinate subsampling (CF>=1.9)
         # ------------------------------------------------------------
         if g["CF>=1.9"]:
-            # for ncvar, attributes in variable_attributes.items():
             for ncvar, variable in g["variables"].items():
                 coordinate_interpolation = variable.attrs.get(
                     "coordinate_interpolation"
@@ -1947,7 +1897,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Parse UGRID mesh topologies
         # ------------------------------------------------------------
         if g["UGRID_version"] is not None:
-            # for ncvar, attributes in variable_attributes.items():
             for ncvar, variable in g["variables"].items():
                 attributes = variable.attrs
                 if "topology_dimension" in attributes:
@@ -1971,7 +1920,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # (CF>=1.12)
         # ------------------------------------------------------------
         if g["CF>=1.12"]:
-            # for ncvar, attributes in variable_attributes.items():
             for ncvar, variable in g["variables"].items():
                 attributes = variable.attrs
                 if "quantization" not in attributes:
@@ -2053,7 +2001,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # create a another new domain for it.
                     create_domain = True
                     for ncvar in all_fields_or_domains:
-                        # attributes = g["variable_attributes"].get(ncvar)
                         variable = g["variables"].get(ncvar)
                         if variable is None:
                             continue
@@ -2457,8 +2404,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         external_files = read_vars["external_files"]
         datasets = read_vars["datasets"]
 
-        #        found_external_variables = []
-
         for external_file in external_files:
             logger.info(
                 "\nScanning external datasets:\n---------------------------"
@@ -2483,10 +2428,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             datasets.append(external_read_vars["nc"])
 
-            #           error = False
             for original_ncvar in external_variables:
-                #                found_external_variable = []
-
                 ncvar = None
                 for e_var in external_read_vars["variables"].values():
                     ncvar = resolve_reference(original_ncvar, e_var, var=True)
@@ -2538,7 +2480,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             f"        List variable: compress = {compress}"
         )  # pragma: no cover
 
-        # gathered_ncdimension = g["variable_dimensions"][ncvar][0]
         gathered_ncdimension = g["variable_dimension_paths"][ncvar][0]
 
         parsed_compress = self._split_string_by_white_space(compress)
@@ -2581,7 +2522,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             f"    count variable: sample_dimension = {sample_dimension}"
         )  # pragma: no cover
 
-        # instance_dimension = g["variable_dimensions"][ncvar][0]
         instance_dimension = g["variable_dimension_paths"][ncvar][0]
 
         elements_per_instance = self._create_Count(
@@ -2922,7 +2862,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # the count variable
         self.implementation.nc_set_sample_dimension(
             nodes_per_geometry,
-            node_dimension,  # self._ncdim_abspath(node_dimension)
+            node_dimension,
         )
 
         if part_node_count is None:
@@ -2951,7 +2891,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # netCDF part node count variable
             g["do_not_create_field"].add(part_node_count)
 
-            #            part_dimension = g["variable_dimensions"][part_node_count][0]
             part_dimension = g["variable_dimension_paths"][part_node_count][0]
             g["geometries"][geometry_ncvar]["part_dimension"] = part_dimension
 
@@ -3353,13 +3292,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         g["domain_ancillary_key"] = {}
 
         dimensions = g["variable_dimension_paths"][field_ncvar]
-        #        g["dataset_compliance"].setdefault(field_ncvar, {})
-        #        g["dataset_compliance"][field_ncvar][
-        #            "CF version"
-        #        ] = self.implementation.get_cf_version()
-        #        g["dataset_compliance"][field_ncvar]["dimensions"] = dimensions
-        #        g["dataset_compliance"][field_ncvar].setdefault("non-compliance", {})
-        #        dimensions = g["variable_dimensions"][field_ncvar]
 
         # Set the top-level i.e. field variable conformance as a Conformance
         # Data Model object corresponding to the field variable. As we process
@@ -4373,9 +4305,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 for x in parsed_grid_mapping:
                     grid_mapping_ncvar, coordinates = list(x.items())[0]
 
-                    # parameters = g["variable_attributes"][
-                    # grid_mapping_ncvar
-                    # ].copy()
                     parameters = g["variables"][
                         grid_mapping_ncvar
                     ].attrs.copy()
@@ -5237,7 +5166,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # if it is a dimension of its parent coordinate
             # variable. This can sometimes happen if the bounds are
             # node coordinates.)
-            #  if bounds_ncdim not in g["variable_dimensions"].get(ncvar, ()):
             if bounds_ncdim not in g["variable_dimension_paths"].get(
                 ncvar, ()
             ):
@@ -5411,7 +5339,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        # if ncvar not in g["variable_attributes"]:
         if ncvar not in g["variables"]:
             raise ReadError(
                 "Can't initialise a subsampled coordinate with specified "
@@ -5551,7 +5478,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         variable = self.implementation.initialise_Count()
 
         # Set the CF properties
-        # properties = g["variable_attributes"][ncvar]
         properties = g["variables"][ncvar].attrs.copy()
         sample_ncdim = properties.pop("sample_dimension", None)
         self.implementation.set_properties(variable, properties)
@@ -5564,16 +5490,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the netCDF sample dimension name
         if sample_ncdim is not None:
-            self.implementation.nc_set_sample_dimension(
-                variable, sample_ncdim  # self._ncdim_abspath(sample_ncdim)
-            )
+            self.implementation.nc_set_sample_dimension(variable, sample_ncdim)
 
         # Set the name of the netCDF dimension spaned by the variable
         # (which, for indexed contiguous ragged arrays, will not be the
         # same as the netCDF instance dimension)
-        self.implementation.nc_set_dimension(
-            variable, ncdim  # self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
         data = self._create_data(
             ncvar, variable, uncompress_override=True, compression_index=True
@@ -5623,7 +5545,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         variable = self.implementation.initialise_Index()
 
         # Set the CF properties
-        # properties = g["variable_attributes"][ncvar]
         properties = g["variables"][ncvar].attrs.copy()
         properties.pop("instance_dimension", None)
 
@@ -5637,16 +5558,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the netCDF sample dimension name
         sample_ncdim = ncdim
-        self.implementation.nc_set_sample_dimension(
-            variable, sample_ncdim  # self._ncdim_abspath(sample_ncdim)
-        )
+        self.implementation.nc_set_sample_dimension(variable, sample_ncdim)
 
         # Set the name of the netCDF dimension spaned by the variable
         # (which, for indexed contiguous ragged arrays, will not be
         # the same as the netCDF sample dimension)
-        self.implementation.nc_set_dimension(
-            variable, ncdim  # self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
         # Set the data
         data = self._create_data(
@@ -5696,11 +5613,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the netCDF variable name
         self.implementation.nc_set_variable(variable, ncvar)
-        self.implementation.nc_set_dimension(
-            variable, ncdim  # self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
-        # properties = g["variable_attributes"][ncvar]
         properties = g["variables"][ncvar].attrs
         self.implementation.set_properties(variable, properties)
 
@@ -6448,9 +6362,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         """
         domain_axis = self.implementation.initialise_DomainAxis(size=size)
-        self.implementation.nc_set_dimension(
-            domain_axis, ncdim  # self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(domain_axis, ncdim)
 
         return domain_axis
 
@@ -9332,7 +9244,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 return "auto"
 
             chunks = []
-            # for ncdim in g["variable_dimensions"][ncvar]:
             for ncdim in g["variable_dimension_paths"][ncvar]:
                 key = f"ncdim%{ncdim}"
                 if key in dask_chunks:

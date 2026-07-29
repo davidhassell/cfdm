@@ -104,13 +104,13 @@ from .data import (
     netcdf_indexer,
     NumpyArray,
     PointTopologyArray,
-    XnetcdfArray,
     RaggedArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
     SparseArray,
     SubsampledArray,
+    XnetcdfArray,
 )
 
 from .data import (
@@ -162,19 +162,9 @@ from .cfdmimplementation import CFDMImplementation, implementation
 
 from .read_write import read, write
 
-# from .read_write.netcdf.flatten import dataset_flatten
-# from .read_write.netcdf import p5netcdf
-
 from .examplefield import example_field, example_fields, example_domain
 
 from .abstract import Container
-
-# For now only intended for internal use but used in testing, so need exposing:
-from .conformance import (
-    get_all_current_standard_names,
-    _extract_names_from_xml,
-    _STD_NAME_CURRENT_XML_URL,
-)
 
 # --------------------------------------------------------------------
 # Set up basic logging for the full project with a root logger

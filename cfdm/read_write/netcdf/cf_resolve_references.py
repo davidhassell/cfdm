@@ -1,3 +1,5 @@
+"""Functions for resolving references inside `xnetcdf` CF attributes."""
+
 from dataclasses import dataclass
 from typing import Callable
 
@@ -639,9 +641,9 @@ class ResolveAttribute:
     coord: bool = False
 
 
-# --------------------------------------------------------------------
+# ====================================================================
 # Define the reference-resolving strategies for each atribute type
-# --------------------------------------------------------------------
+# ====================================================================
 resolvable_attributes = {
     attr.name: attr
     for attr in (

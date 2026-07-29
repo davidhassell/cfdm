@@ -19,7 +19,7 @@ Inspection
    :nosignatures:
    :toctree: ../method/
    :template: method.rst
-   
+
    ~cfdm.XnetcdfArray.get_compression_type
    ~cfdm.XnetcdfArray.get_subspace
    ~cfdm.XnetcdfArray.get_attributes
@@ -88,7 +88,7 @@ File
    ~cfdm.XnetcdfArray.get_storage_protocol
    ~cfdm.XnetcdfArray.get_variable
    ~cfdm.XnetcdfArray.has_remote_storage_protocol
-   ~cfdm.XnetcdfArray.get_backend 
+   ~cfdm.XnetcdfArray.get_backend
    ~cfdm.XnetcdfArray.get_backend_options
    ~cfdm.XnetcdfArray.get_filesystem
 

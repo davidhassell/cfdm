@@ -3,8 +3,8 @@ Version NEXTVERSION
 
 **2026-??-??**
 
-* Dataset read backends in `cfdm.read` are now entirely managed by
-  `xnetcdf` (https://github.com/NCAS-CMS/cfdm/issues/???)
+* Dataset reads are now entirely managed by `xnetcdf`
+  (https://github.com/NCAS-CMS/cfdm/issues/???)
 * New dependency: ``xnetcdf>=0.1.0``
 * Removed dependency (now incorporated into `xnetcdf`): ``pyfive>=1.1.1``
 * Removed dependency: ``s3fs>=2024.6.0``
@@ -70,8 +70,8 @@ Version 1.13.1.0
   that allows control of the internal file metadata via the new
   ``h5py_options`` parameter
   (https://github.com/NCAS-CMS/cfdm/issues/386)
-* New optional backend for netCDF-4 in `cfdm.read` that allows
-  parallel reading: ``h5netcdf-pyfive``
+* New default backend for netCDF-4 in `cfdm.read` that allows parallel
+  reading: ``h5netcdf-pyfive``
   (https://github.com/NCAS-CMS/cfdm/issues/375)
 * New optional backend for netCDF-3 in `cfdm.read` that allows
   parallel reading: ``netcdf_file``

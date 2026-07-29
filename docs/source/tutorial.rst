@@ -4994,7 +4994,7 @@ method:
 The `cfdm.read` function can read PP files and UM fields files (as
 output by some versions of the `Unified Model
 <https://en.wikipedia.org/wiki/Unified_Model>`_, for example), mapping
-their contents into field constructs. 32-bit and 64-bit PP and UM
+their contents into CF field constructs. 32-bit and 64-bit PP and
 fields files of any endian-ness can be read. The UM version (if not
 inferrable from the PP or lookup header information) and the height of
 the upper bound of the top model level may also be set with the *um*
@@ -5005,7 +5005,7 @@ possible, into field constructs with 3-d, 4-d or 5-d data.
 
 .. code-block:: python
    :caption: *Read a PP file into field constructs.*
-   
+
    >>> pp = cfdm.read('umfile.pp')
    >>> pp
    [<Field: surface_air_pressure(time(3), latitude(73), longitude(96)) Pa>]
@@ -5019,7 +5019,6 @@ possible, into field constructs with 3-d, 4-d or 5-d data.
                    : latitude(73) = [90.0, ..., -90.0] degrees_north
                    : longitude(96) = [0.0, ..., 356.25] degrees_east
 
-		   
 Converting PP and UM fields files to netCDF files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -5029,13 +5028,15 @@ written to disk as netCDF files with `cfdm.write`.
 .. code-block:: python
    :caption: *Write the field constructs from a PP file to a netCDF
              dataset.*
-   
+
+   >>> pp = cfdm.read('umfile.pp')
    >>> cfdm.write(pp, 'umfile1.nc')
 
 .. code-block:: python
    :caption: *Write the field constructs from a PP file to a
              aggregation netCDF dataset.*
-   
+
+   >>> pp = cfdm.read('umfile.pp', cfa_write='field')
    >>> cfdm.write(pp, 'umfile2.nc', cfa='field')
 
 ----
