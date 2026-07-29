@@ -186,6 +186,7 @@ class DSGTest(unittest.TestCase):
         self.assertTrue(q._equals(self.a, q.data.array))
 
         cfdm.write(f, tempfile)
+
         g = cfdm.read(tempfile)
 
         self.assertEqual(len(g), len(f))
@@ -197,8 +198,8 @@ class DSGTest(unittest.TestCase):
         # Test creation
         # ------------------------------------------------------------
         # Define the ragged array values
-        ragged_array = np.array(
-            [280, 282.5, 281, 279, 278, 279.5], dtype="float32"
+        ragged_array = cfdm.Data(
+            np.array([280, 282.5, 281, 279, 278, 279.5], dtype="float32")
         )
 
         # Define the count array values

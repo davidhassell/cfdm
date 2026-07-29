@@ -1,8 +1,10 @@
-Version ???
------------
+Version NEXTVERSION
+----------------
 
 **2026-??-??**
 
+* Set sensible dataset chunksizes by default for 1-d data
+  (https://github.com/NCAS-CMS/cfdm/issues/414)
 * Introduce use of cache files stored as `~/.cf/standard_names*.pickle`
   to improve performance of CF compliance checking
   (https://github.com/NCAS-CMS/cfdm/pull/411)
