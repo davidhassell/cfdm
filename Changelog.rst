@@ -1,8 +1,10 @@
 Version NEXTVERSION
 ----------------
 
-**2026-??-??**
+**2026-08-??**
 
+* Improve `cfdm.read` and `cfdm.write` performance for UGRID datasets
+  (https://github.com/NCAS-CMS/cfdm/issues/???)
 * Set sensible dataset chunksizes by default for 1-d data
   (https://github.com/NCAS-CMS/cfdm/issues/414)
 * Introduce use of cache files stored as `~/.cf/standard_names*.pickle`

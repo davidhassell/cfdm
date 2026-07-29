@@ -609,7 +609,7 @@ class write(ReadWrite):
               accepted by `dask.utils.parse_bytes`, where a string
               represents a quantity of byte units and a floating point
               value is rounded down to the nearest integer.
-              
+
               For instance a chunksize of 1024 bytes may be specified
               with any of ``1024``, ``1024.9``, ``'1024'``,
               ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024
@@ -710,7 +710,7 @@ class write(ReadWrite):
               accepted by `dask.utils.parse_bytes`, where a string
               represents a quantity of byte units and a floating point
               value is rounded down to the nearest integer.
-              
+
               For instance a chunksize of 1024 bytes may be specified
               with any of ``1024``, ``1024.9``, ``'1024'``,
               ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024

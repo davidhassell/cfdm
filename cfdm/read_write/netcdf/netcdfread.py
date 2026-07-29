@@ -8148,8 +8148,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             except Exception:
                 nan_in_shape = False
 
-            if nan_in_shape:
-                print(ncvar)
             if not nan_in_shape:
                 # Store the dataset chunking, but only for data arrays
                 # that know their shape (i.e. the shape does not
