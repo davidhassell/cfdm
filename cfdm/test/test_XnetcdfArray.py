@@ -14,7 +14,7 @@ import cfdm
 
 n_tmpfiles = 1
 tmpfiles = [
-    tempfile.mkstemp("_test_P5netcdfArray.nc", dir=os.getcwd())[1]
+    tempfile.mkstemp("_test_XnetcdfArray.nc", dir=os.getcwd())[1]
     for i in range(n_tmpfiles)
 ]
 (tmpfile,) = tmpfiles
