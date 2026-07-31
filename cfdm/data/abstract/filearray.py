@@ -226,7 +226,7 @@ class FileArray(Array):
             self.get_backend_options(),
         )
 
-    def _get_array(self, index=None, use_lock=None):
+    def _get_array(self, index=None):
         """Returns a subspace of the dataset variable.
 
         The subspace is defined by the `index` attributes, and is
