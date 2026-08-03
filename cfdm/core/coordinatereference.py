@@ -84,7 +84,8 @@ class CoordinateReference(abstract.Container):
                   ``coordinates=['dimensioncoordinate2']``
 
                 *Parameter example:*
-                  ``coordinates=('dimensioncoordinate0', 'dimensioncoordinate1')``
+                  ``coordinates=('dimensioncoordinate0',
+                  'dimensioncoordinate1')``
 
             datum: `Datum`, optional
                 Set the datum component of the coordinate reference
