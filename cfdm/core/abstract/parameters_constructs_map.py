@@ -9,7 +9,9 @@ class ProbabilityDistribution(Parameters):
     """
 
     def __init__(
-            self, distribution=None, parameters=None, distribution_parameters=None, error_correlations=None, source=None, copy=True
+            self, distribution=None, parameters=None,
+            distribution_parameters=None, error_correlations=None,
+            source=None, copy=True
     ):
         """**Initialisation**
 
@@ -52,15 +54,15 @@ class ProbabilityDistribution(Parameters):
                 error_correlationss  = None
 
         if  distribution_parameters is None:
-            distribution_parameters  = {}
+           distribution_parameters = {}
 
         if error_correlations is None:
             error_correlations = {}
+            
+        self.set_distribution_parameters(distribution_parameters, copy=False)
+        self.set_error_correlations(error_correlations, copy=False)
 
-        self.set_constructs(distribution_parameters, copy=False)
-        self.set_constructs(error_correlations, copy=False)
-
-    def clear_constructs(self):
+    def clear_distribution_parameters(self):
         """Remove all constructs.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -95,11 +97,10 @@ class ProbabilityDistribution(Parameters):
          'orog': 'domainancillary2'}
 
         """
-        out = self._get_component("constructs")
-        self._set_component("constructs", {})
+        out = self._del_component("distribution_parameters", {})
         return out.copy()
 
-    def del_construct(self, construct, default=ValueError()):
+    def del_distribution_parameter(self, distribution_parameter, default=ValueError()):
         """Delete a construct.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -141,8 +142,8 @@ class ProbabilityDistribution(Parameters):
 
         """
         try:
-            return self._get_component("constructs").pop(
-                construct
+            return self._get_component("distribution_parameters").pop(
+                distribution_parameter
             )
         except KeyError:
             if default is None:
@@ -150,10 +151,10 @@ class ProbabilityDistribution(Parameters):
 
             return self._default(
                 default,
-                f"{self.__class__.__name__!r} has no {construct!r} construct",
+                f"{self.__class__.__name__!r} has no {distribution_parameter!r} distribution_parameter",
             )
 
-    def constructs(self):
+    def distribution_parameters(self):
         """Return all constructs.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -189,9 +190,9 @@ class ProbabilityDistribution(Parameters):
          'orog': 'domainancillary2'}
 
         """
-        return self._get_component("constructs").copy()
+        return self._get_component("distribution_parameter").copy()
 
-    def get_construct(self, construct, default=ValueError()):
+    def get_distribution_parameter(self, parameter, default=ValueError()):
         """Return a construct parameter.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -201,7 +202,7 @@ class ProbabilityDistribution(Parameters):
 
         :Parameters:
 
-            construct: `str`
+            parameter: `str`
                 The name of the parameter.
 
             default: optional
@@ -233,54 +234,17 @@ class ProbabilityDistribution(Parameters):
 
         """
         try:
-            return self._get_component("constructs")[construct]
+            return self._get_component("distribution_parameters")[construct]
         except KeyError:
             if default is None:
                 return
 
             return self._default(
                 default,
-                f"{self.__class__.__name__!r} has no {construct!r} construct",
+                f"{self.__class__.__name__!r} has no {distribution_parameter!r} distribution_parameter",
             )
 
-    def has_construct(self, construct):
-        """Whether a construct has been set.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        .. seealso:: `del_construct`, `constructs`,
-                     `has_construct`, `set_construct`
-
-        :Parameters:
-
-            construct: `str`
-                The name of the parameter.
-
-        :Returns:
-
-                The construct key.
-
-        **Examples**
-
-        >>> c = {{package}}.{{class}}()
-        >>> c.set_construct('orog', 'domainancillary2')
-        >>> c.has_construct('orog')
-        True
-        >>> c.get_construct('orog')
-        'domainancillary2'
-        >>> c.del_construct('orog')
-        'domainancillary2'
-        >>> c.has_construct('orog')
-        False
-        >>> print(c.del_construct('orog', None))
-        None
-        >>> print(c.get_construct('orog', None))
-        None
-
-        """
-        return construct in self._get_component("constructs")
-
-    def set_constructs(self, constructs, copy=True):
+    def set_distribution_parameters(self, distribution_parameters, copy=True):
         """Set constructs.
 
         .. versionadded:: (cfdm) NEXTVERSION0
@@ -290,7 +254,7 @@ class ProbabilityDistribution(Parameters):
 
         :Parameters:
 
-            constructs: `dict`
+            distribution_parameters: `dict`
                 Store the constructs from the dictionary supplied.
 
                 *Parameter example:*
@@ -328,9 +292,11 @@ class ProbabilityDistribution(Parameters):
          'orog': 'domainancillary2'}
 
         """
-        self._get_component("constructs").update(constructs)
-
-    def set_construct(self, parameter, value, copy=True):
+        dp = self._get_component("distribution_parameter")
+        dp.update(distribution_parameters)
+        self._set_component("distribution_parameter", copy=False)
+                            
+    def set_distribution_parameter(self, parameter, value, copy=True):
         """Set a construct-valued parameter.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -370,4 +336,4 @@ class ProbabilityDistribution(Parameters):
         None
 
         """
-        self._get_component("constructs")[parameter] = value
+        self._get_component("distribution_parameter")[parameter] = value
