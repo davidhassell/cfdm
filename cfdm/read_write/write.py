@@ -575,6 +575,9 @@ class write(ReadWrite):
             Ignored for netCDF3 output formats, for which all data is
             always written out contiguously.
 
+            See the *one_d_chunks* parameter for how 1-d arrays may be
+            given special treatment.
+
             .. note:: By default, a data array returned by
                       `{{package}}.read` stores its dataset chunking
                       strategy from the dataset being read. When this
@@ -598,18 +601,22 @@ class write(ReadWrite):
 
             * `int` or `float` or `str`
 
-              The size in bytes of the dataset chunks. A floating
-              point value is rounded down to the nearest integer, and
-              a string represents a quantity of byte
-              units. "Square-like" chunk shapes are preferred,
-              maximising the amount of chunks that are completely
-              filled with data values. For instance a chunksize of
-              1024 bytes may be specified with any of ``1024``,
-              ``1024.9``, ``'1024'``, ``'1024.9'``, ``'1024 B'``, ``'1
-              KiB'``, ``'0.001024 MB'``, etc. Recognised byte units
-              are (case insensitive): ``B``, ``KiB``, ``MiB``,
-              ``GiB``, ``TiB``, ``PiB``, ``KB``, ``MB``, ``GB``,
-              ``TB``, and ``PB``. Spaces in strings are optional.
+              The size in bytes of the dataset chunks. "Square-like"
+              chunk shapes are preferred, maximising the amount of
+              chunks that are completely filled with data values.
+
+              Values are parsed as bytes with optional units as
+              accepted by `dask.utils.parse_bytes`, where a string
+              represents a quantity of byte units and a floating point
+              value is rounded down to the nearest integer.
+
+              For instance a chunksize of 1024 bytes may be specified
+              with any of ``1024``, ``1024.9``, ``'1024'``,
+              ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024
+              MB'``, etc. Recognised byte units are (case
+              insensitive): ``B``, ``KiB``, ``MiB``, ``GiB``, ``TiB``,
+              ``PiB``, ``KB``, ``MB``, ``GB``, ``TB``, and
+              ``PB``. Spaces in strings are optional.
 
             .. note:: When the dataset chunk size is defined by a
                       number of bytes (taken either from the
@@ -676,6 +683,49 @@ class write(ReadWrite):
               For two-dimensional data, ``dataset_shards=9`` will
               result in shards that span 3 chunks along each
               dimension.
+
+        one_d_chunks: `str`, `int`, `float`, or `None`, optional
+            Set the chunking strategy for 1-d data arrays, and the
+            bounds arrays of 1-d coordinates.
+
+            By default, *one_d_chunks* is ``'4 MiB'``, i.e. 4194304
+            bytes.
+
+            The *one_d_chunks* parameter may be one of:
+
+            * `int` or `float` or `str`
+
+              The minimum size in bytes of the dataset chunks for a
+              1-d array and the bounds array of 1-d coordinates.
+
+              If a 1-d data array, or the bounds array of 1-d
+              coordinates, is smaller than the minimum size then a
+              single dataset chunk of that array size will be created.
+
+              If the chunking behaviour as described by
+              *dataset_chunks* implies chunks that are larger than the
+              minimum size, then these larger chunks will be used.
+
+              Values are parsed as bytes with optional units as
+              accepted by `dask.utils.parse_bytes`, where a string
+              represents a quantity of byte units and a floating point
+              value is rounded down to the nearest integer.
+
+              For instance a chunksize of 1024 bytes may be specified
+              with any of ``1024``, ``1024.9``, ``'1024'``,
+              ``'1024.9'``, ``'1024 B'``, ``'1 KiB'``, ``'0.001024
+              MB'``, etc. Recognised byte units are (case
+              insensitive): ``B``, ``KiB``, ``MiB``, ``GiB``, ``TiB``,
+              ``PiB``, ``KB``, ``MB``, ``GB``, ``TB``, and
+              ``PB``. Spaces in strings are optional.
+
+            * `None`
+
+              No special treatment. The dataset chunking behaviour for
+              a 1-d data array, and the bounds array of 1-d
+              coordinates, is as described by *dataset_chunks*.
+
+            .. versionadded:: (cfdm) NEXTVERSION
 
         cfa: `str` or `dict` or `None`, optional
             Specify which netCDF variables, if any, should be written
@@ -984,6 +1034,7 @@ class write(ReadWrite):
         h5py_options=None,
         hdf5_consolidated_metadata=True,
         hdf5_expansion_factor=2.25,
+        one_d_chunks="4 MiB",
     ):
         """Write field and domain constructs to a dataset."""
         # Flatten the sequence of intput fields
@@ -1046,6 +1097,7 @@ class write(ReadWrite):
             omit_data=omit_data,
             dataset_chunks=dataset_chunks,
             dataset_shards=dataset_shards,
+            one_d_chunks=one_d_chunks,
             cfa=cfa,
             netcdf_backend=netcdf_backend,
             h5py_options=h5py_options,

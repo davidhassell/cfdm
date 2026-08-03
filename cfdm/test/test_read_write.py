@@ -1631,6 +1631,32 @@ class read_writeTest(unittest.TestCase):
         # Check that we can read data after the initial scan
         self.assertEqual(f[0].coordinate("axis=T")[2].array, 2.2117104e09)
 
+    def test_write_one_d_chunks(self):
+        """Test cfdm.write with the one_d_chunks keyword."""
+        f = self.f0.copy()
+
+        x = f.dimension_coordinate("longitude")
+        x.data.nc_set_dataset_chunksizes((1,))
+        x.bounds.data.nc_set_dataset_chunksizes((1, 2))
+        cfdm.write(f, tmpfile, one_d_chunks=None)
+
+        g = cfdm.read(tmpfile, one_d_chunks=None)[0]
+        x = g.dimension_coordinate("longitude")
+        self.assertEqual(x.data.nc_dataset_chunksizes(), (1,))
+        self.assertEqual(x.bounds.data.nc_dataset_chunksizes(), (1, 2))
+
+        cfdm.write(f, tmpfile, one_d_chunks="4 MiB")
+        g = cfdm.read(tmpfile)[0]
+        x = g.dimension_coordinate("longitude")
+        self.assertEqual(x.data.nc_dataset_chunksizes(), (8,))
+        self.assertEqual(x.bounds.data.nc_dataset_chunksizes(), (8, 2))
+
+        cfdm.write(f, tmpfile, one_d_chunks="32 B")
+        g = cfdm.read(tmpfile)[0]
+        x = g.dimension_coordinate("longitude")
+        self.assertEqual(x.data.nc_dataset_chunksizes(), (4,))
+        self.assertEqual(x.bounds.data.nc_dataset_chunksizes(), (2, 2))
+
     def test_write_hdf5_consolidated_metadata(self):
         """Test cfdm.write hdf5_consolidated_metadata keyword."""
         import pyfive
