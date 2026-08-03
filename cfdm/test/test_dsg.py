@@ -186,6 +186,7 @@ class DSGTest(unittest.TestCase):
         self.assertTrue(q._equals(self.a, q.data.array))
 
         cfdm.write(f, tempfile)
+
         g = cfdm.read(tempfile)
 
         self.assertEqual(len(g), len(f))
