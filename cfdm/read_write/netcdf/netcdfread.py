@@ -565,42 +565,46 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         g["storage_options"] = storage_options
 
         nc = None
-        try:
-            nc = xnetcdf.Dataset(
-                dataset,
-                backend=g["backend"],
-                zarr_dimension_search=g["group_dimension_search"],
-                structural_metadata_strategy="maximal",
-                **g["backend_options"],
-            )
-        except Exception as error:
-            if cdl_filename is not None:
-                error = (
-                    f"{dataset} was created from CDL file {cdl_filename}\n\n"
-                    f"{error}"
+        if isinstance(dataset, xnetcdf.Dataset):
+            nc = dataset
+        else:
+            try:
+                nc = xnetcdf.Dataset(
+                    dataset,
+                    backend=g["backend"],
+                    zarr_dimension_search=g["group_dimension_search"],
+                    structural_metadata_strategy="maximal",
+                    **g["backend_options"],
                 )
+            except Exception as error:
+                if cdl_filename is not None:
+                    error = (
+                        f"{dataset} was created from CDL file "
+                        f"{cdl_filename}\n\n"
+                        f"{error}"
+                    )
 
-            # As a last resort, try opening an http dataset with
-            # opendap via netCDF4
-            if filesystem is not None and representation == "path":
-                try:
-                    protocol = filesystem.protocol
-                except AttributeError:
-                    protocol = None
-                else:
-                    if isinstance(protocol, tuple):
-                        protocol = protocol[0]
-
-                if protocol in ("http", "https"):
+                # As a last resort, try opening an http dataset with
+                # opendap via netCDF4
+                if filesystem is not None and representation == "path":
                     try:
-                        nc = xnetcdf.Dataset(
-                            original_dataset, backend="netCDF4"
-                        )
-                    except Exception as error_opendap:
-                        error = f"{error}\n\n{error_opendap}"
+                        protocol = filesystem.protocol
+                    except AttributeError:
+                        protocol = None
+                    else:
+                        if isinstance(protocol, tuple):
+                            protocol = protocol[0]
 
-            if nc is None:
-                raise DatasetTypeError(error)
+                    if protocol in ("http", "https"):
+                        try:
+                            nc = xnetcdf.Dataset(
+                                original_dataset, backend="netCDF4"
+                            )
+                        except Exception as error_opendap:
+                            error = f"{error}\n\n{error_opendap}"
+
+                if nc is None:
+                    raise DatasetTypeError(error)
 
         g["dataset_read_log"] = nc.dataset_read_log(display=False)
         if g["debug"]:
@@ -9047,9 +9051,18 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # 1) Initialise the Dask chunk shape
             from dask.array.core import normalize_chunks
 
-            dask_chunks = normalize_chunks(
-                "auto", shape=array.shape, dtype=array.dtype
-            )
+            try:
+                dask_chunks = normalize_chunks(
+                    "auto", shape=array.shape, dtype=array.dtype
+                )
+            except NotImplementedError:
+                # This error could arise if "auto" chunks can not be
+                # inferred for the given the dtype (e.g. "O"). In this
+                # case we'll just assume one Dask chunk.
+                dask_chunks = normalize_chunks(
+                    -1, shape=array.shape, dtype=array.dtype
+                )
+
             dask_chunks = [sizes[0] for sizes in dask_chunks]
             n_dask_elements = prod(dask_chunks)
 

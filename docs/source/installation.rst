@@ -257,11 +257,18 @@ environments for which these features are not required.
   For reading and writing Zarr datasets, and reading Kerchunk
   datasets.
 
+.. rubric:: UM
+
+* `umfive <https://pypi.org/project/umfive>`_, version 0.3.0 or newer.
+
+  For reading PP and UM fields file datasets.
+
 .. rubric:: xarray
 
-* `xarray <https://pypi.org/project/xarray>`_, version 2026.2.0 or newer.
+* `xarray <https://pypi.org/project/xarray>`_, version 2026.7.0 or newer.
 
-  For converting fields and domains to `xarray` datasets in memory.
+  For converting fields and domains to `xarray` datasets, and
+  converting `xarray` datasets to fields and domains
 
 ----
 

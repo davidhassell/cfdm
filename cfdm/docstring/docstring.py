@@ -193,13 +193,15 @@ _docstring_substitution_definitions = {
               `scipy.io.netcdf_file`, `h5py.File`, `xarray.Dataset`,
               and `xarray.DataTree`.
 
+            * An `xnetcdf.Dataset` object that accesses the dataset.
+
             * Any object ``x`` that accesses the dataset and has the
-              same API as one of the allowed backend objects. In
-              pratice, this means any object ``x`` for which
-              ``isinstance(x, <backend-object>)`` is `True` for any
-              ``<backend-object>`` from the selection of allowed
-              backend objects. For instance, if you have created a
-              library called ``my_pyfive`` for which
+              same API as one of the backend objects, or as
+              `xnetcdf.Dataset`. In pratice, this means any object
+              ``x`` for which ``isinstance(x, <backend-object>)`` is
+              `True` for any ``<backend-object>`` from the selection
+              of allowed backend objects. For instance, if you have
+              created a library called ``my_pyfive`` for which
               ``my_pyfive.File`` is (registered as) a subclass of
               `pyfive.File`, then ``my_pyfive.File`` instances can be
               passed to `Dataset`.""",

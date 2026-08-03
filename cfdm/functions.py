@@ -448,7 +448,7 @@ def environment(display=True, paths=True):
         "h5netcdf": _get_module_info("h5netcdf", try_except=True),
         "h5py": _get_module_info("h5py", try_except=True),
         "pyfive": _get_module_info("pyfive", try_except=True),
-        # "umfive": _get_module_info("umfive", try_except=True),
+        "umfive": _get_module_info("umfive", try_except=True),
         "zarr": _get_module_info("zarr", try_except=True),
         "fsspec": _get_module_info("fsspec", try_except=True),
         "scipy": _get_module_info("scipy", try_except=True),

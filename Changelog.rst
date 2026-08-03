@@ -1,11 +1,27 @@
 Version NEXTVERSION
 ----------------
 
-**2026-??-??**
+**2026-08-??**
 
+* New keywords to `cfdm.read`: ``backend``, ``backend_options``,
+  ``cfa_filesystem``, ``cfa_backend``, ``cfa_backend_options``, ``um``
+  (https://github.com/NCAS-CMS/cfdm/issues/417)
+* Deprecated keyword to `cfdm.read`: ``netcdf_backend``
+  (https://github.com/NCAS-CMS/cfdm/issues/417)
 * Dataset reads are now entirely managed by `xnetcdf`
-  (https://github.com/NCAS-CMS/cfdm/issues/???)
+  (https://github.com/NCAS-CMS/cfdm/issues/417)
+* Read with `cfdm.read` UK Met OFfice PP and UM fields files
+  (https://github.com/NCAS-CMS/cfdm/issues/417)
+* Read with `cfdm.read` anything that can be read by `xarray`
+  (https://github.com/NCAS-CMS/cfdm/issues/417)
+* Convert `xarray.Dataset` and `xarray.DataTree` to `cf.Field` via
+  `cfdm.read` (https://github.com/NCAS-CMS/cfdm/issues/417)
+* Convert `pyfive.File`, `zarr.Group`, `h5py.File`, `umfile.File`, and
+  `xnetcdf.Dataset` to `cf.Field` via `cfdm.read`
+  (https://github.com/NCAS-CMS/cfdm/issues/417)
 * New dependency: ``xnetcdf>=0.1.0``
+* Changed optional dependency: ``xarray>=2026.7.0``
+* New optional dependency: ``umfive>=0.3.0``
 * Removed dependency (now incorporated into `xnetcdf`): ``pyfive>=1.1.1``
 * Removed dependency: ``s3fs>=2024.6.0``
 

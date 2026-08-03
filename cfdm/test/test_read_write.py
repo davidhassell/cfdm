@@ -1620,6 +1620,19 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(len(f), len(g))
         self.assertTrue(f[0].equals(g[0]))
 
+    def test_read_xnetcdf_Dataset(self):
+        """Test cfdm.read with a xnetcdf.Dataset."""
+        import xnetcdf
+
+        f = cfdm.read(self.filename)
+
+        x = xnetcdf.Dataset(self.filename)
+        g = cfdm.read(x)
+
+        self.assertEqual(len(f), 1)
+        self.assertEqual(len(f), len(g))
+        self.assertTrue(f[0].equals(g[0]))
+
     def test_read_opendap(self):
         """Test cfdm.read with an opendap file."""
         # Shouldn't fail. This file comes from

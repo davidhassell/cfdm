@@ -2631,22 +2631,27 @@ class FieldDomain:
         {{cf_xarray description}}
 
         Note that ``ds = f.to_xarray()`` is identical to ``ds =
-        cfdm.write(f, fmt='XARRAY')``; and multiple {{class_lower}}s
-        may be written to the same `xarray` dataset with `cfdm.write`
-        (e.g. ``ds = cfdm.write([f, g], fmt='XARRAY')``). Also,
-        `cfdm.write` allows a mixture a mixture of fields and domains
-        to be written to the same `xarray` dataset.
+        {{package}}.write(f, fmt='XARRAY')``; and multiple
+        {{class_lower}}s may be written to the same `xarray` dataset
+        with `{{package}}.write` (e.g. ``ds = {{package}}.write([f,
+        g], fmt='XARRAY')``). Also, `{{package}}.write` allows a
+        mixture a mixture of fields and domains to be written to the
+        same `xarray` dataset.
+
+        An `xarray` dataset can be converted to one or more fields
+        with ``f = {{package}}.read(ds)``, or domains with ``f =
+        {{package}}.read(ds, domain=True)``.
 
         .. versionadded:: (cfdm) 1.13.2.0
 
-        .. seealso:: `cfdm.write`
+        .. seealso:: `cfdm.write`, `cfdm.read`
 
         :Parameter:
 
             group: `bool`, optional
                 If False then create a "flat" dataset, i.e. one with
                 only the root group, regardless of any group structure
-                specified by the netCDF interfaces of the
+                specified by the netCDF interfaces of thex3
                 {{class_lower}} and its components. If True (the
                 default) then any sub-groups will be created and
                 populated.
