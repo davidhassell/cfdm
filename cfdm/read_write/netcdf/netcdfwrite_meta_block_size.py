@@ -18,14 +18,14 @@ def _calculate_chunk_metadata(shape, contiguous, chunksizes):
     :Parameters:
 
         shape: `tuple` of `int`
-            The shape of the data array
+            The shape of the data array.
 
-        contiguous: `bool`
-            True if the data array is contigious.
+        contiguous: `bool` or sequence of `int`
+            True if the data array is contiguous.
 
         chunksizes: `None` or sequence of `int`
             The shape of the data array chunks. Ignored if the data
-            array is contigious (in which case it may be `None`).
+            array is contiguous (in which case it may be `None`).
 
     :Returns:
 
