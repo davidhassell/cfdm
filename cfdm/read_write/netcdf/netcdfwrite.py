@@ -85,7 +85,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keywords arguments as for `_createGroup_2`.
+                The same keywords arguments as for
+                `_createGroup_work`.
 
         :Returns:
 
@@ -94,9 +95,11 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         """
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars["write_operations"].append(("_createGroup_2", kwargs))
+        self.write_vars["write_operations"].append(
+            ("_createGroup_work", kwargs)
+        )
 
-    def _createGroup_2(self, *, parent, group_name):
+    def _createGroup_work(self, *, parent, group_name):
         """Creates a new dataset group object.
 
         .. versionadded:: (cfdm) 1.8.6.0
@@ -371,9 +374,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         return netcdf_attrs
 
-    def _set_attributes(
-        self, **kwargs
-    ):
+    def _set_attributes(self, **kwargs):
         """Set dataset attributes on a variable or group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -381,7 +382,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keywords arguments as for `_set_attributes_2`.
+                The same keywords arguments as for `_set_attributes_work`.
 
         :Returns:
 
@@ -391,10 +392,10 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         # Store the name of the method that will do the work, and its
         # keyword arguments.
         self.write_vars["write_operations"].append(
-            ("_set_attributes_2", kwargs)
+            ("_set_attributes_work", kwargs)
         )
 
-    def _set_attributes_2(self, *, attributes, ncvar=None, group=None):
+    def _set_attributes_work(self, *, attributes, ncvar=None, group=None):
         """Set dataset attributes on a variable or group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -635,7 +636,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keywords arguments as for `_createDimension_2'.
+                The same keywords arguments as for
+                `_createDimension_work'.
 
         :Returns:
 
@@ -645,10 +647,10 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         # Store the name of the method that will do the work, and its
         # keyword arguments.
         self.write_vars["write_operations"].append(
-            ("_createDimension_2", kwargs)
+            ("_createDimension_work", kwargs)
         )
 
-    def _createDimension_2(self, *, group, ncdim, size):
+    def _createDimension_work(self, *, group, ncdim, size):
         """Create a dataset dimension in group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -2766,7 +2768,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keyword arguments as for `_createVariable_2'.
+                The same keyword arguments as for
+                `_createVariable_work'.
 
         :Returns:
 
@@ -2776,10 +2779,10 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         # Store the name of the method that will do the work, and its
         # keyword arguments.
         self.write_vars["write_operations"].append(
-            ("_createVariable_2", kwargs)
+            ("_createVariable_work", kwargs)
         )
 
-    def _createVariable_2(self, **kwargs):
+    def _createVariable_work(self, **kwargs):
         """Create a variable in the dataset.
 
         Each backend needs a separate parsing of the input kwargs to suit
@@ -3659,7 +3662,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keyword arguments as for `_write_data_2`.
+                The same keyword arguments as for `_write_data_work`.
 
         :Returns:
 
@@ -3668,9 +3671,11 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         """
         # Store the name of the method that will do the work, and its
         # keyword arguments.
-        self.write_vars["write_operations"].append(("_write_data_2", kwargs))
+        self.write_vars["write_operations"].append(
+            ("_write_data_work", kwargs)
+        )
 
-    def _write_data_2(
+    def _write_data_work(
         self,
         *,
         data,

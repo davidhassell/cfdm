@@ -93,7 +93,7 @@ class NetCDFMetaBlockSize:
 
         for method, kwargs in g["write_operations"]:
             match method:
-                case "_set_attributes_2":
+                case "_set_attributes_work":
                     for name, value in kwargs["attributes"].items():
                         # Meta block space for an attribute
                         size = 51 + len(name.encode("utf-8"))
@@ -104,7 +104,7 @@ class NetCDFMetaBlockSize:
 
                         meta_block_attributes += size
 
-                case "_createVariable_2":
+                case "_createVariable_work":
                     n_variables += 1
 
                     # Meta block space for a variable
@@ -121,19 +121,19 @@ class NetCDFMetaBlockSize:
 
                     meta_block_chunk_metadata += size
 
-                case "_createDimension_2":
+                case "_createDimension_work":
                     # Meta block space for a dimension
                     ncdim = kwargs["ncdim"]
                     n_referencing_vars = sum(
                         1
                         for m, k in g["write_operations"]
-                        if m == "_createVariable_2"
+                        if m == "_createVariable_work"
                         and ncdim in k.get("dimensions", ())
                     )
                     size = 224 + 16 * n_referencing_vars
                     meta_block_dimensions += size
 
-                case "_createGroup_2":
+                case "_createGroup_work":
                     # Meta block space for a group
                     size = 2048 + 40 + len(kwargs["group_name"])
                     meta_block_groups += size
