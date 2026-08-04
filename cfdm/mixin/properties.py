@@ -65,11 +65,16 @@ class Properties(Container):
 
         return "\n".join(string)
 
-    def _identities_iter(self):
+    def _identities_iter(self, top_properties=None):
         """Return all possible identities.
 
         See `identities` for details and examples.
 
+        :Parameters:
+
+        top_properties: `None` or sequence of `str`
+            TODOU
+        
         :Returns:
 
             generator
@@ -82,11 +87,10 @@ class Properties(Container):
 
         properties = self.properties()
         if properties:
-            #            standard_name = properties.get("standard_name", None)
-            #            if standard_name is not None:
-            #                yield standard_name
+            if top_properties is None:
+                top_properties = ("cf_role", "axis", "long_name")
 
-            for prop in ("cf_role", "axis", "long_name"):
+            for prop in top_properties:
                 value = properties.pop(prop, None)
                 if value is not None:
                     yield f"{prop}={value}"

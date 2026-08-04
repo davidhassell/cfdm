@@ -190,7 +190,6 @@ class Field(
 
         def _print_item(self, key, variable, axes):
             """Private function called by __str__."""
-            # Field ancillary
             x = [variable.identity(default=key)]
 
             if variable.has_data():
@@ -213,7 +212,7 @@ class Field(
 
             return "".join(x)
 
-        # Field ancillary variables
+        # Field ancillaries
         x = [
             _print_item(self, key, anc, self.constructs.data_axes()[key])
             for key, anc in sorted(self.field_ancillaries(todict=True).items())
@@ -222,7 +221,25 @@ class Field(
             field_ancils = "\n                : ".join(x)
             string.append(f"Field ancils    : {field_ancils}")
 
-        print("TODOU: print Uncertainty and Uncertainty Ancillary constructs")
+        # Uncertainty
+        x = [
+            _print_item(self, key, anc, self.constructs.data_axes()[key])
+            for key, anc in sorted(self.uncertainties(todict=True).items())
+        ]
+        if x:
+            uncertainties = "\n                : ".join(x)
+            string.append(f"Uncertainty     : {uncertainties}")
+
+        # Uncertainty ancillaries
+        x = [
+            _print_item(self, key, anc, self.constructs.data_axes()[key])
+            for key, anc in sorted(
+                self.uncertainty_ancillaries(todict=True).items()
+            )
+        ]
+        if x:
+            uncertainty_ancils = "\n                : ".join(x)
+            string.append(f"Uncert ancils   : {uncertainty_ancils}")
 
         string.append(str(self.domain))
 
