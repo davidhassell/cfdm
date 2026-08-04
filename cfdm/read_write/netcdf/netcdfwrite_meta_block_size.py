@@ -20,7 +20,7 @@ def _calculate_chunk_metadata(shape, contiguous, chunksizes):
         shape: `tuple` of `int`
             The shape of the data array
 
-        contiguous: `bool`` or sequence of `int`
+        contiguous: `bool`
             True if the data array is contigious.
 
         chunksizes: `None` or sequence of `int`
