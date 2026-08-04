@@ -910,7 +910,7 @@ class write(ReadWrite):
             for details on which keywords are available.
 
             .. note:: If the ``'meta_block_size'`` is not provided by
-                      _h5py_options*, then it will automatically set
+                      *h5py_options*, then it will automatically set
                       to a value that
 
             *Example:*
@@ -926,7 +926,7 @@ class write(ReadWrite):
             If True (the default) then create a single consolidated
             metadata block in an output HDF5 dataset that should be
             large enough for the entire B-tree. Such a consolidated
-            HDF5 metadata block gives huge performance benefits when
+            HDF5 metadata block gives significant performance benefits when
             reading the dataset. Ignored unless the *backend* is
             ``h5netcdf-h5py`` and ``'meta_block_size'`` has not been
             provided in the *h5py_options*.
@@ -945,7 +945,7 @@ class write(ReadWrite):
             ``h5netcdf-h5py`` and ``'meta_block_size'`` has not been
             provided in the *h5py_options*.
 
-            Such a consolidated HDF5 metadata block gives huge
+            Such a consolidated HDF5 metadata block gives significant
             performance benefits when reading the dataset. The
             algorithm that determines this size does so by calculating
             an approximate amount of bytes based on the actual groups,
@@ -953,7 +953,7 @@ class write(ReadWrite):
             written to the dataset; and then multipling this amount by
             the *hdf5_expansion_factor* to account for the HDF5's
             dynamic, non-linear memory allocation behaviours, which
-            are not be known in advance. The default value is
+            are not known in advance. The default value is
             ``2.25``.
 
             Due to the approximate nature of the algorithm, it may be

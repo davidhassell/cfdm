@@ -373,7 +373,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
     def _set_attributes(
         self, **kwargs
-    ):  # attributes, ncvar=None, group=None):
+    ):
         """Set dataset attributes on a variable or group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -627,7 +627,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         return ncdim
 
-    def _createDimension(self, **kwargs):  # group, ncdim, size):
+    def _createDimension(self, **kwargs):
         """Create a dataset dimension in group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -2766,7 +2766,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keywords arguments as for `_createVariable_2'.
+                The same keyword arguments as for `_createVariable_2'.
 
         :Returns:
 
@@ -3659,7 +3659,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         :Parameters:
 
             kwargs:
-                The same keywords arguments as for `_write_data_2`.
+                The same keyword arguments as for `_write_data_2`.
 
         :Returns:
 
@@ -6513,9 +6513,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             for method, kwargs in g["write_operations"]:
                 logger.debug(f"  {method}: {kwargs}\n")  # pragma: no cover
 
-        # for method, kwargs in g["write_operations"]:
-        #     print(f"  {method}: {kwargs}\n")
-
         if (
             g["hdf5_consolidated_metadata"]
             and g["backend"] == "h5netcdf-h5py"
@@ -6526,7 +6523,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             # enough for all internal file metadata.
             #
             # The size is based on the list of write operations
-            # (write_vars['write_opertations']) that deine what is
+            # (write_vars['write_operations']) that define what is
             # actually going into the dataset on disk.
             # --------------------------------------------------------
             g["h5py_options"][
