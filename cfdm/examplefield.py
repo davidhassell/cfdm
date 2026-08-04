@@ -70,6 +70,8 @@ def example_field(n, _implementation=_implementation):
                     levels 1 and 2. The field's area-weighted global
                     latitude-longitude means are equal to those of
                     example field ``12``.
+
+            ``14``  Uncertainty TODOU
             ======  ==================================================
 
             See the examples for details.
@@ -285,6 +287,8 @@ def example_field(n, _implementation=_implementation):
     DomainAxis = _implementation.get_class("DomainAxis")
     DomainTopology = _implementation.get_class("DomainTopology")
     FieldAncillary = _implementation.get_class("FieldAncillary")
+    Uncertainty = _implementation.get_class("Uncertainty")
+    UncertaintyAncillary = _implementation.get_class("UncertaintyAncillary")
     Field = _implementation.get_class("Field")
 
     Bounds = _implementation.get_class("Bounds")
@@ -5851,6 +5855,63 @@ def example_field(n, _implementation=_implementation):
         #
         # field data axes
         field.set_data_axes(("domainaxis0", "domainaxis1"))
+
+    elif n == 14:
+        f = example_field(0)
+
+        # uncertainty
+        c = Uncertainty()
+        c.set_properties(
+            {
+                "units": f.get_property("units"),
+                "coverage_interval": "standard_deviation",
+                "coverage_probability": 0.6827,
+                "probability_distribution": "gaussian",
+            }
+        )
+        c.nc_set_variable("uncertainty")
+        data = Data(
+            [
+                [0.002, 0.011, 0.001, 0.004, 0.005, 0.01, 0.007, 0.007],
+                [0.006, 0.01, 0.012, 0.017, 0.012, 0.023, 0.002, 0.018],
+                [0.03, 0.043, 0.04, 0.042, 0.027, 0.028, 0.014, 0.003],
+                [0.007, 0.016, 0.01, 0.022, 0.015, 0.021, 0.002, 0.004],
+                [0.001, 0.01, 0.006, 0.01, 0.006, 0.01, 0.01, 0.003],
+            ],
+            units="1",
+            dtype="f4",
+        )
+        c.set_data(data)
+        c.probability_distribution.set_distribution("gaussian")
+        f.set_construct(
+            c,
+            axes=("domainaxis0", "domainaxis1"),
+            copy=False,
+        )
+
+        # uncertainty
+        c = Uncertainty()
+        c.set_properties(
+            {
+                "units": f.get_property("units"),
+                "coverage_interval": "offsets",
+                "coverage_probability": 0.95,
+                "uncertainty_representation": "relative",
+            }
+        )
+        c.nc_set_variable("uncertainty2")
+        data = Data(
+            [[-0.2, 0.2], [-0.3, 0.1], [-0.2, 0.4], [-0.4, 0.3], [-0.1, 0.2]],
+            units="1",
+            dtype="f4",
+        )
+        c.set_data(data)
+        f.set_construct(
+            c,
+            axes=("domainaxis0",),
+            copy=False,
+        )
+
     else:
         raise ValueError(
             "Must select an example construct with an integer argument "

@@ -6,7 +6,7 @@ class UncertaintyAncillary(
     mixin.NetCDFVariable,
     mixin.PropertiesData,
     mixin.Files,
-    core.Uncertainty
+    core.Uncertainty,
 ):
     """An uncertainty ancillary construct of the CF data model.
 

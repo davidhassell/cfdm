@@ -25,7 +25,7 @@ class Field(mixin.FieldDomain, abstract.PropertiesData):
     constructs contained by the field construct are optional.
 
     TODOU: uncertainty
-    
+
     The field construct also has optional properties to describe
     aspects of the data that are independent of the domain. These
     correspond to some netCDF attributes of variables (e.g. units,

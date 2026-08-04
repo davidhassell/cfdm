@@ -28,6 +28,7 @@ from .coordinateconversion import CoordinateConversion
 from .datum import Datum
 from .domain import Domain
 from .interiorring import InteriorRing
+from .probabilitydistribution import ProbabilityDistribution
 
 from .auxiliarycoordinate import AuxiliaryCoordinate
 from .cellconnectivity import CellConnectivity
@@ -40,6 +41,8 @@ from .domainaxis import DomainAxis
 from .domaintopology import DomainTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
+from .uncertainty import Uncertainty
+from .uncertaintyancillary import UncertaintyAncillary
 
 from .abstract import (
     Container,
