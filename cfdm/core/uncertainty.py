@@ -1,6 +1,7 @@
 from math import prod
 
-from .abstract import PropertiesData, ProbabilityDistribution
+from .abstract import PropertiesData
+from .probabilitydistribution import ProbabilityDistribution
 
 
 class Uncertainty(PropertiesData):
@@ -11,8 +12,9 @@ class Uncertainty(PropertiesData):
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
+
     __ProbabilityDistribution = ProbabilityDistribution
-    
+
     @property
     def construct_type(self):
         """Return a description of the construct type.
@@ -32,10 +34,11 @@ class Uncertainty(PropertiesData):
 
         """
         return "uncertainty"
-    
+
     @property
     def ndim(self):
         """The number of data dimensions.
+        TODOU
 
         Only the data dimensions that correspond to a domain axis
         construct are included.
@@ -62,10 +65,11 @@ class Uncertainty(PropertiesData):
                 raise AttributeError(
                     f"{self.__class__.__name__} object has no attribute 'ndim'"
                 )
-        elif coverage_interval is None:
-            raise AttributeError("TODOU")
-            
-        return super().ndim
+
+        elif coverage_interval in ("standard_deviation", "half_width"):
+            return super().ndim
+
+        raise AttributeError("TODOU")
 
     @property
     def probability_distribution(self):
@@ -73,7 +77,7 @@ class Uncertainty(PropertiesData):
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `datum`, `get_coordinate_conversion`
+        .. seealso:: `datum`, `get_probability_distribution`
 
         :Returns:
 
@@ -89,52 +93,12 @@ class Uncertainty(PropertiesData):
         ...     },
         ...     domain_ancillaries={'orog': orog}
         ... )
-        >>> r = {{package}}.{{class}}(coordinate_conversion=c)
-        >>> r.coordinate_conversion
+        >>> r = {{package}}.{{class}}(probability_distribution=c)
+        >>> r.probability_distribution
         <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
 
         """
         return self.get_probability_distribution()
-
-
-        def get_probability_distribution(self):
-        """TODOU Get the coordinate conversion component.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        .. seealso:: `coordinate_conversion`, `del_coordinate_conversion`,
-                     `set_coordinate_conversion`
-
-        :Returns:
-
-            `CoordinateConversion`
-                The coordinate conversion component.
-
-        **Examples**
-
-        >>> r = {{package}}.{{class}}()
-        >>> orog = {{package}}.DomainAncillary()
-        >>> c = {{package}}.CoordinateConversion(
-        ...     parameters={
-        ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
-        ...     },
-        ...     domain_ancillaries={'orog': orog}
-        ... )
-        >>> r.set_coordinate_conversion(c)
-        >>> r.get_coordinate_conversion()
-        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
-        >>> r.del_coordinate_conversion()
-        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
-        >>> r.get_coordinate_conversion()
-        <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
-
-        """
-        out = self._get_component("probability_distribution", None)
-        if out is None:
-            out = self.__ProbabilityDistribution()
-            self.set_probability_distribution(out, copy=False)
-
-        return out
 
     @property
     def shape(self):
@@ -162,23 +126,24 @@ class Uncertainty(PropertiesData):
             data = self.get_data(None, _units=False, _fill_value=False)
             if data is not None:
                 return data.shape[:1]
-            
+
             raise AttributeError(
                 f"{self.__class__.__name__} object has no attribute 'shape'"
             )
-        elif coverage_interval is None:
-            raise AttributeError("TODOU")
 
-        return super().shape
+        elif coverage_interval in ("standard_deviation", "half_width"):
+            return super().shape
+
+        raise AttributeError("TODOU")
 
     @property
     def size(self):
         """The number elements in the data.
-
+        TODOU
         `size` is equal to the product of `shape`, that only includes
         the data dimension corresponding to a domain axis construct.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) TODOU
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 
@@ -200,22 +165,105 @@ class Uncertainty(PropertiesData):
                 raise AttributeError(
                     f"{self.__class__.__name__} object has no attribute 'size'"
                 )
-        elif coverage_interval is None:
-            raise AttributeError("TODOU")
 
-        return super().size
-    
-    def set_coordinate_conversion(self, coordinate_conversion, copy=True):
-        """Set the coordinate conversion component.
+        elif coverage_interval in ("standard_deviation", "half_width"):
+            return super().size
+
+        raise AttributeError("TODOU")
+
+    def del_probability_distribution(self):
+        """Remove the coordinate conversion component.
+        TODOU
 
         .. versionadded:: (cfdm) 1.7.0
 
-        .. seealso:: `coordinate_conversion`, `del_coordinate_conversion`,
-                     `get_coordinate_conversion`
+        .. seealso:: `probability_distribution`,
+                     `get_probability_distribution`,
+                     `set_probability_distribution`
+
+        :Returns:
+
+            `CoordinateConversion`
+                The removed coordinate conversion component.
+
+        **Examples**
+
+        >>> r = {{package}}.{{class}}()
+        >>> orog = {{package}}.DomainAncillary()
+        >>> c = {{package}}.CoordinateConversion(
+        ...     parameters={
+        ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
+        ...     },
+        ...     domain_ancillaries={'orog': orog}
+        ... )
+        >>> r.set_probability_distribution(c)
+        >>> r.get_probability_distribution()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.del_probability_distribution()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.get_probability_distribution()
+        <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
+
+        """
+        out = self.get_probability_distribution()
+        self._del_component("probability_distribution", None)
+        return out
+
+    def get_probability_distribution(self):
+        """TODOU Get the coordinate conversion component.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `probability_distribution`,
+                     `del_probability_distribution`,
+                     `set_probability_distribution`
+
+        :Returns:
+
+            `CoordinateConversion`
+                The coordinate conversion component.
+
+        **Examples**
+
+        >>> r = {{package}}.{{class}}()
+        >>> orog = {{package}}.DomainAncillary()
+        >>> c = {{package}}.CoordinateConversion(
+        ...     parameters={
+        ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
+        ...     },
+        ...     domain_ancillaries={'orog': orog}
+        ... )
+        >>> r.set_probability_distribution(c)
+        >>> r.get_probability_distribution()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.del_probability_distribution()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.get_probability_distribution()
+        <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
+
+        """
+        out = self._get_component("probability_distribution", None)
+        if out is None:
+            out = self.__ProbabilityDistribution()
+            self.set_probability_distribution(out, copy=False)
+
+        return out
+
+    def set_probability_distribution(
+        self, probability_distribution, copy=True
+    ):
+        """Set the coordinate conversion component.
+        TODOU
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `probability_distribution`,
+                     `del_probability_distribution`,
+                     `get_probability_distribution`
 
         :Parameters:
 
-            coordinate_conversion: `CoordinateConversion`
+            probability_distribution: `CoordinateConversion`
                 The coordinate conversion component to be inserted.
 
             {{copy: `bool`, optional}}
@@ -234,12 +282,12 @@ class Uncertainty(PropertiesData):
         ...     },
         ...     domain_ancillaries={'orog': orog}
         ... )
-        >>> r.set_coordinate_conversion(c)
-        >>> r.get_coordinate_conversion()
+        >>> r.set_probability_distribution(c)
+        >>> r.get_probability_distribution()
         <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
-        >>> r.del_coordinate_conversion()
+        >>> r.del_probability_distribution()
         <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
-        >>> r.get_coordinate_conversion()
+        >>> r.get_probability_distribution()
         <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
 
         """

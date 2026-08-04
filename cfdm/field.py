@@ -66,7 +66,7 @@ class Field(
     coordinate reference and domain ancillary constructs.
 
     TODOU: Uncertainty and Uncertainty Ancillary constructs
-    
+
     The field construct also has optional properties to describe
     aspects of the data that are independent of the domain. These
     correspond to some netCDF attributes of variables (e.g. units,
@@ -223,7 +223,7 @@ class Field(
             string.append(f"Field ancils    : {field_ancils}")
 
         print("TODOU: print Uncertainty and Uncertainty Ancillary constructs")
-            
+
         string.append(str(self.domain))
 
         return "\n".join(string)
@@ -1939,7 +1939,9 @@ class Field(
             string.append("")
 
         # Uncertainty ancillaries
-        for cid, value in sorted(self.uncertainty_ancillaries(todict=True).items()):
+        for cid, value in sorted(
+            self.uncertainty_ancillaries(todict=True).items()
+        ):
             string.append(
                 value.dump(
                     data=data,
@@ -3389,7 +3391,7 @@ class Field(
 
         >>> print(f.uncertainties())
         TODOU
-        
+
         """
         return self._filter_interface(
             ("uncertainty",),
@@ -3495,7 +3497,7 @@ class Field(
 
         >>> print(f.uncertainty_ancillaries())
         TODOU
-        
+
         """
         return self._filter_interface(
             ("uncertainty_ancillary",),
@@ -3563,7 +3565,6 @@ class Field(
             default=default,
             **filter_kwargs,
         )
-
 
     @_inplace_enabled(default=False)
     def uncompress(self, inplace=False):
