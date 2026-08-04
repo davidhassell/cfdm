@@ -92,50 +92,51 @@ class NetCDFMetaBlockSize:
         n_variables = 0
 
         for method, kwargs in g["write_operations"]:
-            if method == "_set_attributes_2":
-                for name, value in kwargs["attributes"].items():
-                    # Meta block space for an attribute
-                    size = 51 + len(name.encode("utf-8"))
-                    try:
-                        size += len(value.encode("utf-8"))
-                    except AttributeError:
-                        size += np.asanyarray(value).nbytes
+            match method:
+                case "_set_attributes_2":
+                    for name, value in kwargs["attributes"].items():
+                        # Meta block space for an attribute
+                        size = 51 + len(name.encode("utf-8"))
+                        try:
+                            size += len(value.encode("utf-8"))
+                        except AttributeError:
+                            size += np.asanyarray(value).nbytes
 
-                    meta_block_attributes += size
+                        meta_block_attributes += size
 
-            elif method == "_createVariable_2":
-                n_variables += 1
+                case "_createVariable_2":
+                    n_variables += 1
 
-                # Meta block space for a variable
-                size = (
-                    80
-                    + len(kwargs["varname"].encode("utf-8"))
-                    + 8 * len(kwargs.get("dimensions", ()))
-                )
-                size += _calculate_chunk_metadata(
-                    kwargs.get("shape", ()),
-                    kwargs.get("contiguous", True),
-                    kwargs.get("chunksizes"),
-                )
+                    # Meta block space for a variable
+                    size = (
+                        80
+                        + len(kwargs["varname"].encode("utf-8"))
+                        + 8 * len(kwargs.get("dimensions", ()))
+                    )
+                    size += _calculate_chunk_metadata(
+                        kwargs.get("shape", ()),
+                        kwargs.get("contiguous", True),
+                        kwargs.get("chunksizes"),
+                    )
 
-                meta_block_chunk_metadata += size
+                    meta_block_chunk_metadata += size
 
-            elif method == "_createDimension_2":
-                # Meta block space for a dimension
-                ncdim = kwargs["ncdim"]
-                n_referencing_vars = sum(
-                    1
-                    for m, k in g["write_operations"]
-                    if m == "_createVariable_2"
-                    and ncdim in k.get("dimensions", ())
-                )
-                size = 224 + 16 * n_referencing_vars
-                meta_block_dimensions += size
+                case "_createDimension_2":
+                    # Meta block space for a dimension
+                    ncdim = kwargs["ncdim"]
+                    n_referencing_vars = sum(
+                        1
+                        for m, k in g["write_operations"]
+                        if m == "_createVariable_2"
+                        and ncdim in k.get("dimensions", ())
+                    )
+                    size = 224 + 16 * n_referencing_vars
+                    meta_block_dimensions += size
 
-            elif method == "_createGroup_2":
-                # Meta block space for a group
-                size = 2048 + 40 + len(kwargs["group_name"])
-                meta_block_groups += size
+                case "_createGroup_2":
+                    # Meta block space for a group
+                    size = 2048 + 40 + len(kwargs["group_name"])
+                    meta_block_groups += size
 
         # Meta block space for the netCDF overhead (e.g._Netcdf4Dimid
         # attributes)
