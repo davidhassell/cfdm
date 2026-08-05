@@ -1,4 +1,5 @@
-from . import Quantization, core, mixin
+from . import CorrelationModel, Quantization, core, mixin
+from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 
 class UncertaintyAncillary(
@@ -25,8 +26,100 @@ class UncertaintyAncillary(
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
         instance = super().__new__(cls)
+        instance._CorrelationModel = CorrelationModel
         instance._Quantization = Quantization
         return instance
+
+    def creation_commands(
+        self,
+        representative_data=False,
+        namespace=None,
+        indent=0,
+        string=True,
+        name="c",
+        data_name="d",
+        correlation_model_name="p",
+        header=True,
+    ):
+        """Returns the commands to create the cell measure construct.
+
+        .. versionadded:: (cfdm) 1.8.7.0
+
+        .. seealso:: `{{package}}.Data.creation_commands`,
+                     `{{package}}.Field.creation_commands`
+
+        :Parameters:
+
+            {{representative_data: `bool`, optional}}
+
+            {{namespace: `str`, optional}}
+
+            {{indent: `int`, optional}}
+
+            {{string: `bool`, optional}}
+
+            {{name: `str`, optional}}
+
+            {{data_name: `str`, optional}}
+
+            {{header: `bool`, optional}}
+
+        :Returns:
+
+            {{returns creation_commands}}
+
+        **Examples**
+
+        >>> x = {{package}}.CellMeasure(
+        ...     measure='area',
+        ...     properties={'units': 'm2'}
+        ... )
+        >>> x.set_data([100345.5, 123432.3, 101556.8])
+        >>> print(x.creation_commands(header=False))
+        c = {{package}}.CellMeasure()
+        c.set_properties({'units': 'm2'})
+        data = {{package}}.Data([100345.5, 123432.3, 101556.8], units='m2', dtype='f8')
+        c.set_data(data)
+        c.set_measure('area')
+
+        """
+        namespace0 = namespace
+        if namespace is None:
+            namespace = self._package() + "."
+        elif namespace and not namespace.endswith("."):
+            namespace += "."
+
+        out = super().creation_commands(
+            representative_data=representative_data,
+            indent=indent,
+            namespace=namespace,
+            string=False,
+            name=name,
+            data_name=data_name,
+            header=header,
+        )
+
+        correlation_model = self.correlation_model
+        if correlation_model:
+            out.extend(
+                correlation_model.creation_commands(
+                    string=False,
+                    indent=indent,
+                    namespace=namespace0,
+                    name=correlation_model_name,
+                    header=False,
+                )
+            )
+            out.append(
+                f"{name}.set_correlation_model({correlation_model_name})"
+            )
+
+        if string:
+            indent = " " * indent
+            out[0] = indent + out[0]
+            out = ("\n" + indent).join(out)
+
+        return out
 
     def dump(
         self,
@@ -38,6 +131,7 @@ class UncertaintyAncillary(
         _title=None,
         _axes=None,
         _axis_names=None,
+        _construct_names=None,
     ):
         """A full description of the uncertainty ancillary construct.
 
@@ -62,9 +156,9 @@ class UncertaintyAncillary(
         if _title is None:
             _title = "Uncertainty Ancillary: " + self.identity(default="")
 
-        return super().dump(
+        string = super().dump(
             data=data,
-            display=display,
+            display=False,
             _key=_key,
             _omit_properties=_omit_properties,
             _level=_level,
@@ -73,7 +167,15 @@ class UncertaintyAncillary(
             _axis_names=_axis_names,
         )
 
-    
+        string = [string]
+
+        # Error-correlation parameters
+        cm = self.correlation_model.dump(display=False, _level=_level + 1)
+        if not cm.endswith("Correlation model:"):
+            string.append(cm)
+
+        return "\n".join(string)
+
     def identity(self, default=""):
         """Return the canonical identity.
 
@@ -128,20 +230,17 @@ class UncertaintyAncillary(
         'no identity'
 
         """
-        n = self.get_property("standard_name", None)
+        correlation_model = self.correlation_model
+
+        n = correlation_model.get_structure(None)
         if n is not None:
-            return n
+            return f"structure:{n}"
 
-        for prop in ("coverage_interval", "cf_role", "long_name"):
-            n = self.get_property(prop, None)
-            if n is not None:
-                return f"{prop}={n}"
-
-        n = self.nc_get_variable(None)
+        n = correlation_model.get_comment(None)
         if n is not None:
-            return f"ncvar%{n}"
+            return f"comment:{n}"
 
-        return default
+        return super().identity(default=default)
 
     def identities(self, generator=False, **kwargs):
         """Return all possible identities.
@@ -191,13 +290,66 @@ class UncertaintyAncillary(
         ncvar%uncertainty
 
         """
-        g = self._iter(
-            body=self._identities_iter(
-                top_properties=("coverage_interval", "cf_role", "long_name")
-            ),
-            **kwargs
-        )
-        if generator:
-            return g
+        correlation_model = self.correlation_model
 
-        return list(g)
+        structure = correlation_model.get_structure(None)
+        if structure is not None:
+            pre = ((f"structure:{structure}",),)
+            pre0 = kwargs.pop("pre", None)
+            if pre0:
+                pre = tuple(pre0) + pre
+
+            kwargs["pre"] = pre
+
+        comment = correlation_model.get_comment(None)
+        if comment is not None:
+            pre = ((f"comment:{comment}",),)
+            pre0 = kwargs.pop("pre", None)
+            if pre0:
+                pre = tuple(pre0) + pre
+
+            kwargs["pre"] = pre
+
+        return super().identities(generator=generator, **kwargs)
+
+    @_inplace_enabled(default=False)
+    def transpose(self, axes=None, inplace=False):
+        """Permute the axes of the data array.
+
+        TODOU If axes have only been provided for the first half of the data
+        array dimensions, then it is assumed that the data are error
+        correlations, and the transpose axes for the second half of
+        the data array dimensions are automatically added, e.g. ``[1,
+        0]`` would become ``[1, 0, 3, 2]``.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `insert_dimension`, `squeeze`
+
+        :Parameters:
+
+            axes: (sequence of) `int`, optional
+                The new axis order. By default the order is reversed.
+
+                {{axes int examples}}
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                The new construct with permuted data axes. If the
+                operation was in-place then `None` is returned.
+
+        """
+        if iaxes is None:
+            iaxes = list(range(self.ndim - 1, -1, -1))
+        else:
+            iaxes = self._parse_axes(axes)
+
+        if self.get_distribution_parameter() == "error_correlation":
+            iaxes = iaxes + [i + len(iaxes) for i in iaxes]
+
+        c = _inplace_enabled_define_and_cleanup(self)
+        super().transpose(iaxes, inplace=True)
+        return c

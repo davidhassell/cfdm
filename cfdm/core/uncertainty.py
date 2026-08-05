@@ -13,7 +13,68 @@ class Uncertainty(PropertiesData):
 
     """
 
-    __ProbabilityDistribution = ProbabilityDistribution
+    def __new__(cls, *args, **kwargs):
+        """Store component classes."""
+        instance = super().__new__(cls)
+        instance._ProbabilityDistribution = ProbabilityDistribution
+        return instance
+
+    def __init__(
+        self,
+        properties=None,
+        data=None,
+        probability_distribution=None,
+        source=None,
+        copy=True,
+        _use_data=True,
+    ):
+        """**Initialisation**
+
+        :Parameters:
+
+            parameters: `dict`, optional
+               Set parameters. The dictionary keys are parameter
+               names, with corresponding parameter values.
+
+               Parameters may also be set after initialisation with
+               the `set_parameters` and `set_parameter` methods.
+
+               *Parameter example:*
+                 ``parameters={'earth_radius': 6371007.}``
+
+            constructs: `dict`, optional
+               Set references to constructs. The dictionary keys are
+               parameter names, with corresponding construct keys.
+
+               Constructs may also be set after initialisation with
+               the `set_constructs` and `set_construct` methods.
+
+            {{init source: optional}}
+
+            {{init copy: `bool`, optional}}
+
+        """
+
+        super().__init__(
+            properties=properties,
+            data=data,
+            source=source,
+            copy=copy,
+            _use_data=_use_data,
+        )
+
+        if source:
+            try:
+                probability_distribution = (
+                    source.get_probability_distribution()
+                )
+            except AttributeError:
+                probability_distribution = None
+
+        if probability_distribution is not None:
+            self.set_probability_distribution(
+                probability_distribution, copy=copy
+            )
 
     @property
     def construct_type(self):
@@ -244,7 +305,7 @@ class Uncertainty(PropertiesData):
         """
         out = self._get_component("probability_distribution", None)
         if out is None:
-            out = self.__ProbabilityDistribution()
+            out = self._ProbabilityDistribution()
             self.set_probability_distribution(out, copy=False)
 
         return out

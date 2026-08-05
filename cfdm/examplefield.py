@@ -5861,6 +5861,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
+        c.set_distribution_parameter("error_correlation")
         c.nc_set_variable("correlation_latlon")
         data = Data(
             [
@@ -6166,12 +6167,12 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty
         c = Uncertainty()
+        c.set_distribution_parameter("error_correlation")
         c.set_properties(
             {
                 "units": f.get_property("units"),
                 "coverage_interval": "standard_deviation",
                 "coverage_probability": 0.6827,
-                "probability_distribution": "gaussian",
             }
         )
         c.nc_set_variable("uncertainty0")
@@ -6184,7 +6185,7 @@ def example_field(n, _implementation=_implementation):
                 [0.001, 0.01, 0.006, 0.01, 0.006, 0.01, 0.01, 0.003],
             ],
             units="1",
-            dtype="f8",
+            dtype="f4",
         )
         c.set_data(data)
         c.probability_distribution.set_distribution("gaussian")
@@ -6197,6 +6198,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty
         c = Uncertainty()
+        c.set_distribution_parameter("error_correlation") # BAD
         c.set_properties(
             {
                 "coverage_interval": "offsets",
@@ -6273,11 +6275,7 @@ def example_field(n, _implementation=_implementation):
         data = Data(1, units="%", dtype="f4")
         c.set_data(data)
         c.probability_distribution.set_error_correlations((key_ec0, key_ec1))
-        f.set_construct(
-            c,
-            axes=(),
-            copy=False,
-        )
+        f.set_construct(c, axes=(), copy=False)
 
     else:
         raise ValueError(

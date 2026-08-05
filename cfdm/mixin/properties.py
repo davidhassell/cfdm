@@ -74,7 +74,7 @@ class Properties(Container):
 
         top_properties: `None` or sequence of `str`
             TODOU
-        
+
         :Returns:
 
             generator

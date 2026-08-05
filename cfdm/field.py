@@ -1770,8 +1770,8 @@ class Field(
                 f"key={key!r}, copy=False)"
             )
 
-        # Uncertainty constructs
-        for key, c in self.uncertainties().items():
+        # Uncertainty ancillary constructs
+        for key, c in self.uncertainty_ancillaries().items():
             out.extend(
                 c.creation_commands(
                     representative_data=representative_data,
@@ -1788,8 +1788,8 @@ class Field(
                 f"key={key!r}, copy=False)"
             )
 
-        # Uncertainty ancillary constructs
-        for key, c in self.uncertainty_ancillaries().items():
+        # Uncertainty constructs
+        for key, c in self.uncertainties().items():
             out.extend(
                 c.creation_commands(
                     representative_data=representative_data,
@@ -1890,6 +1890,8 @@ class Field(
 
         axis_to_name = self._unique_domain_axis_identities()
 
+        construct_name = self._unique_construct_names()
+
         constructs_data_axes = self.constructs.data_axes()
 
         # Simple properties
@@ -1951,6 +1953,7 @@ class Field(
                     _axes=constructs_data_axes[cid],
                     _axis_names=axis_to_name,
                     _level=_level,
+                    _construct_names=construct_name,
                 )
             )
             string.append("")
@@ -3348,7 +3351,7 @@ class Field(
                     continue
 
                 if data.ndim < 2:
-                    # No need to transpose 1-d constructs
+                    # No need to transpose 1-d or scalar constructs
                     continue
 
                 construct_axes = f.get_data_axes(key)

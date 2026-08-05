@@ -1,5 +1,6 @@
 from math import prod
 
+from . import CorrelationModel
 from .abstract import PropertiesData
 
 
@@ -12,9 +13,110 @@ class UncertaintyAncillary(PropertiesData):
 
     """
 
+    def __new__(cls, *args, **kwargs):
+        """Store component classes."""
+        instance = super().__new__(cls)
+        instance._ErrorCorrelationModel = CorrelationModel
+        return instance
+
+    def __init__(
+        self,
+        properties=None,
+        data=None,
+            distribution_parameter=None,
+        error_correlation_model=None,
+        source=None,
+        copy=True,
+        _use_data=True,
+    ):
+        """**Initialisation**
+
+        :Parameters:
+
+            parameters: `dict`, optional
+               Set parameters. The dictionary keys are parameter
+               names, with corresponding parameter values.
+
+               Parameters may also be set after initialisation with
+               the `set_parameters` and `set_parameter` methods.
+
+               *Parameter example:*
+                 ``parameters={'earth_radius': 6371007.}``
+
+            constructs: `dict`, optional
+               Set references to constructs. The dictionary keys are
+               parameter names, with corresponding construct keys.
+
+               Constructs may also be set after initialisation with
+               the `set_constructs` and `set_construct` methods.
+
+            {{init source: optional}}
+
+            {{init copy: `bool`, optional}}
+
+        """
+
+        #        A probability distribution, which defines a formula for converting coordinate values taken from the dimension or auxiliary coordinate constructs to a different coordinate system. A term of the conversion formula can be a scalar or vector parameter which does not depend on any domain axis constructs, may have units (such as a reference pressure value), or may be a descriptive string (such as the projection name "mercator"), or it can be a domain ancillary construct (such as one containing spatially varying orography data).
+        super().__init__(
+            properties=properties,
+            data=data,
+            source=source,
+            copy=copy,
+            _use_data=_use_data,
+        )
+
+        if source:
+            try:
+                distribution_parameter = source.get_distribution_parameter(None)
+            except AttributeError:
+                distribution_parameter = None
+
+            try:
+                error_correlation_model = source.get_error_correlation_model()
+            except AttributeError:
+                error_correlation_model = None
+on_model = None
+
+        if distribution_parameter is not None:
+            self.set_distribution_parameter(distribution_parameter)
+
+        if error_correlation_model is not None:
+            self.set_error_correlation_model(
+                error_correlation_model, copy=copy
+            )
+
+    @property
+    def error_correlation_model(self):
+        """Return the coordinate conversion component.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `datum`, `get_coordinate_conversion`
+
+        :Returns:
+
+            `CoordinateConversion`
+                The coordinate conversion.
+
+        **Examples**
+
+        >>> orog = {{package}}.DomainAncillary()
+        >>> c = {{package}}.CoordinateConversion(
+        ...     parameters={
+        ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
+        ...     },
+        ...     domain_ancillaries={'orog': orog}
+        ... )
+        >>> r = {{package}}.{{class}}(coordinate_conversion=c)
+        >>> r.coordinate_conversion
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+
+        """
+        return self.get_error_correlation_model()
+
     @property
     def construct_type(self):
-        """Return a description of the construct type.
+        """Return a description of the construct type.TODOU
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -34,13 +136,12 @@ class UncertaintyAncillary(PropertiesData):
 
     @property
     def ndim(self):
-        """The number of data dimensions.
-        TODOU
+        """The number of data dimensions.TODOU
 
         Only the data dimensions that correspond to a domain axis
         construct are included.
 
-        .. versionadded:: (cfdm) TODOU
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `data`, `has_data`, `shape`, `size`
 
@@ -54,16 +155,20 @@ class UncertaintyAncillary(PropertiesData):
         1324
 
         """
-        return super().ndim // 2
+        ncdim = super().ndim
+        if self.get_distribution_parameter() == "error_correlation":
+            ndim = ndim // 2
+
+        return ndim
 
     @property
     def shape(self):
-        """A tuple of the data array's dimension sizes.
-        TODOU
+        """A tuple of the data array's dimension sizes.TODOU
+
         Only the data dimension that corresponds to a domain axis
         construct is included.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
@@ -78,16 +183,19 @@ class UncertaintyAncillary(PropertiesData):
 
         """
         shape = super().shape
-        return shape[: len(shape) // 2]
+        if self.get_distribution_parameter() == "error_correlation":
+            shape = shape[: len(shape) // 2]
+
+        return shape
 
     @property
     def size(self):
-        """The number elements in the data.
-        TODOU
+        """The number elements in the data. TODOU
+
         `size` is equal to the product of `shape`, that only includes
         the data dimension corresponding to a domain axis construct.
 
-        .. versionadded:: (cfdm) TODOU
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 
@@ -103,101 +211,15 @@ class UncertaintyAncillary(PropertiesData):
         """
         return prod(self.shape)
 
-    def del_parameter(self, default=ValueError()):
-        """Remove the parameter.
+    def get_distribution_parameter(self, default=ValueError()):
+        """Get a parameter value.
 
-        {{cell parameter type}}
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        .. seealso:: `get_parameter`, `has_parameter`,
-                     `set_parameter`
+        .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
-            default: optional
-                Return the value of the *default* parameter if the
-                parameter has not been set.
-
-                {{default Exception}}
-
-        :Returns:
-
-                The removed parameter.
-
-        **Examples**
-
-        >>> d = {{package}}.{{class}}()
-        >>> d.has_parameter()
-        False
-        >>> d.set_parameter('face')
-        >>> d.has_parameter()
-        True
-        >>> d.get_parameter()
-        'face'
-        >>> d.del_parameter()
-        'face'
-        >>> d.get_parameter()
-        Traceback (most recent call last):
-            ...
-        ValueError: {{class}} has no 'parameter' component
-        >>> print(d.get_parameter(None))
-        None
-
-        """
-        return self._del_component("parameter", default=default)
-
-    def has_parameter(self):
-        """Whether the parameter type has been set.
-
-        {{cell parameter type}}
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        .. seealso:: `del_parameter`, `get_parameter`,
-                     `set_parameter`
-
-        :Returns:
-
-             `bool`
-                `True` if the parameter has been set, otherwise
-                `False`.
-
-        **Examples**
-
-        >>> d = {{package}}.{{class}}()
-        >>> d.has_parameter()
-        False
-        >>> d.set_parameter('face')
-        >>> d.has_parameter()
-        True
-        >>> d.get_parameter()
-        'face'
-        >>> d.del_parameter()
-        'face'
-        >>> d.get_parameter()
-        Traceback (most recent call last):
-            ...
-        ValueError: {{class}} has no 'parameter' component
-        >>> print(d.get_parameter(None))
-        None
-
-        """
-        return self._has_component("parameter")
-
-    def get_parameter(self, default=ValueError()):
-        """Return the parameter type.
-
-        {{cell parameter type}}
-
-        See `set_parameter` for the parameter type definitions.
-
-        .. versionadded:: (cfdm) 1.11.0.0
-
-        .. seealso:: `del_parameter`, `has_parameter`,
-                     `set_parameter`
-
-        :Parameters:
+            parameter: `str`
+                The name of the parameter.
 
             default: optional
                 Return the value of the *default* parameter if the
@@ -211,40 +233,85 @@ class UncertaintyAncillary(PropertiesData):
 
         **Examples**
 
-        >>> d = {{package}}.{{class}}()
-        >>> d.has_parameter()
-        False
-        >>> d.set_parameter('face')
-        >>> d.has_parameter()
+        >>> f = {{package}}.{{class}}()
+        >>> f.set_parameter('earth_radius', 6371007)
+        >>> f.has_parameter('earth_radius')
         True
-        >>> d.get_parameter()
-        'face'
-        >>> d.del_parameter()
-        'face'
-        >>> d.get_parameter()
-        Traceback (most recent call last):
-            ...
-        ValueError: {{class}} has no 'parameter' component
-        >>> print(d.get_parameter(None))
+        >>> f.get_parameter('earth_radius')
+        6371007
+        >>> f.del_parameter('earth_radius')
+        6371007
+        >>> f.has_parameter('earth_radius')
+        False
+        >>> print(f.del_parameter('earth_radius', None))
+        None
+        >>> print(f.get_parameter('earth_radius', None))
         None
 
         """
-        return self._get_component("parameter", default=default)
+        out  = return self._get_component("distribution_parameter", None)
+        if out is None:
+            if default is None:
+                return
 
-    def set_parameter(self, parameter):
-        """Set the parameter type.
+            return self._default(
+                default,
+                f"{self.__class__.__name__!r} has no distribution parameter",
+            )
 
-        {{cell parameter type}}
+        return out
 
-        .. versionadded:: (cfdm) 1.11.0.0
+    def get_error_correlation_model(self):
+        """Get the coordinate conversion component.
 
-        .. seealso:: `del_parameter`, `get_parameter`,
-                     `has_parameter`
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `coordinate_conversion`, `del_coordinate_conversion`,
+                     `set_coordinate_conversion`
+
+        :Returns:
+
+            `CoordinateConversion`
+                The coordinate conversion component.
+
+        **Examples**
+
+        >>> r = {{package}}.{{class}}()
+        >>> orog = {{package}}.DomainAncillary()
+        >>> c = {{package}}.CoordinateConversion(
+        ...     parameters={
+        ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
+        ...     },
+        ...     domain_ancillaries={'orog': orog}
+        ... )
+        >>> r.set_coordinate_conversion(c)
+        >>> r.get_coordinate_conversion()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.del_coordinate_conversion()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.get_coordinate_conversion()
+        <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
+
+        """
+        out = self._get_component("error_correlation_model", None)
+        if out is None:
+            out = self._ErrorCorrelationModel()
+            self.set_error_correlation_model(out, copy=False)
+
+        return out
+
+
+    def set_distribution_parameter(self, distribution_parameter):
+        """Set the measure.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `del_measure`, `get_measure`, `has_measure`
 
         :Parameters:
 
-            parameter: `str`
-                The value for the parameter.
+            measure: `str`
+                The value for the measure.
 
         :Returns:
 
@@ -252,22 +319,66 @@ class UncertaintyAncillary(PropertiesData):
 
         **Examples**
 
-        >>> d = {{package}}.{{class}}()
-        >>> d.has_parameter()
-        False
-        >>> d.set_parameter('face')
-        >>> d.has_parameter()
+        >>> c = {{package}}.{{class}}()
+        >>> c.set_measure('area')
+        >>> c.has_measure()
         True
-        >>> d.get_parameter()
-        'face'
-        >>> d.del_parameter()
-        'face'
-        >>> d.get_parameter()
-        Traceback (most recent call last):
-            ...
-        ValueError: {{class}} has no 'parameter' component
-        >>> print(d.get_parameter(None))
+        >>> c.get_measure()
+        'area'
+        >>> c.del_measure()
+        'area'
+        >>> c.has_measure()
+        False
+        >>> print(c.del_measure(None))
+        None
+        >>> print(c.get_measure(None))
         None
 
         """
-        self._set_component("parameter", parameter, copy=False)
+        self._set_component("distribution_parameter", distribution_parameter, copy=False)
+
+    def set_error_correlation_model(self, error_correlation_model, copy=True):
+        """Set thTODOU e coordinate conversion component.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `coordinate_conversion`,
+                     `del_coordinate_conversion`,
+                     `get_coordinate_conversion`
+
+        :Parameters:
+
+            coordinate_conversion: `CoordinateConversion`
+                The coordinate conversion component to be inserted.
+
+            {{copy: `bool`, optional}}
+
+        :Returns:
+
+            `None`
+
+        **Examples**
+
+        >>> r = {{package}}.{{class}}()
+        >>> orog = {{package}}.DomainAncillary()
+        >>> c = {{package}}.CoordinateConversion(
+        ...     parameters={
+        ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
+        ...     },
+        ...     domain_ancillaries={'orog': orog}
+        ... )
+        >>> r.set_coordinate_conversion(c)
+        >>> r.get_coordinate_conversion()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.del_coordinate_conversion()
+        <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
+        >>> r.get_coordinate_conversion()
+        <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
+
+        """
+        if copy:
+            error_correlation_model = error_correlation_model.copy()
+
+        self._set_component(
+            "error_correlation_model", error_correlation_model, copy=False
+        )
