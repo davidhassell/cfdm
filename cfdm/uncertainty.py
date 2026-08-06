@@ -12,9 +12,9 @@ class Uncertainty(
 ):
     """An uncertainty construct of the CF data model.
 
-    TODOU (copy from appendix I when merged)
+    TODOU (copy from core/uncertainty.py)
 
-    **NetCDF interface**
+    :NetCDF interface:
 
     {{netCDF variable}}
 
@@ -23,8 +23,6 @@ class Uncertainty(
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
-
-    __ProbabilityDistribution = ProbabilityDistribution
 
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
@@ -56,7 +54,7 @@ class Uncertainty(
     ):
         """Returns the commands to create the cell measure construct.
 
-        .. versionadded:: (cfdm) 1.8.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `{{package}}.Data.creation_commands`,
                      `{{package}}.Field.creation_commands`
@@ -180,6 +178,7 @@ class Uncertainty(
             )
         ]
 
+        # Probability distribution
         if self.probability_distribution:
             pd = self.probability_distribution.dump(
                 display=False,

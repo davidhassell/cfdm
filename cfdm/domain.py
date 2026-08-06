@@ -112,6 +112,7 @@ class Domain(
                 shape = shape[:ndim]
                 if len(shape) < ndim:
                     shape.extend([str(n) for n in data.shape[len(shape) :]])
+
                 shape = str(tuple(shape)).replace("'", "")
                 shape = shape.replace(",)", ")")
                 x.append(shape)

@@ -7,7 +7,28 @@ from .probabilitydistribution import ProbabilityDistribution
 class Uncertainty(PropertiesData):
     """An uncertainty construct of the CF data model.
 
-    TODOU (copy from appendix I when merged)
+    The uncertainty construct provides metadata that describe a
+    component of the uncertainty in the field construct's data, and
+    which are distributed over the same sampling domain as the field
+    itself. It consists of the following:
+
+    * An array that defines the coverage interval within which the
+      field construct's true data values occur with a known
+      probability. The array depends on zero or more of the domain
+      axis constructs, with the addition of a size-two dimension for
+      defining the interval limits. It is assumed that the data do not
+      depend on axes of the domain which are not spanned by the array,
+      along which the values are implicitly propagated.
+
+    * Properties to describe the data (in the same sense as for the
+      field construct). The properties must include a "coverage
+      probability" property to indicate the probability that a true
+      value of the field construct’s data lies in the interval given
+      by the array.
+
+    * The uncertainty ancillary constructs that describe the
+      probability distribution from which the coverage interval is
+      derived.
 
     .. versionadded:: (cfdm) NEXTVERSION
 

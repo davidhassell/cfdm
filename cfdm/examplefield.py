@@ -6167,7 +6167,6 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty
         c = Uncertainty()
-        c.set_distribution_parameter("error_correlation")
         c.set_properties(
             {
                 "units": f.get_property("units"),
@@ -6198,7 +6197,6 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty
         c = Uncertainty()
-        c.set_distribution_parameter("error_correlation")  # BAD
         c.set_properties(
             {
                 "coverage_interval": "offsets",
@@ -6220,6 +6218,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
+        c.set_distribution_parameter("error_correlation")
         c.nc_set_variable("correlation_lat")
         data = Data(
             [
@@ -6240,6 +6239,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
+        c.set_distribution_parameter("error_correlation")
         c.nc_set_variable("correlation_lon")
         data = Data(
             [

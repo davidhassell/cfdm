@@ -1,4 +1,4 @@
-from . import CorrelationModel, Quantization, core, mixin
+from . import ErrorCorrelationModel, Quantization, core, mixin
 from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 
 
@@ -11,9 +11,9 @@ class UncertaintyAncillary(
 ):
     """An uncertainty ancillary construct of the CF data model.
 
-    TODOU (copy from appendix I when merged)
+    TODOU (copy from core/uncertaintyancillary.py)
 
-    **NetCDF interface**
+    :NetCDF interface:
 
     {{netCDF variable}}
 
@@ -26,7 +26,7 @@ class UncertaintyAncillary(
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
         instance = super().__new__(cls)
-        instance._CorrelationModel = CorrelationModel
+        instance._ErrorCorrelationModel = ErrorCorrelationModel
         instance._Quantization = Quantization
         return instance
 
@@ -43,7 +43,7 @@ class UncertaintyAncillary(
     ):
         """Returns the commands to create the cell measure construct.
 
-        .. versionadded:: (cfdm) 1.8.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `{{package}}.Data.creation_commands`,
                      `{{package}}.Field.creation_commands`
@@ -99,7 +99,7 @@ class UncertaintyAncillary(
             header=header,
         )
 
-        correlation_model = self.correlation_model
+        correlation_model = self.error_correlation_model
         if correlation_model:
             out.extend(
                 correlation_model.creation_commands(
@@ -169,10 +169,13 @@ class UncertaintyAncillary(
 
         string = [string]
 
-        # Error-correlation parameters
-        cm = self.correlation_model.dump(display=False, _level=_level + 1)
-        if not cm.endswith("Correlation model:"):
-            string.append(cm)
+        # Error-correlation model
+        error_correlation_model = self.error_correlation_model
+        if error_correlation_model:
+            ecm = error_correlation_model.dump(
+                display=False, _level=_level + 1
+            )
+            string.append(ecm)
 
         return "\n".join(string)
 
@@ -230,15 +233,19 @@ class UncertaintyAncillary(
         'no identity'
 
         """
-        correlation_model = self.correlation_model
+        error_correlation_model = self.error_correlation_model
 
-        n = correlation_model.get_structure(None)
+        n = error_correlation_model.get_structure(None)
         if n is not None:
             return f"structure:{n}"
 
-        n = correlation_model.get_comment(None)
+        n = error_correlation_model.get_comment(None)
         if n is not None:
             return f"comment:{n}"
+
+        n = self.get_distribution_parameter(None)
+        if n is not None:
+            return f"distribution_parameter:{n}"
 
         return super().identity(default=default)
 
@@ -290,25 +297,37 @@ class UncertaintyAncillary(
         ncvar%uncertainty
 
         """
-        correlation_model = self.correlation_model
+        error_correlation_model = self.error_correlation_model
 
-        structure = correlation_model.get_structure(None)
-        if structure is not None:
-            pre = ((f"structure:{structure}",),)
+        n = error_correlation_model.get_structure(None)
+        if n is not None:
+            pre = ((f"structure:{n}",),)
             pre0 = kwargs.pop("pre", None)
             if pre0:
                 pre = tuple(pre0) + pre
 
             kwargs["pre"] = pre
 
-        comment = correlation_model.get_comment(None)
-        if comment is not None:
-            pre = ((f"comment:{comment}",),)
+        n = error_correlation_model.get_comment(None)
+        if n is not None:
+            pre = ((f"comment:{n}",),)
             pre0 = kwargs.pop("pre", None)
             if pre0:
                 pre = tuple(pre0) + pre
 
             kwargs["pre"] = pre
+
+        n = self.get_distribution_parameter(None)
+        if n is not None:
+            pre = ((f"distribution_parameter:{n}",),)
+            pre0 = kwargs.pop("pre", None)
+            if pre0:
+                pre = tuple(pre0) + pre
+
+            kwargs["pre"] = pre
+
+        if n is not None:
+            return f"distribution_parameter:{n}"
 
         return super().identities(generator=generator, **kwargs)
 

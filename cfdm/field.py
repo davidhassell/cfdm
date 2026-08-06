@@ -194,6 +194,12 @@ class Field(
 
             if variable.has_data():
                 shape = [axis_names[axis] for axis in axes]
+                data = variable.get_data()
+                ndim = data.ndim
+                shape = shape[:ndim]
+                if len(shape) < ndim:
+                    shape.extend([str(n) for n in data.shape[len(shape) :]])
+
                 shape = str(tuple(shape)).replace("'", "")
                 shape = shape.replace(",)", ")")
                 x.append(shape)
@@ -239,7 +245,7 @@ class Field(
         ]
         if x:
             uncertainty_ancils = "\n                : ".join(x)
-            string.append(f"Uncert ancils   : {uncertainty_ancils}")
+            string.append(f"Uncertain ancils: {uncertainty_ancils}")
 
         string.append(str(self.domain))
 

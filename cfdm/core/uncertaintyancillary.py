@@ -1,13 +1,13 @@
 from math import prod
 
-from . import CorrelationModel
+from . import ErrorCorrelationModel
 from .abstract import PropertiesData
 
 
 class UncertaintyAncillary(PropertiesData):
     """An uncertainty ancillary construct of the CF data model.
 
-    TODOU (copy from appendix I when merged)
+    TODOU (adapt from from CF Appendix I)
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -16,7 +16,7 @@ class UncertaintyAncillary(PropertiesData):
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
         instance = super().__new__(cls)
-        instance._ErrorCorrelationModel = CorrelationModel
+        instance._ErrorCorrelationModel = ErrorCorrelationModel
         return instance
 
     def __init__(
@@ -56,7 +56,16 @@ class UncertaintyAncillary(PropertiesData):
 
         """
 
-        #        A probability distribution, which defines a formula for converting coordinate values taken from the dimension or auxiliary coordinate constructs to a different coordinate system. A term of the conversion formula can be a scalar or vector parameter which does not depend on any domain axis constructs, may have units (such as a reference pressure value), or may be a descriptive string (such as the projection name "mercator"), or it can be a domain ancillary construct (such as one containing spatially varying orography data).
+        # A probability distribution, which defines a formula for
+        # converting coordinate values taken from the dimension or
+        # auxiliary coordinate constructs to a different coordinate
+        # system. A term of the conversion formula can be a scalar or
+        # vector parameter which does not depend on any domain axis
+        # constructs, may have units (such as a reference pressure
+        # value), or may be a descriptive string (such as the
+        # projection name "mercator"), or it can be a domain ancillary
+        # construct (such as one containing spatially varying
+        # orography data).
         super().__init__(
             properties=properties,
             data=data,
@@ -90,7 +99,7 @@ class UncertaintyAncillary(PropertiesData):
     def error_correlation_model(self):
         """Return the coordinate conversion component.
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `datum`, `get_coordinate_conversion`
 
@@ -261,7 +270,7 @@ class UncertaintyAncillary(PropertiesData):
     def get_error_correlation_model(self):
         """Get the coordinate conversion component.
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `coordinate_conversion`, `del_coordinate_conversion`,
                      `set_coordinate_conversion`
@@ -300,7 +309,7 @@ class UncertaintyAncillary(PropertiesData):
     def set_distribution_parameter(self, distribution_parameter):
         """Set the measure.
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `del_measure`, `get_measure`, `has_measure`
 

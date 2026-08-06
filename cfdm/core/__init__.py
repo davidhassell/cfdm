@@ -25,9 +25,9 @@ from .data import Data, Array, NumpyArray
 
 from .bounds import Bounds
 from .coordinateconversion import CoordinateConversion
-from .correlationmodel import CorrelationModel
 from .datum import Datum
 from .domain import Domain
+from .errorcorrelationmodel import ErrorCorrelationModel
 from .errorcorrelationparameter import ErrorCorrelationParameter
 from .interiorring import InteriorRing
 from .probabilitydistribution import ProbabilityDistribution

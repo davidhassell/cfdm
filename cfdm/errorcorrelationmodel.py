@@ -2,9 +2,9 @@ from . import core, mixin
 from .decorators import _display_or_return
 
 
-class CorrelationModel(
+class ErrorCorrelationModel(
     mixin.Parameters,
-    core.CorrelationModel,
+    core.ErrorCorrelationModel,
 ):
     """TODO A cell bounds component.
 
@@ -168,7 +168,7 @@ class CorrelationModel(
         indent2 = indent1 + indent
 
         if _title is None:
-            string = [f"{indent0}Correlation model:"]
+            string = [f"{indent0}Error-correlation model:"]
         else:
             string = [indent0 + _title]
 

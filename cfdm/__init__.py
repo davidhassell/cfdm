@@ -143,8 +143,9 @@ from .tiepointindex import TiePointIndex
 
 from .bounds import Bounds
 from .coordinateconversion import CoordinateConversion
-from .correlationmodel import CorrelationModel
 from .datum import Datum
+from .errorcorrelationmodel import ErrorCorrelationModel
+from .errorcorrelationparameter import ErrorCorrelationParameter
 from .interiorring import InteriorRing
 from .probabilitydistribution import ProbabilityDistribution
 from .quantization import Quantization

@@ -1,7 +1,7 @@
 from .abstract import Parameters
 
 
-class CorrelationModel(Parameters):
+class ErrorCorrelationModel(Parameters):
     """Mixin to collect named parameters andTODOU domain ancillaries.
 
     .. versionadded:: (cfdm) NEXTVERSION

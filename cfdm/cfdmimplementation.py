@@ -14,6 +14,7 @@ from . import (
     DomainAncillary,
     DomainAxis,
     DomainTopology,
+    ErrorCorrelationModel,
     Field,
     FieldAncillary,
     Index,
@@ -22,6 +23,7 @@ from . import (
     List,
     NodeCountProperties,
     PartNodeCountProperties,
+    ProbabilityDistribution,
     Quantization,
     TiePointIndex,
     Uncertainty,
@@ -2332,6 +2334,26 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("DomainTopology")
         return cls(**kwargs)
 
+    def initialise_ErrorCorrelationModel(self, **kwargs):
+        """Return a error correlation model class.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the error correlation model
+                class, which are passed to
+                `ErrorCorrelationModel.__init__`.
+
+        :Returns:
+
+            `ErrorCorrelationModel`
+
+        """
+        cls = self.get_class("ErrorCorrelationModel")
+        return cls(**kwargs)
+
     def initialise_CellConnectivity(self, **kwargs):
         """Return a cell connectivity construct.
 
@@ -2579,6 +2601,26 @@ class CFDMImplementation(Implementation):
 
         """
         cls = self.get_class("PointTopologyArray")
+        return cls(**kwargs)
+
+    def initialise_ProbabilityDistributionn(self, **kwargs):
+        """Return a probability distribution class.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the probability
+                distribution class, which are passed to
+                `ProbabilityDistribution.__init__`.
+
+        :Returns:
+
+            `ProbabilityDistribution`
+
+        """
+        cls = self.get_class("ProbabilityDistribution")
         return cls(**kwargs)
 
     def initialise_Quantization(self, **kwargs):
@@ -4111,6 +4153,7 @@ _implementation = CFDMImplementation(
     InterpolationParameter=InterpolationParameter,
     CoordinateConversion=CoordinateConversion,
     Datum=Datum,
+    ErrorCorrelationModel=ErrorCorrelationModel,
     List=List,
     Index=Index,
     Count=Count,
@@ -4124,6 +4167,7 @@ _implementation = CFDMImplementation(
     ScipyNetcdfFileArray=ScipyNetcdfFileArray,
     PointTopologyArray=PointTopologyArray,
     PyfiveArray=PyfiveArray,
+    ProbabilityDistribution=ProbabilityDistribution,
     Quantization=Quantization,
     RaggedContiguousArray=RaggedContiguousArray,
     RaggedIndexedArray=RaggedIndexedArray,
