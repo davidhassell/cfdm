@@ -23,7 +23,7 @@ class UncertaintyAncillary(PropertiesData):
         self,
         properties=None,
         data=None,
-            distribution_parameter=None,
+        distribution_parameter=None,
         error_correlation_model=None,
         source=None,
         copy=True,
@@ -67,7 +67,9 @@ class UncertaintyAncillary(PropertiesData):
 
         if source:
             try:
-                distribution_parameter = source.get_distribution_parameter(None)
+                distribution_parameter = source.get_distribution_parameter(
+                    None
+                )
             except AttributeError:
                 distribution_parameter = None
 
@@ -75,7 +77,6 @@ class UncertaintyAncillary(PropertiesData):
                 error_correlation_model = source.get_error_correlation_model()
             except AttributeError:
                 error_correlation_model = None
-on_model = None
 
         if distribution_parameter is not None:
             self.set_distribution_parameter(distribution_parameter)
@@ -155,11 +156,7 @@ on_model = None
         1324
 
         """
-        ncdim = super().ndim
-        if self.get_distribution_parameter() == "error_correlation":
-            ndim = ndim // 2
-
-        return ndim
+        return len(self.shape)
 
     @property
     def shape(self):
@@ -249,7 +246,7 @@ on_model = None
         None
 
         """
-        out  = return self._get_component("distribution_parameter", None)
+        out = self._get_component("distribution_parameter", None)
         if out is None:
             if default is None:
                 return
@@ -300,7 +297,6 @@ on_model = None
 
         return out
 
-
     def set_distribution_parameter(self, distribution_parameter):
         """Set the measure.
 
@@ -335,7 +331,9 @@ on_model = None
         None
 
         """
-        self._set_component("distribution_parameter", distribution_parameter, copy=False)
+        self._set_component(
+            "distribution_parameter", distribution_parameter, copy=False
+        )
 
     def set_error_correlation_model(self, error_correlation_model, copy=True):
         """Set thTODOU e coordinate conversion component.

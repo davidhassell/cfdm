@@ -342,13 +342,19 @@ class UncertaintyAncillary(
                 operation was in-place then `None` is returned.
 
         """
-        if iaxes is None:
-            iaxes = list(range(self.ndim - 1, -1, -1))
+        ndim = self.ndim
+        if axes is None:
+            iaxes = list(range(ndim - 1, -1, -1))
         else:
             iaxes = self._parse_axes(axes)
+            if len(iaxes) != ndim:
+                raise ValueError("TODOU")
 
+        # For an error-correlation uncertainty ancillary, the ranspose
+        # axes need to be propageted to the trailing dimensions of the
+        # data array
         if self.get_distribution_parameter() == "error_correlation":
-            iaxes = iaxes + [i + len(iaxes) for i in iaxes]
+            iaxes = iaxes + [i + ndim for i in iaxes]
 
         c = _inplace_enabled_define_and_cleanup(self)
         super().transpose(iaxes, inplace=True)
