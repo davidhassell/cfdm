@@ -47,7 +47,7 @@ class UncertaintyAncillary(
         for the data array as ``(slice(2:4), [1, 3], slice(2:4), [1,
         3])``, and *indices* of ``0`` will be interpreted as ``(0,
         Ellipsis, 0, Ellipsis)``.
-        
+
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
@@ -367,6 +367,76 @@ class UncertaintyAncillary(
         return super().identities(generator=generator, **kwargs)
 
     @_inplace_enabled(default=False)
+    def insert_dimension(self, position=0, inplace=False):
+        """Expand the shape of the data array.
+
+        Inserts a new size 1 axis into the data array.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `squeeze`, `transpose`
+
+        :Parameters:
+
+            position: `int`, optional
+                Specify the position that the new axis will have in
+                the data array. By default the new axis has position
+                0, the slowest varying position. Negative integers
+                counting from the last position are allowed.
+
+                *Parameter example:*
+                  ``position=2``
+
+                *Parameter example:*
+                  ``position=-1``
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                A new instance with expanded data axes. If the
+                operation was in-place then `None` is returned.
+
+        **Examples**
+
+        >>> f.shape
+        (19, 73, 96)
+        >>> f.insert_dimension(position=3).shape
+        (19, 73, 96, 1)
+        >>> f.insert_dimension(position=-1).shape
+        (19, 73, 1, 96)
+
+        """
+        c = _inplace_enabled_define_and_cleanup(self)
+
+        data = c.get_data(None, _units=False, _fill_value=False)
+        if data is None:
+            return c
+
+        original_ndim = c.ndim
+        if -original_ndim - 1 <= position < 0:
+            position += original_ndim + 1
+        elif not 0 <= position <= original_ndim:
+            raise ValueError(
+                f"Can't insert dimension: Invalid position {position!r}"
+            )
+
+        positions = [position                ]
+        
+        # For an error-correlation uncertainty ancillary, an axis in
+        # the trailing dimensions also needs to be inserted.
+        if self.get_distribution_parameter() == "error_correlation":
+            positions.append(position + original_ndim + 1)
+
+        for p in positions:
+            super(UncertaintyAncillary, c).insert_dimension(
+                position=p, inplace=True
+            )
+
+        return c
+
+    @_inplace_enabled(default=False)
     def transpose(self, axes=None, inplace=False):
         """Permute the axes of the data array.
 
@@ -415,5 +485,5 @@ class UncertaintyAncillary(
             iaxes = iaxes + [i + ndim for i in iaxes]
 
         c = _inplace_enabled_define_and_cleanup(self)
-        super().transpose(iaxes, inplace=True)
+        super(UncertaintyAncillary, c).transpose(iaxes, inplace=True)
         return c

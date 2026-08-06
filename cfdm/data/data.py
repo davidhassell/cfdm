@@ -6129,9 +6129,6 @@ class Data(
                 f"Can't insert dimension: Invalid position {position!r}"
             )
 
-        #        new_shape = list(d.shape)
-        #        new_shape.insert(position, 1)
-
         dx = d.to_dask_array(
             _force_mask_hardness=False, _force_to_memory=False
         )
