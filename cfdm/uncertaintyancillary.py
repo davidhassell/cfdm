@@ -1,5 +1,6 @@
 from . import ErrorCorrelationModel, Quantization, core, mixin
 from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
+from .functions import parse_indices
 
 
 class UncertaintyAncillary(
@@ -29,6 +30,40 @@ class UncertaintyAncillary(
         instance._ErrorCorrelationModel = ErrorCorrelationModel
         instance._Quantization = Quantization
         return instance
+
+    def __getitem__(self, indices):
+        """Return a subspace defined by indices.
+
+        f.__getitem__(indices) <==> f[indices]
+
+        For an error-correlation uncertainty ancillary, only indices
+        for the leading half of the data array dimensions may be
+        provided, and these are automatically propagated to the
+        trailing dimensions in such a way as as to guarantee that the
+        symmetrical structure of the data array is preserved in the
+        subspaced construct. For instance, if the construct shape is
+        ``(20, 30)`` and the data array shape is ``(20, 30, 20, 30)``,
+        then *indices* of ``(slice(2:4), [1, 3])`` will be interpreted
+        for the data array as ``(slice(2:4), [1, 3], slice(2:4), [1,
+        3])``, and *indices* of ``0`` will be interpreted as ``(0,
+        Ellipsis, 0, Ellipsis)``.
+        
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        """
+        # For an error-correlation uncertainty ancillary, the indices
+        # need to be propagated to the trailing dimensions of the data
+        # array.
+        if self.get_distribution_parameter() == "error_correlation":
+            data = self.get_data(None, _fill_value=False, _units=False)
+            if data is not None:
+                indices = parse_indices(
+                    self.shape, indices, keepdims=data.__keepdims_indexing__
+                )
+                indices = tuple(indices)
+                indices *= 2
+
+        return super().__getitem__(indices)
 
     def creation_commands(
         self,
@@ -335,11 +370,15 @@ class UncertaintyAncillary(
     def transpose(self, axes=None, inplace=False):
         """Permute the axes of the data array.
 
-        TODOU If axes have only been provided for the first half of the data
-        array dimensions, then it is assumed that the data are error
-        correlations, and the transpose axes for the second half of
-        the data array dimensions are automatically added, e.g. ``[1,
-        0]`` would become ``[1, 0, 3, 2]``.
+        For an error-correlation uncertainty ancillary, only axes for
+        the leading half of the data array dimensions may be provided,
+        and these are automatically propagated to the trailing
+        dimensions in such a way as as to guarantee that the
+        symmetrical structure of the data array is preserved in the
+        tranposed construct. For instance, if the construct shape is
+        ``(20, 30)`` and the data array shape is ``(20, 30, 20, 30)``,
+        then *axes* of ``(1, 0)`` will be interpreted for the data
+        array as ``(1, 0, 3, 2)``.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -369,9 +408,9 @@ class UncertaintyAncillary(
             if len(iaxes) != ndim:
                 raise ValueError("TODOU")
 
-        # For an error-correlation uncertainty ancillary, the ranspose
-        # axes need to be propageted to the trailing dimensions of the
-        # data array
+        # For an error-correlation uncertainty ancillary, the
+        # transpose axes need to be propagated to the trailing
+        # dimensions of the data array.
         if self.get_distribution_parameter() == "error_correlation":
             iaxes = iaxes + [i + ndim for i in iaxes]
 

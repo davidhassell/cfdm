@@ -2194,7 +2194,7 @@ class Field(
 
         .. versionadded:: (cfdm) 1.10.0.0
 
-        .. seealso:: `__getitem__`, `__setitem__`
+        .. seealso:: `__getitem__`
 
         :Parameters:
 
