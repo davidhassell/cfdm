@@ -132,7 +132,7 @@ class PropertiesData(Properties):
 
         ndim = self.ndim
 
-        return [(i + ndim if i < 0 else i) for i in axes]
+        return [(i + ndim if -ndim <= i < 0 else i) for i in axes]
 
     @classmethod
     def _test_docstring_substitution_classmethod(cls, arg1, arg2):

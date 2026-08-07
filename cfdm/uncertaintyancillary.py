@@ -43,10 +43,9 @@ class UncertaintyAncillary(
         symmetrical structure of the data array is preserved in the
         subspaced construct. For instance, if the construct shape is
         ``(20, 30)`` and the data array shape is ``(20, 30, 20, 30)``,
-        then *indices* of ``(slice(2:4), [1, 3])`` will be interpreted
-        for the data array as ``(slice(2:4), [1, 3], slice(2:4), [1,
-        3])``, and *indices* of ``0`` will be interpreted as ``(0,
-        Ellipsis, 0, Ellipsis)``.
+        then *indices* of ``(slice(2:5), [1, 3])`` will result in a
+        data array shape of ``(3, 2, 3, 2)``; and *indices* of ``0``
+        will result in a data array shape of ``(1, 30, 1, 30)`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -372,6 +371,16 @@ class UncertaintyAncillary(
 
         Inserts a new size 1 axis into the data array.
 
+        For an error-correlation uncertainty ancillary, only a
+        poisiton in the leading half of the data array dimensions may
+        be provided, and this is automatically propagated to the
+        trailing dimensions in such a way as as to guarantee that the
+        symmetrical structure of the data array is preserved in the
+        construct. For instance, if the construct shape is ``(20,
+        30)`` and the data array shape is ``(20, 30, 20, 30)``, then
+        *position* of ``1`` will result in a data array shape of
+        ``(20, 1, 30, 20, 1, 30)``.
+
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `squeeze`, `transpose`
@@ -410,30 +419,104 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        data = c.get_data(None, _units=False, _fill_value=False)
-        if data is None:
-            return c
+        positions = [position]
 
-        original_ndim = c.ndim
-        if -original_ndim - 1 <= position < 0:
-            position += original_ndim + 1
-        elif not 0 <= position <= original_ndim:
-            raise ValueError(
-                f"Can't insert dimension: Invalid position {position!r}"
-            )
-
-        positions = [position                ]
-        
         # For an error-correlation uncertainty ancillary, an axis in
         # the trailing dimensions also needs to be inserted.
         if self.get_distribution_parameter() == "error_correlation":
-            positions.append(position + original_ndim + 1)
+            try:
+                ndim = c.ndim
+            except AttributeError:
+                return c
+
+            original_ndim = c.ndim
+            if -ndim - 1 <= position < 0:
+                position += original_ndim + 1
+            elif not 0 <= position <= ndim:
+                raise ValueError(
+                    f"Can't insert dimension: Invalid position {position!r}"
+                )
+
+            positions.append(position + ndim + 1)
 
         for p in positions:
-            super(UncertaintyAncillary, c).insert_dimension(
-                position=p, inplace=True
-            )
+            super(UncertaintyAncillary, c).insert_dimension(p, inplace=True)
 
+        return c
+
+    @_inplace_enabled(default=False)
+    def squeeze(self, axes=None, inplace=False):
+        """Remove size one axes from the data array.
+
+        By default all size one axes are removed, but particular size
+        one axes may be selected for removal.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        .. seealso:: `insert_dimension`, `transpose`
+
+        :Parameters:
+
+            axes: (sequence of) `int`, optional
+                The positions of the size one axes to be removed. By
+                default all size one axes are removed.
+
+                {{axes int examples}}
+
+            {{inplace: `bool`, optional}}
+
+        :Returns:
+
+            `{{class}}` or `None`
+                A new instance with removed size 1 one data axes. If
+                the operation was in-place then `None` is returned.
+
+        **Examples**
+
+
+        >>> f = {{package}}.{{class}}()
+        >>> d = {{package}}.Data(numpy.arange(7008).reshape((1, 73, 1, 96)))
+        >>> f.set_data(d)
+        >>> f.shape
+        (1, 73, 1, 96)
+        >>> f.squeeze().shape
+        (73, 96)
+        >>> f.squeeze(0).shape
+        (73, 1, 96)
+        >>> f.squeeze([-3, 2]).shape
+        (73, 96)
+
+        """
+        c = _inplace_enabled_define_and_cleanup(self)
+
+        # For an error-correlation uncertainty ancillary, axes in the
+        # trailing dimensions also need to be squeezed.
+        if (
+            axes is not None
+            and c.get_distribution_parameter() == "error_correlation"
+        ):
+            try:
+                ndim = c.ndim
+            except AttributeError:
+                return c
+
+            if isinstance(axes, int):
+                axes = (axes,)
+
+            axes0 = []
+            for axis in axes:
+                if 0 <= axis < ndim:
+                    axes0.append(axis)
+                elif -ndim <= axis < 0:
+                    axes0.append(axis + ndim)
+                else:
+                    raise ValueError(
+                        f"Can't squeeze: Axes don't match construct: {axes}"
+                    )
+
+            axes = axes0 + [i + ndim for i in axes0]
+
+        super(UncertaintyAncillary, c).squeeze(axes, inplace=True)
         return c
 
     @_inplace_enabled(default=False)
@@ -447,8 +530,8 @@ class UncertaintyAncillary(
         symmetrical structure of the data array is preserved in the
         tranposed construct. For instance, if the construct shape is
         ``(20, 30)`` and the data array shape is ``(20, 30, 20, 30)``,
-        then *axes* of ``(1, 0)`` will be interpreted for the data
-        array as ``(1, 0, 3, 2)``.
+        then *axes* of ``[1, 0]`` will result in a data array shape of
+        ``(30, 20, 30, 20)``.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -470,20 +553,26 @@ class UncertaintyAncillary(
                 operation was in-place then `None` is returned.
 
         """
-        ndim = self.ndim
-        if axes is None:
-            iaxes = list(range(ndim - 1, -1, -1))
-        else:
-            iaxes = self._parse_axes(axes)
-            if len(iaxes) != ndim:
-                raise ValueError("TODOU")
-
-        # For an error-correlation uncertainty ancillary, the
-        # transpose axes need to be propagated to the trailing
-        # dimensions of the data array.
-        if self.get_distribution_parameter() == "error_correlation":
-            iaxes = iaxes + [i + ndim for i in iaxes]
-
         c = _inplace_enabled_define_and_cleanup(self)
-        super(UncertaintyAncillary, c).transpose(iaxes, inplace=True)
+
+        # For an error-correlation uncertainty ancillary, axes in the
+        # trailing dimensions also need to be transposed.
+        if self.get_distribution_parameter() == "error_correlation":
+            try:
+                ndim = c.ndim
+            except AttributeError:
+                return c
+
+            if axes is None:
+                axes0 = list(range(ndim - 1, -1, -1))
+            else:
+                axes0 = c._parse_axes(axes)
+                if len(axes0) != ndim:
+                    raise ValueError(
+                        f"Can't transpose: Axes don't match construct: {axes}"
+                    )
+
+            axes = axes0 + [i + ndim for i in axes0]
+
+        super(UncertaintyAncillary, c).transpose(axes, inplace=True)
         return c
