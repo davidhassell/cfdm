@@ -6,6 +6,7 @@ from .functions import parse_indices
 class UncertaintyAncillary(
     mixin.QuantizationMixin,
     mixin.NetCDFVariable,
+    mixin.NetCDFDimension,
     mixin.PropertiesData,
     mixin.Files,
     core.UncertaintyAncillary,
@@ -18,6 +19,14 @@ class UncertaintyAncillary(
 
     {{netCDF variable}}
 
+    The name of a trailing netCDF dimension spanned by an array of
+    error-correlations (which does not correspond to a domain axis
+    construct) may be accessed with the `nc_set_dimension`,
+    `nc_get_dimension`, `nc_del_dimension`, and `nc_has_dimension`
+    methods.
+
+    {{netCDF variable group}}
+    
     {{netCDF dataset chunks}}
 
     .. versionadded:: (cfdm) NEXTVERSION

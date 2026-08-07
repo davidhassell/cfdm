@@ -125,7 +125,7 @@ class Uncertainty(PropertiesData):
         Only the data dimensions that correspond to a domain axis
         construct are included.
 
-        .. versionadded:: (cfdm) TODOU
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `data`, `has_data`, `shape`, `size`
 
@@ -139,25 +139,21 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        coverage_interval = self.get_property("coverage_interval", None)
-        if coverage_interval == "offsets":
+        if self.get_property("coverage_interval", None) == "offsets":
             try:
-                return len(self.shape) - 1
+                return len(self.shape)
             except AttributeError:
                 raise AttributeError(
                     f"{self.__class__.__name__} object has no attribute 'ndim'"
                 )
 
-        elif coverage_interval in ("standard_deviation", "half_width"):
-            return super().ndim
-
-        raise AttributeError("TODOU")
+        return super().ndim
 
     @property
     def probability_distribution(self):
         """TODOU Return the coordinate conversion component.
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `datum`, `get_probability_distribution`
 
@@ -189,7 +185,7 @@ class Uncertainty(PropertiesData):
         Only the data dimension that corresponds to a domain axis
         construct is included.
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `data`, `has_data`, `ndim`, `size`
 
@@ -203,20 +199,16 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        coverage_interval = self.get_property("coverage_interval", None)
-        if coverage_interval == "offsets":
+        if  self.get_property("coverage_interval", None) == "offsets":
             data = self.get_data(None, _units=False, _fill_value=False)
             if data is not None:
-                return data.shape[:1]
+                return data.shape[:-1]
 
             raise AttributeError(
                 f"{self.__class__.__name__} object has no attribute 'shape'"
             )
 
-        elif coverage_interval in ("standard_deviation", "half_width"):
-            return super().shape
-
-        raise AttributeError("TODOU")
+        return super().shape
 
     @property
     def size(self):
@@ -225,7 +217,7 @@ class Uncertainty(PropertiesData):
         `size` is equal to the product of `shape`, that only includes
         the data dimension corresponding to a domain axis construct.
 
-        .. versionadded:: (cfdm) TODOU
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `data`, `has_data`, `ndim`, `shape`
 
@@ -239,8 +231,7 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        coverage_interval = self.get_property("coverage_interval", None)
-        if coverage_interval == "offsets":
+        if self.get_property("coverage_interval", None) == "offsets":
             try:
                 return prod(self.shape[:-1])
             except AttributeError:
@@ -248,16 +239,13 @@ class Uncertainty(PropertiesData):
                     f"{self.__class__.__name__} object has no attribute 'size'"
                 )
 
-        elif coverage_interval in ("standard_deviation", "half_width"):
-            return super().size
-
-        raise AttributeError("TODOU")
+        return super().size
 
     def del_probability_distribution(self):
         """Remove the coordinate conversion component.
         TODOU
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `probability_distribution`,
                      `get_probability_distribution`,
@@ -294,7 +282,7 @@ class Uncertainty(PropertiesData):
     def get_probability_distribution(self):
         """TODOU Get the coordinate conversion component.
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `probability_distribution`,
                      `del_probability_distribution`,
@@ -337,7 +325,7 @@ class Uncertainty(PropertiesData):
         """Set the coordinate conversion component.
         TODOU
 
-        .. versionadded:: (cfdm) 1.7.0
+        .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `probability_distribution`,
                      `del_probability_distribution`,

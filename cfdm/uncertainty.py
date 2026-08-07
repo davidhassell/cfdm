@@ -6,6 +6,7 @@ from .probabilitydistribution import ProbabilityDistribution
 class Uncertainty(
     mixin.QuantizationMixin,
     mixin.NetCDFVariable,
+    mixin.NetCDFDimension,
     mixin.PropertiesData,
     mixin.Files,
     core.Uncertainty,
@@ -18,6 +19,13 @@ class Uncertainty(
 
     {{netCDF variable}}
 
+    The name of a trailing netCDF dimension spanned by an array of
+    offsets (which does not correspond to a domain axis construct) may
+    be accessed with the `nc_set_dimension`, `nc_get_dimension`,
+    `nc_del_dimension`, and `nc_has_dimension` methods.
+
+    {{netCDF variable group}}
+    
     {{netCDF dataset chunks}}
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -30,16 +38,6 @@ class Uncertainty(
         instance._Quantization = Quantization
         instance._ProbabilityDistribution = ProbabilityDistribution
         return instance
-
-    def __str__(self):
-        """Called by the `str` built-in function.
-
-        x.__str__() <==> str(x)
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        """
-        return self.identity(default=self.nc_get_variable(""))
 
     def creation_commands(
         self,
