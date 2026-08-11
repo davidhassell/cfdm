@@ -22,13 +22,19 @@ class Uncertainty(PropertiesData):
 
     * Properties to describe the data (in the same sense as for the
       field construct). The properties must include a "coverage
-      probability" property to indicate the probability that a true
-      value of the field construct’s data lies in the interval given
-      by the array.
+      interval" property to indicate how the array defines the
+      coverage interval
 
-    * The uncertainty ancillary constructs that describe the
-      probability distribution from which the coverage interval is
-      derived.
+    * A definition of the probability distribution from which the
+      coverage interval is derived. The probability distribution is
+      defined by the values of named parameters. A parameter value can
+      be a descriptive string (such as the distribution name
+      "gaussian"), or a scalar or vector which does not depend on any
+      domain axis constructs, or an uncertainty ancillary construct
+      (such as one containing spatially varying skewness data), or one
+      or more uncertainty ancillary constructs (such as multiple
+      uncertainty ancillary constructs containing error-correlation
+      data for non-overlapping subsets of the domain axis constructs).
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -60,7 +66,7 @@ class Uncertainty(PropertiesData):
                Parameters may also be set after initialisation with
                the `set_parameters` and `set_parameter` methods.
 
-               *Parameter example:*
+               *Example:*
                  ``parameters={'earth_radius': 6371007.}``
 
             constructs: `dict`, optional
@@ -109,7 +115,7 @@ class Uncertainty(PropertiesData):
                 The construct type.
 
         **Examples**
-        TODOU
+
         >>> f = {{package}}.{{class}}()
         >>> f.construct_type
         'uncertainty'
@@ -131,11 +137,11 @@ class Uncertainty(PropertiesData):
 
         **Examples**
 
-        >>> d.shape
+        >>> u.shape
         (1324,)
-        >>> d.ndim
+        >>> u.ndim
         1
-        >>> f.size
+        >>> u.size
         1324
 
         """
@@ -155,16 +161,18 @@ class Uncertainty(PropertiesData):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `datum`, `get_probability_distribution`
+        .. seealso:: `del_probability_distribution`,
+                     `get_probability_distribution`,
+                     `set_probability_distribution`
 
         :Returns:
 
-            `CoordinateConversion`
-                The coordinate conversion.
+            `ProbabilityDistribution`
+                The coordinate TODOUconversion.
 
         **Examples**
 
-        >>> orog = {{package}}.DomainAncillary()
+        >>> orog = {{package}}TODOU.DomainAncillary()
         >>> c = {{package}}.CoordinateConversion(
         ...     parameters={
         ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
@@ -253,8 +261,8 @@ class Uncertainty(PropertiesData):
 
         :Returns:
 
-            `CoordinateConversion`
-                The removed coordinate conversion component.
+            `ProbabilityDistribution`
+                The removed TODOU coordinate conversion component.
 
         **Examples**
 
@@ -290,8 +298,8 @@ class Uncertainty(PropertiesData):
 
         :Returns:
 
-            `CoordinateConversion`
-                The coordinate conversion component.
+            `ProbabilityDistribution`
+                TheTODOU coordinate conversion component.
 
         **Examples**
 
@@ -333,8 +341,8 @@ class Uncertainty(PropertiesData):
 
         :Parameters:
 
-            probability_distribution: `CoordinateConversion`
-                The coordinate conversion component to be inserted.
+            probability_distribution: `ProbabilityDistribution`
+                The coordinate conversiTODOUon component to be inserted.
 
             {{copy: `bool`, optional}}
 
@@ -344,7 +352,7 @@ class Uncertainty(PropertiesData):
 
         **Examples**
 
-        >>> r = {{package}}.{{class}}()
+        >>> r = {{package}}.TODOU{{class}}()
         >>> orog = {{package}}.DomainAncillary()
         >>> c = {{package}}.CoordinateConversion(
         ...     parameters={

@@ -1,6 +1,6 @@
 from math import prod
 
-from . import ErrorCorrelationModel
+from . import UncertaintyAncillaryParameterisation
 from .abstract import PropertiesData
 
 
@@ -16,15 +16,17 @@ class UncertaintyAncillary(PropertiesData):
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
         instance = super().__new__(cls)
-        instance._ErrorCorrelationModel = ErrorCorrelationModel
+        instance._UncertaintyAncillaryParameterisation = (
+            UncertaintyAncillaryParameterisation
+        )
         return instance
 
     def __init__(
         self,
         properties=None,
         data=None,
-        distribution_parameter=None,
-        error_correlation_model=None,
+        parameterisation=None,
+        trailing_dimensions=False,
         source=None,
         copy=True,
         _use_data=True,
@@ -44,7 +46,7 @@ class UncertaintyAncillary(PropertiesData):
                  ``parameters={'earth_radius': 6371007.}``
 
             constructs: `dict`, optional
-               Set references to constructs. The dictionary keys are
+               Set referTODOUences to constructs. The dictionary keys are
                parameter names, with corresponding construct keys.
 
                Constructs may also be set after initialisation with
@@ -76,41 +78,36 @@ class UncertaintyAncillary(PropertiesData):
 
         if source:
             try:
-                distribution_parameter = source.get_distribution_parameter(
-                    None
-                )
+                parameterisation = source.get_parameterisation()
             except AttributeError:
-                distribution_parameter = None
+                parameterisation = None
 
             try:
-                error_correlation_model = source.get_error_correlation_model()
+                trailing_dimensions = source.get_trailing_dimensions(False)
             except AttributeError:
-                error_correlation_model = None
+                trailing_dimensions = False
 
-        if distribution_parameter is not None:
-            self.set_distribution_parameter(distribution_parameter)
+        if parameterisation is not None:
+            self.set_parameterisation(parameterisation, copy=copy)
 
-        if error_correlation_model is not None:
-            self.set_error_correlation_model(
-                error_correlation_model, copy=copy
-            )
+        self.set_trailing_dimensions(trailing_dimensions)
 
     @property
-    def error_correlation_model(self):
-        """Return the coordinate conversion component.
+    def parameterisation(self):
+        """Return the coordinate TODOUconversion component.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `datum`, `get_coordinate_conversion`
+        .. seealso:: `datum`, `get_TODOUcoordinate_conversion`
 
         :Returns:
 
-            `CoordinateConversion`
-                The coordinate conversion.
+            `CoordinateConversionTODOU`
+                The coordinate TODOUconversion.
 
         **Examples**
 
-        >>> orog = {{package}}.DomainAncillary()
+        >>> orog = TODOU{{package}}.DomainAncillary()
         >>> c = {{package}}.CoordinateConversion(
         ...     parameters={
         ...         'standard_name': 'atmosphere_hybrid_height_coordinate',
@@ -122,7 +119,7 @@ class UncertaintyAncillary(PropertiesData):
         <{{repr}}CoordinateConversion: Parameters: standard_name; Ancillaries: orog>
 
         """
-        return self.get_error_correlation_model()
+        return self.get_parameterisation()
 
     @property
     def construct_type(self):
@@ -189,7 +186,7 @@ class UncertaintyAncillary(PropertiesData):
 
         """
         shape = super().shape
-        if self.get_distribution_parameter() == "error_correlation":
+        if self.get_trailing_dimensions():
             shape = shape[: len(shape) // 2]
 
         return shape
@@ -217,72 +214,22 @@ class UncertaintyAncillary(PropertiesData):
         """
         return prod(self.shape)
 
-    def get_distribution_parameter(self, default=ValueError()):
-        """Get a parameter value.
-
-        .. versionadded:: (cfdm) 1.7.0
-
-        :Parameters:
-
-            parameter: `str`
-                The name of the parameter.
-
-            default: optional
-                Return the value of the *default* parameter if the
-                parameter has not been set.
-
-                {{default Exception}}
-
-        :Returns:
-
-                The value of the parameter.
-
-        **Examples**
-
-        >>> f = {{package}}.{{class}}()
-        >>> f.set_parameter('earth_radius', 6371007)
-        >>> f.has_parameter('earth_radius')
-        True
-        >>> f.get_parameter('earth_radius')
-        6371007
-        >>> f.del_parameter('earth_radius')
-        6371007
-        >>> f.has_parameter('earth_radius')
-        False
-        >>> print(f.del_parameter('earth_radius', None))
-        None
-        >>> print(f.get_parameter('earth_radius', None))
-        None
-
-        """
-        out = self._get_component("distribution_parameter", None)
-        if out is None:
-            if default is None:
-                return
-
-            return self._default(
-                default,
-                f"{self.__class__.__name__!r} has no distribution parameter",
-            )
-
-        return out
-
-    def get_error_correlation_model(self):
-        """Get the coordinate conversion component.
+    def get_parameterisation(self):
+        """Get theTODOU coordinate conversion component.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `coordinate_conversion`, `del_coordinate_conversion`,
+        .. seealso:: TODOU`coordinate_conversion`, `del_coordinate_conversion`,
                      `set_coordinate_conversion`
 
         :Returns:
 
-            `CoordinateConversion`
-                The coordinate conversion component.
+            `UncertaintyAncillaryParameterisation`
+                The cooTODOUrdinate conversion component.
 
         **Examples**
 
-        >>> r = {{package}}.{{class}}()
+        >>> TODOU r = {{package}}.{{class}}()
         >>> orog = {{package}}.DomainAncillary()
         >>> c = {{package}}.CoordinateConversion(
         ...     parameters={
@@ -299,52 +246,31 @@ class UncertaintyAncillary(PropertiesData):
         <{{repr}}CoordinateConversion: Parameters: ; Ancillaries: >
 
         """
-        out = self._get_component("error_correlation_model", None)
+        out = self._get_component("parameterisation", None)
         if out is None:
-            out = self._ErrorCorrelationModel()
-            self.set_error_correlation_model(out, copy=False)
+            out = self._UncertaintyAncillaryParameterisation()
+            self.set_parameterisation(out, copy=False)
 
         return out
 
-    def set_distribution_parameter(self, distribution_parameter):
-        """Set the measure.
+    def get_trailing_dimensions(self):
+        """TODOU.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `del_measure`, `get_measure`, `has_measure`
-
-        :Parameters:
-
-            measure: `str`
-                The value for the measure.
-
         :Returns:
 
-             `None`
+            `bool`
+                TODOU
 
         **Examples**
 
-        >>> c = {{package}}.{{class}}()
-        >>> c.set_measure('area')
-        >>> c.has_measure()
-        True
-        >>> c.get_measure()
-        'area'
-        >>> c.del_measure()
-        'area'
-        >>> c.has_measure()
-        False
-        >>> print(c.del_measure(None))
-        None
-        >>> print(c.get_measure(None))
-        None
+        >>> TODOU
 
         """
-        self._set_component(
-            "distribution_parameter", distribution_parameter, copy=False
-        )
+        return self._get_component("trailing_dimensions")
 
-    def set_error_correlation_model(self, error_correlation_model, copy=True):
+    def set_parameterisation(self, parameterisation, copy=True):
         """Set thTODOU e coordinate conversion component.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -355,8 +281,8 @@ class UncertaintyAncillary(PropertiesData):
 
         :Parameters:
 
-            coordinate_conversion: `CoordinateConversion`
-                The coordinate conversion component to be inserted.
+            parameterisation: `UncertaintyAncillaryParameterisation`
+                The coordinate converTODOUsion component to be inserted.
 
             {{copy: `bool`, optional}}
 
@@ -366,7 +292,7 @@ class UncertaintyAncillary(PropertiesData):
 
         **Examples**
 
-        >>> r = {{package}}.{{class}}()
+        >>> r = {{package}}.TODOU{{class}}()
         >>> orog = {{package}}.DomainAncillary()
         >>> c = {{package}}.CoordinateConversion(
         ...     parameters={
@@ -384,8 +310,25 @@ class UncertaintyAncillary(PropertiesData):
 
         """
         if copy:
-            error_correlation_model = error_correlation_model.copy()
+            parameterisation = parameterisation.copy()
 
-        self._set_component(
-            "error_correlation_model", error_correlation_model, copy=False
+        self._set_component("parameterisation", parameterisation, copy=False)
+
+    def set_trailing_dimensions(self, trailing_dimensions):
+        """TODOU.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            trailing_dimensions: `bool`
+                TODOU
+
+        :Returns:
+
+            `None`
+
+        """
+        return self._set_component(
+            "trailing_dimensions", bool(trailing_dimensions), copy=False
         )

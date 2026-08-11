@@ -1975,6 +1975,7 @@ class Field(
                     _axes=constructs_data_axes[cid],
                     _axis_names=axis_to_name,
                     _level=_level,
+                    _construct_names=construct_name,
                 )
             )
             string.append("")

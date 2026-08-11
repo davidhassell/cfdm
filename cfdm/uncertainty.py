@@ -120,7 +120,8 @@ class Uncertainty(
                 )
             )
             out.append(
-                f"{name}.set_probability_distribution({probability_distribution_name})"
+                f"{name}.set_probability_distribution"
+                f"({probability_distribution_name})"
             )
 
         if string:
@@ -163,7 +164,7 @@ class Uncertainty(
             {{returns dump}}
 
         """
-        string = [
+        out = [
             super().dump(
                 data=data,
                 display=False,
@@ -183,9 +184,9 @@ class Uncertainty(
                 _level=_level + 1,
                 _construct_names=_construct_names,
             )
-            string.append(pd)
+            out.append(pd)
 
-        return "\n".join(string)
+        return "\n".join(out)
 
     def identity(self, default=""):
         """Return the canonical identity.
@@ -241,11 +242,12 @@ class Uncertainty(
         'no identity'
 
         """
-        n = self.get_property("uncertainty_component", None)
+        get_property = self.get_property
+        n = get_property("uncertainty_component", None)
         if n is not None:
             return f"uncertainty_component={n}"
 
-        n = self.get_property("coverage_interval", None)
+        n = get_property("coverage_interval", None)
         if n is not None:
             return f"coverage_interval={n}"
 
@@ -304,7 +306,6 @@ class Uncertainty(
                 top_properties=(
                     "uncertainty_component",
                     "coverage_interval",
-                    "cf_role",
                     "long_name",
                 )
             ),

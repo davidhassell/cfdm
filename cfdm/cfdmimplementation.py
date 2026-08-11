@@ -14,7 +14,6 @@ from . import (
     DomainAncillary,
     DomainAxis,
     DomainTopology,
-    ErrorCorrelationModel,
     Field,
     FieldAncillary,
     Index,
@@ -2330,24 +2329,6 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("DomainTopology")
         return cls(**kwargs)
 
-    def initialise_ErrorCorrelationModel(self, **kwargs):
-        """Return a error correlation model class.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            kwargs: optional
-                Parameters for intialising the class.
-
-        :Returns:
-
-            `ErrorCorrelationModel`
-
-        """
-        cls = self.get_class("ErrorCorrelationModel")
-        return cls(**kwargs)
-
     def initialise_CellConnectivity(self, **kwargs):
         """Return a cell connectivity construct.
 
@@ -4084,7 +4065,6 @@ _implementation = CFDMImplementation(
     InterpolationParameter=InterpolationParameter,
     CoordinateConversion=CoordinateConversion,
     Datum=Datum,
-    ErrorCorrelationModel=ErrorCorrelationModel,
     List=List,
     Index=Index,
     Count=Count,

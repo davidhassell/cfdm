@@ -1,4 +1,6 @@
-from . import ErrorCorrelationModel, Quantization, core, mixin
+from . import Quantization, UncertaintyAncillaryParameterisation, core, mixin
+
+# from . import Quantization, UncertaintyAncillaryParameterisation, core, mixin
 from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
 from .functions import parse_indices
 
@@ -36,7 +38,9 @@ class UncertaintyAncillary(
     def __new__(cls, *args, **kwargs):
         """Store component classes."""
         instance = super().__new__(cls)
-        instance._ErrorCorrelationModel = ErrorCorrelationModel
+        instance._UncertaintyAncillaryParameterisation = (
+            UncertaintyAncillaryParameterisation
+        )
         instance._Quantization = Quantization
         return instance
 
@@ -62,7 +66,7 @@ class UncertaintyAncillary(
         # For an error-correlation uncertainty ancillary, the indices
         # need to be propagated to the trailing dimensions of the data
         # array.
-        if self.get_distribution_parameter() == "error_correlation":
+        if self.get_trailing_dimensions():
             data = self.get_data(None, _fill_value=False, _units=False)
             if data is not None:
                 indices = parse_indices(
@@ -81,7 +85,7 @@ class UncertaintyAncillary(
         string=True,
         name="c",
         data_name="d",
-        correlation_model_name="p",
+        parameterisation_name="p",
         header=True,
     ):
         """Returns the commands to create the cell measure construct.
@@ -113,7 +117,7 @@ class UncertaintyAncillary(
 
         **Examples**
 
-        >>> x = {{package}}.CellMeasure(
+        >>> x = {{package}}.TODOUCellMeasure(
         ...     measure='area',
         ...     properties={'units': 'm2'}
         ... )
@@ -142,20 +146,22 @@ class UncertaintyAncillary(
             header=header,
         )
 
-        correlation_model = self.error_correlation_model
-        if correlation_model:
+        out.append(
+            f"{name}.set_trailing_dimensions({self.get_trailing_dimensions()})"
+        )
+
+        parameterisation = self.parameterisation
+        if parameterisation:
             out.extend(
-                correlation_model.creation_commands(
+                parameterisation.creation_commands(
                     string=False,
                     indent=indent,
                     namespace=namespace0,
-                    name=correlation_model_name,
+                    name=parameterisation_name,
                     header=False,
                 )
             )
-            out.append(
-                f"{name}.set_correlation_model({correlation_model_name})"
-            )
+            out.append(f"{name}.set_parameterisation({parameterisation_name})")
 
         if string:
             indent = " " * indent
@@ -212,13 +218,15 @@ class UncertaintyAncillary(
 
         string = [string]
 
-        # Error-correlation model
-        error_correlation_model = self.error_correlation_model
-        if error_correlation_model:
-            ecm = error_correlation_model.dump(
-                display=False, _level=_level + 1
+        # Data parameterisation
+        parameterisation = self.parameterisation
+        if parameterisation:
+            p = parameterisation.dump(
+                display=False,
+                _level=_level + 1,
+                _construct_names=_construct_names,
             )
-            string.append(ecm)
+            string.append(p)
 
         return "\n".join(string)
 
@@ -276,19 +284,15 @@ class UncertaintyAncillary(
         'no identity'
 
         """
-        error_correlation_model = self.error_correlation_model
-
-        n = error_correlation_model.get_structure(None)
+        n = self.parameterisation.get_parameter(
+            "error_correlation_structure", None
+        )
         if n is not None:
-            return f"structure:{n}"
+            return f"error_correlation_structure:{n}"
 
-        n = error_correlation_model.get_comment(None)
+        n = self.get_property("comment", None)
         if n is not None:
             return f"comment:{n}"
-
-        n = self.get_distribution_parameter(None)
-        if n is not None:
-            return f"distribution_parameter:{n}"
 
         return super().identity(default=default)
 
@@ -340,39 +344,27 @@ class UncertaintyAncillary(
         ncvar%uncertainty
 
         """
-        error_correlation_model = self.error_correlation_model
-
-        n = error_correlation_model.get_structure(None)
+        n = self.parameterisation.get_parameter(
+            "error_correlation_structure", None
+        )
         if n is not None:
-            pre = ((f"structure:{n}",),)
+            pre = ((f"error_correlation_structure:{n}",),)
             pre0 = kwargs.pop("pre", None)
             if pre0:
                 pre = tuple(pre0) + pre
 
             kwargs["pre"] = pre
 
-        n = error_correlation_model.get_comment(None)
-        if n is not None:
-            pre = ((f"comment:{n}",),)
-            pre0 = kwargs.pop("pre", None)
-            if pre0:
-                pre = tuple(pre0) + pre
+        g = self._iter(
+            body=self._identities_iter(
+                top_properties=("comment", "long_name")
+            ),
+            **kwargs,
+        )
+        if generator:
+            return g
 
-            kwargs["pre"] = pre
-
-        n = self.get_distribution_parameter(None)
-        if n is not None:
-            pre = ((f"distribution_parameter:{n}",),)
-            pre0 = kwargs.pop("pre", None)
-            if pre0:
-                pre = tuple(pre0) + pre
-
-            kwargs["pre"] = pre
-
-        if n is not None:
-            return f"distribution_parameter:{n}"
-
-        return super().identities(generator=generator, **kwargs)
+        return list(g)
 
     @_inplace_enabled(default=False)
     def insert_dimension(self, position=0, inplace=False):
@@ -428,11 +420,9 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        positions = [position]
-
-        # For an error-correlation uncertainty ancillary, an axis in
-        # the trailing dimensions also needs to be inserted.
-        if self.get_distribution_parameter() == "error_correlation":
+        if self.get_trailing_dimensions():
+            # An axis in the trailing dimensions also needs to be
+            # inserted
             try:
                 ndim = c.ndim
             except AttributeError:
@@ -446,7 +436,9 @@ class UncertaintyAncillary(
                     f"Can't insert dimension: Invalid position {position!r}"
                 )
 
-            positions.append(position + ndim + 1)
+            positions = (position, position + ndim + 1)
+        else:
+            positions = (position,)
 
         for p in positions:
             super(UncertaintyAncillary, c).insert_dimension(p, inplace=True)
@@ -498,13 +490,9 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        # For an error-correlation uncertainty ancillary, axes in the
-        # trailing dimensions also need to be squeezed.
-        if (
-            axes is not None
-            and c.get_distribution_parameter() == "error_correlation"
-                # TODOU - we no longer expect the uncertainty ancillay to know what it is!
-        ):
+        if axes is not None and self.get_trailing_dimensions():
+            # Axes in the trailing dimensions also need to be
+            # squeezed
             try:
                 ndim = c.ndim
             except AttributeError:
@@ -565,9 +553,9 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        # For an error-correlation uncertainty ancillary, axes in the
-        # trailing dimensions also need to be transposed.
-        if self.get_distribution_parameter() == "error_correlation":
+        if self.get_trailing_dimensions():
+            # Axes in the trailing dimensions also need to be
+            # transposed
             try:
                 ndim = c.ndim
             except AttributeError:

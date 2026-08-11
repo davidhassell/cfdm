@@ -9,6 +9,7 @@ from .coordinate import Coordinate
 from .topology import Topology
 
 from .parameters import Parameters
+from .parametersancillaries import ParametersAncillaries
 from .parametersdomainancillaries import ParametersDomainAncillaries
 
 from .netcdf import (

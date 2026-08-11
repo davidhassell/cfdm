@@ -73,7 +73,7 @@ class Properties(Container):
         :Parameters:
 
         top_properties: `None` or sequence of `str`
-            TODOU
+            If
 
         :Returns:
 
@@ -88,7 +88,11 @@ class Properties(Container):
         properties = self.properties()
         if properties:
             if top_properties is None:
-                top_properties = ("cf_role", "axis", "long_name")
+                top_properties = (
+                    "cf_role",
+                    "axis",
+                    "long_name",
+                )
 
             for prop in top_properties:
                 value = properties.pop(prop, None)

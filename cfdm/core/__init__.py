@@ -27,8 +27,6 @@ from .bounds import Bounds
 from .coordinateconversion import CoordinateConversion
 from .datum import Datum
 from .domain import Domain
-from .errorcorrelationmodel import ErrorCorrelationModel
-from .errorcorrelationparameter import ErrorCorrelationParameter
 from .interiorring import InteriorRing
 from .probabilitydistribution import ProbabilityDistribution
 from .uncertaintyancillaryparameterisation import (

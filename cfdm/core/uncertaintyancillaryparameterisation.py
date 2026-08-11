@@ -1,7 +1,7 @@
 from .abstract import ParametersAncillaries
 
 
-class UncertaintyAncillaryParameterization(ParametersAncillaries):
+class UncertaintyAncillaryParameterisation(ParametersAncillaries):
     """TODOU o colA parametrisation for an uncertainty ancillary data array.
 
     TODOU
