@@ -483,7 +483,7 @@ def resolve_pattern_4(value, variable, coord=False):
 
 
 def resolve_pattern_5(value, variable, coord=False):
-    """Resolve references in a pattern 4 attribute.
+    """Resolve references in a pattern 5 attribute.
 
     Resolve references in an cell_methods attribute.
 
@@ -624,6 +624,147 @@ def resolve_pattern_6(value, variable, coord=False):
         return " ".join(resolved)
 
 
+    def resolve_pattern_7(value, variable, coord=False):
+    """Resolve references in a pattern 7 attribute.
+
+    Resolve references in an attribute whose value has one of the
+    following patterns:
+
+    * 'key0'
+    * 'key0 (key1: var1)'
+    * 'key0 (key1: var1 key2: var2)'
+
+    E.g. ``probability_distribution``
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Returns:
+
+        `str`
+
+    """
+    def replacer(m):
+        """Replacer function for `re.sub`.
+        
+        :Parameters:
+
+            m: `re.Match`
+
+        :Returns:
+
+            `str`
+
+        """
+        # m.group(1) is the reference (e.g. 'var1')
+        ref = m.group(1)
+        # Resolve the reference
+        ref = resolve_reference(ref, variable, var=True, coord=coord)
+        return f": {ref}"
+        
+    try:
+        # From the first '(', match ': ' followed by a variable name
+        # up to a space or ')'
+        return re.sub(r':\s+([^\s\)]+)', replacer, value)
+    except TypeError:
+        # 'value' is not a string nor a bytes-like object
+        return value
+
+
+def resolve_pattern_8(value, variable, coord=False):
+    """Resolve references in a pattern 8 attribute.
+
+    Resolve references in an ``error_correlation`` attribute.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    :Returns:
+
+        `str`
+
+    """
+    def replacer(m):
+        """Replacer function for `re.sub`.
+        
+        :Parameters:
+
+            m: `re.Match`
+
+        :Returns:
+
+            `str`
+
+        """
+        # m.group(1) is the key (e.g. 'localization_radius')
+        # m.group(2) is the reference (e.g. 'var1')
+        key = m.group(1)
+        ref = m.group(2)
+
+        if key != "comment":
+            # Resolve the reference
+            ref = resolve_reference(ref, variable, var=True, coord=coord)
+            
+        return f"{key}: {ref}"
+        
+    import re
+
+    resolved = []
+    # ------------------------------------------------------------
+    # Split the cell_methods string into a list of strings ready
+    # for parsing. For example:
+    #
+    #   'lat: lon: mean (interval: 1 hour) time: max'
+    #
+    # would be split up into:
+    #
+    #   ['lat:', 'lon:', 'mean', '(interval: 1 hour)', 'time:', 'max']
+    # ------------------------------------------------------------
+    try:
+        value = re.findall(r"\([^)]*\)|\S+", value)
+    except TypeError:
+        # 'value' is not a string
+        return value
+
+    previous_ref = None
+    for ref in cell_methods:
+        if ref.endswith(":"):
+            # Form 1, 2, 3
+            ref = resolve_reference(ref[:-1], variable, dim=True)
+            resolved.append(f"{ref}:")
+            previous_ref = "axis"
+            continue
+
+        if previous_ref == "axis":
+            if ref.startswith("(") and ref.endswith(")"):
+                # Form 3
+                resolved.append(ref)
+                previous_ref = "brackets"
+                continue
+
+            # Form 1, 2
+            ref = resolve_reference(ref, variable, var=True, coord=coord)
+            resolved.append(ref)
+            previous_ref = "variable"
+            continue
+
+        if previous_ref == "variable":
+            # Form 1, 2
+            if ref.startswith("(") and ref.endswith(")"):
+                if not ref.startswith("(comment:"):
+                    ref = re.sub(
+                        r'([^\s:]+):\s+([^\s\)]+)', replacer, value[1:-1]
+                    )
+                    ref = f"({ref})"
+                    
+                resolved.append(ref)
+                previous_ref = "brackets"
+                continue
+        
+        # Still here?
+        resolved.append(ref)
+        previous_ref = None
+
+    return " ".join(resolved)
+
 @dataclass
 class ResolveAttribute:
     """How to resolving references in an attribute.
@@ -750,5 +891,17 @@ resolvable_attributes = {
         # Quantization
         # ------------------------------------------------------------
         ResolveAttribute(name="quantization", resolver=resolve_pattern_1),
+        # ------------------------------------------------------------
+        # Proability distribution
+        # ------------------------------------------------------------
+        ResolveAttribute(
+            name="probability_distribution", resolver=resolve_pattern_7
+        ),
+        # ------------------------------------------------------------
+        # Error correlations
+        # ------------------------------------------------------------
+        ResolveAttribute(
+            name="error_correlation", resolver=resolve_pattern_8
+        ),
     )
 }

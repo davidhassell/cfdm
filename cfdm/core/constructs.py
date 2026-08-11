@@ -16,6 +16,8 @@ class Constructs(abstract.Container):
     * cell connectivity constructs
     * cell method constructs
     * field ancillary constructs
+    * uncertainty constructs
+    * uncertainty ancillary constructs
 
     The container is used by used by `Field` and `Domain` instances.
 
@@ -34,6 +36,8 @@ class Constructs(abstract.Container):
         dimension_coordinate=None,
         domain_ancillary=None,
         field_ancillary=None,
+        uncertainty=None,
+        uncertainty_ancillary=None,
         cell_measure=None,
         coordinate_reference=None,
         domain_axis=None,
@@ -75,6 +79,23 @@ class Constructs(abstract.Container):
 
                 *Parameter example:*
                   ``field_ancillary='fieldancillary'``
+
+            uncertainty: `str`, optional
+                The base name for keys of uncertainty constructs.
+
+                *Parameter example:*
+                  ``uncertainty='uncertainty'``
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            uncertainty_ancillary: `str`, optional
+                The base name for keys of uncertainty ancillary
+                constructs.
+
+                *Parameter example:*
+                  ``uncertainty_ancillary='uncertaintyancillary'``
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
             cell_measure: `str`, optional
                 The base name for keys of cell measure constructs.
@@ -236,6 +257,14 @@ class Constructs(abstract.Container):
         if field_ancillary:
             self._key_base["field_ancillary"] = field_ancillary
             self._array_constructs.add("field_ancillary")
+
+        if uncertainty:
+            self._key_base["uncertainty"] = uncertainty
+            self._array_constructs.add("uncertainty")
+
+        if uncertainty_ancillary:
+            self._key_base["uncertainty_ancillary"] = uncertainty_ancillary
+            self._array_constructs.add("uncertainty_ancillary")
 
         if cell_measure:
             self._key_base["cell_measure"] = cell_measure
@@ -1089,6 +1118,8 @@ class Constructs(abstract.Container):
                 ``'cell_connectivity'``     Cell connectivity
                 ``'cell_method'``           Cell method
                 ``'field_ancillary'``       Field ancillary
+                ``'uncertainty'``           Uncertainty
+                ``'uncertainty_ancillary'`` Uncertainty ancillary
                 ==========================  ==========================
 
                 If no types are provided then all constructs are

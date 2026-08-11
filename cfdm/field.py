@@ -65,6 +65,8 @@ class Field(
     dimension coordinate, auxiliary coordinate, cell measure,
     coordinate reference and domain ancillary constructs.
 
+    TODOU: Uncertainty and Uncertainty Ancillary constructs
+
     The field construct also has optional properties to describe
     aspects of the data that are independent of the domain. These
     correspond to some netCDF attributes of variables (e.g. units,
@@ -188,11 +190,16 @@ class Field(
 
         def _print_item(self, key, variable, axes):
             """Private function called by __str__."""
-            # Field ancillary
             x = [variable.identity(default=key)]
 
             if variable.has_data():
                 shape = [axis_names[axis] for axis in axes]
+                data = variable.get_data()
+                ndim = data.ndim
+                shape = shape[:ndim]
+                if len(shape) < ndim:
+                    shape.extend([str(n) for n in data.shape[len(shape) :]])
+
                 shape = str(tuple(shape)).replace("'", "")
                 shape = shape.replace(",)", ")")
                 x.append(shape)
@@ -211,7 +218,7 @@ class Field(
 
             return "".join(x)
 
-        # Field ancillary variables
+        # Field ancillaries
         x = [
             _print_item(self, key, anc, self.constructs.data_axes()[key])
             for key, anc in sorted(self.field_ancillaries(todict=True).items())
@@ -219,6 +226,26 @@ class Field(
         if x:
             field_ancils = "\n                : ".join(x)
             string.append(f"Field ancils    : {field_ancils}")
+
+        # Uncertainty
+        x = [
+            _print_item(self, key, anc, self.constructs.data_axes()[key])
+            for key, anc in sorted(self.uncertainties(todict=True).items())
+        ]
+        if x:
+            uncertainties = "\n                : ".join(x)
+            string.append(f"Uncertainty     : {uncertainties}")
+
+        # Uncertainty ancillaries
+        x = [
+            _print_item(self, key, anc, self.constructs.data_axes()[key])
+            for key, anc in sorted(
+                self.uncertainty_ancillaries(todict=True).items()
+            )
+        ]
+        if x:
+            uncertainty_ancils = "\n                : ".join(x)
+            string.append(f"Uncertain ancils: {uncertainty_ancils}")
 
         string.append(str(self.domain))
 
@@ -493,9 +520,7 @@ class Field(
         {}
 
         >>> print(f.field_ancillaries())
-        Constructs:
-        {'cellmethod1': <{{repr}}CellMethod: domainaxis1: domainaxis2: mean where land (interval: 0.1 degrees)>,
-         'cellmethod0': <{{repr}}CellMethod: domainaxis3: maximum>}
+        TODOU
 
         """
         return self._filter_interface(
@@ -1751,6 +1776,42 @@ class Field(
                 f"key={key!r}, copy=False)"
             )
 
+        # Uncertainty ancillary constructs
+        for key, c in self.uncertainty_ancillaries().items():
+            out.extend(
+                c.creation_commands(
+                    representative_data=representative_data,
+                    string=False,
+                    indent=indent,
+                    namespace=namespace0,
+                    name="c",
+                    data_name=data_name,
+                    header=header,
+                )
+            )
+            out.append(
+                f"{name}.set_construct(c, axes={self.get_data_axes(key)}, "
+                f"key={key!r}, copy=False)"
+            )
+
+        # Uncertainty constructs
+        for key, c in self.uncertainties().items():
+            out.extend(
+                c.creation_commands(
+                    representative_data=representative_data,
+                    string=False,
+                    indent=indent,
+                    namespace=namespace0,
+                    name="c",
+                    data_name=data_name,
+                    header=header,
+                )
+            )
+            out.append(
+                f"{name}.set_construct(c, axes={self.get_data_axes(key)}, "
+                f"key={key!r}, copy=False)"
+            )
+
         # Cell method constructs
         for key, c in self.cell_methods(todict=True).items():
             out.extend(
@@ -1835,6 +1896,8 @@ class Field(
 
         axis_to_name = self._unique_domain_axis_identities()
 
+        construct_name = self._unique_construct_names()
+
         constructs_data_axes = self.constructs.data_axes()
 
         # Simple properties
@@ -1876,6 +1939,35 @@ class Field(
 
         # Field ancillaries
         for cid, value in sorted(self.field_ancillaries(todict=True).items()):
+            string.append(
+                value.dump(
+                    data=data,
+                    display=False,
+                    _axes=constructs_data_axes[cid],
+                    _axis_names=axis_to_name,
+                    _level=_level,
+                )
+            )
+            string.append("")
+
+        # Uncertainties
+        for cid, value in sorted(self.uncertainties(todict=True).items()):
+            string.append(
+                value.dump(
+                    data=data,
+                    display=False,
+                    _axes=constructs_data_axes[cid],
+                    _axis_names=axis_to_name,
+                    _level=_level,
+                    _construct_names=construct_name,
+                )
+            )
+            string.append("")
+
+        # Uncertainty ancillaries
+        for cid, value in sorted(
+            self.uncertainty_ancillaries(todict=True).items()
+        ):
             string.append(
                 value.dump(
                     data=data,
@@ -2102,7 +2194,7 @@ class Field(
 
         .. versionadded:: (cfdm) 1.10.0.0
 
-        .. seealso:: `__getitem__`, `__setitem__`
+        .. seealso:: `__getitem__`
 
         :Parameters:
 
@@ -3265,7 +3357,7 @@ class Field(
                     continue
 
                 if data.ndim < 2:
-                    # No need to transpose 1-d constructs
+                    # No need to transpose 1-d or scalar constructs
                     continue
 
                 construct_axes = f.get_data_axes(key)
@@ -3288,6 +3380,217 @@ class Field(
                 f.set_data_axes(axes=new_construct_axes, key=key)
 
         return f
+
+    def uncertainties(self, *identities, **filter_kwargs):
+        """Return uncertainty constructs.
+
+        ``f.uncertainties(*identities, **filter_kwargs)`` is equivalent
+        to ``f.constructs.filter(filter_by_type=["uncertainty"],
+        filter_by_identity=identities, **filter_kwargs)``.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `constructs`, `uncertainty`
+
+        :Parameters:
+
+            identities: optional
+                Select field ancillary constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{filter_kwargs: optional}} Also to configure the returned value.
+
+        :Returns:
+
+                {{Returns constructs}}
+
+        **Examples**
+
+        >>> print(f.uncertainties())
+        Constructs:
+        {}
+
+        >>> print(f.uncertainties())
+        TODOU
+
+        """
+        return self._filter_interface(
+            ("uncertainty",),
+            "uncertainties",
+            identities,
+            **filter_kwargs,
+        )
+
+    def uncertainty(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select an uncertainty construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `construct`, `uncertainties`
+
+        :Parameters:
+
+            identity: optional
+                Select uncertainty constructs that have an identity,
+                defined by their `!identities` methods, that matches
+                any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                If no values are provided then all uncertainty
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        """
+        return self._construct(
+            "uncertainty",
+            "uncertainties",
+            identity,
+            key=key,
+            item=item,
+            default=default,
+            **filter_kwargs,
+        )
+
+    def uncertainty_ancillaries(self, *identities, **filter_kwargs):
+        """Return uncertainty ancillary constructs.
+
+        ``f.uncertainty_ancillaries(*identities, **filter_kwargs)`` is
+        equivalent to
+        ``f.constructs.filter(filter_by_type=["uncertainty_ancillary"],
+        filter_by_identity=identities, **filter_kwargs)``.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `constructs`, `uncertainty_ancillary`
+
+        :Parameters:
+
+            identities: optional
+                Select field ancillary constructs that have an
+                identity, defined by their `!identities` methods, that
+                matches any of the given values.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{filter_kwargs: optional}} Also to configure the returned value.
+
+        :Returns:
+
+                {{Returns constructs}}
+
+        **Examples**
+
+        >>> print(f.uncertainty_ancillaries())
+        Constructs:
+        {}
+
+        >>> print(f.uncertainty_ancillaries())
+        TODOU
+
+        """
+        return self._filter_interface(
+            ("uncertainty_ancillary",),
+            "uncertaint_ancillaries",
+            identities,
+            **filter_kwargs,
+        )
+
+    def uncertainty_ancillary(
+        self,
+        *identity,
+        default=ValueError(),
+        key=False,
+        item=False,
+        **filter_kwargs,
+    ):
+        """Select an uncertainty ancillary construct.
+
+        {{unique construct}}
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `construct`, `uncertainty_ancillaries`
+
+        :Parameters:
+
+            identity: optional
+                Select uncertainty constructs that have an identity,
+                defined by their `!identities` methods, that matches
+                any of the given values.
+
+                Additionally, the values are matched against construct
+                identifiers, with or without the ``'key%'`` prefix.
+
+                If no values are provided then all uncertainty
+                constructs are selected.
+
+                {{value match}}
+
+                {{displayed identity}}
+
+            {{key: `bool`, optional}}
+
+            {{item: `bool`, optional}}
+
+            default: optional
+                Return the value of the *default* parameter if there
+                is no unique construct.
+
+                {{default Exception}}
+
+            {{filter_kwargs: optional}}
+
+        :Returns:
+
+                {{Returns construct}}
+
+        """
+        return self._construct(
+            "uncertainty_ancillary",
+            "uncertainty_ancillaries",
+            identity,
+            key=key,
+            item=item,
+            default=default,
+            **filter_kwargs,
+        )
 
     @_inplace_enabled(default=False)
     def uncompress(self, inplace=False):
@@ -3356,11 +3659,19 @@ class Field(
         # Uncompress the domain
         f.domain.uncompress(inplace=True)
 
-        # Uncompress any field ancillaries
+        # Uncompress any field ancillaries, uncertainties, and
+        # uncertainty ancillaries
         for c in f.constructs.filter_by_type(
-            "field_ancillary", todict=True
+                "field_ancillary", "uncertainty", "uncertainty_ancillary",
+                todict=True
         ).values():
             c.uncompress(inplace=True)
+
+        # Uncompress any uncertainties
+        print("TODOU: Uncompress any uncertainties")
+
+        # Uncompress any uncertainty ancillaries
+        print("TODOU: ncompress any uncertainty ancillaries")
 
         return f
 

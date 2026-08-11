@@ -139,7 +139,10 @@ from .tiepointindex import TiePointIndex
 from .bounds import Bounds
 from .coordinateconversion import CoordinateConversion
 from .datum import Datum
+from .errorcorrelationmodel import ErrorCorrelationModel
+from .errorcorrelationparameter import ErrorCorrelationParameter
 from .interiorring import InteriorRing
+from .probabilitydistribution import ProbabilityDistribution
 from .quantization import Quantization
 
 from .units import Units
@@ -156,6 +159,8 @@ from .domainaxis import DomainAxis
 from .domaintopology import DomainTopology
 from .field import Field
 from .fieldancillary import FieldAncillary
+from .uncertainty import Uncertainty
+from .uncertaintyancillary import UncertaintyAncillary
 
 from .abstract import Implementation
 from .cfdmimplementation import CFDMImplementation, implementation

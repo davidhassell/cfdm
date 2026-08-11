@@ -14,6 +14,7 @@ from . import (
     DomainAncillary,
     DomainAxis,
     DomainTopology,
+    ErrorCorrelationModel,
     Field,
     FieldAncillary,
     Index,
@@ -22,8 +23,10 @@ from . import (
     List,
     NodeCountProperties,
     PartNodeCountProperties,
-    Quantization,
+    ProbabilityDistribution,    Quantization,
     TiePointIndex,
+    Uncertainty,
+    UncertaintyAncillary,
 )
 from .abstract import Implementation
 from .data import (
@@ -2326,6 +2329,24 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("DomainTopology")
         return cls(**kwargs)
 
+    def initialise_ErrorCorrelationModel(self, **kwargs):
+        """Return a error correlation model class.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the class.
+
+        :Returns:
+
+            `ErrorCorrelationModel`
+
+        """
+        cls = self.get_class("ErrorCorrelationModel")
+        return cls(**kwargs)
+
     def initialise_CellConnectivity(self, **kwargs):
         """Return a cell connectivity construct.
 
@@ -2638,6 +2659,24 @@ class CFDMImplementation(Implementation):
         cls = self.get_class("PartNodeCountProperties")
         return cls()
 
+    def initialise_ProbabilityDistributionn(self, **kwargs):
+        """Return a probability distribution class.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the class.
+
+        :Returns:
+
+            `ProbabilityDistribution`
+
+        """
+        cls = self.get_class("ProbabilityDistribution")
+        return cls(**kwargs)
+
     def initialise_RaggedContiguousArray(
         self,
         compressed_array=None,
@@ -2751,6 +2790,43 @@ class CFDMImplementation(Implementation):
             count_variable=count_variable,
             index_variable=index_variable,
         )
+
+    def initialise_Uncertainty(self, **kwargs):
+        """Return an uncertainty construct.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the class.
+
+        :Returns:
+
+            `Uncertainty`
+
+        """
+        cls = self.get_class("Uncertainty")
+        return cls(**kwargs)
+
+    def initialise_UncertaintyAncillary(self, **kwargs):
+        """Return an uncertainty ancillary construct.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            kwargs: optional
+                Parameters for intialising the class.
+
+
+        :Returns:
+
+            `UncertaintyAncillary`
+
+        """
+        cls = self.get_class("UncertaintyAncillary")
+        return cls(**kwargs)
 
     def is_climatology(self, coordinate):
         """Whether or not the coordinate represent climatologies.
@@ -4007,6 +4083,7 @@ _implementation = CFDMImplementation(
     InterpolationParameter=InterpolationParameter,
     CoordinateConversion=CoordinateConversion,
     Datum=Datum,
+    ErrorCorrelationModel=ErrorCorrelationModel,
     List=List,
     Index=Index,
     Count=Count,
@@ -4016,12 +4093,15 @@ _implementation = CFDMImplementation(
     BoundsFromNodesArray=BoundsFromNodesArray,
     GatheredArray=GatheredArray,
     PointTopologyArray=PointTopologyArray,
+    ProbabilityDistribution=ProbabilityDistribution,
     Quantization=Quantization,
     RaggedContiguousArray=RaggedContiguousArray,
     RaggedIndexedArray=RaggedIndexedArray,
     RaggedIndexedContiguousArray=RaggedIndexedContiguousArray,
     SubsampledArray=SubsampledArray,
     TiePointIndex=TiePointIndex,
+    Uncertainty=Uncertainty,
+    UncertaintyAncillary=UncertaintyAncillary,
     XnetcdfArray=XnetcdfArray,
 )
 

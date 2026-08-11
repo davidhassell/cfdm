@@ -24,6 +24,8 @@ class Field(mixin.FieldDomain, abstract.PropertiesData):
     coordinate reference and domain ancillary constructs. All of the
     constructs contained by the field construct are optional.
 
+    TODOU: uncertainty
+
     The field construct also has optional properties to describe
     aspects of the data that are independent of the domain. These
     correspond to some netCDF attributes of variables (e.g. units,
@@ -48,6 +50,8 @@ class Field(mixin.FieldDomain, abstract.PropertiesData):
         "domain_axis": "domainaxis",
         "domain_topology": "domaintopology",
         "field_ancillary": "fieldancillary",
+        "uncertainty": "uncertainty",
+        "uncertainty_ancillary": "uncertaintyancillary",
     }
 
     def __new__(cls, *args, **kwargs):

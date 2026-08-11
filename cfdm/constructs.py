@@ -53,6 +53,8 @@ class Constructs(Container, core_Constructs):
     * cell connectivity constructs
     * cell method constructs
     * field ancillary constructs
+    * uncertainty constructs
+    * uncertainty ancillary constructs
 
     .. versionadded:: (cfdm) 1.7.0
 
@@ -177,49 +179,59 @@ class Constructs(Container, core_Constructs):
         **Examples**
 
         >>> f.constructs._axes_to_constructs()
-        {('domainaxis0',): {'auxiliary_coordinate': {},
-                            'cell_measure'        : {},
-                            'dimension_coordinate': {'dimensioncoordinate0': <DimensionCoordinate: atmosphere_hybrid_height_coordinate(1) >},
-                            'domain_ancillary'    : {'domainancillary0': <DomainAncillary: ncvar%a(1) m>,
-                                                     'domainancillary1': <DomainAncillary: ncvar%b(1) >},
-                            'domain_topology'     : {},
-                            'cell_connectivity'   : {},
-                            'field_ancillary'     : {}},
-         ('domainaxis1',): {'auxiliary_coordinate': {'auxiliarycoordinate2': <AuxiliaryCoordinate: long_name=Grid latitude name(10) >},
-                            'cell_measure'        : {},
-                            'dimension_coordinate': {'dimensioncoordinate1': <DimensionCoordinate: grid_latitude(10) degrees>},
-                            'domain_ancillary'    : {},
-                            'domain_topology'     : {},
-                            'cell_connectivity'   : {},
-                            'field_ancillary'     : {}},
-         ('domainaxis1', 'domainaxis2'): {'auxiliary_coordinate': {'auxiliarycoordinate0': <AuxiliaryCoordinate: latitude(10, 9) degrees_N>},
-                                          'cell_measure'        : {},
-                                          'dimension_coordinate': {},
-                                          'domain_ancillary'    : {'domainancillary2': <DomainAncillary: surface_altitude(10, 9) m>},
-                                          'domain_topology'     : {},
-                                          'cell_connectivity'   : {},
-                                          'field_ancillary'     : {'fieldancillary0': <FieldAncillary: air_temperature standard_error(10, 9) K>}},
-         ('domainaxis2',): {'auxiliary_coordinate': {},
-                            'cell_measure'        : {},
-                            'dimension_coordinate': {'dimensioncoordinate2': <DimensionCoordinate: grid_longitude(9) degrees>},
-                            'domain_ancillary'    : {},
-                            'domain_topology'     : {},
-                            'cell_connectivity'   : {},
-                            'field_ancillary'     : {}},
+        {('domainaxis0',): {'auxiliary_coordinate' : {},
+                            'cell_measure'         : {},
+                            'dimension_coordinate' : {'dimensioncoordinate0': <DimensionCoordinate: atmosphere_hybrid_height_coordinate(1) >},
+                            'domain_ancillary'     : {'domainancillary0': <DomainAncillary: ncvar%a(1) m>,
+                                                      'domainancillary1': <DomainAncillary: ncvar%b(1) >},
+                            'domain_topology'      : {},
+                            'cell_connectivity'    : {},
+                            'field_ancillary'      : {}},
+         ('domainaxis1',): {'auxiliary_coordinate' : {'auxiliarycoordinate2': <AuxiliaryCoordinate: long_name=Grid latitude name(10) >},
+                            'cell_measure'         : {},
+                            'dimension_coordinate' : {'dimensioncoordinate1': <DimensionCoordinate: grid_latitude(10) degrees>},
+                            'domain_ancillary'     : {},
+                            'domain_topology'      : {},
+                            'cell_connectivity'    : {},
+                            'field_ancillary'      : {},
+                            'uncertainty'          : {},
+                            'uncertainty_ancillary': {}},
+         ('domainaxis1', 'domainaxis2'): {'auxiliary_coordinate' : {'auxiliarycoordinate0': <AuxiliaryCoordinate: latitude(10, 9) degrees_N>},
+                                          'cell_measure'         : {},
+                                          'dimension_coordinate' : {},
+                                          'domain_ancillary'     : {'domainancillary2': <DomainAncillary: surface_altitude(10, 9) m>},
+                                          'domain_topology'      : {},
+                                          'cell_connectivity'    : {},
+                                          'field_ancillary'      : {'fieldancillary0': <FieldAncillary: air_temperature standard_error(10, 9) K>},
+                                          'uncertainty'          : {},
+                                          'uncertainty_ancillary': {}},
+         ('domainaxis2',): {'auxiliary_coordinate' : {},
+                            'cell_measure'         : {},
+                            'dimension_coordinate' : {'dimensioncoordinate2': <DimensionCoordinate: grid_longitude(9) degrees>},
+                            'domain_ancillary'     : {},
+                            'domain_topology'      : {},
+                            'cell_connectivity'    : {},
+                            'field_ancillary'      : {},
+                            'uncertainty'          : {},
+                            'uncertainty_ancillary': {}},
          ('domainaxis2', 'domainaxis1'): {'auxiliary_coordinate': {'auxiliarycoordinate1': <AuxiliaryCoordinate: longitude(9, 10) degrees_E>},
                                           'cell_measure'        : {'cellmeasure0': <CellMeasure: measure:area(9, 10) km2>},
-                                          'dimension_coordinate': {},
-                                          'domain_ancillary'    : {},
-                                          'domain_topology'     : {},
-                                          'cell_connectivity'   : {},
-                                          'field_ancillary'     : {}},
-         ('domainaxis3',): {'auxiliary_coordinate': {},
-                            'cell_measure'        : {},
-                            'dimension_coordinate': {'dimensioncoordinate3': <DimensionCoordinate: time(1) days since 2018-12-01 >},
-                            'domain_ancillary'    : {},
-                            'domain_topology'     : {},
-                            'cell_connectivity'   : {},
-                            'field_ancillary'     : {}}}
+                                          'dimension_coordinate' : {},
+                                          'domain_ancillary'     : {},
+                                          'domain_topology'      : {},
+                                          'cell_connectivity'    : {},
+                                          'field_ancillary'      : {},
+                                          'uncertainty'          : {},
+                                          'uncertainty_ancillary': {}},
+         ('domainaxis3',): {'auxiliary_coordinate' : {},
+                            'cell_measure'         : {},
+                            'dimension_coordinate' : {'dimensioncoordinate3': <DimensionCoordinate: time(1) days since 2018-12-01 >},
+                            'domain_ancillary'     : {},
+                            'domain_topology'      : {},
+                            'cell_connectivity'    : {},
+                            'field_ancillary'      : {},
+                            'uncertainty'          : {},
+                            'uncertainty_ancillary': {}}}
 
         """
         data_axes = self.data_axes()
@@ -247,17 +259,17 @@ class Constructs(Container, core_Constructs):
     def _del_construct(self, key, default=ValueError()):
         """Remove a metadata construct.
 
-        If a domain axis construct is selected for removal then it can't
-        be spanned by any metdata construct data arrays, nor be referenced
-        by any cell method constructs.
+        If a domain axis construct is selected for removal then it
+        can't be spanned by any metdata construct data arrays, nor be
+        referenced by any cell method constructs.
 
-        However, a domain ancillary construct may be removed even if it is
-        referenced by coordinate reference construct. In this case the
-        reference is replace with `None`.
+        However, a domain ancillary construct may be removed even if
+        it is referenced by coordinate reference construct. In this
+        case the reference is replace with `None`.
 
-        If a climatological time cell method construct is removed then the
-        climatological status of its corresponding coordinate constructs
-        will be reviewed.
+        If a climatological time cell metqhod construct is removed then
+        the climatological status of its corresponding coordinate
+        constructs will be reviewed.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -3206,20 +3218,22 @@ class Constructs(Container, core_Constructs):
 
                 A type is specified by one of the following strings:
 
-                ==========================  ================================
-                *type*                      Construct selected
-                ==========================  ================================
-                ``'domain_ancillary'``      Domain ancillary constructs
-                ``'dimension_coordinate'``  Dimension coordinate constructs
-                ``'domain_axis'``           Domain axis constructs
-                ``'auxiliary_coordinate'``  Auxiliary coordinate constructs
-                ``'cell_measure'``          Cell measure constructs
-                ``'coordinate_reference'``  Coordinate reference constructs
-                ``'domain_topology'``       Domain topology constructs
-                ``'cell_connectivity'``     Cell connectivity constructs
-                ``'cell_method'``           Cell method constructs
-                ``'field_ancillary'``       Field ancillary constructs
-                ==========================  ================================
+                ===========================  ================================
+                *type*                       Construct selected
+                ===========================  ================================
+                ``'domain_ancillary'``       Domain ancillary constructs
+                ``'dimension_coordinate'``   Dimension coordinate constructs
+                ``'domain_axis'``            Domain axis constructs
+                ``'auxiliary_coordinate'``   Auxiliary coordinate constructs
+                ``'cell_measure'``           Cell measure constructs
+                ``'coordinate_reference'``   Coordinate reference constructs
+                ``'domain_topology'``        Domain topology constructs
+                ``'cell_connectivity'``      Cell connectivity constructs
+                ``'cell_method'``            Cell method constructs
+                ``'field_ancillary'``        Field ancillary constructs
+                ``'uncertainty'``            Uncertainty constructs
+                ``'uncertainty_ancillary'``  Uncertainty ancillary constructs
+                ===========================  ================================
 
                 If no types are provided then all constructs are selected.
 
