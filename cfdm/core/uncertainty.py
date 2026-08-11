@@ -199,7 +199,7 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        if  self.get_property("coverage_interval", None) == "offsets":
+        if self.get_property("coverage_interval", None) == "offsets":
             data = self.get_data(None, _units=False, _fill_value=False)
             if data is not None:
                 return data.shape[:-1]

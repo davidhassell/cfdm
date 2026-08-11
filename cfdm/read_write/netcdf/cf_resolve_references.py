@@ -624,7 +624,7 @@ def resolve_pattern_6(value, variable, coord=False):
         return " ".join(resolved)
 
 
-    def resolve_pattern_7(value, variable, coord=False):
+def resolve_pattern_7(value, variable, coord=False):
     """Resolve references in a pattern 7 attribute.
 
     Resolve references in an attribute whose value has one of the
@@ -643,9 +643,11 @@ def resolve_pattern_6(value, variable, coord=False):
         `str`
 
     """
+    import re
+
     def replacer(m):
         """Replacer function for `re.sub`.
-        
+
         :Parameters:
 
             m: `re.Match`
@@ -660,11 +662,11 @@ def resolve_pattern_6(value, variable, coord=False):
         # Resolve the reference
         ref = resolve_reference(ref, variable, var=True, coord=coord)
         return f": {ref}"
-        
+
     try:
         # From the first '(', match ': ' followed by a variable name
         # up to a space or ')'
-        return re.sub(r':\s+([^\s\)]+)', replacer, value)
+        return re.sub(r":\s+([^\s\)]+)", replacer, value)
     except TypeError:
         # 'value' is not a string nor a bytes-like object
         return value
@@ -682,9 +684,11 @@ def resolve_pattern_8(value, variable, coord=False):
         `str`
 
     """
+    import re
+
     def replacer(m):
         """Replacer function for `re.sub`.
-        
+
         :Parameters:
 
             m: `re.Match`
@@ -702,10 +706,8 @@ def resolve_pattern_8(value, variable, coord=False):
         if key != "comment":
             # Resolve the reference
             ref = resolve_reference(ref, variable, var=True, coord=coord)
-            
+
         return f"{key}: {ref}"
-        
-    import re
 
     resolved = []
     # ------------------------------------------------------------
@@ -725,7 +727,7 @@ def resolve_pattern_8(value, variable, coord=False):
         return value
 
     previous_ref = None
-    for ref in cell_methods:
+    for ref in value:
         if ref.endswith(":"):
             # Form 1, 2, 3
             ref = resolve_reference(ref[:-1], variable, dim=True)
@@ -751,19 +753,20 @@ def resolve_pattern_8(value, variable, coord=False):
             if ref.startswith("(") and ref.endswith(")"):
                 if not ref.startswith("(comment:"):
                     ref = re.sub(
-                        r'([^\s:]+):\s+([^\s\)]+)', replacer, value[1:-1]
+                        r"([^\s:]+):\s+([^\s\)]+)", replacer, value[1:-1]
                     )
                     ref = f"({ref})"
-                    
+
                 resolved.append(ref)
                 previous_ref = "brackets"
                 continue
-        
+
         # Still here?
         resolved.append(ref)
         previous_ref = None
 
     return " ".join(resolved)
+
 
 @dataclass
 class ResolveAttribute:
@@ -900,8 +903,6 @@ resolvable_attributes = {
         # ------------------------------------------------------------
         # Error correlations
         # ------------------------------------------------------------
-        ResolveAttribute(
-            name="error_correlation", resolver=resolve_pattern_8
-        ),
+        ResolveAttribute(name="error_correlation", resolver=resolve_pattern_8),
     )
 }

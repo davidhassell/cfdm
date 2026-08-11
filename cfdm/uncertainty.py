@@ -25,7 +25,7 @@ class Uncertainty(
     `nc_del_dimension`, and `nc_has_dimension` methods.
 
     {{netCDF variable group}}
-    
+
     {{netCDF dataset chunks}}
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -79,7 +79,7 @@ class Uncertainty(
 
         **Examples**
 
-        >>> x = {{package}}.CellMeasure(
+        >>> x = {{package}}.TODOUCellMeasure(
         ...     measure='area',
         ...     properties={'units': 'm2'}
         ... )
@@ -190,7 +190,7 @@ class Uncertainty(
     def identity(self, default=""):
         """Return the canonical identity.
 
-        By default the identity is the first found of the following:
+        TODOU By default the identity is the first found of the following:
 
         * The ``standard_name`` property.
         * The ``coverage_interval`` property, preceded by
@@ -254,7 +254,7 @@ class Uncertainty(
     def identities(self, generator=False, **kwargs):
         """Return all possible identities.
 
-        The identities comprise:
+        TODOU The identities comprise:
 
         * The ``standard_name`` property.
         * All properties, preceded by the property name and a equals
@@ -282,7 +282,7 @@ class Uncertainty(
 
         **Examples**
 
-        >>> c.identities()
+        >>> TODOUc.identities()
         ['coverage_interval=standard_deviation',
          'coverage_probability=0.6827',
          'probability_distribution=gaussian',

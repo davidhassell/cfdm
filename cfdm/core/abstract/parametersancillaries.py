@@ -6,13 +6,18 @@ class ParametersAncillaries(Parameters):
 
     Ancillary constructs can be domain or uncertainty ancillary
     constructs.
-    
+
     .. versionadded:: (cfdm) 1.7.0
 
     """
 
     def __init__(
-            self, parameters=None, ancillaries=None, multiple_ancillaries=False,  source=None, copy=True
+        self,
+        parameters=None,
+        ancillaries=None,
+        multiple_ancillaries=False,
+        source=None,
+        copy=True,
     ):
         """**Initialisation**
 
@@ -25,7 +30,7 @@ class ParametersAncillaries(Parameters):
                Parameters may also be set after initialisation with
                the `set_parameters` and `set_parameter` methods.
 
-               *Parameter example:*
+               *Example:*
                  ``parameters={'earth_radius': 6371007.}``
 
             ancillaries: `dict`, optional
@@ -36,14 +41,14 @@ class ParametersAncillaries(Parameters):
                Ancillaries may also be set after initialisation with
                the `set_ancillaries` and `set_ancillary` methods.
 
-               *Parameter example:*
+               *Example:*
                  ``ancillaries={'orog': 'domainancillary2'}``
 
             multiple_ancillaries: `bool`, optional
 
                 TODOU
 
-        
+
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
@@ -60,9 +65,11 @@ class ParametersAncillaries(Parameters):
                 ancillaries = None
 
             try:
-                multiple_ancillaries = source._get_component("multiple_ancillaries", False)
+                multiple_ancillaries = source._get_component(
+                    "multiple_ancillaries", False
+                )
             except AttributeError:
-                multiple_ancillaries= False
+                multiple_ancillaries = False
 
         if ancillaries is None:
             ancillaries = {}
@@ -90,7 +97,7 @@ class ParametersAncillaries(Parameters):
         return out.copy()
 
     def del_ancillary(self, term, default=ValueError()):
-        """Delete an ancillary.
+        """Delete an ancillary construct-valued term.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -101,7 +108,7 @@ class ParametersAncillaries(Parameters):
             term: `str`
                 The name of the ancillary to be deleted.
 
-                *Parameter example:*
+                *Example:*
                    ``ancillary='orog'``
 
             default: optional
@@ -122,10 +129,12 @@ class ParametersAncillaries(Parameters):
             if default is None:
                 return
 
+            s = "s" if self._get_component("multiple_ancillaries") else ""
+
             return self._default(
                 default,
                 f"{self.__class__.__name__!r} has no {term!r} "
-                "ancillary construct",
+                f"ancillary construct{s}",
             )
 
     def ancillaries(self):
@@ -145,7 +154,7 @@ class ParametersAncillaries(Parameters):
         return self._get_component("ancillaries").copy()
 
     def get_ancillary(self, term, default=ValueError()):
-        """Return an ancillary term.
+        """Return an ancillary construct-valued term.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -168,19 +177,21 @@ class ParametersAncillaries(Parameters):
 
         """
         try:
-            return self._get_component("ancillaries")[ancillary]
+            return self._get_component("ancillaries")[term]
         except KeyError:
             if default is None:
                 return
 
+            s = "s" if self._get_component("multiple_ancillaries") else ""
+
             return self._default(
                 default,
                 f"{self.__class__.__name__!r} has no {term!r} "
-                "ancillary construct",
+                f"ancillary construct{s}",
             )
 
     def has_ancillary(self, term):
-        """Whether an ancillary has been set.
+        """Whether an ancillary construct-valued term has been set.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -200,7 +211,7 @@ class ParametersAncillaries(Parameters):
         return term in self._get_component("ancillaries")
 
     def set_ancillaries(self, ancillaries):
-        """Set ancillaries.
+        """Set ancillary construct-valued terms.
 
         .. versionadded:: (cfdm) 1.7.0
 
@@ -217,12 +228,18 @@ class ParametersAncillaries(Parameters):
             `None`
 
         """
-        if self._get_component('multiple_ancillaries'):
+        if self._get_component("multiple_ancillaries"):
             ancillaries = {
-                key, tuple(value,) if isinstance(value, str) else value
+                key: (
+                    tuple(
+                        value,
+                    )
+                    if isinstance(value, str)
+                    else value
+                )
                 for key, value in ancillaries.items()
             }
-            
+
         self._get_component("ancillaries").update(ancillaries)
 
     def set_ancillary(self, term, ancillary):
@@ -245,10 +262,11 @@ class ParametersAncillaries(Parameters):
             `None`
 
         """
-        if (
-                self._get_component('multiple_ancillaries')
-                and isinstance(ancillary, str)
+        if self._get_component("multiple_ancillaries") and isinstance(
+            ancillary, str
         ):
-            ancillary = tuple(ancillary,)
-            
+            ancillary = tuple(
+                ancillary,
+            )
+
         self._get_component("ancillaries")[term] = ancillary

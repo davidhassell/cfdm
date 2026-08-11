@@ -6186,9 +6186,8 @@ def example_field(n, _implementation=_implementation):
             dtype="f4",
         )
         c.set_data(data)
-        c.probability_distribution.set_parameter("distribution": "gaussian")
-        c.probability_distribution.set_ancillary('error_correlations': key_ec2)
-        )
+        c.probability_distribution.set_parameter("distribution", "gaussian")
+        c.probability_distribution.set_ancillary("error_correlations", key_ec2)
         f.set_construct(
             c,
             axes=("domainaxis0", "domainaxis1"),
@@ -6274,11 +6273,10 @@ def example_field(n, _implementation=_implementation):
         data = Data(1, units="%", dtype="f4")
         c.set_data(data)
         c.probability_distribution.set_ancillary(
-            "error_correlations",  (key_ec0, key_ec1)
+            "error_correlations", (key_ec0, key_ec1)
         )
         f.set_construct(c, axes=(), copy=False)
 
-       
     else:
         raise ValueError(
             "Must select an example construct with an integer argument "

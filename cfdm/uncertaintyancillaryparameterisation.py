@@ -9,4 +9,3 @@ class UncertaintyAncillaryParameterisation(
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
-

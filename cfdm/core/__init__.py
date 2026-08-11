@@ -31,6 +31,9 @@ from .errorcorrelationmodel import ErrorCorrelationModel
 from .errorcorrelationparameter import ErrorCorrelationParameter
 from .interiorring import InteriorRing
 from .probabilitydistribution import ProbabilityDistribution
+from .uncertaintyancillaryparameterisation import (
+    UncertaintyAncillaryParameterisation,
+)
 
 from .auxiliarycoordinate import AuxiliaryCoordinate
 from .cellconnectivity import CellConnectivity

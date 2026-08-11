@@ -9,8 +9,13 @@ class UncertaintyAncillaryParameterization(ParametersAncillaries):
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
+
     def __init__(
-        self, parameters=None, uncertainty_ancillaries=None, source=None, copy=True
+        self,
+        parameters=None,
+        uncertainty_ancillaries=None,
+        source=None,
+        copy=True,
     ):
         """**Initialisation**
 
@@ -23,7 +28,7 @@ class UncertaintyAncillaryParameterization(ParametersAncillaries):
                Parameters may also be set after initialisation with
                the `set_parameters` and `set_parameter` methods.
 
-               *Parameter example:*
+               *Example:*
                  ``parameters={'error_correlation_structure': 'triangular'}``
 
             uncertainty_ancillaries: `dict`, optional
@@ -44,8 +49,10 @@ class UncertaintyAncillaryParameterization(ParametersAncillaries):
             {{init copy: `bool`, optional}}
 
         """
-        super().__init__(parameters=parameters,
-                         ancillaries=uncertainty_ancillaries,
-                         multiple_ancillaries=False,
-                         source=source,
-                         copy=copy)
+        super().__init__(
+            parameters=parameters,
+            ancillaries=uncertainty_ancillaries,
+            multiple_ancillaries=False,
+            source=source,
+            copy=copy,
+        )

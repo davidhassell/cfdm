@@ -26,7 +26,7 @@ class UncertaintyAncillary(
     methods.
 
     {{netCDF variable group}}
-    
+
     {{netCDF dataset chunks}}
 
     .. versionadded:: (cfdm) NEXTVERSION
@@ -225,7 +225,7 @@ class UncertaintyAncillary(
     def identity(self, default=""):
         """Return the canonical identity.
 
-        By default the identity is the first found of the following:
+        TODOU By default the identity is the first found of the following:
 
         * The ``standard_name`` property.
         * The ``coverage_interval`` property, preceded by
@@ -295,7 +295,7 @@ class UncertaintyAncillary(
     def identities(self, generator=False, **kwargs):
         """Return all possible identities.
 
-        The identities comprise:
+        TODOU The identities comprise:
 
         * The ``standard_name`` property.
         * All properties, preceded by the property name and a equals
@@ -323,7 +323,7 @@ class UncertaintyAncillary(
 
         **Examples**
 
-        >>> c.identities()
+        >>> TODOU c.identities()
         ['coverage_interval=standard_deviation',
          'coverage_probability=0.6827',
          'probability_distribution=gaussian',
@@ -402,10 +402,10 @@ class UncertaintyAncillary(
                 0, the slowest varying position. Negative integers
                 counting from the last position are allowed.
 
-                *Parameter example:*
+                *Example:*
                   ``position=2``
 
-                *Parameter example:*
+                *Example:*
                   ``position=-1``
 
             {{inplace: `bool`, optional}}
@@ -418,7 +418,7 @@ class UncertaintyAncillary(
 
         **Examples**
 
-        >>> f.shape
+        >>> TODOU f.shape
         (19, 73, 96)
         >>> f.insert_dimension(position=3).shape
         (19, 73, 96, 1)
@@ -457,7 +457,7 @@ class UncertaintyAncillary(
     def squeeze(self, axes=None, inplace=False):
         """Remove size one axes from the data array.
 
-        By default all size one axes are removed, but particular size
+        TODOU By default all size one axes are removed, but particular size
         one axes may be selected for removal.
 
         .. versionadded:: (cfdm) 1.7.0
@@ -483,7 +483,7 @@ class UncertaintyAncillary(
         **Examples**
 
 
-        >>> f = {{package}}.{{class}}()
+        >>> TODOU f = {{package}}.{{class}}()
         >>> d = {{package}}.Data(numpy.arange(7008).reshape((1, 73, 1, 96)))
         >>> f.set_data(d)
         >>> f.shape
@@ -503,6 +503,7 @@ class UncertaintyAncillary(
         if (
             axes is not None
             and c.get_distribution_parameter() == "error_correlation"
+                # TODOU - we no longer expect the uncertainty ancillay to know what it is!
         ):
             try:
                 ndim = c.ndim

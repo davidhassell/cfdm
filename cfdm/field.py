@@ -3662,8 +3662,10 @@ class Field(
         # Uncompress any field ancillaries, uncertainties, and
         # uncertainty ancillaries
         for c in f.constructs.filter_by_type(
-                "field_ancillary", "uncertainty", "uncertainty_ancillary",
-                todict=True
+            "field_ancillary",
+            "uncertainty",
+            "uncertainty_ancillary",
+            todict=True,
         ).values():
             c.uncompress(inplace=True)
 

@@ -12,7 +12,7 @@ class ProbabilityDistribution(ParametersAncillaries):
         self,
         distribution=None,
         parameters=None,
-            uncertainty_ancillaries=None,
+        uncertainty_ancillaries=None,
         source=None,
         copy=True,
     ):
@@ -27,7 +27,7 @@ class ProbabilityDistribution(ParametersAncillaries):
                Parameters may also be set after initialisation with
                the `set_parameters` and `set_parameter` methods.
 
-               *Parameter example:*
+               *Example:*
                  ``parameters={'distribution_name': 'gaussian'}``
 
             uncertainty_ancillaries: `dict`, optional
@@ -44,15 +44,16 @@ class ProbabilityDistribution(ParametersAncillaries):
                  ``uncertainty_ancillaries={'skew':
                  'uncertaintyancillary2', 'error_correlations':
                  ('uncertaintyancillary1', uncertaintyancillary2')}``
-        
+
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
 
         """
-        super().__init__(parameters=parameters,
-                         ancillaries=uncertainty_ancillaries,
-                         multiple_ancillaries=True,
-                         source=source,
-                         copy=copy,
-                         )
+        super().__init__(
+            parameters=parameters,
+            ancillaries=uncertainty_ancillaries,
+            multiple_ancillaries=True,
+            source=source,
+            copy=copy,
+        )
