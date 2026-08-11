@@ -6261,6 +6261,23 @@ def example_field(n, _implementation=_implementation):
             copy=False,
         )
 
+        # uncertainty_ancillary
+        c = UncertaintyAncillary()
+        c.set_trailing_dimensions(False)
+        c.nc_set_variable("localisation_radius")
+        data = Data(10, dtype="i4")
+        c.set_data(data)
+        key_ec4 = f.set_construct(c, axes=(), copy=False)
+
+        # uncertainty_ancillary
+        c = UncertaintyAncillary()
+        c.set_trailing_dimensions(True)
+        c.parameterisation.set_parameter(
+            "error_correlation_structure", "triangular"
+        )
+        c.parameterisation.set_ancillary("localisation_radius", key_ec4)
+        key_ec3 = f.set_construct(c, axes=("domainaxis0",), copy=False)
+
         # uncertainty
         c = Uncertainty()
         c.set_properties(

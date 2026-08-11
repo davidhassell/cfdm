@@ -203,7 +203,11 @@ class UncertaintyAncillary(
 
         """
         if _title is None:
-            _title = "Uncertainty Ancillary: " + self.identity(default="")
+            _title = "Uncertainty Ancillary: "
+            if _construct_names and _key in _construct_names:
+                _title += _construct_names[_key]
+            else:
+                _title += self.identity(default="")
 
         string = super().dump(
             data=data,
