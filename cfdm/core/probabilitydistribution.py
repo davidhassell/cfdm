@@ -42,7 +42,7 @@ class ProbabilityDistribution(ParametersAncillaries):
 
                *Example:*
                  ``uncertainty_ancillaries={'skew':
-                 'uncertaintyancillary2', 'error_correlations':
+                 'uncertaintyancillary2', 'error_correlation':
                  ('uncertaintyancillary1', uncertaintyancillary2')}``
 
             {{init source: optional}}
