@@ -8143,12 +8143,18 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         )
 
         if ncvar is not None:
+            store_chunks = True
             try:
-                nan_in_shape = np.isnan(data.to_dask_array().shape).any()
+                # Don't store the chunks of a `Data` object that
+                # doesn't know its own shape (i.e. the shape contains
+                # one or more NaNs), because this means that it's
+                # array is not taken directly from an variable in the
+                # dataset.
+                store_chunks = not np.isnan(data.to_dask_array().shape).any()
             except Exception:
-                nan_in_shape = False
+                pass
 
-            if not nan_in_shape:
+            if store_chunks:
                 # Store the dataset chunking, but only for data arrays
                 # that know their shape (i.e. the shape does not
                 # contain NaN). If the shape contains NaN then it is
