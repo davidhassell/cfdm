@@ -495,136 +495,6 @@ class NetCDFCheckerMixin(Report):
 
         return ok
 
-    def _check_uncertainty_variables(self, field_ncvar, string, parsed_string):
-        """Checks requirements.
-
-        :Parameters:
-
-            field_ncvar: `str`
-
-            string: `str`
-                The value of the netCDF uncertainty_variables attribute.
-
-            parsed_string: `list`
-
-        :Returns:
-
-            `bool`
-
-        """
-        attribute = {field_ncvar + ":uncertainty_variables": string}
-
-        incorrectly_formatted = (
-            "uncertainty_variables attribute",
-            "is incorrectly formatted",
-        )
-        incorrect_dimensions = (
-            "Uncerainty variable",
-            "spans incorrect dimensions",
-        )
-
-        g = self.read_vars
-
-        if not parsed_string:
-            d = self._add_message(
-                field_ncvar,
-                field_ncvar,
-                message=incorrectly_formatted,
-                attribute=attribute,
-            )
-
-            # Though an error of sorts, set as debug level message;
-            # read not terminated
-            if g["debug"]:
-                logger.debug(
-                    f"    Error processing netCDF variable {field_ncvar}: "
-                    f"{d['reason']}"
-                )  # pragma: no cover
-
-            return False
-
-        parent_dimensions = self._ncdimensions(field_ncvar)
-
-        ok = True
-        for ncvar in parsed_string:
-            # Check that the variable exists in the file
-            if ncvar not in g["internal_variables"]:
-                ncvar, message = self._missing_variable(
-                    ncvar, "Uncertainty variable"
-                )
-                self._add_message(
-                    field_ncvar, ncvar, message=message, attribute=attribute
-                )
-
-                return False
-
-            ncvar_attrs = g["variables"][ncvar].attrs
-
-            self._check_standard_names(
-                field_ncvar,
-                ncvar,
-                ncvar_attrs,
-            )
-            self._include_component_report(
-                field_ncvar,
-                ncvar,
-                "uncertainty_variables",
-            )
-
-            # TODO - check that there are coverage_interval and
-            #        coverage_probability attributes, and that they
-            #        have approriate values.  If not this is a
-            #        compliance issue, but not one that stops the
-            #        uncertainty variable being read
-
-            dimensions = self._ncdimensions(ncvar)
-            if ncvar_attrs.get("coverage_interval") == "offsets":
-                # The uncertainty variable has a trailing interval
-                # dimension which is not meant to be one of the parent
-                # variable's dimensions)
-                if len(dimensions) < 1:
-                    # TODO - this is a compliance issue, but not one
-                    #        that stops the uncertainty variable being
-                    #        read
-                    pass
-
-                interval_dimension = dimensions[-1]
-                if interval_dimension in parent_dimensions:
-                    # TODO - this is a compliance issue, but not one
-                    #        that stops the uncertainty variable being
-                    #        read
-
-                    # TODO - check that the interval dimension has
-                    #        size 2. If not this is a compliance
-                    #        issue, but not one that stops the
-                    #        uncertainty variable being read
-                    pass
-
-                # Remove the interval dimension
-                dimensions = dimensions[:-1]
-
-            dimension_are_subset = self._dimensions_are_subset(
-                ncvar, dimensions, parent_dimensions
-            )
-
-            if not self._dimensions_are_subset(
-                ncvar, dimensions, parent_dimensions
-            ):
-                # The uncertainty variable's dimensions do NOT span a
-                # subset of the parent variable's dimensions (we've
-                # already accounted for a trailing interval dimension
-                # which is not one of the parent variable's
-                # dimensions).
-                self._add_message(
-                    field_ncvar,
-                    ncvar,
-                    message=incorrect_dimensions,
-                    attribute=attribute,
-                    dimensions=g["variable_dimension_paths"][ncvar],
-                )
-                ok = False
-
-        return ok
 
     def _check_auxiliary_or_scalar_coordinate(
         self, parent_ncvar, coord_ncvar, string
@@ -2408,6 +2278,140 @@ class NetCDFCheckerMixin(Report):
                 dimensions=g["variable_dimension_paths"][connectivity_ncvar],
             )
             ok = False
+
+        return ok
+
+    # ================================================================
+    # Uncertainty-related checks
+    # ================================================================
+    
+    def _check_uncertainty_variables(self, field_ncvar, string, parsed_string):
+        """Checks requirements.
+
+        :Parameters:
+
+            field_ncvar: `str`
+                The netCDF variable name of the parent data variable
+                to that has the uncertainty_variables attribuute
+
+            string: `str`
+                The value of the uncertainty_variables attribute.
+
+            parsed_string: `list`
+
+        :Returns:
+
+            `bool`
+
+        """
+        attribute = {field_ncvar + ":uncertainty_variables": string}
+
+        incorrectly_formatted = (
+            "uncertainty_variables attribute",
+            "is incorrectly formatted",
+        )
+        incorrect_dimensions = (
+            "Uncerainty variable",
+            "spans incorrect dimensions",
+        )
+
+        g = self.read_vars
+
+        if not parsed_string:
+            d = self._add_message(
+                field_ncvar,
+                field_ncvar,
+                message=incorrectly_formatted,
+                attribute=attribute,
+            )
+
+            # Though an error of sorts, set as debug level message;
+            # read not terminated
+            if g["debug"]:
+                logger.debug(
+                    f"    Error processing netCDF variable {field_ncvar}: "
+                    f"{d['reason']}"
+                )  # pragma: no cover
+
+            return False
+
+        parent_dimensions = self._ncdimensions(field_ncvar)
+
+        ok = True
+        for ncvar in parsed_string:
+            # Check that the variable exists in the file
+            if ncvar not in g["internal_variables"]:
+                ncvar, message = self._missing_variable(
+                    ncvar, "Uncertainty variable"
+                )
+                self._add_message(
+                    field_ncvar, ncvar, message=message, attribute=attribute
+                )
+
+                return False
+
+            ncvar_attrs = g["variables"][ncvar].attrs
+
+            self._check_standard_names(
+                field_ncvar,
+                ncvar,
+                ncvar_attrs,
+            )
+            self._include_component_report(
+                field_ncvar,
+                ncvar,
+                "uncertainty_variables",
+            )
+
+            # TODO - check that there are coverage_interval and
+            #        coverage_probability attributes, and that they
+            #        have approriate values.  If not this is a
+            #        compliance issue, but not one that stops the
+            #        uncertainty variable being read
+
+            dimensions = self._ncdimensions(ncvar)
+            if ncvar_attrs.get("coverage_interval") == "offsets":
+                # The uncertainty variable has a trailing interval
+                # dimension which is not meant to be one of the parent
+                # variable's dimensions)
+                if len(dimensions) < 1:
+                    # TODO - this is a compliance issue, but not one
+                    #        that stops the uncertainty variable being
+                    #        read
+                    pass
+
+                interval_dimension = dimensions[-1]
+                if interval_dimension in parent_dimensions:
+                    # TODO - this is a compliance issue
+                    ok = False
+
+                    # TODO - check that the interval dimension has
+                    #        size 2.
+                    ok = False
+
+                # Remove the interval dimension
+                dimensions = dimensions[:-1]
+
+            dimension_are_subset = self._dimensions_are_subset(
+                ncvar, dimensions, parent_dimensions
+            )
+
+            if not self._dimensions_are_subset(
+                ncvar, dimensions, parent_dimensions
+            ):
+                # The uncertainty variable's dimensions do NOT span a
+                # subset of the parent variable's dimensions (we've
+                # already accounted for a trailing interval dimension
+                # which is not one of the parent variable's
+                # dimensions).
+                self._add_message(
+                    field_ncvar,
+                    ncvar,
+                    message=incorrect_dimensions,
+                    attribute=attribute,
+                    dimensions=g["variable_dimension_paths"][ncvar],
+                )
+                ok = False
 
         return ok
 
