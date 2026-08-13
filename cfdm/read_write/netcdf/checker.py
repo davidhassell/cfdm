@@ -577,8 +577,8 @@ class NetCDFCheckerMixin(Report):
             #        compliance issue, but not one that stops the
             #        uncertainty variable being read
 
-            dimensions =  self._ncdimensions(ncvar)
-            if ncvar_attrs.get('coverage_interval') == "offsets":
+            dimensions = self._ncdimensions(ncvar)
+            if ncvar_attrs.get("coverage_interval") == "offsets":
                 # The uncertainty variable has a trailing interval
                 # dimension which is not meant to be one of the parent
                 # variable's dimensions)
@@ -587,7 +587,7 @@ class NetCDFCheckerMixin(Report):
                     #        that stops the uncertainty variable being
                     #        read
                     pass
-                
+
                 interval_dimension = dimensions[-1]
                 if interval_dimension in parent_dimensions:
                     # TODO - this is a compliance issue, but not one
@@ -601,14 +601,14 @@ class NetCDFCheckerMixin(Report):
                     pass
 
                 # Remove the interval dimension
-                dimensions =  dimensions[:-1]
-            
+                dimensions = dimensions[:-1]
+
             dimension_are_subset = self._dimensions_are_subset(
                 ncvar, dimensions, parent_dimensions
             )
-                
-            if  not self._dimensions_are_subset(
-                    ncvar, dimensions, parent_dimensions
+
+            if not self._dimensions_are_subset(
+                ncvar, dimensions, parent_dimensions
             ):
                 # The uncertainty variable's dimensions do NOT span a
                 # subset of the parent variable's dimensions (we've
@@ -2411,7 +2411,9 @@ class NetCDFCheckerMixin(Report):
 
         return ok
 
-    def _check_error_correlation(self, field_ncvar, string, parsed_string):
+    def _check_error_correlation(
+        self, field_ncvar, ncvar, string, parsed_string
+    ):
         """Check the uncertainty variable error_correlation attribute.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -2419,119 +2421,89 @@ class NetCDFCheckerMixin(Report):
         :Parameters:
 
             field_ncvar: `str`
+                The netCDF variable name of the parent data variable
+                to the uncertainty variable.
+
+            ncvar: `str`
+                The netCDF variable name of the uncertainty variable.
 
             string: `str`
                 The original value of the error_correlation attribute.
 
             parsed_string: `list` of `dict`
+                 The parsed string, as returned by
+                 `_parse_error_correlation`.
 
         :Returns:
 
             `bool`
+                `True` if it's TODOU
 
         """
-        attribute = {field_ncvar + ":cell_measures": string}
+        attribute = {ncvar + ":error_correlation": string}
 
         incorrectly_formatted = (
             "error_correlation attribute",
             "is incorrectly formatted",
         )
-        incorrect_dimensions = (
-            "error_correlation variable",
-            "spans incorrect dimensions",
-        )
-        missing_variable = (
-            "Cell measures variable",
-            "is not in file nor referenced by the external_variables "
-            "global attribute",
-        )
 
-        g = self.read_vars
+        error_correlation_structures = set()
 
         if not parsed_string:
             self._add_message(
                 field_ncvar,
-                field_ncvar,
+                ncvar,
                 message=incorrectly_formatted,
                 attribute=attribute,
             )
             return False
 
-        parent_dimensions = self._ncdimensions(field_ncvar)
-        external_variables = g["external_variables"]
-
         ok = True
         for x in parsed_string:
-            measure, values = list(x.items())[0]
-            if len(values) != 1:
+            if not x["dimensions"]:
                 self._add_message(
                     field_ncvar,
-                    field_ncvar,
-                    message=incorrectly_formatted,
+                    ncvar,
+                    message=(
+                        "error_correlation attribute",
+                        "has missing dimensions",
+                    ),
                     attribute=attribute,
-                    conformance="7.2.requirement.1",
                 )
                 ok = False
                 continue
 
-            ncvar = values[0]
-
-            # For external variables, the variable will not be in covered
-            # in read_vars["variable_attributes"], so in this case we
-            # can't rely on the ncvar key being present, hence get().
-            # Note that at present this is an outlier since only cell
-            # measures can be external (but consult
-            # https://cfconventions.org/cf-conventions/
-            # cf-conventions.html#external-variables in case this changes).
-            var = g["variables"].get(ncvar)
-            if var is not None:
-                ncvar_attrs = var.attrs
-            else:
-                ncvar_attrs = None
-
-            if ncvar_attrs:
-                self._check_standard_names(
-                    field_ncvar,
-                    ncvar,
-                    ncvar_attrs,
-                )
-                self._include_component_report(
-                    field_ncvar,
-                    ncvar,
-                    "cell_measures",
-                )
-
-            unknown_external = ncvar in external_variables
-
-            # Check that the variable exists in the file, or if not
-            # that it is listed in the 'external_variables' global
-            # file attribute.
-            if not unknown_external and ncvar not in g["variables"]:
+            if (
+                not x["error_correlation_variable"]
+                and not x["error_correlation_structure"]
+                and not x["comment"]
+            ):
                 self._add_message(
                     field_ncvar,
                     ncvar,
-                    message=missing_variable,
+                    message=(
+                        "error_correlation attribute",
+                        "has missing variable, structure, or comment",
+                    ),
                     attribute=attribute,
-                    conformance="7.2.requirement.3",
                 )
                 ok = False
                 continue
 
-            if not unknown_external:
-                dimensions = self._ncdimensions(ncvar)
-                if not unknown_external and not self._dimensions_are_subset(
-                    ncvar, dimensions, parent_dimensions
-                ):
-                    # The cell measure variable's dimensions do NOT span a
-                    # subset of the parent variable's dimensions.
-                    self._add_message(
-                        field_ncvar,
-                        ncvar,
-                        message=incorrect_dimensions,
-                        attribute=attribute,
-                        dimensions=g["variable_dimension_paths"][ncvar],
-                        conformance="7.2.requirement.4",
-                    )
-                    ok = False
+            structure = x["error_correlation_structure"]
+            if structure not in error_correlation_structures:
+                self._add_message(
+                    field_ncvar,
+                    ncvar,
+                    message=(
+                        "error_correlation attribute",
+                        "has non-standardised error-correlation structure",
+                    ),
+                    attribute=attribute,
+                )
+
+            for parameter, value in x["parameters"].items():
+                # TODOU check parmaeters for each structure
+                pass
 
         return ok

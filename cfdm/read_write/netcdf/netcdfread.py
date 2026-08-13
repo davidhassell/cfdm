@@ -1374,7 +1374,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     "domain_topology",
                     "cell_connectivity",
                     "uncertainty",
-                    "uncertainty_ancillary"
+                    "uncertainty_ancillary",
                 )
                 to_memory = set(to_memory)
                 to_memory.remove("metadata")
@@ -4580,8 +4580,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 f, "uncertainty_variables", None
             )
             if uncertainty_variables is not None:
-                parsed_uncertainty_variables = self._split_string_by_white_space(
-                    uncertainty_variables
+                parsed_uncertainty_variables = (
+                    self._split_string_by_white_space(uncertainty_variables)
                 )
                 cf_compliant = self._check_uncertainty_variables(
                     field_ncvar,
@@ -6490,11 +6490,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Probability distribution
         # ------------------------------------------------------------
         probabilty_distribution = properties.pop(
-            'probabilty_distribution',None
+            "probabilty_distribution", None
         )
         if probabilty_distribution:
-            parsed_probabilty_distribution = self._parse_probabilty_distribution(
-                probabilty_distribution
+            parsed_probabilty_distribution = (
+                self._parse_probabilty_distribution(probabilty_distribution)
             )
             ok = self._check_probabilty_distribution(
                 field_ncvar,
@@ -6503,22 +6503,24 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 parsed_probabilty_distribution,
             )
             if ok:
-                distribution = parsed_probabilty_distribution['distribution']
+                distribution = parsed_probabilty_distribution["distribution"]
                 if distribution is not None:
                     uncertainty.probability_distribution.set_parameter(
-                        'distribution',  distribution
+                        "distribution", distribution
                     )
 
-                for parameter, dp_ncvar in (
-                        parsed_probabilty_distribution['parameters'].items()
-                ):                    
+                for parameter, dp_ncvar in parsed_probabilty_distribution[
+                    "parameters"
+                ].items():
                     ok = self._check_distribution_parameter_variable(
-                            field_ncvar, ncvar, 'probability_distribution',
-                            dp_ncvar
+                        field_ncvar,
+                        ncvar,
+                        "probability_distribution",
+                        dp_ncvar,
                     )
                     if not ok:
                         continue
-                    
+
                     if dp_ncvar in g["uncertainty_ancillary"]:
                         unc_anc = g["uncertainty_ancillary"][dp_ncvar].copy()
                     else:
@@ -6527,13 +6529,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     axes = self._get_domain_axes(
                         dp_ncvar, parent_ncvar=field_ncvar
                     )
-                    
+
                     # Insert the uncertainty ancillary
                     logger.detail(
                         "        [o] Inserting distribution parameter "
                         f"{unc_anc!r}"
                     )  # pragma: no cover
-                    key = f.set_construct(unc_anc, axes=axes, copy=False)
+                    key = field.set_construct(unc_anc, axes=axes, copy=False)
                     self._reference(dp_ncvar, field_ncvar)
 
                     g["uncertainty_ancillary"][dp_ncvar] = unc_anc
@@ -6545,7 +6547,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # ------------------------------------------------------------
         # Error correlation
         # ------------------------------------------------------------
-        error_correlation = properties.pop('error_correlation',None)
+        error_correlation = properties.pop("error_correlation", None)
         if error_correlation:
             parsed_error_correlation = self._parse_error_correlation(
                 error_correlation
@@ -6558,9 +6560,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
             if ok:
                 ncdim_to_axis = g["ncdim_to_axis"]
-                
+
                 error_correlation_keys = []
-                
+
                 for element in parsed_error_correlation:
                     # Get, from the parsed error_correlation
                     # attribute, the domain axes for the
@@ -6568,52 +6570,57 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # construct
                     axes = [
                         ncdim_to_axis[ncdim]
-                        for ncdim in element['dimensions']
+                        for ncdim in element["dimensions"]
                         if ncdim in ncdim_to_axis
                     ]
 
-                    ecp_ncvar = element['error_correlation_variable']
+                    ecp_ncvar = element["error_correlation_variable"]
                     if ecp_ncvar is not None:
                         # Create an uncertainty ancillary construct
                         # from a CF error-correlation parameter
-                        # variable             
+                        # variable
                         ok = self._check_error_correlation_variable(
-                            field_ncvar, ncvar, 'error_correlation',
-                            ecp_ncvar
+                            field_ncvar, ncvar, "error_correlation", ecp_ncvar
                         )
                         if not ok:
                             continue
-                    
+
                         if ecp_ncvar in g["uncertainty_ancillary"]:
-                            unc_anc = g["uncertainty_ancillary"][ecp_ncvar].copy()
+                            unc_anc = g["uncertainty_ancillary"][
+                                ecp_ncvar
+                            ].copy()
                         else:
                             unc_anc = self._create_uncertainty_ancillary(
                                 ecp_ncvar
                             )
                             g["uncertainty_ancillary"][ecp_ncvar] = unc_anc
-    
+
                         # Insert the uncertainty ancillary
                         logger.detail(
                             f"        [p] Inserting {unc_anc!r}"
                         )  # pragma: no cover
-                        key = f.set_construct(unc_anc, axes=axes, copy=False)
+                        key = field.set_construct(
+                            unc_anc, axes=axes, copy=False
+                        )
                         self._reference(ecp_ncvar, field_ncvar)
-                        
+
                         error_correlation_keys.append(key)
                         continue
 
                     # Still here? Then create an error-correlation
                     # uncertainty ancillary construct without a
                     # corresponding CF error-correlation variable.
-                    unc_anc = self.implementation.initialise_UncertaintyAncillary()
-                    comment =  element['comment']
+                    unc_anc = (
+                        self.implementation.initialise_UncertaintyAncillary()
+                    )
+                    comment = element["comment"]
                     if comment:
                         # Store the comment as a property of the
                         # uncertainty ancillary construct
-                        unc_anc.set_property('comment')
-                        
+                        unc_anc.set_property("comment")
+
                     error_correlation_structure = element[
-                        'error_correlation_structure'
+                        "error_correlation_structure"
                     ]
                     if error_correlation_structure is None:
                         # The uncertainty ancillary construct has no
@@ -6622,21 +6629,23 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             "        [q] Inserting error-correlation "
                             f"{unc_anc!r}"
                         )  # pragma: no cover
-                        key = f.set_construct(unc_anc, axes=axes, copy=False)
-                        
+                        key = field.set_construct(
+                            unc_anc, axes=axes, copy=False
+                        )
+
                         error_correlation_keys.append(key)
                         continue
 
                     # Still here? Then the uncertainty ancillary
                     # construct has a parameterised data array.
                     unc_anc.parameterisation.set_parameter(
-                        'error_correlation_structure',
-                        error_correlation_structure
+                        "error_correlation_structure",
+                        error_correlation_structure,
                     )
 
                     # Loop round the error-correlation parameters
-                    for parameter, value in element['parameters'].items():
-                        if  isinstance(value, int):
+                    for parameter, value in element["parameters"].items():
+                        if isinstance(value, int):
                             # The error-correlation parameter is
                             # defined by a dimensionless integer
                             # originating from the "error_correlation"
@@ -6653,54 +6662,54 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             # The error-correlation parameter is
                             # defined by a CF error-correlation
                             # parameter variable in the dataset.
-                            ecp_ncvar = value           
+                            ecp_ncvar = value
                             ok = self._check_error_correlation_parameter_variable(
-                                field_ncvar, ncvar, 'error_correlation',
-                                ecp_ncvar
+                                field_ncvar,
+                                ncvar,
+                                "error_correlation",
+                                ecp_ncvar,
                             )
                             if not ok:
                                 continue
-                    
+
                             ecp_axes = self._get_domain_axes(
                                 ncvar, parent_ncvar=field_ncvar
                             )
                             value = None
-                                
+
                         ecp_unc_anc = self._create_uncertainty_ancillary(
                             ncvar, value=value
                         )
-                        
+
                         # Insert the uncertainty ancillary
                         logger.detail(
                             "        [r] Inserting error-correlation "
                             f"parameter {ecp_unc_anc!r}"
                         )  # pragma: no cover
-                        key_ecp = f.set_construct(
+                        key_ecp = field.set_construct(
                             ecp_unc_anc, axes=ecp_axes, copy=False
                         )
                         self._reference(ncvar, field_ncvar)
-                        
+
                         unc_anc.parameterisation.set_ancillary(
                             parameter, key_ecp
                         )
-                        
+
                     logger.detail(
                         f"        [s] Inserting error-correlation {unc_anc!r}"
                     )  # pragma: no cover
-                    key = f.set_construct(unc_anc, axes=axes, copy=False)
-                    
+                    key = field.set_construct(unc_anc, axes=axes, copy=False)
+
                     error_correlation_keys.append(key)
 
                 if error_correlation_keys:
                     uncertainty.probability_distribution.set_ancillary(
-                        'error_correlation', error_correlation_keys
+                        "error_correlation", error_correlation_keys
                     )
-            
+
         # Insert properties (having removed any
         # probabilty_distribution and error_correlation attributes)
-        self.implementation.set_properties(
-            uncertainty, properties, copy=False
-        )
+        self.implementation.set_properties(uncertainty, properties, copy=False)
 
         if not self.read_vars["mask"]:
             self._set_default_FillValue(uncertainty, ncvar)
@@ -6713,14 +6722,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         self.implementation.nc_set_variable(uncertainty, ncvar)
 
         # TODOU interval dimension name
-        
+
         # Store the original file names
         self.implementation.set_original_filenames(
             uncertainty,
             g["variables"][ncvar].dataset,
         )
 
-        
         # Set quantization metadata
         self._set_quantization(uncertainty, ncvar)
 
@@ -10218,6 +10226,35 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         return ncvar
 
+    @classmethod
+    def _split_by_space_and_round_brackets(cls, string):
+        """Split a string by space and round brackets.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            string: `str`
+                The string to split.
+
+        :Returns:
+
+            `list`
+                The split string.
+
+        **Examples:**
+
+        >>> _split_by_space_and_round_brackets('')
+        []
+        >>> _split_by_space_and_round_brackets('time')
+        ['time']
+        >>> _split_by_space_and_round_brackets('time: var (x: y a b)')
+        ['time:', 'var', '(', 'x:', 'y', 'a', 'b', ')']
+        """
+        import re
+
+        return re.findall(r"[^\s()]+|[()]", string)
+
     def _parse_probability_distribution(self, probability_distribution):
         """Parse a CF probability_distribution string.
 
@@ -10245,8 +10282,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
          'parameters': {'skew: 'varname'}}
 
         """
-        import re
-
         # ------------------------------------------------------------
         # Split the probability_distribution string into a list of
         # strings ready for parsing. For example:
@@ -10254,55 +10289,51 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         #   '' would be split into: []
         #
         #   'gaussian' would be split into: ['gaussian']
-        #        
+        #
         #   'skewed_gaussian (skew: varname)' would be split up into:
         #   ['skewed_gaussian', '(', 'skew:', 'varname', ')']
         # ------------------------------------------------------------
-        probability_distribution = re.sub(
-            r"\((?=[^\s])", "( ", probability_distribution
+        probability_distribution = self._split_by_space_and_round_brackets(
+            probability_distribution
         )
-        probability_distribution = re.sub(
-            r"(?<=[^\s])\)", " )", probability_distribution
-        )
-        probability_distribution = probability_distribution.split()
-        
-        empty = {'distribution': None, 'parameters': {}}
+
+        empty = {"distribution": None, "parameters": {}}
         out = deepcopy(empty)
-        
-        previous = None       
+
+        previous = None
         for x in probability_distribution:
             if x == ")":
                 break
 
             if previous is None:
-                out['distribution'] = x
-                previous = 'distribution'
+                out["distribution"] = x
+                previous = "distribution"
                 continue
 
-            if previous == 'distribution':
+            if previous == "distribution":
                 if x != "(":
                     return empty
-                
-                previous = '('
+
+                previous = "("
                 continue
 
-            if previous in ('(', 'value'):
+            if previous in ("(", "value"):
                 if not x.endswith(":"):
                     return empty
-                
+
                 parameter = x[:-1]
-                previous = 'parameter'
+                previous = "parameter"
                 continue
 
-            if previous == 'parameter':                
-                out['parameters'][parameter] = x
-                previous = 'value'
+            if previous == "parameter":
+                out["parameters"][parameter] = x
+                previous = "value"
                 parameter = None
                 continue
 
             # Still here? Then it must be a badly formatted string.
             return empty
-        
+
         return out
 
     def _parse_error_correlation(self, error_correlation):
@@ -10317,16 +10348,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         :Returns:
 
-            `dict`
+            `list` of `dict`
 
         **Examples**
 
         >>> _parse_error_correlation('')
-        ['dimensions': [],
-         'error_correlation_variable': None,
-         'error_correlation_structure': None,
-         'comment': '',
-         'parameters': {}}]
+        []
         >>> _parse_error_correlation('lat: lon: varname')
         [{'dimensions': ['lat, 'lon'],
           'error_correlation_variable': 'varname',
@@ -10360,69 +10387,65 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         import re
 
+        g = self.read_vars
+
         # ------------------------------------------------------------
         # Split the probability_distribution string into a list of
         # strings ready for parsing. For example:
         #
-        #   'guassian' would be split into: ['guassian']
-        #        
-        #   'skewed_gaussian (skew: varname)' would be split up into:
-        #   ['skewed_gaussian', '(', 'skew:', 'varname', ')']
+        #   'lat: lon: varname (comment)' would be split up into:
+        #   ['lat:', 'lon:', 'varname', '(', 'comment', ')']
         # ------------------------------------------------------------
-        error_correlation = re.sub(
-            r"\((?=[^\s])", "( ", error_correlation
+        error_correlation = self._split_by_space_and_round_brackets(
+            error_correlation
         )
-        error_correlation = re.sub(
-            r"(?<=[^\s])\)", " )", error_correlation
-        )
-        error_correlation = error_correlation.split()
+
+        if not error_correlation:
+            return []
 
         form = None
         parameter = None
         previous = None
-        new = True
-        
-        out = []
-        empty = {'dimensions': [],
-                 'error_correlation_variable': None,
-                 'error_correlation_structure': None,
-                 'comment': [],
-                 'parameters': {}
-                 }
 
-        if not  error_correlation:
-            return [empty]
-        
+        out = []
+        empty = {
+            "dimensions": [],
+            "error_correlation_variable": None,
+            "error_correlation_structure": None,
+            "comment": [],
+            "parameters": {},
+        }
+
         element = deepcopy(empty)
-        
+
         for x in error_correlation:
-            if previous in (None, 'dimension', ")") and x.endswith(":"):
+            if previous in (None, "dimension", ")") and x.endswith(":"):
                 # Store a dimension
-                element['dimensions'].append(x[:-1])
-                previous = 'dimension'
+                element["dimensions"].append(x[:-1])
+                previous = "dimension"
                 continue
 
-            if previous == 'dimension' and not x.endswith(":"):
+            if previous == "dimension" and not x.endswith(":"):
                 if x == "(":
                     form = 3
                     previous = "("
-                else:                    
+                else:
                     if x in g["variables"]:
                         # An error-correlation variable name
                         form = 1
-                        element['error_correlation_variable'] = x
+                        element["error_correlation_variable"] = x
                     else:
                         # An error-correlation structure name
                         form = 2
-                        element['error_correlation_structure'] = x
-                        
-                    previous = 'name'
+                        element["error_correlation_structure"] = x
+
+                    previous = "name"
 
                 continue
 
             if previous == "name":
                 if x == "(":
-                    previous = '('
+                    previous = "("
                     continue
 
                 if x.endswith(":"):
@@ -10430,41 +10453,40 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     out.append(element)
                     element = deepcopy(empty)
                     form = None
-                    
-                    element['dimensions'].append(x[:-1])
-                    previous = 'dimension'
+
+                    element["dimensions"].append(x[:-1])
+                    previous = "dimension"
                     continue
 
-                                     
             if previous == "(" and form in (1, 3):
                 if x == "comment:":
-                    previous = 'comment'
+                    previous = "comment"
                     continue
-                
-                element['comment'].append(x)
-                previous = 'comment'
+
+                element["comment"].append(x)
+                previous = "comment"
                 continue
 
             if previous == "(" and form == 2:
-                if x == "comment:":                  
-                    previous = 'comment'
+                if x == "comment:":
+                    previous = "comment"
                 elif x.endswith(":"):
                     parameter = x[:-1]
-                    previous = 'parameter'
+                    previous = "parameter"
 
                 continue
 
-            if previous == "comment":                
-                if x == ")":                  
-                    previous = ')'
+            if previous == "comment":
+                if x == ")":
+                    previous = ")"
                     # Start a new element
                     form = None
                     out.append(element)
                     element = deepcopy(empty)
                 else:
                     # Part of the comment
-                    out['comment'].append(x)
-                    previous = 'comment'
+                    out["comment"].append(x)
+                    previous = "comment"
 
                 continue
 
@@ -10481,38 +10503,38 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # A parameter value
                     if x not in g["variables"] and re.match("^\d+$", x):
                         x = int(x)
-                        
+
                     previous = "parameter value"
 
-                element['parameters'][parameter] = x
+                element["parameters"][parameter] = x
                 parameter = None
                 continue
-            
+
             if previous == "parameter value":
                 if x == "comment:":
                     # A comment
-                    previous = 'comment'               
+                    previous = "comment"
                     continue
-                
+
                 if x.endswith(":"):
                     # Another parameter
                     parameter = x[:-1]
-                    previous = 'parameter'              
+                    previous = "parameter"
                     continue
-                
+
                 if x == ")":
                     # End of parameters and comment
-                    previous = ')'
+                    previous = ")"
                     # Start a new element
                     out.append(element)
                     element = deepcopy(empty)
                     continue
-            
+
             # Still here? Then it must be a badly formatted string.
-            return [empty]
+            return []
 
         # Concatenate 'comment' parts
         for element in out:
-            element['comment'] = ' '.join(comment)
-            
+            element["comment"] = " ".join(element["comment"])
+
         return out
