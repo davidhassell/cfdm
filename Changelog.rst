@@ -5,7 +5,15 @@ Version NEXTVERSION
 
 * Improve `cfdm.read` performance for UGRID datasets
   (https://github.com/NCAS-CMS/cfdm/issues/421)
-* Set sensible dataset chunksizes by default for 1-d data
+* Automatically create consolidated HDF5 metadata with
+  `cfdm.write`. New keywords to `cfdm.write`:
+  ``hdf5_consolidated_metadata`` and ``hdf5_expansion_factor``
+  (https://github.com/NCAS-CMS/cfdm/pull/413)
+* Introduce use of cache files stored as
+  `~/.cf/standard_names*.pickle` to improve performance of CF
+  compliance checking (https://github.com/NCAS-CMS/cfdm/pull/411)
+* In `cfdm.write`, set sensible dataset chunksizes by default for 1-d
+  data, controlled by the new ``one_d_chunks`` keyword
   (https://github.com/NCAS-CMS/cfdm/issues/414)
 * Introduce use of cache files stored as `~/.cf/standard_names*.pickle`
   to improve performance of CF compliance checking
