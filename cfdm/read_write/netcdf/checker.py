@@ -2410,3 +2410,128 @@ class NetCDFCheckerMixin(Report):
             ok = False
 
         return ok
+
+    def _check_error_correlation(self, field_ncvar, string, parsed_string):
+        """Check the uncertainty variable error_correlation attribute.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            field_ncvar: `str`
+
+            string: `str`
+                The original value of the error_correlation attribute.
+
+            parsed_string: `list` of `dict`
+
+        :Returns:
+
+            `bool`
+
+        """
+        attribute = {field_ncvar + ":cell_measures": string}
+
+        incorrectly_formatted = (
+            "error_correlation attribute",
+            "is incorrectly formatted",
+        )
+        incorrect_dimensions = (
+            "error_correlation variable",
+            "spans incorrect dimensions",
+        )
+        missing_variable = (
+            "Cell measures variable",
+            "is not in file nor referenced by the external_variables "
+            "global attribute",
+        )
+
+        g = self.read_vars
+
+        if not parsed_string:
+            self._add_message(
+                field_ncvar,
+                field_ncvar,
+                message=incorrectly_formatted,
+                attribute=attribute,
+            )
+            return False
+
+        parent_dimensions = self._ncdimensions(field_ncvar)
+        external_variables = g["external_variables"]
+
+        ok = True
+        for x in parsed_string:
+            measure, values = list(x.items())[0]
+            if len(values) != 1:
+                self._add_message(
+                    field_ncvar,
+                    field_ncvar,
+                    message=incorrectly_formatted,
+                    attribute=attribute,
+                    conformance="7.2.requirement.1",
+                )
+                ok = False
+                continue
+
+            ncvar = values[0]
+
+            # For external variables, the variable will not be in covered
+            # in read_vars["variable_attributes"], so in this case we
+            # can't rely on the ncvar key being present, hence get().
+            # Note that at present this is an outlier since only cell
+            # measures can be external (but consult
+            # https://cfconventions.org/cf-conventions/
+            # cf-conventions.html#external-variables in case this changes).
+            var = g["variables"].get(ncvar)
+            if var is not None:
+                ncvar_attrs = var.attrs
+            else:
+                ncvar_attrs = None
+
+            if ncvar_attrs:
+                self._check_standard_names(
+                    field_ncvar,
+                    ncvar,
+                    ncvar_attrs,
+                )
+                self._include_component_report(
+                    field_ncvar,
+                    ncvar,
+                    "cell_measures",
+                )
+
+            unknown_external = ncvar in external_variables
+
+            # Check that the variable exists in the file, or if not
+            # that it is listed in the 'external_variables' global
+            # file attribute.
+            if not unknown_external and ncvar not in g["variables"]:
+                self._add_message(
+                    field_ncvar,
+                    ncvar,
+                    message=missing_variable,
+                    attribute=attribute,
+                    conformance="7.2.requirement.3",
+                )
+                ok = False
+                continue
+
+            if not unknown_external:
+                dimensions = self._ncdimensions(ncvar)
+                if not unknown_external and not self._dimensions_are_subset(
+                    ncvar, dimensions, parent_dimensions
+                ):
+                    # The cell measure variable's dimensions do NOT span a
+                    # subset of the parent variable's dimensions.
+                    self._add_message(
+                        field_ncvar,
+                        ncvar,
+                        message=incorrect_dimensions,
+                        attribute=attribute,
+                        dimensions=g["variable_dimension_paths"][ncvar],
+                        conformance="7.2.requirement.4",
+                    )
+                    ok = False
+
+        return ok
