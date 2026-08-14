@@ -6,7 +6,7 @@ Version NEXTVERSION
 * Automatically create consolidated HDF5 metadata with
   `cfdm.write`. New keywords to `cfdm.write`:
   ``hdf5_consolidated_metadata`` and ``hdf5_expansion_factor``
-  (https://github.com/NCAS-CMS/cfdm/pull/413)
+  (https://github.com/NCAS-CMS/cfdm/issues/413)
 * Introduce use of cache files stored as
   `~/.cf/standard_names*.pickle` to improve performance of CF
   compliance checking (https://github.com/NCAS-CMS/cfdm/pull/411)
