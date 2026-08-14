@@ -25,6 +25,9 @@ Version NEXTVERSION
 * Introduce use of cache files stored as `~/.cf/standard_names*.pickle`
   to improve performance of CF compliance checking
   (https://github.com/NCAS-CMS/cfdm/pull/411)
+* Allow `cfdm.write` to write Unicode characters in attribute values
+  when using the ``h5netcdf-h5py`` backend
+  (https://github.com/NCAS-CMS/cfdm/423)
 * Stop inaccessiblity of standard names table resource from causing
   `cfdm.read` to error (https://github.com/NCAS-CMS/cfdm/pull/411)
 * New dependency: ``xnetcdf>=0.1.0``

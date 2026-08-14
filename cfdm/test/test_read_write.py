@@ -1670,6 +1670,29 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(x.data.nc_dataset_chunksizes(), (4,))
         self.assertEqual(x.bounds.data.nc_dataset_chunksizes(), (2, 2))
 
+    def test_write_h5netcdf_string_int_attributes(self):
+        """Test cfdm.write with h5netcdf and string and integer attributes."""
+        f = self.f0.copy()
+
+        # String that includes hyphens (\u2010) and en dashes (\u2013)
+        string = "MPI\u2010ESM1.2\u2010HR 1383\u20131413"
+
+        # 64-bit integer
+        integer = np.int64(9)
+
+        f.set_property("string", string)
+        f.set_property("integer", integer)
+
+        cfdm.write(f, tmpfile, backend="h5netcdf-h5py", fmt="NETCDF4")
+        g = cfdm.read(tmpfile)[0]
+        self.assertEqual(g.get_property("string"), string)
+        self.assertEqual(type(g.get_property("integer")), np.int64)
+
+        cfdm.write(f, tmpfile, backend="h5netcdf-h5py", fmt="NETCDF4_CLASSIC")
+        g = cfdm.read(tmpfile)[0]
+        self.assertEqual(g.get_property("string"), string)
+        self.assertEqual(type(g.get_property("integer")), np.int32)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())
