@@ -1,4 +1,4 @@
-from . import Quantization, UncertaintyAncillaryParameterisation, core, mixin
+From . import Quantization, UncertaintyAncillaryParameterisation, core, mixin
 
 # from . import Quantization, UncertaintyAncillaryParameterisation, core, mixin
 from .decorators import _inplace_enabled, _inplace_enabled_define_and_cleanup
@@ -66,14 +66,12 @@ class UncertaintyAncillary(
         # For an error-correlation uncertainty ancillary, the indices
         # need to be propagated to the trailing dimensions of the data
         # array.
-        if self.get_trailing_dimensions():
-            data = self.get_data(None, _fill_value=False, _units=False)
-            if data is not None:
-                indices = parse_indices(
-                    self.shape, indices, keepdims=data.__keepdims_indexing__
-                )
-                indices = tuple(indices)
-                indices *= 2
+        if self.has_data() and self.has_trailing_dimensions():
+            indices = parse_indices(
+                self.shape, indices, keepdims=data.__keepdims_indexing__
+            )
+            indices = tuple(indices)
+            indices *= 2
 
         return super().__getitem__(indices)
 
@@ -146,9 +144,13 @@ class UncertaintyAncillary(
             header=header,
         )
 
-        out.append(
-            f"{name}.set_trailing_dimensions({self.get_trailing_dimensions()})"
-        )
+        try:        
+            out.append(
+                f"{name}.set_trailing_dimensions"
+                f"({self.has_trailing_dimensions()})"
+            )
+        except AttributeError:
+            pass
 
         parameterisation = self.parameterisation
         if parameterisation:
@@ -423,8 +425,8 @@ class UncertaintyAncillary(
 
         """
         c = _inplace_enabled_define_and_cleanup(self)
-
-        if self.get_trailing_dimensions():
+                
+        if self.has_data() and self.has_trailing_dimensions():
             # An axis in the trailing dimensions also needs to be
             # inserted
             try:
@@ -494,7 +496,7 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        if axes is not None and self.get_trailing_dimensions():
+        if axes is not None and self.has_data() and self.has_trailing_dimensions():
             # Axes in the trailing dimensions also need to be
             # squeezed
             try:
@@ -557,7 +559,7 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        if self.get_trailing_dimensions():
+        if self.has_data() and self.has_trailing_dimensions():
             # Axes in the trailing dimensions also need to be
             # transposed
             try:

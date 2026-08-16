@@ -6591,7 +6591,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             ].copy()
                         else:
                             unc_anc = self._create_uncertainty_ancillary(
-                                ecp_ncvar
+                                ecp_ncvar, trailing_dimensions=True
                             )
                             g["uncertainty_ancillary"][ecp_ncvar] = unc_anc
 
@@ -6611,7 +6611,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # uncertainty ancillary construct without a
                     # corresponding CF error-correlation variable.
                     unc_anc = (
-                        self.implementation.initialise_UncertaintyAncillary()
+                        self.implementation.initialise_UncertaintyAncillary(
+                            trailing_dimensions=True
+                        )
                     )
                     comment = element["comment"]
                     if comment:

@@ -26,7 +26,7 @@ class UncertaintyAncillary(PropertiesData):
         properties=None,
         data=None,
         parameterisation=None,
-        trailing_dimensions=False,
+        trailing_dimensions=None,
         source=None,
         copy=True,
         _use_data=True,
@@ -45,29 +45,16 @@ class UncertaintyAncillary(PropertiesData):
                *Parameter example:*
                  ``parameters={'earth_radius': 6371007.}``
 
-            constructs: `dict`, optional
-               Set referTODOUences to constructs. The dictionary keys are
-               parameter names, with corresponding construct keys.
-
-               Constructs may also be set after initialisation with
-               the `set_constructs` and `set_construct` methods.
+            data: TODOU
+        
+            parameterisation=None,  TODOU
+            trailing_dimensions=None,  TODOU
 
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
 
         """
-
-        # A probability distribution, which defines a formula for
-        # converting coordinate values taken from the dimension or
-        # auxiliary coordinate constructs to a different coordinate
-        # system. A term of the conversion formula can be a scalar or
-        # vector parameter which does not depend on any domain axis
-        # constructs, may have units (such as a reference pressure
-        # value), or may be a descriptive string (such as the
-        # projection name "mercator"), or it can be a domain ancillary
-        # construct (such as one containing spatially varying
-        # orography data).
         super().__init__(
             properties=properties,
             data=data,
@@ -83,14 +70,15 @@ class UncertaintyAncillary(PropertiesData):
                 parameterisation = None
 
             try:
-                trailing_dimensions = source.get_trailing_dimensions(False)
+                trailing_dimensions = source.has_trailing_dimensions()
             except AttributeError:
-                trailing_dimensions = False
+                trailing_dimensions = None
 
         if parameterisation is not None:
             self.set_parameterisation(parameterisation, copy=copy)
 
-        self.set_trailing_dimensions(trailing_dimensions)
+        if trailing_dimensions is not None:
+            self.set_trailing_dimensions(trailing_dimensions)
 
     @property
     def parameterisation(self):
@@ -186,9 +174,9 @@ class UncertaintyAncillary(PropertiesData):
 
         """
         shape = super().shape
-        if self.get_trailing_dimensions():
+        if self.has_trailing_dimensions():
             shape = shape[: len(shape) // 2]
-
+                
         return shape
 
     @property
@@ -253,22 +241,28 @@ class UncertaintyAncillary(PropertiesData):
 
         return out
 
-    def get_trailing_dimensions(self):
+    def has_trailing_dimensions(self):
         """TODOU.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `set_trailing_dimensions`
+        
         :Returns:
 
             `bool`
                 TODOU
 
-        **Examples**
-
-        >>> TODOU
-
         """
-        return self._get_component("trailing_dimensions")
+        out = self._get_component("trailing_dimensions", None)
+        if out is None:
+            raise AttributeError(
+                f"{self.__class__.__name__} must specify whether or not "
+                "it has trailing dimensions"
+            )
+
+        return out
+    
 
     def set_parameterisation(self, parameterisation, copy=True):
         """Set thTODOU e coordinate conversion component.
@@ -319,6 +313,8 @@ class UncertaintyAncillary(PropertiesData):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
+        .. seealso:: `has_trailing_dimensions`
+        
         :Parameters:
 
             trailing_dimensions: `bool`
@@ -329,6 +325,6 @@ class UncertaintyAncillary(PropertiesData):
             `None`
 
         """
-        return self._set_component(
+        self._set_component(
             "trailing_dimensions", bool(trailing_dimensions), copy=False
         )
