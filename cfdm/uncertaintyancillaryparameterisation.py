@@ -13,6 +13,24 @@ class UncertaintyAncillaryParameterisation(
 
     @_display_or_return
     def dump(self, display=True, _level=0, _prefix="", _construct_names=None):
+        """A full description of the uncertainty ancillary parameterisation.
+
+        Returns a description of all properties, including those of
+        components, and provides selected values of all data arrays.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            display: `bool`, optional
+                If False then return the description as a string. By
+                default the description is printed.
+
+        :Returns:
+
+            {{returns dump}}
+
+        """
         indent = "    "
         indent0 = indent * _level
         indent1 = indent0 + indent

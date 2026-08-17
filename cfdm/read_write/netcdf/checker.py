@@ -495,7 +495,6 @@ class NetCDFCheckerMixin(Report):
 
         return ok
 
-
     def _check_auxiliary_or_scalar_coordinate(
         self, parent_ncvar, coord_ncvar, string
     ):
@@ -2284,7 +2283,7 @@ class NetCDFCheckerMixin(Report):
     # ================================================================
     # Uncertainty-related checks
     # ================================================================
-    
+
     def _check_uncertainty_variables(self, field_ncvar, string, parsed_string):
         """Checks requirements.
 

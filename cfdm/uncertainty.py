@@ -1,6 +1,10 @@
+import logging
+
 from . import Quantization, core, mixin
-from .decorators import _display_or_return
+from .decorators import _display_or_return, _manage_log_level_via_verbosity
 from .probabilitydistribution import ProbabilityDistribution
+
+logger = logging.getLogger(__name__)
 
 
 class Uncertainty(
@@ -187,6 +191,117 @@ class Uncertainty(
             out.append(pd)
 
         return "\n".join(out)
+
+    @_manage_log_level_via_verbosity
+    def equals(
+        self,
+        other,
+        rtol=None,
+        atol=None,
+        verbose=None,
+        ignore_data_type=False,
+        ignore_fill_value=False,
+        ignore_properties=None,
+        ignore_compression=True,
+        ignore_type=False,
+    ):
+        """Whether two instances are the same.
+
+        Equality is strict by default. This means that:
+
+        * the same descriptive properties must be present, with the
+          same values and data types, and vector-valued properties
+          must also have same the size and be element-wise equal (see
+          the *ignore_properties* and *ignore_data_type* parameters),
+          and
+
+        ..
+
+        * if there are data arrays then they must have same shape and
+          data type, the same missing data mask, and be element-wise
+          equal (see the *ignore_data_type* parameter).
+
+        {{equals tolerance}}
+
+        Any type of object may be tested but, in general, equality is
+        only possible with another object of the same type, or a
+        subclass of one. See the *ignore_type* parameter.
+
+        {{equals compression}}
+
+        {{equals netCDF}}
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            other:
+                The object to compare for equality.
+
+            {{atol: number, optional}}
+
+            {{rtol: number, optional}}
+
+            {{ignore_fill_value: `bool`, optional}}
+
+            {{verbose: `int` or `str` or `None`, optional}}
+
+            {{ignore_properties: (sequence of) `str`, optional}}
+
+            {{ignore_data_type: `bool`, optional}}
+
+            {{ignore_compression: `bool`, optional}}
+
+            {{ignore_type: `bool`, optional}}
+
+        :Returns:
+
+            `bool`
+                Whether the two instances are equal.
+
+        **Examples**
+
+        >>> c.equals(c)
+        True
+        >>> c.equals(c.copy())
+        True
+        >>> c.equals(None)
+        False
+
+        """
+        # Check the probability distributions (in the absence of
+        # domains)
+        distribution0 = self.probability_distribution
+        distribution1 = other.probability_distribution
+        if not distribution0.equals(
+            distribution1,
+            rtol=rtol,
+            atol=atol,
+            verbose=verbose,
+            ignore_type=ignore_type,
+        ):
+            logger.info(
+                f"{self.__class__.__name__}: Different probability "
+                f"distributions ({distribution0!r} != {distribution1!r})"
+            )  # pragma: no cover
+            return False
+
+        if not super().equals(
+            other,
+            rtol=rtol,
+            atol=atol,
+            verbose=verbose,
+            ignore_fill_value=ignore_fill_value,
+            ignore_data_type=ignore_data_type,
+            ignore_properties=ignore_properties,
+            ignore_compression=ignore_compression,
+            ignore_type=ignore_type,
+        ):
+            return False
+
+        # Still here? Then the two instances are as equal as can be
+        # ascertained in the absence of domains.
+        return True
 
     def identity(self, default=""):
         """Return the canonical identity.

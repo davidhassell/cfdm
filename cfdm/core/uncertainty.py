@@ -11,31 +11,34 @@ class Uncertainty(PropertiesData):
     component of the uncertainty in the field construct's data, and
     which are distributed over the same sampling domain as the field
     itself. It consists of the following:
-
+    
     * An array that defines the coverage interval within which the
       field construct's true data values occur with a known
       probability. The array depends on zero or more of the domain
-      axis constructs, with the addition of a size-two dimension for
-      defining the interval limits. It is assumed that the data do not
-      depend on axes of the domain which are not spanned by the array,
-      along which the values are implicitly propagated.
-
+      axis constructs. If there is the addition of a trailing size-two
+      dimension, then this stores the lower an upper limits of the
+      interval. Otherwise the array values define the half-width of a
+      symmetric interval. It is assumed that the data do not depend on
+      axes of the domain which are not spanned by the array, along
+      which the values are implicitly propagated.
+    
     * Properties to describe the data (in the same sense as for the
       field construct). The properties must include a "coverage
-      interval" property to indicate how the array defines the
-      coverage interval
-
-    * A definition of the probability distribution from which the
-      coverage interval is derived. The probability distribution is
-      defined by the values of named parameters. A parameter value can
-      be a descriptive string (such as the distribution name
-      "gaussian"), or a scalar or vector which does not depend on any
-      domain axis constructs, or an uncertainty ancillary construct
-      (such as one containing spatially varying skewness data), or one
-      or more uncertainty ancillary constructs (such as multiple
-      uncertainty ancillary constructs containing error-correlation
-      data for non-overlapping subsets of the domain axis constructs).
-
+      probability" property to indicate the probability that a true
+      value of the field construct's data lies in the coverage
+      interval defined by the array.
+    
+    * An optional definition of the probability distribution from
+      which the coverage interval is derived. The probability
+      distribution is defined by the values of named parameters. A
+      parameter value can be a descriptive string (such as the
+      distribution type "gaussian"), or an uncertainty ancillary
+      construct (such as one containing spatially varying skewness
+      data), or one or more uncertainty ancillary constructs (such as
+      multiple uncertainty ancillary constructs containing
+      error-correlation data for non-overlapping subsets of the domain
+      axis constructs).
+    
     .. versionadded:: (cfdm) NEXTVERSION
 
     """

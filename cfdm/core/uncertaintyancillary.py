@@ -7,8 +7,43 @@ from .abstract import PropertiesData
 class UncertaintyAncillary(PropertiesData):
     """An uncertainty ancillary construct of the CF data model.
 
-    TODOU (adapt from from CF Appendix I)
-
+    An uncertainty ancillary construct provides metadata for
+    describing probability distribution of the field contruct values
+    (i.e. the probability distribution of the true unknowable values
+    of the measurands), which depend on a subset of zero or more of
+    the domain axis contructs. For instance, an uncertainty ancillary
+    construct could provide the skewness of the probability
+    distribution, error-correlation coefficients, or the value of a
+    term in an error-correlation's parametric form. An uncertainty
+    ancillary construct consists of the following:
+    
+    * An optional data array of values that depends on the subset of
+      zero or more domain axis constructs, and describes an aspect the
+      probability distribution at the locations indexed by the domain
+      axis constructs. It is assumed that the data do not depend on
+      axes of the domain which are not spanned by the array, along
+      which the values are implicitly propagated. When the joint
+      probability distribution of the measurands is being described,
+      the array may also span extra trailing dimensions, one for each
+      domain construct spanned by the array, with the same size and in
+      the same order.
+    
+    * Properties to describe the data array (in the same sense as for
+      the field construct). The properties may include a "comment"
+      property that provides a general description of the numerical
+      structure of the data array, even when no array has been
+      provided.
+    
+    * When the data array is omitted, the uncertainty ancillary
+      construct still depends on a subset of zero or more of the
+      domain axis contructs, and there may be a parameterization
+      formula which describes how the missing data array can be
+      created. A term of the parameterization formula can be a
+      descriptive string (such as the error-correlation structural
+      type "triangular"), or can may be another uncertainty ancillary
+      construct (such as one which contains a configuration parameter
+      for an error-correlation structural type).
+    
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
@@ -46,7 +81,7 @@ class UncertaintyAncillary(PropertiesData):
                  ``parameters={'earth_radius': 6371007.}``
 
             data: TODOU
-        
+
             parameterisation=None,  TODOU
             trailing_dimensions=None,  TODOU
 
@@ -86,7 +121,7 @@ class UncertaintyAncillary(PropertiesData):
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `datum`, `get_TODOUcoordinate_conversion`
+        .. seealso:: `get_TODOUcoordinate_conversion`
 
         :Returns:
 
@@ -176,7 +211,7 @@ class UncertaintyAncillary(PropertiesData):
         shape = super().shape
         if self.has_trailing_dimensions():
             shape = shape[: len(shape) // 2]
-                
+
         return shape
 
     @property
@@ -247,7 +282,7 @@ class UncertaintyAncillary(PropertiesData):
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `set_trailing_dimensions`
-        
+
         :Returns:
 
             `bool`
@@ -262,7 +297,6 @@ class UncertaintyAncillary(PropertiesData):
             )
 
         return out
-    
 
     def set_parameterisation(self, parameterisation, copy=True):
         """Set thTODOU e coordinate conversion component.
@@ -314,7 +348,7 @@ class UncertaintyAncillary(PropertiesData):
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `has_trailing_dimensions`
-        
+
         :Parameters:
 
             trailing_dimensions: `bool`

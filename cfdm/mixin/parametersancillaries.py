@@ -63,7 +63,7 @@ class ParametersAncillaries(Parameters):
 
         **Examples**
 
-        >>> x = {{package}}.{{class}}({'algorithm': 'granular_bitround'})
+        >>> TODOUx = {{package}}.{{class}}({'algorithm': 'granular_bitround'})
         >>> x.nc_set_variable('var')
         >>> print(x.creation_commands(header=False))
         p = {{package}}.{{class}}()
@@ -85,7 +85,8 @@ class ParametersAncillaries(Parameters):
         )
 
         out.append(
-            f"{name}.set_multiple_ancillaries({self.get_multiple_ancillaries()})"
+            f"{name}.set_multiple_ancillaries"
+            f"({self.get_multiple_ancillaries()})"
         )
 
         ancillaries = self.ancillaries()
@@ -106,8 +107,6 @@ class ParametersAncillaries(Parameters):
         rtol=None,
         atol=None,
         verbose=None,
-        ignore_data_type=False,
-        ignore_fill_value=False,
         ignore_type=False,
     ):
         """Whether two instances are the same.
@@ -176,7 +175,6 @@ class ParametersAncillaries(Parameters):
             return False
 
         for term, value0 in ancillaries0.items():
-            value0 = value0
             value1 = ancillaries1[term]
             if value0 is None and value1 is None:
                 continue
@@ -184,7 +182,7 @@ class ParametersAncillaries(Parameters):
             if value0 is None or value1 is None:
                 logger.info(
                     f"{self.__class__.__name__}: Unequal {term!r} "
-                    f"ancillary terms ({value0!r} != {value1!r})"
+                    f"ancillary term values ({value0!r} != {value1!r})"
                 )  # pragma: no cover
                 return False
 

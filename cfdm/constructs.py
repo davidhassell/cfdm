@@ -564,6 +564,80 @@ class Constructs(Container, core_Constructs):
 
         return True
 
+    @_manage_log_level_via_verbosity
+    def _equals_probability_distribution(
+        self,
+        other,
+        key1,
+        rtol=None,
+        atol=None,
+        verbose=None,
+        ignore_type=False,
+        axis1_to_axis0=None,
+        key1_to_key0=None,
+    ):
+        """Whether two probability distribution components are the same."""
+        key0 = key1_to_key0[key1]
+        unc0 = self._construct_dict("uncertainty")[key0]
+        unc1 = other._construct_dict("uncertainty")[key1]
+
+        distribution0 = unc0.probability_distribution
+        distribution1 = unc1.probability_distribution
+
+        # Uncertainty ancillary-valued terms
+        terms0 = distribution0.ancillaries()
+
+        terms1 = {
+            term: key1_to_key0.get(key, key)
+            for term, key in distribution1.ancillaries().items()
+        }
+
+        if terms0 != terms1:
+            logger.info(
+                f"{self.__class__.__name__}: Different probability "
+                f"distributions ({distribution0!r} != {distribution1!r})"
+            )  # pragma: no cover
+            return False
+
+        return True
+
+    @_manage_log_level_via_verbosity
+    def _equals_parameterisation(
+        self,
+        other,
+        key1,
+        rtol=None,
+        atol=None,
+        verbose=None,
+        ignore_type=False,
+        axis1_to_axis0=None,
+        key1_to_key0=None,
+    ):
+        """Whether two parameterisation components are the same."""
+        key0 = key1_to_key0[key1]
+        unc_anc0 = self._construct_dict("uncertainty_ancillary")[key0]
+        unc_anc1 = other._construct_dict("uncertainty_ancillary")[key1]
+
+        parameterisation0 = unc_anc0.parameterisation
+        parameterisation1 = unc_anc1.parameterisation
+
+        # Uncertainty ancillary-valued terms
+        terms0 = parameterisation0.ancillaries()
+
+        terms1 = {
+            term: key1_to_key0.get(key, key)
+            for term, key in parameterisation1.ancillaries().items()
+        }
+
+        if terms0 != terms1:
+            logger.info(
+                f"{self.__class__.__name__}: Different data parameterisations "
+                f"({parameterisation0!r} != {parameterisation1!r})"
+            )  # pragma: no cover
+            return False
+
+        return True
+
     def _set_climatology(self, cell_methods=None, coordinates=None):
         """Set the climatology flag on coordinate constructs.
 
@@ -1422,6 +1496,7 @@ class Constructs(Container, core_Constructs):
                 )
                 if log:
                     logger.info("\n".join(log))
+
                 if not _return_axis_map:
                     return False
             else:
@@ -1463,6 +1538,38 @@ class Constructs(Container, core_Constructs):
         for construct_type in self._non_array_constructs:
             if not getattr(self, "_equals_" + construct_type)(
                 other,
+                rtol=rtol,
+                atol=atol,
+                verbose=verbose,
+                ignore_type=_ignore_type,
+                axis1_to_axis0=axis1_to_axis0,
+                key1_to_key0=key1_to_key0,
+            ):
+                return False
+
+        # ------------------------------------------------------------
+        # Uncertainty construct probability distributions
+        # ------------------------------------------------------------
+        for key1 in other.filter_by_type("uncertainty"):
+            if not self._equals_probability_distribution(
+                other,
+                key1,
+                rtol=rtol,
+                atol=atol,
+                verbose=verbose,
+                ignore_type=_ignore_type,
+                axis1_to_axis0=axis1_to_axis0,
+                key1_to_key0=key1_to_key0,
+            ):
+                return False
+
+        # ------------------------------------------------------------
+        # Uncertainty ancillary construct data parameterisations
+        # ------------------------------------------------------------
+        for key1 in other.filter_by_type("uncertainty_ancillary"):
+            if not self._equals_parameterisation(
+                other,
+                key1,
                 rtol=rtol,
                 atol=atol,
                 verbose=verbose,
