@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class UncertaintyAncillary(
     mixin.QuantizationMixin,
+    mixin.NetCDFDataInAttribute,
     mixin.NetCDFVariable,
     mixin.NetCDFDimension,
     mixin.PropertiesData,
@@ -27,11 +28,19 @@ class UncertaintyAncillary(
 
     {{netCDF variable}}
 
-    The name of a trailing netCDF dimension spanned by an array of
-    error-correlations (which does not correspond to a domain axis
-    construct) may be accessed with the `nc_set_dimension`,
-    `nc_get_dimension`, `nc_del_dimension`, and `nc_has_dimension`
-    methods.
+    The name of a trailing netCDF dimension spanned by an
+    two-dimensionsal matrix of error-correlations (which does not
+    correspond to directly to a domain axis construct) may be accessed
+    with the `nc_set_dimension`, `nc_get_dimension`,
+    `nc_del_dimension`, and `nc_has_dimension` methods.
+
+    If the leading dimension of the matix corresponds to more than one
+    domain axis construct, then its name will be that of the trailing
+    dimension name but, less any digits at the end; or if trailing
+    dimension name has no digits at the end then digits will be
+    added. For instance, if the trailing dimension name is
+    ``'latlon1'``, then the leading dimension name could be
+    ``'latlon'``; and vice versa.
 
     {{netCDF variable group}}
 

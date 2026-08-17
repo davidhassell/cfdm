@@ -16,7 +16,7 @@ class UncertaintyAncillary(PropertiesData):
     distribution, error-correlation coefficients, or the value of a
     term in an error-correlation's parametric form. An uncertainty
     ancillary construct consists of the following:
-    
+
     * An optional data array of values that depends on the subset of
       zero or more domain axis constructs, and describes an aspect the
       probability distribution at the locations indexed by the domain
@@ -27,13 +27,13 @@ class UncertaintyAncillary(PropertiesData):
       the array may also span extra trailing dimensions, one for each
       domain construct spanned by the array, with the same size and in
       the same order.
-    
+
     * Properties to describe the data array (in the same sense as for
       the field construct). The properties may include a "comment"
       property that provides a general description of the numerical
       structure of the data array, even when no array has been
       provided.
-    
+
     * When the data array is omitted, the uncertainty ancillary
       construct still depends on a subset of zero or more of the
       domain axis contructs, and there may be a parameterization
@@ -43,7 +43,7 @@ class UncertaintyAncillary(PropertiesData):
       type "triangular"), or can may be another uncertainty ancillary
       construct (such as one which contains a configuration parameter
       for an error-correlation structural type).
-    
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     """

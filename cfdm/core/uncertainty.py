@@ -11,7 +11,7 @@ class Uncertainty(PropertiesData):
     component of the uncertainty in the field construct's data, and
     which are distributed over the same sampling domain as the field
     itself. It consists of the following:
-    
+
     * An array that defines the coverage interval within which the
       field construct's true data values occur with a known
       probability. The array depends on zero or more of the domain
@@ -21,13 +21,13 @@ class Uncertainty(PropertiesData):
       symmetric interval. It is assumed that the data do not depend on
       axes of the domain which are not spanned by the array, along
       which the values are implicitly propagated.
-    
+
     * Properties to describe the data (in the same sense as for the
       field construct). The properties must include a "coverage
       probability" property to indicate the probability that a true
       value of the field construct's data lies in the coverage
       interval defined by the array.
-    
+
     * An optional definition of the probability distribution from
       which the coverage interval is derived. The probability
       distribution is defined by the values of named parameters. A
@@ -38,7 +38,7 @@ class Uncertainty(PropertiesData):
       multiple uncertainty ancillary constructs containing
       error-correlation data for non-overlapping subsets of the domain
       axis constructs).
-    
+
     .. versionadded:: (cfdm) NEXTVERSION
 
     """
@@ -148,15 +148,11 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        if self.get_property("coverage_interval", None) == "offsets":
-            try:
-                return len(self.shape)
-            except AttributeError:
-                raise AttributeError(
-                    f"{self.__class__.__name__} object has no attribute 'ndim'"
-                )
+        ndim = super().ndim
+        if self._get_coverage_interval() == "offsets":
+            ndim -= 1
 
-        return super().ndim
+        return ndim
 
     @property
     def probability_distribution(self):
@@ -210,16 +206,11 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        if self.get_property("coverage_interval", None) == "offsets":
-            data = self.get_data(None, _units=False, _fill_value=False)
-            if data is not None:
-                return data.shape[:-1]
+        shape = super().shape
+        if self._get_coverage_interval() == "offsets":
+            shape = shape[:-1]
 
-            raise AttributeError(
-                f"{self.__class__.__name__} object has no attribute 'shape'"
-            )
-
-        return super().shape
+        return shape
 
     @property
     def size(self):
@@ -242,15 +233,30 @@ class Uncertainty(PropertiesData):
         1324
 
         """
-        if self.get_property("coverage_interval", None) == "offsets":
-            try:
-                return prod(self.shape[:-1])
-            except AttributeError:
-                raise AttributeError(
-                    f"{self.__class__.__name__} object has no attribute 'size'"
-                )
+        size = super().size
+        if self._get_coverage_interval() == "offsets":
+            size = prod(self.shape[:-1])
 
-        return super().size
+        return size
+
+    def _get_coverage_interval(self):
+        """TODOU.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+                TODOU
+
+        """
+        out = self.get_property("coverage_interval", None)
+        if out is None:
+            raise ValueError(
+                f"{self.__class__.__name__} must have a 'coverage_interval' "
+                "property"
+            )
+
+        return out
 
     def del_probability_distribution(self):
         """Remove the coordinate conversion component.

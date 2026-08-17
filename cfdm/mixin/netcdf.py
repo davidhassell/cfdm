@@ -6001,3 +6001,57 @@ class NetCDFConnectivityDimension(NetCDFMixin, NetCDFGroupsMixin):
             nc_set=self.nc_set_connectivity_dimension,
             nc_groups=self.nc_connectivity_dimension_groups,
         )
+
+
+class NetCDFDataInAttribute(NetCDFMixin):
+    """Mixin class for accessing the nTODOUetCDF dimension name.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    """
+
+    def nc_get_data_in_attribute(self):
+        """Return the netCDF dimension name.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `nc_set_data_in_attribute`
+
+        :Returns:
+
+            `bool`
+                TheTODOU netCDF dimension name.
+
+        **Examples**
+
+        >>> f.nc_set_data_in_attribute(True)
+        >>> f.nc_get_data_in_attribute()
+        True
+
+        """
+        return self._nc_get("data_in_attribute", default=False)
+
+    def nc_set_data_in_attribute(self, value):
+        """Set the netCDF dimension name.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        .. seealso:: `nc_get_data_in_attribute`
+
+        :Parameters:
+
+            value: `bool`
+                The valuTODOUe for the netCDF dimension name.
+
+        :Returns:
+
+            `None`
+
+        **Examples**
+
+        >>> f.nc_set_data_in_attribute(True)
+        >>> f.nc_get_data_in_attribute()
+        True
+
+        """
+        return self._nc_set("data_in_attribute", bool(value))
