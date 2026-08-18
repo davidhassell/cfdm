@@ -1005,4 +1005,4 @@ class NetCDFWriteUgrid:
             kwargs.update(g["netcdf_compression"])
 
             self._createVariable(**kwargs)
-            self._set_attributes(attributes, mesh_ncvar)
+            self._set_attributes(attributes=attributes, ncvar=mesh_ncvar)

@@ -3,6 +3,7 @@ Version NEXTVERSION
 
 **2026-08-??**
 
+<<<<<<< HEAD
 * New keywords to `cfdm.read`: ``backend``, ``backend_options``,
   ``cfa_filesystem``, ``cfa_backend``, ``cfa_backend_options``, ``um``
   (https://github.com/NCAS-CMS/cfdm/issues/417)
@@ -19,6 +20,15 @@ Version NEXTVERSION
 * Convert `pyfive.File`, `zarr.Group`, `h5py.File`, `umfile.File`, and
   `xnetcdf.Dataset` to `cf.Field` via `cfdm.read`
   (https://github.com/NCAS-CMS/cfdm/issues/417)
+=======
+* Automatically create consolidated HDF5 metadata with
+  `cfdm.write`. New keywords to `cfdm.write`:
+  ``hdf5_consolidated_metadata`` and ``hdf5_expansion_factor``
+  (https://github.com/NCAS-CMS/cfdm/pull/413)
+* Introduce use of cache files stored as
+  `~/.cf/standard_names*.pickle` to improve performance of CF
+  compliance checking (https://github.com/NCAS-CMS/cfdm/pull/411)
+>>>>>>> write-metadata-block-size
 * In `cfdm.write`, set sensible dataset chunksizes by default for 1-d
   data, controlled by the new ``one_d_chunks`` keyword
   (https://github.com/NCAS-CMS/cfdm/issues/414)
