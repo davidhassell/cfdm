@@ -10,7 +10,7 @@ Version NEXTVERSION
   (https://github.com/NCAS-CMS/cfdm/issues/417)
 * Dataset reads are now entirely managed by `xnetcdf`
   (https://github.com/NCAS-CMS/cfdm/issues/417)
-* Read with `cfdm.read` UK Met OFfice PP and UM fields files
+* Read with `cfdm.read` UK Met Office PP and UM fields files
   (https://github.com/NCAS-CMS/cfdm/issues/417)
 * Read with `cfdm.read` anything that can be read by `xarray`
   (https://github.com/NCAS-CMS/cfdm/issues/417)
