@@ -29,7 +29,7 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
                 prevents concurrent reads of the dataset.
 
                 For all other backends, the returned lock is a
-                `contextlib.nullcontext` object whcih does no locking.
+                `contextlib.nullcontext` object which does no locking.
 
         """
         # Get the backend, if possible.
