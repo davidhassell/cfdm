@@ -87,9 +87,9 @@ def resolve_reference(
 
         dim_then_var: `bool`, optional
             If *dim* and *var* are both True, then *dim_then_var*
-            being True means try to resolve a dimension first, and if
-            that's not possible then as a variable; and vice versa for
-            *dim_then_var* being False.
+            being True (the default) means try to resolve a dimension
+            first, and if that's not possible then as a variable; and
+            vice versa for *dim_then_var* being False.
 
         coord: `bool`, optional
             If True then the reference is for a Unidata coordinate
