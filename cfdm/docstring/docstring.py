@@ -124,7 +124,7 @@ _docstring_substitution_definitions = {
               `pathlib.Path` instance)
 
               - Local names may be relative paths and will have tilde
-                and shell environment variables expansions applied to
+                and shell environment variable expansions applied to
                 them, followed by the replacement of any UNIX
                 wildcards (such as ``*``, ``?``, ``[a-z]``, etc.) with
                 the list of matching names. Remote names (i.e. those
@@ -154,7 +154,7 @@ _docstring_substitution_definitions = {
                 assumed to be in that file system. If a file system
                 has not been defined, then a remote dataset is
                 treated, in general, as the file-like object
-                ``fsspec.filesytem(protocol).open(dataset, 'rb')``,
+                ``fsspec.filesystem(protocol).open(dataset, 'rb')``,
                 where ``protocol`` is inferred from the start of the
                 dataset name (e.g. ``s3`, ``http``, etc.).
 
@@ -163,10 +163,10 @@ _docstring_substitution_definitions = {
                 *filesystem* parameter. In this case, an
                 ``endpoint_url`` file system storage option is created
                 (unless it is already been provided present), and the
-                leading scheme and authority is automatically removed
+                leading scheme and authority are automatically removed
                 from the dataset name; for instance, the dataset
                 ``'s3://authority/bucket/file.nc'`` might be treated
-                as ``fsspec.filesytem('s3',
+                as ``fsspec.filesystem('s3',
                 endpoint_url='s3://authority').open('bucket/file.nc',
                 'rb')``.
 
@@ -177,7 +177,7 @@ _docstring_substitution_definitions = {
                 other methods do not work..
 
               - If the *cdl_string* parameter is True, then the
-                string-like dataset is nterpreted as an actual CDL
+                string-like dataset is interpreted as an actual CDL
                 representation of a dataset, rather than a path name.
 
             * A file-like object that accesses the dataset (such as
@@ -197,7 +197,7 @@ _docstring_substitution_definitions = {
 
             * Any object ``x`` that accesses the dataset and has the
               same API as one of the backend objects, or as
-              `xnetcdf.Dataset`. In pratice, this means any object
+              `xnetcdf.Dataset`. In practice, this means any object
               ``x`` for which ``isinstance(x, <backend-object>)`` is
               `True` for any ``<backend-object>`` from the selection
               of allowed backend objects. For instance, if you have
@@ -371,14 +371,14 @@ _docstring_substitution_definitions = {
             By default *backend* is `None`, which is equivalent to
             providing the ordered sequence of backends:
 
-            ``('pyfive', 'zarr' 'umfive', 'netCDF4', 'netcdf_file',
+            ``('pyfive', 'zarr', 'umfive', 'netCDF4', 'netcdf_file',
             'h5py', 'xarray')``
 
             If the dataset is given as a (subclass of a) backend
             object, then that backend must be one of the backends
             identified by the *backend* parameter.
 
-            Performance may be improved by specifiying a backend
+            Performance may be improved by specifying a backend
             library, as this reduces or removes unsuccessful dataset
             read attempts, which can be expensive, especially for
             remote datasets.
@@ -428,7 +428,7 @@ _docstring_substitution_definitions = {
                 The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
-                argument can not be provided.
+                argument cannot be provided.
 
             * ``'umfive_options'``
 
@@ -437,7 +437,7 @@ _docstring_substitution_definitions = {
                 backend. The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
-                argument can not be provided.
+                argument cannot be provided.
 
             * ``'netCDF4_options'``
 
@@ -446,7 +446,7 @@ _docstring_substitution_definitions = {
                 The keyword argument ``mode='r'`` is always
                 automatically applied, even when not provided, and
                 can't be set to a different value. The ``filename``
-                argument can not be provided.
+                argument cannot be provided.
 
             * ``'netcdf_file_options'``
 
@@ -456,9 +456,9 @@ _docstring_substitution_definitions = {
                 ``mode='r'`` and ``mmap=True`` are always
                 automatically applied, even when not provided, and
                 can't be set to different values. The ``filename``
-                argument can not be provided.
+                argument cannot be provided.
 
-            * ``'`h5py_options'``
+            * ``'h5py_options'``
 
                 Keyword arguments that are passed to `h5py.File` when
                 opening a dataset with the ``'h5py'`` backend. The
@@ -516,13 +516,13 @@ _docstring_substitution_definitions = {
             *datasets* parameter.
 
             When provided, a dataset is treated as the file-like
-            object ``filesytem.open(dataset, 'rb')`` which is passed
-            to the backends (see the *netcdf_backend* parameter).
+            object ``filesystem.open(dataset, 'rb')`` which is passed
+            to the backends (see the *backend* parameter).
 
             .. versionadded:: (cfdm) 1.13.1.0""",
     # read  storage_options
     "{{read storage_options: `dict` or `None`, optional}}": """storage_options: `dict` or `None`, optional
-            Parameters for defining an `fsspec`` filesystem for
+            Parameters for defining an `fsspec` filesystem for
             accessing a dataset.
 
             If `None` (the default) and *filesystem* is also `None`,
@@ -532,7 +532,7 @@ _docstring_substitution_definitions = {
             If set to a dictionary of storage options then a dataset
             is treated, in general, as the file-like object
             ``fsspec.filesytem(protocol,
-            **storage_options).open(dataset, 'rb')`` , where
+            **storage_options).open(dataset, 'rb')``, where
             ``protocol`` is inferred from the start of the dataset
             name (e.g. ``s3``, ``http``, etc.). S3 is a special case
             for which ``endpoint_url`` is added to the storage
@@ -540,7 +540,7 @@ _docstring_substitution_definitions = {
             automatically removed from the dataset name passed to the
             filesystem ``open`` method; for instance, the dataset
             ``'s3://authority/bucket/file.nc'`` is treated as
-            ``fsspec.filesytem('s3', endpoint_url='s3://authority',
+            ``fsspec.filesystem('s3', endpoint_url='s3://authority',
             **storage_options).open('bucket/file.nc')``.
 
             .. versionadded:: (cfdm) 1.13.1.0""",
@@ -877,7 +877,7 @@ _docstring_substitution_definitions = {
             The options to use with each backend when opening an
             aggregated dataset.
 
-            Set as for the *backend_options* parmaeter.""",
+            Set as for the *backend_options* parameter.""",
     # read cfa_filesystem
     "{{read cfa_filesystem: `None` or filesystem, optional}}": """cfa_filesystem: `None` or filesystem, optional
             A pre-authenticated filesystem object (for example an
@@ -890,7 +890,7 @@ _docstring_substitution_definitions = {
             *cfa_backend* parameter.
 
             When provided, a fragment dataset path (``fragment``) is
-            treated as the file-like object ``filesytem.open(fragment,
+            treated as the file-like object ``filesystem.open(fragment,
             'rb')`` which is passed to the backends (see the
             *cfa_backend* parameter).
 
@@ -1029,7 +1029,7 @@ _docstring_substitution_definitions = {
             option is ignored for input files which are not PP or
             fields files. In most cases, how to decode a file is
             inferrable from the file's contents via the lookup
-            headers, but when that it os not possible then any of the
+            headers, but when that is not possible then any of the
             following key/value pairs in the dictionary may be used to
             guide the decoding:
 
@@ -1059,7 +1059,7 @@ _docstring_substitution_definitions = {
 
               .. note:: A current limitation is that if pseudolevels
                         and atmosphere hybrid height coordinates are
-                        defined by same the lookup headers then the
+                        defined by the same lookup headers then the
                         height **can't be determined
                         automatically**. In this case the height may
                         be found after reading as the maximum value of
@@ -1069,14 +1069,14 @@ _docstring_substitution_definitions = {
                         parameter.
 
             *Example:*
-              To specify that the input files from version 6.6.3 of
+              To specify that the input files are from version 6.6.3 of
               the UM: ``um_config={'um_version': '6.6.3'}``
 
             *Example:*
-              To specify that the input files from version 6.6.3 of
+              To specify that the input files are from version 6.6.3 of
               the UM, and the height at top of the model is 85000
-              metres: ``um_config={'height_at_top_of_model': '6.6.3',
-              'um_version': 85000}``""",
+              metres: ``um_config={'height_at_top_of_model': 85000,
+              'um_version': '6.6.3'}``""",
     # persist
     "{{persist description}}": """Persisting turns an underlying lazy dask array into an
         equivalent chunked dask array, but now with the results fully
@@ -1545,7 +1545,7 @@ _docstring_substitution_definitions = {
                 removed from the dataset name passed to the filesystem
                 ``open`` method; for instance, the dataset
                 ``'s3://authority/bucket/file.nc'`` is treated as
-                ``filesytem.open('bucket/file.nc', 'rb')``.
+                ``filesystem.open('bucket/file.nc', 'rb')``.
 
                 If *filename* is not a string then *filesystem* is
                 ignored.
