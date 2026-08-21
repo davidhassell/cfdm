@@ -143,7 +143,7 @@ _docstring_substitution_definitions = {
                   could be described by any of the following:
                   ``['file1.nc', 'file2.nc']``, ``'file[12].nc'``
 
-              - A path of a directory will be walked through to find
+              - A path to a directory will be walked through to find
                 its contents (recursively if *recursive* is True),
                 unless the directory defines a Zarr dataset (which is
                 ascertained by presence in the directory of
