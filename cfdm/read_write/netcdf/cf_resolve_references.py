@@ -191,8 +191,9 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
 def search_by_proximity(ref, variable, search_type, coord=False):
     """Search for reference targets by proximity.
 
-    The reference contains no '/' characters and is searched for in the
-    direct ancestors of the current in which the variable is defined.
+    The reference contains no '/' characters and is searched for in
+    the direct ancestors of the current group in which the variable is
+    defined.
 
     Coordinate variable references that cannot be found by proximity
     are searched for laterally (see `coordinate_lateral_search`).
