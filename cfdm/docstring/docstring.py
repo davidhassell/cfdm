@@ -468,9 +468,8 @@ _docstring_substitution_definitions = {
                 provided. It is recommended to set ``rdcc_nbytes``,
                 ``rdcc_w0``, and ``rdcc_nslots`` keywords to reduce
                 the risk of poor HDF5 chunk-access performance with
-                the ``'h5py'`` backend (see
-                https://docs.h5py.org/en/stable/high/file.html#chunk-cache
-                for details).
+                the ``'h5py'`` backend (see the :ref:`h5py chunk cache
+                guide <h5py:chunk-cache>` for details).
 
             * ``'xarray_options'``
 
