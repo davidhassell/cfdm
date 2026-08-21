@@ -8048,7 +8048,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         if (
             instance_dimension
-            #            not in self.read_vars["internal_dimension_sizes"]
             not in self.read_vars["dimensions"]
         ):
             self._add_message(
