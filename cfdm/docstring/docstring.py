@@ -172,9 +172,9 @@ _docstring_substitution_definitions = {
 
               - There is a special case for remote http and https
                 datasets for which a file system has not been provided
-                with the *filesystem* parameter. In this case, it will
-                be attempted to access the dataset via OpeNDAP if
-                other methods do not work..
+                with the *filesystem* parameter. In this case, an
+                attempt will be made to access the dataset via OPeNDAP
+                if other methods do not work.
 
               - If the *cdl_string* parameter is True, then the
                 string-like dataset is interpreted as an actual CDL
