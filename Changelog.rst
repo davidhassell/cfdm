@@ -38,7 +38,6 @@ Version NEXTVERSION
 * Changed optional dependency: ``xarray>=2026.7.0``
 * New optional dependency: ``umfive>=0.3.0``
 * Removed dependency (now incorporated into `xnetcdf`): ``pyfive>=1.1.1``
-* Removed dependency: ``s3fs>=2024.6.0``
 
 ----
 
