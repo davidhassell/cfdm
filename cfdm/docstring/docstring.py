@@ -162,7 +162,7 @@ _docstring_substitution_definitions = {
                 which a file system has not been provided with the
                 *filesystem* parameter. In this case, an
                 ``endpoint_url`` file system storage option is created
-                (unless it is already been provided present), and the
+                (unless it has already been provided), and the
                 leading scheme and authority are automatically removed
                 from the dataset name; for instance, the dataset
                 ``'s3://authority/bucket/file.nc'`` might be treated
