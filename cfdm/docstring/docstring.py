@@ -531,7 +531,7 @@ _docstring_substitution_definitions = {
 
             If set to a dictionary of storage options then a dataset
             is treated, in general, as the file-like object
-            ``fsspec.filesytem(protocol,
+            ``fsspec.filesystem(protocol,
             **storage_options).open(dataset, 'rb')``, where
             ``protocol`` is inferred from the start of the dataset
             name (e.g. ``s3``, ``http``, etc.). S3 is a special case
