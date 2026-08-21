@@ -317,11 +317,11 @@ class FileArray(Array):
         :Returns:
 
             `None` or (sequence of) `str`
-                The backend name or names, or `None` if none have not
-                been provided. When accessing the dataset, the
+                The backend name or names, or `None` if none have been
+                provided, in which case the default backends for
+                `xnetcdf` are assumed. When accessing the dataset, the
                 backends are tried in order until one succeessfully
-                reads the dataset. If no backends have been provided
-                then the default backends for `xnetcdf` are used.
+                reads the dataset.
 
         """
         return self._get_component("backend", None)
