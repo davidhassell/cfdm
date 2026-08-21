@@ -406,38 +406,6 @@ def resolve_pattern_3(value, variable, coord=False):
         return " ".join(resolved)
 
 
-def resolve_pattern_3b(value, variable, coord=False):
-    """Resolve references in a pattern 3 attribute.
-
-    Resolve references in an attribute whose value has one of the
-    following patterns:
-
-    * ''
-    * 'key1: var1'
-    * 'key1: var1 key2: var2'
-    * 'key1: var1 var2'
-    * 'key1: var1 var2 key2: var3'
-
-    E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
-    ``interpolation_parameters``
-
-    .. versionadded:: (cfdm) NEXTVERSION
-
-    """
-    try:
-        resolved = []
-        for ref in value.split():
-            if not ref.endswith(":"):
-                ref = resolve_reference(ref, variable, var=True, coord=coord)
-
-            resolved.append(ref)
-
-    except AttributeError:
-        return value
-    else:
-        return " ".join(resolved)
-
-
 def resolve_pattern_4(value, variable, coord=False):
     """Resolve references in a pattern 4 attribute.
 
