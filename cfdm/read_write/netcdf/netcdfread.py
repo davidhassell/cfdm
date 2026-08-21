@@ -4604,10 +4604,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         :Parameters:
 
-            ncvar: `str`
-                The
+            field_ncvar: `str`
+                The netCDF name of the parent field or domain variable
+                that references the coordinate variable.
 
             dim: `xnetcdf.Dimension`
+                The dimension spanned by the coordinate variable.
 
         :Returns:
 
