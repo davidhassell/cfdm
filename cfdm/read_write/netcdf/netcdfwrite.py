@@ -8,7 +8,7 @@ import numpy as np
 
 from cfdm.data.dask_utils import cfdm_to_memory
 from cfdm.decorators import _manage_log_level_via_verbosity
-from cfdm.functions import abspath, dirname, integer_dtype
+from cfdm.functions import abspath, dirname, integer_dtype, is_log_level_debug
 
 from .. import IOWrite
 from .constants import (
@@ -22,6 +22,7 @@ from .constants import (
     ZARR_FMTS,
 )
 from .netcdfread import NetCDFRead
+from .netcdfwrite_meta_block_size import NetCDFMetaBlockSize
 from .netcdfwrite_ugrid import NetCDFWriteUgrid
 from .xarray_dataset import XarrayDataset
 
@@ -38,7 +39,7 @@ class AggregationError(Exception):
     pass
 
 
-class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
+class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
     """A container for writing Fields to a dataset.
 
     NetCDF3, netCDF4 and Zarr output formats are supported.
@@ -76,7 +77,29 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         """Cell method qualifiers."""
         return set(("within", "where", "over", "interval", "comment"))
 
-    def _createGroup(self, parent, group_name):
+    def _createGroup(self, **kwargs):
+        """Creates a new dataset group object.
+
+        .. versionadded:: (cfdm) 1.8.6.0
+
+        :Parameters:
+
+            kwargs:
+                The same keywords arguments as for
+                `_createGroup_work`.
+
+        :Returns:
+
+            `None`
+
+        """
+        # Store the name of the method that will do the work, and its
+        # keyword arguments.
+        self.write_vars["write_operations"].append(
+            ("_createGroup_work", kwargs)
+        )
+
+    def _createGroup_work(self, *, parent, group_name):
         """Creates a new dataset group object.
 
         .. versionadded:: (cfdm) 1.8.6.0
@@ -95,29 +118,44 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         g = self.write_vars
+
+        if parent == "/":
+            group_path = f"/{group_name}"
+        else:
+            group_path = f"{parent}/{group_name}"
+
+        group = g["groups"].get(group_path)
+        if group is not None:
+            return group
+
+        parent_group = g["groups"][parent]
+
         match g["backend"]:
             case "h5netcdf-h5py":
-                if group_name in parent:
-                    return parent[group_name]
-
-                return parent.create_group(group_name)
+                if group_name in parent_group:
+                    group = parent_group[group_name]
+                else:
+                    group = parent_group.create_group(group_name)
 
             case "netCDF4" | "xarray":
-                return parent.createGroup(group_name)
+                group = parent_group.createGroup(group_name)
 
             case "zarr":
                 if group_name in parent:
-                    return parent[group_name]
-
-                return parent.create_group(
-                    group_name, overwrite=g["overwrite"]
-                )
+                    group = parent_group[group_name]
+                else:
+                    group = parent_group.create_group(
+                        group_name, overwrite=g["overwrite"]
+                    )
 
             case _:
                 raise NotImplementedError(
                     "Need to implement _createGroup for the "
                     f"{g['backend']!r} backend"
                 )
+
+        g["groups"][group_path] = group
+        return group
 
     def _create_variable_name(self, parent, default):
         """Create an appropriate name for a dataset variable.
@@ -330,7 +368,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 del netcdf_attrs["_FillValue"]
 
         if not g["dry_run"]:
-            self._set_attributes(netcdf_attrs, ncvar)
+            self._set_attributes(attributes=netcdf_attrs, ncvar=ncvar)
 
         if skip_set_fill_value:
             # Re-add as known attribute since this FV is already set
@@ -340,7 +378,28 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         return netcdf_attrs
 
-    def _set_attributes(self, attributes, ncvar=None, group=None):
+    def _set_attributes(self, **kwargs):
+        """Set dataset attributes on a variable or group.
+
+        .. versionadded:: (cfdm) 1.13.0.0
+
+        :Parameters:
+
+            kwargs:
+                The same keywords arguments as for `_set_attributes_work`.
+
+        :Returns:
+
+            `None`
+
+        """
+        # Store the name of the method that will do the work, and its
+        # keyword arguments.
+        self.write_vars["write_operations"].append(
+            ("_set_attributes_work", kwargs)
+        )
+
+    def _set_attributes_work(self, *, attributes, ncvar=None, group=None):
         """Set dataset attributes on a variable or group.
 
         .. versionadded:: (cfdm) 1.13.0.0
@@ -369,7 +428,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             x = g["nc"][ncvar]
         elif group is not None:
             # Set group-level attributes
-            x = group
+            x = g["groups"][group]
         else:
             raise ValueError("Must set ncvar or group")
 
@@ -566,20 +625,44 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
             if not g["dry_run"]:
                 try:
-                    self._createDimension(parent_group, ncdim, size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
                 except RuntimeError:
                     pass  # TODO convert to 'raise' via fixes upstream
 
         return ncdim
 
-    def _createDimension(self, group, ncdim, size):
+    def _createDimension(self, **kwargs):
         """Create a dataset dimension in group.
 
         .. versionadded:: (cfdm) 1.13.0.0
 
         :Parameters:
 
-            group:
+            kwargs:
+                The same keywords arguments as for
+                `_createDimension_work'.
+
+        :Returns:
+
+            `None`
+
+        """
+        # Store the name of the method that will do the work, and its
+        # keyword arguments.
+        self.write_vars["write_operations"].append(
+            ("_createDimension_work", kwargs)
+        )
+
+    def _createDimension_work(self, *, group, ncdim, size):
+        """Create a dataset dimension in group.
+
+        .. versionadded:: (cfdm) 1.13.0.0
+
+        :Parameters:
+
+            group: `str`
                 The group in which to create the dimension.
 
             ncdim: `str`
@@ -593,10 +676,13 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `None`
 
         """
-        match self.write_vars["backend"]:
+        g = self.write_vars
+        match g["backend"]:
             case "h5netcdf-h5py":
+                group = g["groups"][group]
                 group.dimensions[ncdim] = size
             case "netCDF4" | "xarray":
+                group = g["groups"][group]
                 group.createDimension(ncdim, size)
             case "zarr":
                 # Dimensions are not created in Zarr datasets
@@ -604,7 +690,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             case _:
                 raise NotImplementedError(
                     "Need to implement _createDimension for backend "
-                    f"{self.write_vars['backend']!r}"
+                    f"{g['backend']!r}"
                 )
 
     def _dataset_dimensions(self, field, key, construct):
@@ -770,7 +856,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 # Create an unlimited dimension
                 size = None
                 try:
-                    self._createDimension(parent_group, ncdim, size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
                 except RuntimeError as error:
                     message = (
                         "Can't create unlimited dimension "
@@ -791,7 +879,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     g["unlimited_dimensions"].add(ncdim)
             else:
                 try:
-                    self._createDimension(parent_group, ncdim, size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
                 except RuntimeError as error:
                     raise RuntimeError(
                         f"Can't create size {size} dimension {ncdim!r} in "
@@ -1374,7 +1464,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         if not g["dry_run"]:
             self._createVariable(**kwargs)
-            self._set_attributes(geometry_container, ncvar)
+            self._set_attributes(attributes=geometry_container, ncvar=ncvar)
 
         # Update the 'geometry_containers' dictionary
         g["geometry_containers"][ncvar] = geometry_container
@@ -1497,7 +1587,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 if not g["dry_run"]:
                     try:
                         self._createDimension(
-                            parent_group, base_bounds_ncdim, size
+                            group=parent_group,
+                            ncdim=base_bounds_ncdim,
+                            size=size,
                         )
                     except RuntimeError:
                         raise
@@ -1685,7 +1777,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 if not g["dry_run"]:
                     # parent_group.createDimension(ncdim, size)
-                    self._createDimension(parent_group, ncdim, size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
 
             # Set an appropriate default node coordinates dataset
             # variable name
@@ -1898,22 +1992,19 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             `netCDF.Dataset` or `netCDF.Group` or `zarr.Group`
 
         """
-        g = self.write_vars
-
-        parent_group = g["dataset"]
-
-        if not g["group"] or "/" not in name:
-            return parent_group
+        if "/" not in name:
+            return "/"
 
         if not name.startswith("/"):
             raise ValueError(
                 f"Invalid dataset name {name!r}: missing a leading '/'"
             )
 
-        for group_name in name.split("/")[1:-1]:
-            parent_group = self._createGroup(parent_group, group_name)
+        group = "/".join(name.split("/")[:-1])
+        if not group:
+            group = "/"
 
-        return parent_group
+        return group
 
     def _remove_group_structure(self, name, return_groups=False):
         """Strip off any group structure from the name.
@@ -2112,7 +2203,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 if not g["dry_run"]:
                     # parent_group.createDimension(ncdim, size)
-                    self._createDimension(parent_group, ncdim, size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
 
             ncvar = self._name(ncvar)
 
@@ -2201,7 +2294,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 if not g["dry_run"]:
                     # parent_group.createDimension(ncdim, size)
-                    self._createDimension(parent_group, ncdim, size)
+                    self._createDimension(
+                        group=parent_group, ncdim=ncdim, size=size
+                    )
 
             ncvar = self._name(ncvar)
 
@@ -2363,6 +2458,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 # the bounds dataset variable and add the 'bounds',
                 # 'climatology' or 'nodes' attribute (as appropriate)
                 # to the dictionary of extra attributes.
+
                 extra = self._write_bounds(f, coord, key, ncdimensions, ncvar)
 
                 # Create a new auxiliary coordinate variable, if it has data
@@ -2620,12 +2716,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             external_variables.add(ncvar)
             if not g["dry_run"] and not g["post_dry_run"]:
                 self._set_attributes(
-                    {
+                    attributes={
                         "external_variables": " ".join(
                             sorted(external_variables)
                         )
                     },
-                    group=g["dataset"],
+                    group="/",
                 )
 
     def _create_external(
@@ -2670,6 +2766,28 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         return external
 
     def _createVariable(self, **kwargs):
+        """Create a variable in the dataset.
+
+        .. versionadded:: (cfdm) 1.7.0
+
+        :Parameters:
+
+            kwargs:
+                The same keyword arguments as for
+                `_createVariable_work'.
+
+        :Returns:
+
+            `None`
+
+        """
+        # Store the name of the method that will do the work, and its
+        # keyword arguments.
+        self.write_vars["write_operations"].append(
+            ("_createVariable_work", kwargs)
+        )
+
+    def _createVariable_work(self, **kwargs):
         """Create a variable in the dataset.
 
         Each backend needs a separate parsing of the input kwargs to suit
@@ -2959,7 +3077,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 parameters[term] = value
 
             if not g["dry_run"]:
-                self._set_attributes(parameters, ncvar)
+                self._set_attributes(attributes=parameters, ncvar=ncvar)
 
             # Update the 'seen' dictionary
             g["seen"][id(ref)] = {
@@ -3455,11 +3573,11 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             ]
 
             self._write_data(
-                data,
-                cfvar,
-                ncvar,
-                ncdimensions,
-                domain_axes,
+                data=data,
+                cfvar=cfvar,
+                ncvar=ncvar,
+                ncdimensions=ncdimensions,
+                domain_axes=domain_axes,
                 unset_values=unset_values,
                 compressed=self._compressed_data(ncdimensions),
                 attributes=attributes,
@@ -3543,8 +3661,28 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         return data, ncdimensions
 
-    def _write_data(
+    def _write_data(self, **kwargs):
+        """Write a data array to the dataset.
+
+        :Parameters:
+
+            kwargs:
+                The same keyword arguments as for `_write_data_work`.
+
+        :Returns:
+
+            `None`
+
+        """
+        # Store the name of the method that will do the work, and its
+        # keyword arguments.
+        self.write_vars["write_operations"].append(
+            ("_write_data_work", kwargs)
+        )
+
+    def _write_data_work(
         self,
+        *,
         data,
         cfvar,
         ncvar,
@@ -4588,7 +4726,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                 if not g["dry_run"] and not g["post_dry_run"]:
                     try:
                         self._set_attributes(
-                            {"formula_terms": formula_terms}, ncvar
+                            attributes={"formula_terms": formula_terms},
+                            ncvar=ncvar,
                         )
                     except KeyError:
                         pass  # TODO convert to 'raise' via fixes upstream
@@ -4606,8 +4745,10 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     if not g["dry_run"] and not g["post_dry_run"]:
                         try:
                             self._set_attributes(
-                                {"formula_terms": bounds_formula_terms},
-                                bounds_ncvar,
+                                attributes={
+                                    "formula_terms": bounds_formula_terms
+                                },
+                                ncvar=bounds_ncvar,
                             )
                         except KeyError:
                             pass  # TODO convert to 'raise' via fixes upstream
@@ -4975,10 +5116,20 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
                     f0, attr
                 )
 
-            nc = self._get_group(g["dataset"], groups)
+            parent = "/"
+            for group_name in groups:
+                self._createGroup(parent=parent, group_name=group_name)
+                if parent == "/":
+                    parent += group_name
+                else:
+                    parent += f"/{group_name}"
+
+            group_name = "/" + "/".join(groups)
 
             if not g["dry_run"]:
-                self._set_attributes(this_group_attributes, group=nc)
+                self._set_attributes(
+                    attributes=this_group_attributes, group=group_name
+                )
 
             group_attributes[groups] = tuple(this_group_attributes)
 
@@ -5192,7 +5343,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # ------------------------------------------------------------
             attrs.update(force_global)
 
-            self._set_attributes(attrs, group=g["dataset"])
+            self._set_attributes(attributes=attrs, group="/")
 
         g["global_attributes"] = global_attributes
 
@@ -5397,6 +5548,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         reference_datetime=None,
         backend=None,
         h5py_options=None,
+        hdf5_consolidated_metadata=True,
+        hdf5_expansion_factor=2.25,
         one_d_chunks="4 MiB",
     ):
         """Write field and domain constructs to a dataset.
@@ -5669,6 +5822,19 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
+            hdf5_consolidated_metadata: `bool`, optional
+                Whether or not to attempt to conoslidate the B-tree
+                into a single HDF5 metadata block. See `cfdm.write`
+                for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            hdf5_expansion_factor: number, optional
+                The expansion factor for the HDF5 metadata block size
+                calculation algorithm. See `cfdm.write` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `None`
@@ -5679,8 +5845,6 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
 
         """
         from packaging.version import Version
-
-        logger.info(f"Writing to {fmt}")  # pragma: no cover
 
         # Parse the 'omit_data' parameter
         if omit_data is None:
@@ -5729,6 +5893,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             "file_descriptors": {},
             "group": group,
             "group_attributes": {},
+            # Mapping of group paths to dataset group objects
+            "groups": {},
             "bounds": {},
             # NetCDF compression/endian
             "netcdf_compression": {},
@@ -5818,6 +5984,7 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # UGRID:
             # --------------------------------------------------------
             "meshes": {},
+            # --------------------------------------------------------
             # Cache selected (field, coordinate reference, dimension
             # coordinate) triples
             # --------------------------------------------------------
@@ -5829,6 +5996,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # https://docs.h5py.org/en/stable/high/file.html#h5py.File
             # --------------------------------------------------------
             "h5py_options": h5py_options,
+            # Whether or not to attempt to conoslidate the B-tree into
+            # a single HDF5 metadata block
+            "hdf5_consolidated_metadata": hdf5_consolidated_metadata,
+            # Expansion factor for the algorthm that calculates the
+            # HDF5 meta_block_size
+            "hdf5_expansion_factor": hdf5_expansion_factor,
         }
 
         if mode not in ("w", "a", "r+"):
@@ -5975,7 +6148,9 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # Parse the 'h5py_options' parameter
         if h5py_options is None:
             self.write_vars["h5py_options"] = {}
-        elif backend != "h5netcdf-h5py":
+        elif backend == "h5netcdf-h5py":
+            self.write_vars["h5py_options"] = h5py_options.copy()
+        else:
             raise ValueError(
                 "Can only set h5py_options when backend='h5netcdf-h5py'. "
                 f"Got: backend={backend!r}, h5py_options={h5py_options!r}"
@@ -6308,11 +6483,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # Scalar coordinate variables
         # ------------------------------------------------------------
         g["scalar"] = scalar
-        g["overwrite"] = overwrite
 
-        # ------------------------------------------------------------
-        # Open the output dataset
-        # ------------------------------------------------------------
+        g["overwrite"] = overwrite
         if self.dataset_exists(dataset_name):
             if mode == "w" and not overwrite:
                 raise IOError(
@@ -6329,7 +6501,12 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             g["overwrite"] = False
 
         g["dataset_name"] = dataset_name
-        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
+
+        # ------------------------------------------------------------
+        # Initialise the ordered list of operations that will do the
+        # actual writing to disk
+        # ------------------------------------------------------------
+        g["write_operations"] = []
 
         if not g["dry_run"]:
             # --------------------------------------------------------
@@ -6384,12 +6561,50 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
         # ------------------------------------------------------------
         self._ugrid_write_mesh_variables()
 
+        if is_log_level_debug(logger):
+            logger.debug("WRITE OPERATIONS:")  # pragma: no cover
+            for method, kwargs in g["write_operations"]:
+                logger.debug(f"  {method}: {kwargs}\n")  # pragma: no cover
+
+        if (
+            g["hdf5_consolidated_metadata"]
+            and g["backend"] == "h5netcdf-h5py"
+            and "meta_block_size" not in g["h5py_options"]
+        ):
+            # ---------------------------------------------------------
+            # Calculate a HDF5 meta block size that should be large
+            # enough for all internal file metadata.
+            #
+            # The size is based on the list of write operations
+            # (write_vars['write_operations']) that define what is
+            # actually going into the dataset on disk.
+            # --------------------------------------------------------
+            g["h5py_options"][
+                "meta_block_size"
+            ] = self._calculate_meta_block_size()
+
+        logger.info(
+            f"    h5py_options: {g['h5py_options']}"
+        )  # pragma: no cover
+
         # ------------------------------------------------------------
-        # Write all of the buffered data to disk
+        # Now flush the groups, dimensions, variables, and attributes
+        # to disk
         # ------------------------------------------------------------
-        # For append mode, it is cleaner code-wise to close the
-        # dataset on the read iteration and re-open it for the append
-        # iteration. So we always close it here.
+        # Open the dataset
+        g["dataset"] = self.dataset_open(dataset_name, mode, fmt, fields)
+
+        # Record the dataset object as the root group (because its
+        # creation is not stored in g["write_operations"])
+        g["groups"]["/"] = g["dataset"]
+
+        # Write the groups, dimensions, variables, and attributes to
+        # the dataset. This is done by executing the write operations
+        # in the order in which they were created.
+        for method, kwargs in g["write_operations"]:
+            getattr(self, method)(**kwargs)
+
+        # Close the dataset
         self.dataset_close()
 
         # ------------------------------------------------------------
@@ -7313,7 +7528,8 @@ class NetCDFWrite(NetCDFWriteUgrid, IOWrite):
             # Create the variable
             self._createVariable(**kwargs)
             self._set_attributes(
-                self.implementation.parameters(quantization), ncvar
+                attributes=self.implementation.parameters(quantization),
+                ncvar=ncvar,
             )
 
         # Update the quantization dictionary

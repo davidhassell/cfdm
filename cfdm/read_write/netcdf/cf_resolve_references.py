@@ -87,9 +87,9 @@ def resolve_reference(
 
         dim_then_var: `bool`, optional
             If *dim* and *var* are both True, then *dim_then_var*
-            being True means try to resolve a dimension first, and if
-            that's not possible then as a variable; and vice versa for
-            *dim_then_var* being False.
+            being True (the default) means try to resolve a dimension
+            first, and if that's not possible then as a variable; and
+            vice versa for *dim_then_var* being False.
 
         coord: `bool`, optional
             If True then the reference is for a Unidata coordinate
@@ -143,7 +143,7 @@ def resolve_reference(
 
 
 def search_by_absolute_or_relative_path(ref, variable, search_type):
-    """Search for reference targets by absolute or relative_path.
+    """Search for reference targets by absolute or relative path.
 
     Find the target of a reference that is defined by an absolute path
     (one that starts with '/') or a relative path (one that contains,
@@ -191,8 +191,9 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
 def search_by_proximity(ref, variable, search_type, coord=False):
     """Search for reference targets by proximity.
 
-    The reference contain no '/' characters and is searched for in the
-    direct ancestors of the current in which the variable is defined.
+    The reference contains no '/' characters and is searched for in
+    the direct ancestors of the current group in which the variable is
+    defined.
 
     Coordinate variable references that cannot be found by proximity
     are searched for laterally (see `coordinate_lateral_search`).
@@ -264,7 +265,7 @@ def search_by_proximity(ref, variable, search_type, coord=False):
 
 
 def coordinate_lateral_search(ref, group, depth):
-    """Search for coordiante variable reference targets by laterally.
+    """Search for coordinate variable reference targets by laterally.
 
     Performs a lateral search starting in *group* and proceeding to
     *depth* layers of sub-groups. If *depth* is 0, only *group* is
@@ -279,7 +280,7 @@ def coordinate_lateral_search(ref, group, depth):
     :Parameters:
 
         ref: `str`
-            The name of the refernece to be resolved (e.g. ``'lat'``).
+            The name of the reference to be resolved (e.g. ``'lat'``).
 
         group: `xnetcdf.Group`
             The group containing the variable that has the attribute
@@ -291,7 +292,7 @@ def coordinate_lateral_search(ref, group, depth):
     :Returns:
 
         `str` or `None`
-            The reolved reference (e.g. ``'/lat'``). If the reference
+            The resolved reference (e.g. ``'/lat'``). If the reference
             could not be resolved, then `None` is returned.
 
     """
@@ -405,38 +406,6 @@ def resolve_pattern_3(value, variable, coord=False):
         return " ".join(resolved)
 
 
-def resolve_pattern_3b(value, variable, coord=False):
-    """Resolve references in a pattern 3 attribute.
-
-    Resolve references in an attribute whose value has one of the
-    following patterns:
-
-    * ''
-    * 'key1: var1'
-    * 'key1: var1 key2: var2'
-    * 'key1: var1 var2'
-    * 'key1: var1 var2 key2: var3'
-
-    E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
-    ``interpolation_parameters``
-
-    .. versionadded:: (cfdm) NEXTVERSION
-
-    """
-    try:
-        resolved = []
-        for ref in value.split():
-            if not ref.endswith(":"):
-                ref = resolve_reference(ref, variable, var=True, coord=coord)
-
-            resolved.append(ref)
-
-    except AttributeError:
-        return value
-    else:
-        return " ".join(resolved)
-
-
 def resolve_pattern_4(value, variable, coord=False):
     """Resolve references in a pattern 4 attribute.
 
@@ -458,9 +427,8 @@ def resolve_pattern_4(value, variable, coord=False):
     :Returns:
 
         `str`
-
              The resolved string. If *value* was not a string, then it
-             it returned unchanged.
+             is returned unchanged.
 
     """
     try:
@@ -483,9 +451,9 @@ def resolve_pattern_4(value, variable, coord=False):
 
 
 def resolve_pattern_5(value, variable, coord=False):
-    """Resolve references in a pattern 4 attribute.
+    """Resolve references in a pattern 5 attribute.
 
-    Resolve references in an cell_methods attribute.
+    Resolve references in a cell_methods attribute.
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -626,7 +594,7 @@ def resolve_pattern_6(value, variable, coord=False):
 
 @dataclass
 class ResolveAttribute:
-    """How to resolving references in an attribute.
+    """How to resolve references in an attribute.
 
     .. versionadded:: (cfdm) NEXTVERSION
 

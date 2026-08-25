@@ -72,7 +72,7 @@ class read_writeTest(unittest.TestCase):
         with open(kerchunk_file, "r") as fh:
             d = json.load(fh)
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(cfdm.read_write.exceptions.DatasetTypeError):
             cfdm.read(d)
 
         fs = fsspec.filesystem("reference", fo=d)
