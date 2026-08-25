@@ -31,10 +31,10 @@ def _remove_tmpfiles():
 
 atexit.register(_remove_tmpfiles)
 
-netcdf_backends = (
+backends = (
+    "pyfive",
+    "h5py",
     "netCDF4",
-    "h5netcdf-pyfive",
-    "h5netcdf-h5py",
     "netcdf_file",
 )
 
@@ -86,7 +86,7 @@ class netcdf_indexerTest(unittest.TestCase):
         fields.append(f)
 
         # Check against netCDF4 with set_auto_maskandscale(True)
-        for backend in netcdf_backends:
+        for backend in backends:
             if backend == "netcdf_file":
                 fmt = "NETCDF3_CLASSIC"
             else:
@@ -97,8 +97,8 @@ class netcdf_indexerTest(unittest.TestCase):
             nc = netCDF4.Dataset(tmpfile, "r")
             nc.set_auto_maskandscale(True)
             nc.set_always_mask(True)
+            f = cfdm.read(tmpfile, backend=backend)
 
-            f = cfdm.read(tmpfile, netcdf_backend=backend)
             for g in f:
                 ncvar = g.nc_get_variable()
                 n = nc.variables[ncvar]
@@ -124,7 +124,7 @@ class netcdf_indexerTest(unittest.TestCase):
         f.set_property("missing_value", 999)
 
         # Check against netCDF4 with set_auto_maskandscale(True)
-        for backend in netcdf_backends:
+        for backend in backends:
             if backend == "netcdf_file":
                 fmt = "NETCDF3_CLASSIC"
             else:
@@ -136,7 +136,7 @@ class netcdf_indexerTest(unittest.TestCase):
             nc.set_auto_maskandscale(True)
             nc.set_always_mask(True)
 
-            for g in cfdm.read(tmpfile, netcdf_backend=backend):
+            for g in cfdm.read(tmpfile, backend=backend):
                 ncvar = g.nc_get_variable()
                 n = nc.variables[ncvar]
                 na = n[...]
@@ -249,7 +249,7 @@ class netcdf_indexerTest(unittest.TestCase):
         self.assertEqual(v[1, np.newaxis, :3].shape, (1, 3))
 
         # Test with netCDF backends
-        for klass in (cfdm.H5netcdfArray, cfdm.NetCDF4Array, cfdm.PyfiveArray):
+        for klass in (cfdm.XnetcdfArray,):
             k = klass("example_field_0.nc", "time", shape=())
             dataset, address = k.open()
             variable = dataset[address]

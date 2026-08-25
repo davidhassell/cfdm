@@ -18,24 +18,21 @@ import numpy as np
 from ...conformance import FieldChecker, VariableNonConformance
 from ...data.netcdfindexer import netcdf_indexer
 from ...decorators import _manage_log_level_via_verbosity
-from ...functions import abspath, is_log_level_debug, is_log_level_detail
+from ...functions import abspath, is_log_level_debug
 from .. import IORead
 from ..exceptions import DatasetTypeError, ReadError
+from .cf_resolve_references import (
+    resolve_reference,
+    resolve_references,
+    search_by_proximity,
+)
 from .checker import NetCDFCheckerMixin
 from .constants import (
     CF_QUANTIZATION_PARAMETERS,
     NETCDF_MAGIC_NUMBERS,
     NETCDF_QUANTIZATION_PARAMETERS,
+    PP_UM_MAGIC_NUMBERS,
 )
-from .dimension import Dimension
-from .flatten import dataset_flatten
-from .flatten.config import (
-    flattener_attribute_map,
-    flattener_dimension_map,
-    flattener_separator,
-    flattener_variable_map,
-)
-from .zarr import ZarrDimension
 
 logger = logging.getLogger(__name__)
 
@@ -470,8 +467,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
     def dataset_close(self):
         """Close all netCDF datasets that have been opened.
 
-        Includes the input dataset being read, any external datasets,
-        and any temporary flattened dataset.
+        Includes the input dataset being read and any external
+        datasets.
 
         :Returns:
 
@@ -492,71 +489,38 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 pass
 
         for nc in g["datasets"]:
-            if g["netcdf_backend"] == "netcdf_file":
-                # We can't close a scipy.io.netcdf_file instance
-                # opened with mmap=True when any variable still
-                # exists, or when an array referring to a variable's
-                # data still exists (see scipy.io.netcdf_file docs for
-                # details). So, rather than attempting to hunt down
-                # all such reference (messy!), the hack of setting the
-                # '_mm_buf' attribute to `None` allows the file to be
-                # closed. We get away with this because we know that
-                # we've copied all memory mapped data into memory (by
-                # using the `_index` method instead of using a
-                # variable's __getitem__ method directly), and because
-                # no constructs will contain any
-                # `scipy.io.netcdf_variable` objects.
-                nc._mm_buf = None
+            nc.close()
 
-            try:
-                nc.close()
-            except AttributeError:
-                pass
-
-        # Close temporary flattened datasets, which are
-        # netCDF4.Dataset
-        for flat_dataset in g["flat_datasets"]:
-            flat_dataset.close()
-
-        # Close the original grouped file (v1.8.8.1)
-        if "nc_grouped" in g:
-            try:
-                g["nc_grouped"].close()
-            except AttributeError:
-                pass
-
-    def dataset_open(self, dataset, flatten=True, verbose=None):
+    def dataset_open(self, dataset):
         """Open the netCDF dataset for reading.
-
-        If the file has hierarchical groups then a flattened version
-        of it is returned, and the original grouped file remains open.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
             dataset:
-                The dataset. May be a string-valued path, a file-like
-                object, or a directory-like object.
 
-            flatten: `bool`, optional
-                If True (the default) then flatten a grouped file.
-                Ignored if the file has no groups.
-
-                .. versionadded:: (cfdm) 1.8.6
+                The definition of the netCDF dataset to be read. May
+                be anything accepted by the *dataset* parameter of
+                `xnetcdf.Dataset`.
 
         :Returns:
 
-                An object representing the opened dataset.
+            `xnetcdf.Dataset`
+                The opened dataset.
 
         **Examples**
 
-        >>> r.dataset_open('file.nc')
+        >>> d = r.dataset_open('file.nc')
 
         """
+        import xnetcdf
+
         g = self.read_vars
 
-        netcdf_backend = g["netcdf_backend"]
+        logger.info(
+            f"Reading netCDF dataset: {g['dataset']}\n"
+        )  # pragma: no cover
 
         if g["d_type"] == "CDL":
             # --------------------------------------------------------
@@ -570,7 +534,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         g["cdl_filename"] = cdl_filename
 
-        protocol = None
         storage_options = g["storage_options"]
 
         # Store the original dataset. This in case it gets replace
@@ -579,275 +542,89 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         original_dataset = dataset
 
         filesystem = g["filesystem"]
-        if filesystem is not None:
+        representation = g["dataset_representation"]
+        if filesystem is not None and representation == "path":
             # --------------------------------------------------------
             # Pre-authenticated filesystem: open the dataset as a
             # file-like object and pass it to the backend.
             # --------------------------------------------------------
-            if is_log_level_detail(logger):
-                logger.detail(
-                    f"    {protocol} storage_options: {storage_options}\n"
-                )  # pragma: no cover
-
             try:
                 dataset = self.filesystem_open(filesystem, dataset)
             except Exception:
-                # Something went wrong with the filesystem open
-                if not g["internally_created_filesystem"]:
-                    # The filesystem was provided by the user, so
-                    # raise the exception.
-                    raise
+                filesystem = None
+                g["filesystem"] = None
 
-                # The filesystem was created internally (so could be
-                # inappropriate), so we'll just try using the string
-                # 'dataset' in the open functions (i.e. do nothing,
-                # because 'dataset' hasn't changed from its original
-                # string).
-            else:
-                # We successfully replaced the dataset string with a
-                # file-like object.
+            try:
                 storage_options = filesystem.storage_options
-                protocol = filesystem.protocol
-                if isinstance(protocol, tuple):
-                    protocol = protocol[0]
+            except AttributeError:
+                storage_options = None
 
         if not storage_options:
             storage_options = None
 
-        g["file_system_storage_options"] = storage_options
-        g["file_system_protocol"] = protocol
+        g["storage_options"] = storage_options
 
-        # Map backend names to dataset-open functions
-        dataset_open_function = {
-            "h5netcdf-pyfive": self._open_h5netcdf_pyfive,
-            "h5netcdf-h5py": self._open_h5netcdf_h5py,
-            "netCDF4": self._open_netCDF4,
-            "netcdf_file": self._open_netcdf_file,
-            "zarr": self._open_zarr,
-            "Kerchunk": self._open_zarr,
-        }
-
-        # Loop around the netCDF backends until we successfully open
-        # the file
         nc = None
-        errors = []
-        for backend in g["netcdf_backend"]:
-            if backend == "netCDF4":
-                # This backend can only deal with the original dataset
-                # string
-                dataset1 = original_dataset
-            else:
-                dataset1 = dataset
-
-            try:
-                nc = dataset_open_function[backend](dataset1)
-            except KeyError:
-                errors.append(f"{backend}: Unknown netCDF backend name")
-            except Exception as error:
-                errors.append(
-                    f"{backend}:\n{error.__class__.__name__}: {error}"
-                )
-            else:
-                g["netcdf_backend"] = backend
-                g["nc_opened_with"] = backend
-                break
-
-        if nc is None:
-            if g["dataset_representation"] == "file_handle":
-                # Rewind a file-like object that couldn't be read
-                # (ready for something else to have a go at it).
-                dataset.seek(0)
-
-            if cdl_filename is not None:
-                dataset = f"{dataset} (created from CDL file {cdl_filename})"
-
-            error = "\n\n".join(errors)
-            raise DatasetTypeError(
-                f"Can't interpret {dataset} as a netCDF dataset "
-                f"with any of the backends {netcdf_backend!r}:\n\n"
-                f"{error}"
-            )
-
-        # ------------------------------------------------------------
-        # If the file has a group structure then flatten it (CF>=1.8)
-        # ------------------------------------------------------------
-        if flatten and self._dataset_has_groups(nc):
-            import netCDF4
-
-            # Create a diskless, non-persistent container for the
-            # flattened file
-            flat_dataset = tempfile.NamedTemporaryFile(
-                mode="wb",
-                dir=tempfile.gettempdir(),
-                prefix="cfdm_flat_",
-                suffix=".nc",
-                delete=True,
-            )
-
-            flat_nc = netCDF4.Dataset(
-                flat_dataset, "w", diskless=True, persist=False
-            )
-            flat_nc.set_fill_off()
-
-            # Flatten the file
-            dataset_flatten(
-                nc,
-                flat_nc,
-                strict=False,
-                copy_data=False,
-                group_dimension_search=g["group_dimension_search"],
-            )
-
-            # Store the original grouped file. This is primarily
-            # because the unlimited dimensions in the flattened
-            # dataset have size 0, since it contains no
-            # data. (v1.8.8.1)
-            g["nc_grouped"] = nc
-
-            nc = flat_nc
-
-            g["nc_opened_with"] = "netCDF4"
-            g["has_groups"] = True
-            g["flat_datasets"].append(flat_dataset)
-            g["nc_opened_with"] = "netCDF4"
+        if isinstance(dataset, xnetcdf.Dataset):
+            nc = dataset
         else:
-            g["nc_opened_with"] = g["original_dataset_opened_with"]
+            try:
+                nc = xnetcdf.Dataset(
+                    dataset,
+                    backend=g["backend"],
+                    zarr_dimension_search=g["group_dimension_search"],
+                    structural_metadata_strategy="maximal",
+                    **g["backend_options"],
+                )
+            except Exception as error:
+                if cdl_filename is not None:
+                    error = (
+                        f"{dataset} was created from CDL file "
+                        f"{cdl_filename}\n\n"
+                        f"{error}"
+                    )
+
+                # As a last resort, try opening an http dataset with
+                # opendap via netCDF4
+                if filesystem is not None and representation == "path":
+                    try:
+                        protocol = filesystem.protocol
+                    except AttributeError:
+                        protocol = None
+                    else:
+                        if isinstance(protocol, tuple):
+                            protocol = protocol[0]
+
+                    if protocol in ("http", "https"):
+                        try:
+                            nc = xnetcdf.Dataset(
+                                original_dataset, backend="netCDF4"
+                            )
+                        except Exception as error_opendap:
+                            error = f"{error}\n\n{error_opendap}"
+
+                if nc is None:
+                    raise DatasetTypeError(error)
+
+        g["dataset_read_log"] = nc.dataset_read_log(display=False)
+        if g["debug"]:
+
+            logger.debug(
+                f"\n    Dataset open log:\n{g['dataset_read_log']}\n"
+                f"\n    Input netCDF dataset:\n{nc.dump(display=False)}\n"
+            )  # pragma: no cover
+
+        # Resolve references inside attributes to variables and
+        # dimensions to absolute paths
+        resolve_references(nc)
+
+        if g["debug"]:
+            logger.debug(
+                "    Input netCDF dataset after reference resolution:\n"
+                f"{nc.dump(display=False)}\n"
+            )  # pragma: no cover
 
         g["nc"] = nc
-        return nc
-
-    def _open_netcdf_file(self, filename):
-        """Return an open `scipy.io.netcdf_file`.
-
-        .. versionadded:: (cfdm) 1.13.1.0
-
-        :Parameters:
-
-            filename: `str`
-                The file to open.
-
-        :Returns:
-
-            `scipy.io.netcdf_file`
-
-        """
-        from scipy.io import netcdf_file
-
-        nc = netcdf_file(filename, mode="r", mmap=True)
-        self.read_vars["original_dataset_opened_with"] = "netcdf_file"
-        return nc
-
-    def _open_netCDF4(self, filename):
-        """Return an open `netCDF4.Dataset`.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            filename: `str`
-                The file to open.
-
-        :Returns:
-
-            `netCDF4.Dataset`
-
-        """
-        import netCDF4
-
-        nc = netCDF4.Dataset(filename, "r")
-        self.read_vars["original_dataset_opened_with"] = "netCDF4"
-        return nc
-
-    def _open_h5netcdf_h5py(self, filename):
-        """Return an open `h5netcdf.File` with the `h5py` backend.
-
-        Uses values of the ``rdcc_nbytes``, ``rdcc_w0``, and
-        ``rdcc_nslots`` parameters to `h5netcdf.File` that correspond
-        to the default values of the `netCDF4.set_chunk_cache`
-        parameters ``size``, ``nelems``, and ``preemption``,
-        respectively.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            filename: `str`
-                The file to open.
-
-        :Returns:
-
-            `h5netcdf.File`
-
-        """
-        import h5netcdf
-
-        nc = h5netcdf.File(
-            filename,
-            "r",
-            decode_vlen_strings=True,
-            rdcc_nbytes=16777216,
-            rdcc_w0=0.75,
-            rdcc_nslots=4133,
-            phony_dims="sort",
-        )
-        self.read_vars["original_dataset_opened_with"] = "h5netcdf-h5py"
-        return nc
-
-    def _open_h5netcdf_pyfive(self, filename):
-        """Return an open `h5netcdf.File` with the `pyfive` backend.
-
-        .. versionadded:: (cfdm) 1.13.1.0
-
-        :Parameters:
-
-            filename: `str`
-                The file to open.
-
-        :Returns:
-
-            `h5netcdf.File`
-
-        """
-        import h5netcdf
-
-        nc = h5netcdf.File(
-            filename,
-            "r",
-            decode_vlen_strings=True,
-            backend="pyfive",
-            phony_dims="sort",
-        )
-        self.read_vars["original_dataset_opened_with"] = "h5netcdf-pyfive"
-        return nc
-
-    def _open_zarr(self, dataset):
-        """Return an open `zarr.Group`.
-
-        .. versionadded:: (cfdm) 1.12.2.0
-
-        :Parameters:
-
-            dataset:
-                The dataset. May be a string-valued path, a file-like
-                object, or a directory-like object.
-
-        :Returns:
-
-            `zarr.Group`
-
-        """
-        try:
-            import zarr
-        except ModuleNotFoundError as error:
-            error.msg += (
-                ". Install the 'zarr' package "
-                "(https://pypi.org/project/zarr) to read "
-                f"{self.read_vars['d_type']} datasets"
-            )
-            raise
-
-        nc = zarr.open(dataset, mode="r")
-        self.read_vars["original_dataset_opened_with"] = "zarr"
         return nc
 
     def cdl_to_netcdf(self, filename):
@@ -989,6 +766,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if representation is None:
             representation = cls.dataset_representation(dataset)
 
+        if representation in ("general_mapper", "unknown"):
+            return representation
+
         if cls.is_kerchunk(dataset, filesystem, representation):
             return "Kerchunk"
 
@@ -1021,13 +801,15 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         except FileNotFoundError:
             raise
         except Exception:
-            # Can't read 4 bytes from the file, so it can't be netCDF
-            # or CDL.
+            # Can't read 4 bytes from the file, so it can't be netCDF,
+            # CDL or UM.
             d_type = None
         else:
             # Is it a netCDF-3 or netCDF-4 binary file?
             if magic_number in NETCDF_MAGIC_NUMBERS:
                 d_type = "netCDF"
+            elif magic_number in PP_UM_MAGIC_NUMBERS:
+                d_type = "UM"
             else:
                 # Is it a CDL text file?
                 try:
@@ -1104,13 +886,17 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         domain=False,
         storage_options=None,
         filesystem=None,
-        netcdf_backend=None,
+        backend=None,
+        backend_options=None,
         cache=True,
         dask_chunks="storage-aligned",
         store_dataset_chunks=True,
         store_dataset_shards=True,
         cfa=None,
         cfa_write=None,
+        cfa_filesystem=None,
+        cfa_backend=None,
+        cfa_backend_options=None,
         to_memory=None,
         squeeze=False,
         unsqueeze=False,
@@ -1118,6 +904,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         cdl_string=False,
         ignore_unknown_type=False,
         group_dimension_search="closest_ancestor",
+        um=None,
         _noncompliance_report=False,
     ):
         """Reads a netCDF or Zarr dataset from file or OPenDAP URL.
@@ -1178,7 +965,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
-            netcdf_backend: `None` or `str`, optional
+            backend: `None` or `str`, optional
                 See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) 1.11.2.0
@@ -1218,6 +1005,27 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 datasets. See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) 1.12.0.0
+
+            cfa_filesystem: `None` or filesystem, optional
+                 A pre-authenticated filesystem object (for example an
+                 `fsspec` filesystem instance) to use for opening the
+                 fragment datasets indicated in a CF-netCDF
+                 aggregation file. See `cfdm.read` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            cfa_backend: `None` or (sequence of) `str`, optional
+                Which library or libraries to use for reading the
+                dataset fragments indicated in a CF-netCDF aggregation
+                file. See `cfdm.read` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            cfa_backend_options: `None` or `dict`, optional
+                The options to use with each backend when opening an
+                aggregated dataset. See `cfdm.read` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
             to_memory: (sequence) of `str`, optional
                 Whether or not to bring data arrays into memory. See
@@ -1291,6 +1099,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                 .. versionadded:: (cfdm) 1.13.0.0
 
+            um: `dict` or `None`, optional
+                Configuration options for decoding UM datasets. See
+                `cfdm.read` for details.
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
         :Returns:
 
             `list`
@@ -1306,7 +1120,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # ------------------------------------------------------------
         # Parse the 'dataset_type' keyword parameter
         # ------------------------------------------------------------
-        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Kerchunk")
+        valid_dataset_types = ("netCDF", "CDL", "Zarr", "Kerchunk", "UM")
         if dataset_type is not None:
             if isinstance(dataset_type, str):
                 dataset_type = (dataset_type,)
@@ -1340,19 +1154,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Dataset representation
         # ------------------------------------------------------------
         representation = self.dataset_representation(dataset)
-        if representation == "kerchunk_dict":
-            raise ValueError(
-                f"Can't read a {representation!r} dataset. Convert it to a "
-                "Kerchunk mapper and read that instead:\n\n"
-                ">>> fs = fsspec.filesystem('reference', fo=kerchunk_dict, "
-                "<options>)\n"
-                ">>> kerchunk_mapper = fs.get_mapper()"
-            )
-
         if representation == "kerchunk_bytes":
             raise ValueError(
                 f"Can't read a {representation!r} dataset. Convert it to a "
-                "Kerchunk mapper and read that instead:\n\n"
+                "Kerchunk mapper and read that instead. For instance:\n\n"
                 ">>> kerchunk_dict = json.loads(kerchunk_bytes)\n"
                 "fs = fsspec.filesystem('reference', fo=kerchunk_dict, "
                 "<options>)\n"
@@ -1378,7 +1183,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
 
         # ------------------------------------------------------------
-        # Parse the 'dataset' keyword parameter
+        # Parse the 'dataset' keyword parameter and (if required)
+        # create a filesystem
         # ------------------------------------------------------------
         if representation == "path" and filesystem is None:
             try:
@@ -1420,37 +1226,47 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             return []
 
         # ------------------------------------------------------------
-        # Parse the 'netcdf_backend' keyword parameter
+        # Parse the 'backend' keyword parameter
         # ------------------------------------------------------------
-        if d_type in ("Zarr", "Kerchunk"):
-            netcdf_backend = ("zarr",)  # Zarr, Kerchunk
-        elif netcdf_backend is None:
-            # By default, try netCDF backends in the following order.
-            #
-            # Note: If this order is ever changed, then the
-            #       netcdf_backend parameter docstring must also be
-            #       updated.
-            netcdf_backend = (
-                "h5netcdf-pyfive",  # netCDF-4
-                "h5netcdf-h5py",  # netCDF-4
-                "netCDF4",  # netCDF-3 and netCDF-4
-                "netcdf_file",  # netCDF-3
+        if backend is None:
+            if d_type in ("netCDF", "CDL"):
+                backend = ("pyfive", "netCDF4", "h5py", "xarray")
+            elif d_type in ("Zarr", "Kerchunk"):
+                backend = ("zarr", "xarray")
+            elif d_type == "UM":
+                backend = "umfive"
+        else:
+            import xnetcdf
+
+            if isinstance(backend, str):
+                backend = (backend,)
+
+            if not set(backend).issubset(xnetcdf.backends):
+                raise ValueError(
+                    "Invalid netCDF backend given by the 'backend' "
+                    f"parameter. Got {backend}, expected a subset "
+                    f"of {xnetcdf.backends}"
+                )
+
+        # ------------------------------------------------------------
+        # Parse the 'backend_options' keyword parameter
+        # ------------------------------------------------------------
+        if backend_options is None:
+            backend_options = {}
+        elif not isinstance(backend_options, dict):
+            raise ValueError(
+                "'backend_options' parameter must be a dictionary or None. "
+                f"Got: {backend_options!r}"
             )
         else:
-            valid_netcdf_backends = (
-                "h5netcdf-pyfive",
-                "h5netcdf-h5py",
-                "netCDF4",
-                "netcdf_file",
-            )
-            if isinstance(netcdf_backend, str):
-                netcdf_backend = (netcdf_backend,)
+            import xnetcdf
 
-            if not set(netcdf_backend).issubset(valid_netcdf_backends):
+            valid_options = [f"{b}_options" for b in xnetcdf.backends]
+            if not set(backend_options).issubset(valid_options):
                 raise ValueError(
-                    "Invalid netCDF backend given by the 'netcdf_backend' "
-                    f"parameter. Got {netcdf_backend}, expected a subset "
-                    f"of {valid_netcdf_backends}"
+                    "Invalid key in 'backend_options' dictionary. "
+                    f"Got {backend_options!r}, expected a subset "
+                    f"of {valid_options}"
                 )
 
         # ------------------------------------------------------------
@@ -1571,6 +1387,26 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
 
         # ------------------------------------------------------------
+        # Parse the 'um' keyword parameter
+        # ------------------------------------------------------------
+        if not (um is None or isinstance(um, dict)):
+            raise ValueError(
+                f"'um' parameter must be a dictionary or None. Got: {um!r}"
+            )
+
+        if um:
+            if not set(um).issubset(("um_version", "height_at_top_of_model")):
+                raise ValueError(
+                    f"Invalid 'um' parameter dictionary keys: {um!r}"
+                )
+
+            umfive_options = backend_options.get("umfive_options")
+            if umfive_options is None:
+                backend_options["umfive_options"] = um
+            else:
+                backend_options["umfive_options"] = umfive_options | um
+
+        # ------------------------------------------------------------
         # Initialise netCDF read parameters
         # ------------------------------------------------------------
         self.read_vars = {
@@ -1624,6 +1460,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # attribute
             "external_files": external,
             "external_variables": set(),
+            # Mapping of external names in parent file to resolved
+            # references in the external file. E.g. {'areacell':
+            # '/areacell'}
+            "external_variable_map": {},
             # External variables that are actually referenced from
             # within the parent file
             "referenced_external_variables": set(),
@@ -1654,12 +1494,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # attributes?
             "warn_valid": bool(warn_valid),
             "valid_properties": set(("valid_min", "valid_max", "valid_range")),
-            # Assume a priori that the dataset does not have a group
-            # structure
-            "has_groups": False,
             "group_dimension_search": group_dimension_search,
-            # Keep a list of flattened dataset names
-            "flat_datasets": [],
             # --------------------------------------------------------
             # Domains (CF>=1.9)
             # --------------------------------------------------------
@@ -1685,18 +1520,15 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # Interpolation parameter variables
             "interpolation_parameter": {},
             # --------------------------------------------------------
-            # NetCDF backend
+            # Dataset backend
             # --------------------------------------------------------
-            "netcdf_backend": netcdf_backend,
+            "backend": backend,
+            "backend_options": backend_options,
             # --------------------------------------------------------
             # S3
             # --------------------------------------------------------
-            # Input file system storage options
-            "storage_options": storage_options,
-            # File system protocol (e.g. None, 's3', ('s3', s3a',), etc.)
-            "file_system_protocol": None,
             # File system storage options
-            "file_system_storage_options": {},
+            "storage_options": storage_options,
             # Pre-authenticated filesystem object (e.g. fsspec)
             "filesystem": filesystem,
             "internally_created_filesystem": internally_created_filesystem,
@@ -1718,6 +1550,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             "cfa": cfa,
             # Dask chunking of aggregated data for selected constructs
             "cfa_write": cfa_write,
+            # Pre-authenticated filesystem object (e.g. fsspec)
+            "cfa_filesystem": cfa_filesystem,
+            # Backend with which to open fragment datasets
+            "cfa_backend": cfa_backend,
+            "cfa_backend_options": cfa_backend_options,
             # --------------------------------------------------------
             # Whether or not to store the dataset chunking and
             # sharding strategies
@@ -1745,6 +1582,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # Cached data elements, keyed by variable names.
             # --------------------------------------------------------
             "cached_data_elements": {},
+            # --------------------------------------------------------
+            # UM configuration options
+            # --------------------------------------------------------
+            "um": um,
         }
 
         g = self.read_vars
@@ -1767,7 +1608,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Open the netCDF dataset to be read
         # ------------------------------------------------------------
         try:
-            nc = self.dataset_open(dataset, flatten=True, verbose=None)
+            nc = self.dataset_open(dataset)
         except DatasetTypeError:
             if not g["ignore_unknown_type"]:
                 raise
@@ -1780,31 +1621,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             return []
 
-        logger.info(
-            f"Reading netCDF file: {g['dataset']}\n"
-        )  # pragma: no cover
-        if debug:
-            logger.debug(
-                f"    Input netCDF dataset:\n        {nc}\n"
-            )  # pragma: no cover
-
         # ----------------------------------------------------------------
         # Put the file's global attributes into the global
         # 'global_attributes' dictionary
         # ----------------------------------------------------------------
-        global_attributes = {}
-        for attr, value in self._file_global_attributes(nc).items():
-            attr = str(attr)
-            if isinstance(value, bytes):
-                value = value.decode(errors="ignore")
-
-            global_attributes[attr] = value
-
-        g["global_attributes"] = global_attributes
-        if debug:
-            logger.debug(
-                f"    Global attributes:\n        {g['global_attributes']}"
-            )  # pragma: no cover
+        g["global_attributes"] = nc.attrs.copy()
 
         # ------------------------------------------------------------
         # Find the CF version for the file
@@ -1845,356 +1666,25 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if g["CF>=1.11"] and g["UGRID_version"] is None:
             g["UGRID_version"] = "1.0"
 
-        # ------------------------------------------------------------
-        # Create a dictionary keyed by netCDF variable names where
-        # each key's value is a dictionary of that variable's netCDF
-        # attributes. E.g. attributes['tas']['units']='K'
-        # ------------------------------------------------------------
-        variable_attributes = {}
-        variable_dimensions = {}
-        variable_dataset = {}
-        variable_datasetname = {}
-        variables = {}
-        variable_groups = {}
-        variable_group_attributes = {}
-        variable_basename = {}
-        variable_grouped_dataset = {}
-
-        dimension_groups = {}
-        dimension_basename = {}
-
-        dimension_isunlimited = {}
-
-        # ------------------------------------------------------------
-        # For grouped datasets (CF>=1.8) map:
-        #
-        # * each flattened variable name to its absolute path
-        # * each flattened dimension name to its absolute path
-        # * each group to its group attributes
-        #
-        # ------------------------------------------------------------
-        has_groups = g["has_groups"]
-
-        flattener_variables = {}
-        flattener_dimensions = {}
-        flattener_attributes = {}
-
-        if has_groups:
-            flattener_name_mapping_variables = getattr(
-                nc, flattener_variable_map, None
-            )
-            if flattener_name_mapping_variables is not None:
-                if isinstance(flattener_name_mapping_variables, str):
-                    flattener_name_mapping_variables = [
-                        flattener_name_mapping_variables
-                    ]
-                flattener_variables = dict(
-                    tuple(x.split(": "))
-                    for x in flattener_name_mapping_variables
-                )
-
-            flattener_name_mapping_dimensions = getattr(
-                nc, flattener_dimension_map, None
-            )
-            if flattener_name_mapping_dimensions is not None:
-                if isinstance(flattener_name_mapping_dimensions, str):
-                    flattener_name_mapping_dimensions = [
-                        flattener_name_mapping_dimensions
-                    ]
-                flattener_dimensions = dict(
-                    tuple(x.split(": "))
-                    for x in flattener_name_mapping_dimensions
-                )
-
-                # Remove a leading / (slash) from dimensions in the
-                # root group
-                for key, value in flattener_dimensions.items():
-                    if value.startswith("/") and value.count("/") == 1:
-                        flattener_dimensions[key] = value[1:]
-
-            flattener_name_mapping_attributes = getattr(
-                nc, flattener_attribute_map, None
-            )
-            if flattener_name_mapping_attributes is not None:
-                if isinstance(flattener_name_mapping_attributes, str):
-                    flattener_name_mapping_attributes = [
-                        flattener_name_mapping_attributes
-                    ]
-                flattener_attributes = dict(
-                    tuple(x.split(": "))
-                    for x in flattener_name_mapping_attributes
-                )
-
-                # Remove group attributes from the global attributes,
-                # and vice versa.
-                for flat_attr in flattener_attributes.copy():
-                    attr = flattener_attributes.pop(flat_attr)
-
-                    x = attr.split("/")
-                    groups = x[1:-1]
-
-                    if groups:
-                        g["global_attributes"].pop(flat_attr)
-
-                        group_attr = x[-1]
-                        flattener_attributes.setdefault(tuple(groups), {})[
-                            group_attr
-                        ] = self._file_global_attribute(nc, flat_attr)
-
-            # Remove flattener attributes from the global attributes
-            for attr in (
-                flattener_variable_map,
-                flattener_dimension_map,
-                flattener_attribute_map,
-            ):
-                g["global_attributes"].pop(attr, None)
-
-        for ncvar, variable in self._file_variables(nc).items():
-            ncvar_basename = ncvar
-            groups = ()
-            group_attributes = {}
-
-            # --------------------------------------------------------
-            # Specify the group structure for each variable (CF>=1.8)
-            # TODO
-            # If the file only has the root group then this dictionary
-            # will be empty. Variables in the root group when there
-            # are sub-groups will have dictionary values of None.
-            # --------------------------------------------------------
-            if has_groups:
-                # Replace the flattened variable name with its
-                # absolute path.
-                ncvar_flat = ncvar
-                ncvar = flattener_variables[ncvar]
-
-                groups = tuple(ncvar.split("/")[1:-1])
-
-                if groups:
-                    # This variable is in a group. Remove the group
-                    # structure that was prepended to the netCDF
-                    # variable name by the netCDF flattener.
-                    ncvar_basename = re.sub(
-                        rf"^{flattener_separator.join(groups)}{flattener_separator}",
-                        "",
-                        ncvar_flat,
-                    )
-
-                    # ------------------------------------------------
-                    # Group attributes. Note that, currently,
-                    # sub-group attributes supercede all parent group
-                    # attributes (but not global attributes).
-                    # ------------------------------------------------
-                    group_attributes = {}
-                    for i in range(1, len(groups) + 1):
-                        hierarchy = groups[:i]
-                        if hierarchy not in flattener_attributes:
-                            continue
-
-                        group_attributes.update(
-                            flattener_attributes[hierarchy]
-                        )
-                else:
-                    # Remove the leading / (slash) from the absolute
-                    # netCDF variable path
-                    ncvar = ncvar[1:]
-                    flattener_variables[ncvar] = ncvar
-
-                variable_grouped_dataset[ncvar] = g["nc_grouped"]
-
-            variable_attributes[ncvar] = {}
-            dd = self._file_variable_attributes(variable)
-            for attr, value in dd.items():
-                attr = str(attr)
-                if isinstance(value, bytes):
-                    value = value.decode(errors="ignore")
-
-                variable_attributes[ncvar][attr] = value
-
-            variable_dimensions[ncvar] = tuple(
-                self._file_variable_dimensions(variable)
-            )
-
-            variable_dataset[ncvar] = nc
-            variable_datasetname[ncvar] = g["dataset"]
-            variables[ncvar] = variable
-
-            variable_basename[ncvar] = ncvar_basename
-            variable_groups[ncvar] = groups
-            variable_group_attributes[ncvar] = group_attributes
-
-        # Populate dimensions_groups and dimension_basename
-        # dictionaries
-        file_dimensions = dict(self._file_dimensions(nc))
-        for ncdim, dimension in file_dimensions.items():
-            ncdim_org = ncdim
-            ncdim_basename = ncdim
-            groups = ()
-            ncdim_basename = ncdim
-
-            if has_groups:
-                # Replace the flattened variable name with its
-                # absolute path.
-                ncdim_flat = ncdim
-                ncdim = flattener_dimensions[ncdim_flat]
-
-                groups = tuple(ncdim.split("/")[1:-1])
-
-                if groups:
-                    # This dimension is in a group.
-                    ncdim_basename = re.sub(
-                        r"^{flattener_separator.join(groups)}{flattener_separator}",
-                        "",
-                        ncdim_flat,
-                    )
-
-            dimension_groups[ncdim] = groups
-            dimension_basename[ncdim] = ncdim_basename
-            dimension_isunlimited[ncdim] = self._file_dimension_isunlimited(
-                nc, ncdim_org
-            )
-
-        if has_groups:
-            variable_dimensions = {
-                name: tuple([flattener_dimensions[ncdim] for ncdim in value])
-                for name, value in variable_dimensions.items()
-            }
-
-        if debug:
-            logger.debug(
-                "    General read variables:\n"
-                "        read_vars['variable_dimensions'] =\n"
-                f"            {variable_dimensions}"
-            )  # pragma: no cover
-
-        # The netCDF attributes for each variable
-        #
-        # E.g. {'grid_lon': {'standard_name': 'grid_longitude'}}
-        g["variable_attributes"] = variable_attributes
-
-        # The netCDF dimensions for each variable
-        #
-        # E.g. {'grid_lon_bounds': ('grid_longitude', 'bounds2')}
-        g["variable_dimensions"] = variable_dimensions
-
-        # The netCDF4 dataset object for each variable
-        g["variable_dataset"] = variable_dataset
-
-        # The original gouped dataset for each variable (empty if the
-        # original dataset is not grouped) v1.8.8.1
-        g["variable_grouped_dataset"] = variable_grouped_dataset
-
-        # The name of the file containing the each variable
-        g["variable_datasetname"] = variable_datasetname
-
-        # The netCDF4 variable object for each variable
-        g["variables"] = variables
-
-        # The netCDF4 dataset objects that have been opened (i.e. the
+        # The netCDF4 dataset objects that have been opened (i.e.
         # for parent file and any external datasets)
         g["datasets"] = [nc]
 
-        # The names of the variable in the parent datasetss
-        # (i.e. excluding any external variables)
-        g["internal_variables"] = set(variables)
+        # The variables, as they are in the dataset
+        g["variables"] = nc.all_variables.copy()
 
-        # The netCDF dimensions of the parent file
-        internal_dimension_sizes = {}
-        for name, dimension in file_dimensions.items():
-            if (
-                has_groups
-                and dimension_isunlimited[flattener_dimensions[name]]
-            ):
-                # For grouped datasets, get the unlimited dimension
-                # size from the original grouped dataset, because
-                # unlimited dimensions have size 0 in the flattened
-                # dataset (because it contains no data) (v1.8.8.1)
-                group, ncdim = self._netCDF4_group(
-                    g["nc_grouped"], flattener_dimensions[name]
-                )
-                internal_dimension_sizes[name] = group.dimensions[ncdim].size
-            else:
-                internal_dimension_sizes[name] = dimension.size
+        # The dimensions, as they are in the dataset
+        g["dimensions"] = nc.all_dimensions.copy()
 
-        if g["has_groups"]:
-            internal_dimension_sizes = {
-                flattener_dimensions[name]: value
-                for name, value in internal_dimension_sizes.items()
-            }
+        # The dimension paths for each variable. These may get
+        # modified later to be consistent with uncompressed data.
+        g["variable_dimension_paths"] = {
+            key: var.dimension_paths for key, var in g["variables"].items()
+        }
 
-        g["internal_dimension_sizes"] = internal_dimension_sizes
-
-        # The group structure for each variable. Variables in the root
-        # group have a group structure of ().
-        #
-        # E.g. {'lat': (),
-        #       '/forecasts/lon': ('forecasts',)
-        #       '/forecasts/model/t': 'forecasts', 'model')}
-        g["variable_groups"] = variable_groups
-
-        # The group attributes that apply to each variable
-        #
-        # E.g. {'latitude': {},
-        #       'eastward_wind': {'model': 'climate1'}}
-        g["variable_group_attributes"] = variable_group_attributes
-
-        # Mapped components of a flattened version of the netCDF file
-        g["flattener_variables"] = flattener_variables
-        g["flattener_dimensions"] = flattener_dimensions
-        g["flattener_attributes"] = flattener_attributes
-
-        # The basename of each variable. I.e. the dimension name
-        # without its prefixed group structure.
-        #
-        # E.g. {'lat': 'lat',
-        #       '/forecasts/lon': 'lon',
-        #       '/forecasts/model/t': 't'}
-        g["variable_basename"] = variable_basename
-
-        # The unlimited status of each dimension
-        #
-        # E.g. {'/forecast/lat': False, 'bounds2': False, 'lon':
-        #       False}
-        g["dimension_isunlimited"] = dimension_isunlimited
-
-        # The group structure for each dimension. Dimensions in the
-        # root group have a group structure of ().
-        #
-        # E.g. {'lat': (),
-        #       '/forecasts/lon': ('forecasts',)
-        #       '/forecasts/model/t': 9'forecasts', 'model')}
-        g["dimension_groups"] = dimension_groups
-
-        # The basename of each dimension. I.e. the dimension name
-        # without its prefixed group structure.
-        #
-        # E.g. {'lat': 'lat',
-        #       '/forecasts/lon': 'lon',
-        #       '/forecasts/model/t': 't'}
-        g["dimension_basename"] = dimension_basename
-
-        if debug:
-            logger.debug(
-                "        read_vars['dimension_isunlimited'] =\n"
-                f"            {g['dimension_isunlimited']}\n"
-                "        read_vars['internal_dimension_sizes'] =\n"
-                f"            {g['internal_dimension_sizes']}\n"
-                "    Groups read vars:\n"
-                "        read_vars['variable_groups'] =\n"
-                f"            {g['variable_groups']}\n"
-                "        read_vars['variable_basename'] =\n"
-                f"            {variable_basename}\n"
-                "        read_vars['dimension_groups'] =\n"
-                f"            {g['dimension_groups']}\n"
-                "        read_vars['dimension_basename'] =\n"
-                f"            {g['dimension_basename']}\n"
-                "        read_vars['flattener_variables'] =\n"
-                f"            {g['flattener_variables']}\n"
-                "        read_vars['flattener_dimensions'] =\n"
-                f"            {g['flattener_dimensions']}\n"
-                "        read_vars['flattener_attributes'] =\n"
-                f"            {g['flattener_attributes']}\n"
-                f"   netCDF dimensions: {internal_dimension_sizes}"
-            )  # pragma: no cover
+        # The absolute path netCDF names of all variables in the
+        # dataset (excluding any external variables)
+        g["internal_variables"] = set(g["variables"])
 
         # Now that all of the variables have been scanned, customise
         # the read parameters.
@@ -2204,7 +1694,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Aggregation variables (CF>=1.12)
         # ------------------------------------------------------------
         if g["CF>=1.12"]:
-            for ncvar, attributes in variable_attributes.items():
+            for ncvar, variable in g["variables"].items():
+                attributes = variable.attrs
                 aggregated_dimensions = attributes.get("aggregated_dimensions")
                 if aggregated_dimensions is None:
                     # This is not an aggregated variable
@@ -2213,7 +1704,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # Set the aggregated variable's dimensions as its
                 # aggregated dimensions
                 ncdimensions = aggregated_dimensions.split()
-                variable_dimensions[ncvar] = tuple(map(str, ncdimensions))
+                # variable_dimensions[ncvar] = tuple(map(str, ncdimensions))
+                g["variable_dimension_paths"][ncvar] = tuple(
+                    map(str, ncdimensions)
+                )
 
                 # Parse the fragment array variables
                 self._cfa_parse_aggregated_data(
@@ -2236,17 +1730,22 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         #
         # Identify and parse all list variables
         # ------------------------------------------------------------
-        for ncvar, dimensions in variable_dimensions.items():
-            if dimensions != (ncvar,):
+        for ncvar, variable in g["variables"].items():
+            dim_paths = g["variable_dimension_paths"][ncvar]
+            if len(dim_paths) != 1:
+                # Not a coordinate variable
                 continue
 
-            # This variable is a Unidata coordinate variable
-            compress = variable_attributes[ncvar].get("compress")
+            if variable.name != g["dimensions"][dim_paths[0]].name:
+                # Not a coordinate variable
+                continue
+
+            compress = variable.attrs.get("compress")
             if compress is None:
+                # Not a list variable
                 continue
 
-            # This variable is a list variable for gathering
-            # arrays
+            # This variable is a list variable for gathering arrays
             self._parse_compression_gathered(ncvar, compress)
 
             # Do not attempt to create a field from a list
@@ -2264,21 +1763,15 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 g["featureType"] = featureType
 
                 sample_dimension = None
-                for ncvar, attributes in variable_attributes.items():
-                    if "sample_dimension" not in attributes:
+                for ncvar, variable in g["variables"].items():
+                    sample_dimension = variable.attrs.get("sample_dimension")
+                    if sample_dimension is None:
                         continue
 
                     # ------------------------------------------------
                     # This variable is a count variable for DSG
                     # contiguous ragged arrays
                     # ------------------------------------------------
-                    sample_dimension = attributes["sample_dimension"]
-
-                    if has_groups:
-                        sample_dimension = g["flattener_dimensions"].get(
-                            sample_dimension, sample_dimension
-                        )
-
                     cf_compliant = self._check_sample_dimension(
                         ncvar, sample_dimension
                     )
@@ -2293,22 +1786,22 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         # count variable
                         g["do_not_create_field"].add(ncvar)
 
+                    # We're assuming, as per CF, that there is only
+                    # one count variable in the dataset
+                    break
+
                 instance_dimension = None
-                for ncvar, attributes in variable_attributes.items():
-                    if "instance_dimension" not in attributes:
+                for ncvar, variable in g["variables"].items():
+                    instance_dimension = variable.attrs.get(
+                        "instance_dimension"
+                    )
+                    if instance_dimension is None:
                         continue
 
                     # ------------------------------------------------
                     # This variable is an index variable for DSG
                     # indexed ragged arrays
                     # ------------------------------------------------
-                    instance_dimension = attributes["instance_dimension"]
-
-                    if has_groups:
-                        instance_dimension = g["flattener_dimensions"].get(
-                            instance_dimension, instance_dimension
-                        )
-
                     cf_compliant = self._check_instance_dimension(
                         ncvar, instance_dimension
                     )
@@ -2322,6 +1815,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         # Do not attempt to create a field from a
                         # index variable
                         g["do_not_create_field"].add(ncvar)
+
+                    # We're assuming, as per CF, that there is only
+                    # one index variable in the dataset
+                    break
 
                 if (
                     sample_dimension is not None
@@ -2339,15 +1836,14 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # (CF>=1.8)
         # ------------------------------------------------------------
         if g["CF>=1.8"]:
-            for ncvar, attributes in variable_attributes.items():
+            for ncvar, variable in g["variables"].items():
+                attributes = variable.attrs
                 if "geometry" not in attributes:
                     # This data variable does not have a geometry
                     # container
                     continue
 
-                geometry_ncvar = self._parse_geometry(
-                    ncvar, variable_attributes
-                )
+                geometry_ncvar = self._parse_geometry(ncvar, attributes)
 
                 if not geometry_ncvar:
                     # The geometry container has already been parsed,
@@ -2370,36 +1866,43 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Parse external variables (CF>=1.7)
         # ------------------------------------------------------------
         if g["CF>=1.7"]:
-            netcdf_external_variables = global_attributes.pop(
+            netcdf_external_variables = g["global_attributes"].pop(
                 "external_variables", None
             )
+
             parsed_external_variables = self._split_string_by_white_space(
-                None, netcdf_external_variables
+                netcdf_external_variables
             )
+
             parsed_external_variables = self._check_external_variables(
                 netcdf_external_variables, parsed_external_variables
             )
+
             g["external_variables"] = set(parsed_external_variables)
 
         # ------------------------------------------------------------
         # Compression by coordinate subsampling (CF>=1.9)
         # ------------------------------------------------------------
         if g["CF>=1.9"]:
-            for ncvar, attributes in variable_attributes.items():
-                if "coordinate_interpolation" not in attributes:
+            for ncvar, variable in g["variables"].items():
+                coordinate_interpolation = variable.attrs.get(
+                    "coordinate_interpolation"
+                )
+                if coordinate_interpolation is None:
                     # This variable does not have any subsampled
                     # coordinates
                     continue
 
                 self._parse_coordinate_interpolation(
-                    attributes["coordinate_interpolation"], ncvar
+                    coordinate_interpolation, ncvar
                 )
 
         # ------------------------------------------------------------
         # Parse UGRID mesh topologies
         # ------------------------------------------------------------
         if g["UGRID_version"] is not None:
-            for ncvar, attributes in variable_attributes.items():
+            for ncvar, variable in g["variables"].items():
+                attributes = variable.attrs
                 if "topology_dimension" in attributes:
                     # This variable is a mesh topology
                     self._ugrid_parse_mesh_topology(ncvar, attributes)
@@ -2421,15 +1924,14 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # (CF>=1.12)
         # ------------------------------------------------------------
         if g["CF>=1.12"]:
-            for ncvar, attributes in variable_attributes.items():
+            for ncvar, variable in g["variables"].items():
+                attributes = variable.attrs
                 if "quantization" not in attributes:
                     # This data variable does not have a quantization
                     # container
                     continue
 
-                quantization_ncvar = self._parse_quantization(
-                    ncvar, variable_attributes
-                )
+                quantization_ncvar = self._parse_quantization(ncvar)
 
                 if not quantization_ncvar:
                     # The quantization container has already been
@@ -2440,9 +1942,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # Do not attempt to create a field or domain construct
                 # from a quantization container variable
                 g["do_not_create_field"].add(quantization_ncvar)
-
-        if _scan_only:
-            return self.read_vars
 
         # ------------------------------------------------------------
         # Get external variables (CF>=1.7)
@@ -2457,6 +1956,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 self._get_variables_from_external_files(
                     netcdf_external_variables
                 )
+
+        if _scan_only:
+            return self.read_vars
 
         # ------------------------------------------------------------
         # Create a field/domain from every netCDF variable (apart from
@@ -2503,10 +2005,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # create a another new domain for it.
                     create_domain = True
                     for ncvar in all_fields_or_domains:
-                        attributes = g["variable_attributes"].get(ncvar)
-                        if attributes is None:
+                        variable = g["variables"].get(ncvar)
+                        if variable is None:
                             continue
 
+                        attributes = variable.attrs
                         if (
                             attributes.get("mesh") == mesh_ncvar
                             and attributes.get("location") == location
@@ -2540,7 +2043,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             ].difference(g["referenced_external_variables"])
             for ncvar in unreferenced_external_variables:
                 self._add_message(
-                    None,
+                    "",
                     ncvar,
                     message=("External variable", "is not referenced in file"),
                     attribute={
@@ -2615,7 +2118,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     for construct in g["get_constructs"][construct_type](
                         f
                     ).values():
-                        ncvar = self.implementation.nc_get_variable(construct)
+                        ncvar = self._absolute_ncvar(construct)
                         if ncvar not in all_fields_or_domains:
                             continue
 
@@ -2749,7 +2252,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             x: sequence
 
             singular: `str`
-                The word in it's singular form.
+                The word in its singular form.
 
         :Returns:
 
@@ -2904,20 +2407,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         external_variables = read_vars["external_variables"]
         external_files = read_vars["external_files"]
         datasets = read_vars["datasets"]
-        parent_dimension_sizes = read_vars["internal_dimension_sizes"]
-
-        keys = (
-            "variable_attributes",
-            "variable_dimensions",
-            "variable_dataset",
-            "variable_datasetname",
-            "variable_groups",
-            "variable_group_attributes",
-            "variable_basename",
-            "variables",
-        )
-
-        found = []
 
         for external_file in external_files:
             logger.info(
@@ -2943,54 +2432,27 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             datasets.append(external_read_vars["nc"])
 
-            for ncvar in external_variables.copy():
-                if ncvar not in external_read_vars["internal_variables"]:
-                    # The external variable name is not in this
-                    # external file
+            for original_ncvar in external_variables:
+                ncvar = None
+                for e_var in external_read_vars["variables"].values():
+                    ncvar = resolve_reference(original_ncvar, e_var, var=True)
+                    if ncvar in external_read_vars["variables"]:
+                        break
+
+                    ncvar = None
+
+                if ncvar is None:
+                    # Didn't find the variable in this external file
                     continue
-
-                if ncvar in found:
-                    # Error: The external variable exists in more than
-                    # one external file
-                    external_variables.add(ncvar)
-                    for key in keys:
-                        self.read_vars[key].pop(ncvar)
-
-                    self._add_message(
-                        None,
-                        ncvar,
-                        message=(
-                            "External variable",
-                            "exists in multiple external datasets",
-                        ),
-                        attribute=attribute,
-                    )
-                    continue
-
-                # Still here? Then the external variable exists in
-                # this external file
-                found.append(ncvar)
 
                 # Check that the external variable dimensions exist in
                 # parent file, with the same sizes.
                 ok = True
-                for d in external_read_vars["variable_dimensions"][ncvar]:
-                    size = parent_dimension_sizes.get(d)
-                    if size is None:
+                for d in external_read_vars["variable_dimension_paths"][ncvar]:
+                    dim = read_vars["dimensions"].get(d)
+                    if dim is None:
                         ok = False
-                        self._add_message(
-                            None,
-                            ncvar,
-                            message=(
-                                "External variable dimension",
-                                "does not exist in file",
-                            ),
-                            attribute=attribute,
-                        )
-                    elif (
-                        external_read_vars["internal_dimension_sizes"][d]
-                        != size
-                    ):
+                    elif external_read_vars["dimensions"][d].size != dim.size:
                         ok = False
                         self._add_message(
                             None,
@@ -3007,13 +2469,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if ok:
                     # Update the read parameters so that this external
                     # variable looks like it is an internal variable
-                    for key in keys:
-                        self.read_vars[key][ncvar] = external_read_vars[key][
-                            ncvar
-                        ]
+                    for key in ("variables", "variable_dimension_paths"):
+                        self.read_vars[key][original_ncvar] = (
+                            external_read_vars[key][ncvar]
+                        )
 
-                    # Remove this ncvar from the set of external variables
-                    external_variables.remove(ncvar)
+                    break
 
     def _parse_compression_gathered(self, ncvar, compress):
         """Parse a list variable for compressing arrays by gathering."""
@@ -3023,11 +2484,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             f"        List variable: compress = {compress}"
         )  # pragma: no cover
 
-        gathered_ncdimension = g["variable_dimensions"][ncvar][0]
+        gathered_ncdimension = g["variable_dimension_paths"][ncvar][0]
 
-        parsed_compress = self._split_string_by_white_space(
-            ncvar, compress, variables=True
-        )
+        parsed_compress = self._split_string_by_white_space(compress)
         cf_compliant = self._check_compress(ncvar, compress, parsed_compress)
         if not cf_compliant:
             return
@@ -3067,7 +2526,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             f"    count variable: sample_dimension = {sample_dimension}"
         )  # pragma: no cover
 
-        instance_dimension = g["variable_dimensions"][ncvar][0]
+        instance_dimension = g["variable_dimension_paths"][ncvar][0]
 
         elements_per_instance = self._create_Count(
             ncvar=ncvar, ncdim=instance_dimension
@@ -3076,13 +2535,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Make up a netCDF dimension name for the element dimension
         featureType = g["featureType"].lower()
         if featureType in ("timeseries", "trajectory", "profile"):
-            element_dimension = featureType
+            element_dimension = f"/{featureType}"
         elif featureType == "timeseriesprofile":
-            element_dimension = "profile"
+            element_dimension = "/profile"
         elif featureType == "trajectoryprofile":
-            element_dimension = "profile"
+            element_dimension = "/profile"
         else:
-            element_dimension = "element"
+            element_dimension = "/element"
 
         logger.info(
             f"    featureType = {g['featureType']}"
@@ -3125,7 +2584,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         g = self.read_vars
 
         # Read the data of the index variable
-        ncdim = g["variable_dimensions"][ncvar][0]
+        ncdim = g["variable_dimension_paths"][ncvar][0]
 
         index = self._create_Index(ncvar, ncdim=ncdim)
 
@@ -3134,11 +2593,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if featureType in ("timeseries", "trajectory", "profile"):
             element_dimension = featureType.lower()
         elif featureType == "timeseriesprofile":
-            element_dimension = "timeseries"
+            element_dimension = "/timeseries"
         elif featureType == "trajectoryprofile":
-            element_dimension = "trajectory"
+            element_dimension = "/trajectory"
         else:
-            element_dimension = "element"
+            element_dimension = "/element"
 
         logger.info(
             f"    featureType = {g['featureType']}"
@@ -3146,7 +2605,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         element_dimension = self._set_ragged_indexed_parameters(
             index=index,
-            indexed_sample_dimension=g["variable_dimensions"][ncvar][0],
+            indexed_sample_dimension=g["variable_dimension_paths"][ncvar][0],
             element_dimension=element_dimension,
             instance_dimension=instance_dimension,
         )
@@ -3237,7 +2696,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 f"read_vars['compression'][{sample_dimension!r}]['ragged_contiguous']"
             )  # pragma: no cover
 
-    def _parse_geometry(self, parent_ncvar, attributes):
+    def _parse_geometry(self, parent_ncvar, parent_attrs):
         """Parse a geometry container variable.
 
         .. versionadded:: (cfdm) 1.8.0
@@ -3247,9 +2706,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             parent_ncvar: `str`
                 The netCDF variable name of the parent data variable.
 
-            attributes: `dict`
-                All attributes of *all* netCDF variables, keyed by netCDF
-                variable name.
+            parent_attrs: `dict`
+                Attributes of the parent variable.
 
         :Returns:
 
@@ -3262,11 +2720,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        geometry_attribute = attributes[parent_ncvar]["geometry"]
+        geometry_attribute = parent_attrs["geometry"]
 
-        parsed_geometry = self._split_string_by_white_space(
-            parent_ncvar, geometry_attribute, variables=True
-        )
+        parsed_geometry = self._split_string_by_white_space(geometry_attribute)
 
         cf_compliant = self._check_geometry_attribute(
             parent_ncvar, geometry_attribute, parsed_geometry
@@ -3283,31 +2739,28 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             g["variable_geometry"][parent_ncvar] = geometry_ncvar
             return
 
+        geometry_attrs = g["variables"][geometry_ncvar].attrs
         logger.info(
             f"    Geometry container = {geometry_ncvar!r}\n"
-            f"        netCDF attributes: {attributes[geometry_ncvar]}"
+            f"        netCDF attributes: {geometry_attrs}"
         )  # pragma: no cover
 
-        geometry_type = attributes[geometry_ncvar].get("geometry_type")
+        geometry_type = geometry_attrs.get("geometry_type")
 
         g["geometries"][geometry_ncvar] = {"geometry_type": geometry_type}
 
-        node_coordinates = attributes[geometry_ncvar].get("node_coordinates")
-        node_count = attributes[geometry_ncvar].get("node_count")
-        part_node_count = attributes[geometry_ncvar].get("part_node_count")
-        interior_ring = attributes[geometry_ncvar].get("interior_ring")
+        node_coordinates = geometry_attrs.get("node_coordinates")
+        node_count = geometry_attrs.get("node_count")
+        part_node_count = geometry_attrs.get("part_node_count")
+        interior_ring = geometry_attrs.get("interior_ring")
 
         parsed_node_coordinates = self._split_string_by_white_space(
-            geometry_ncvar, node_coordinates, variables=True
+            node_coordinates
         )
-        parsed_interior_ring = self._split_string_by_white_space(
-            geometry_ncvar, interior_ring, variables=True
-        )
-        parsed_node_count = self._split_string_by_white_space(
-            geometry_ncvar, node_count, variables=True
-        )
+        parsed_interior_ring = self._split_string_by_white_space(interior_ring)
+        parsed_node_count = self._split_string_by_white_space(node_count)
         parsed_part_node_count = self._split_string_by_white_space(
-            geometry_ncvar, part_node_count, variables=True
+            part_node_count
         )
 
         logger.info(
@@ -3322,7 +2775,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if interior_ring is not None and part_node_count is None:
             attribute = {
                 parent_ncvar
-                + ":geometry": attributes[parent_ncvar]["geometry"]
+                + ":geometry": g["variables"][parent_ncvar].attrs["geometry"]
             }
             self._add_message(
                 parent_ncvar,
@@ -3360,12 +2813,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         part_dimension = None
 
         # Find the netCDF dimension for the total number of nodes
-        node_dimension = g["variable_dimensions"][parsed_node_coordinates[0]][
-            0
-        ]
+        node_dim = g["variables"][parsed_node_coordinates[0]].get_dims()[0]
+        node_dimension = node_dim.path
 
         logger.info(
-            f"        node_dimension = {node_dimension!r}"
+            f"        node_dimension = {node_dimension}"
         )  # pragma: no cover
 
         if node_count is None:
@@ -3375,7 +2827,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # variable in this case.
             # --------------------------------------------------------
             nodes_per_geometry = self.implementation.initialise_Count()
-            size = self._file_dimension_size(g["nc"], node_dimension)
+            size = node_dim.size
             ones = self.implementation.initialise_Data(
                 array=np.ones((size,), dtype="int32"), copy=False
             )
@@ -3387,13 +2839,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # taken from one of the node_coordinate variables,
             # instead.
             # --------------------------------------------------------
-            geometry_dimension = g["variable_dimensions"][
+            geometry_dimension = g["variable_dimension_paths"][
                 parsed_node_coordinates[0]
             ][0]
         else:
             # Find the netCDF dimension for the total number of cells
             node_count = parsed_node_count[0]
-            geometry_dimension = g["variable_dimensions"][node_count][0]
+            geometry_dimension = g["variable_dimension_paths"][node_count][0]
 
             nodes_per_geometry = self._create_Count(
                 ncvar=node_count, ncdim=geometry_dimension
@@ -3413,7 +2865,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Record the netCDF node dimension as the sample dimension of
         # the count variable
         self.implementation.nc_set_sample_dimension(
-            nodes_per_geometry, self._ncdim_abspath(node_dimension)
+            nodes_per_geometry,
+            node_dimension,
         )
 
         if part_node_count is None:
@@ -3426,7 +2879,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             self._set_ragged_contiguous_parameters(
                 elements_per_instance=nodes_per_geometry,
                 sample_dimension=node_dimension,
-                element_dimension="node",
+                element_dimension="/node",
                 instance_dimension=geometry_dimension,
             )
         else:
@@ -3442,7 +2895,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # netCDF part node count variable
             g["do_not_create_field"].add(part_node_count)
 
-            part_dimension = g["variable_dimensions"][part_node_count][0]
+            part_dimension = g["variable_dimension_paths"][part_node_count][0]
             g["geometries"][geometry_ncvar]["part_dimension"] = part_dimension
 
             parts = self._create_Count(
@@ -3514,7 +2967,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 instance_dimension=part_dimension,
             )
 
-            indexed_sample_dimension = g["variable_dimensions"][
+            indexed_sample_dimension = g["variable_dimension_paths"][
                 part_node_count
             ][0]
 
@@ -3549,7 +3002,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # --------------------------------------------------------
             if parsed_interior_ring:
                 interior_ring = parsed_interior_ring[0]
-                part_dimension = g["variable_dimensions"][interior_ring][0]
+                part_dimension = g["variable_dimension_paths"][interior_ring][
+                    0
+                ]
                 i_r = self._create_InteriorRing(
                     ncvar=interior_ring, ncdim=part_dimension
                 )
@@ -3589,7 +3044,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         return geometry_ncvar
 
-    def _parse_quantization(self, parent_ncvar, attributes):
+    def _parse_quantization(self, parent_ncvar):
         """Parse a quantization container variable.
 
         .. versionadded:: (cfdm) 1.12.2.0
@@ -3598,10 +3053,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             parent_ncvar: `str`
                 The netCDF variable name of the parent data variable.
-
-            attributes: `dict`
-                All attributes of *all* netCDF variables, keyed by netCDF
-                variable name.
 
         :Returns:
 
@@ -3613,16 +3064,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        ncvar = attributes[parent_ncvar]["quantization"]
-        #        quantization_attribute = attributes[parent_ncvar]["quantization"]
-
-        #       parsed_quantization = self._split_string_by_white_space(
-        #           parent_ncvar, quantization_attribute, variables=True
-        #        )
+        ncvar = g["variables"][parent_ncvar].attrs["quantization"]
 
         ok = self._check_quantization(parent_ncvar, ncvar)
-
-        #        ncvar = parsed_quantization[0]
 
         q = g["quantization_variable"].get(ncvar)
         if q is not None:
@@ -3642,7 +3086,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         logger.info(
             f"    Quantization variable = {ncvar!r}\n"
-            f"        netCDF attributes: {attributes[ncvar]}"
+            f"        netCDF attributes: {g['variables'][ncvar].attrs}"
         )  # pragma: no cover
 
         if not ok:
@@ -3749,9 +3193,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # example above, the elements_per_instance array is [7, 5, 7].
         elements_per_instance = count
 
-        instance_dimension_size = g["internal_dimension_sizes"][
-            instance_dimension
-        ]
+        instance_dimension_size = g["dimensions"][instance_dimension].size
 
         element_dimension_size = int(elements_per_instance.max())
         element_dimension = self._new_ncdimension(
@@ -3795,13 +3237,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                  appropriate full message about it being missing.
 
         """
-        if self.read_vars["has_groups"]:
-            message = (message0, "is not locatable in the group hierarchy")
-            if ncvar.startswith("REF_NOT_FOUND:_"):
-                ncvar = ncvar.replace("REF_NOT_FOUND:_", "", 1)
-        else:
-            message = (message0, "is not in file")
-
+        message = (message0, "is not in file")
         return ncvar, message
 
     def _create_field_or_domain(
@@ -3859,7 +3295,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Reset 'domain_ancillary_key'
         g["domain_ancillary_key"] = {}
 
-        dimensions = g["variable_dimensions"][field_ncvar]
+        dimensions = g["variable_dimension_paths"][field_ncvar]
 
         # Set the top-level i.e. field variable conformance as a Conformance
         # Data Model object corresponding to the field variable. As we process
@@ -3888,13 +3324,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # variable and then those of any groups.
         # ------------------------------------------------------------
         field_properties = g["global_attributes"].copy()
+        parent = g["variables"][field_ncvar].group()
+        if not parent.is_root:
+            field_properties.update(parent.attrs)
 
-        if g["has_groups"]:
-            field_properties.update(
-                g["variable_group_attributes"][field_ncvar]
-            )
-
-        field_properties.update(g["variable_attributes"][field_ncvar])
+        field_properties.update(g["variables"][field_ncvar].attrs)
 
         if g["debug"]:
             logger.debug(
@@ -3957,10 +3391,20 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Store the netCDF global attributes for the field/domain
         # ------------------------------------------------------------
         x = g["global_attributes"].copy()
+        variable = g["variables"][field_ncvar]
+        variable_attrs = variable.attrs
+        parent = variable.group()
+        if parent.is_root:
+            group_attrs = {}
+        else:
+            group_attrs = parent.attrs
+
         for k, v in g["global_attributes"].items():
             if (
-                k not in g["variable_attributes"][field_ncvar]
-                and k not in g["variable_group_attributes"][field_ncvar]
+                # k not in g["variable_attributes"][field_ncvar]
+                # and k not in g["variable_group_attributes"][field_ncvar]
+                k not in variable_attrs
+                and k not in group_attrs
             ):
                 x[k] = None
 
@@ -3969,13 +3413,14 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # ------------------------------------------------------------
         # Store the data/domain variable's group-level attributes
         # ------------------------------------------------------------
-        if g["has_groups"]:
-            x = g["variable_group_attributes"][field_ncvar].copy()
-            for k, v in g["variable_group_attributes"][field_ncvar].items():
-                if k not in g["variable_attributes"][field_ncvar]:
-                    x[k] = None
+        if not parent.is_root:
+            group_attrs = parent.attrs.copy()
+            if group_attrs:
+                for k, v in group_attrs.items():
+                    if k not in variable.attrs:
+                        group_attrs[k] = None
 
-            self.implementation.nc_set_group_attributes(f, x)
+                self.implementation.nc_set_group_attributes(f, group_attrs)
 
         # ------------------------------------------------------------
         # Remove the field/domain construct's "geometry" property,
@@ -4051,21 +3496,16 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 f, "dimensions", None
             )
 
-            ncdimensions = self._split_string_by_white_space(
-                field_ncvar, domain_dimensions, variables=True
-            )
+            ncdimensions = self._split_string_by_white_space(domain_dimensions)
 
         field_ncdimensions = self._ncdimensions(
             field_ncvar, ncdimensions=ncdimensions
         )
 
-        field_groups = g["variable_groups"][field_ncvar]
-
         for ncdim in field_ncdimensions:
-            ncvar, method = self._find_coordinate_variable(
-                field_ncvar, field_groups, ncdim
+            ncvar = self._find_coordinate_variable(
+                field_ncvar, g["dimensions"].get(ncdim)
             )
-
             if ncvar is not None:
                 # There is a Unidata coordinate variable for this
                 # dimension, so create a domain axis and dimension
@@ -4093,7 +3533,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                 logger.detail(
                     f"        [b] Inserting {coord.__class__.__name__}"
-                    f"{method} with size {coord.size}"
+                    f"with size {coord.size}"
                 )  # pragma: no cover
                 dim = self.implementation.set_dimension_coordinate(
                     f, construct=coord, axes=[axis], copy=False
@@ -4103,12 +3543,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if coord.has_bounds():
                     bounds = self.implementation.get_bounds(coord)
                     self._reference(
-                        self.implementation.nc_get_variable(bounds),
+                        self._absolute_ncvar(bounds),
                         field_ncvar,
                     )
 
                 # Set unlimited status of axis
-                if g["dimension_isunlimited"][ncdim]:
+                if g["dimensions"][ncdim].isunlimited():
                     self.implementation.nc_set_unlimited_axis(f, axis)
 
                 ncvar_to_key[ncvar] = dim
@@ -4120,7 +3560,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if ncdim in g["new_dimension_sizes"]:
                     size = g["new_dimension_sizes"][ncdim]
                 else:
-                    size = g["internal_dimension_sizes"][ncdim]
+                    size = g["dimensions"][ncdim].size
 
                 domain_axis = self._create_domain_axis(size, ncdim)
                 logger.detail(
@@ -4133,7 +3573,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
                 # Set unlimited status of axis
                 try:
-                    if g["dimension_isunlimited"][ncdim]:
+                    if g["dimension"][ncdim].isunlimited():
                         self.implementation.nc_set_unlimited_axis(f, axis)
                 except KeyError:
                     # This dimension is not in the netCDF file (as
@@ -4190,7 +3630,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if ncdim in g["new_dimension_sizes"]:
                     size = g["new_dimension_sizes"][ncdim]
                 else:
-                    size = g["internal_dimension_sizes"][ncdim]
+                    size = g["dimensions"][ncdim].size
 
                 domain_axis = self._create_domain_axis(size, ncdim)
                 logger.detail(
@@ -4300,7 +3740,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             axes=ugrid_axis,
                             copy=True,
                         )
-                        ncvar = self.implementation.nc_get_variable(aux)
+                        ncvar = self._absolute_ncvar(aux)
 
                         ugrid_aux_ncvars.append(ncvar)
 
@@ -4311,7 +3751,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         if self.implementation.has_bounds(aux):
                             bounds = self.implementation.get_bounds(aux)
                             self._reference(
-                                self.implementation.nc_get_variable(bounds),
+                                self._absolute_ncvar(bounds),
                                 field_ncvar,
                             )
 
@@ -4323,10 +3763,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         parsed_coordinates = []
         if coordinates is not None:
-            parsed_coordinates = self._split_string_by_white_space(
-                field_ncvar, coordinates, variables=True
-            )
-
+            parsed_coordinates = self._split_string_by_white_space(coordinates)
             for ncvar in parsed_coordinates:
                 # Skip dimension coordinates
                 if ncvar in field_ncdimensions:
@@ -4424,7 +3861,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     if self.implementation.has_bounds(coord):
                         bounds = self.implementation.get_bounds(coord)
                         self._reference(
-                            self.implementation.nc_get_variable(bounds),
+                            self._absolute_ncvar(bounds),
                             field_ncvar,
                         )
 
@@ -4448,7 +3885,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     if self.implementation.has_bounds(coord):
                         bounds = self.implementation.get_bounds(coord)
                         self._reference(
-                            self.implementation.nc_get_variable(bounds),
+                            self._absolute_ncvar(bounds),
                             field_ncvar,
                         )
 
@@ -4474,7 +3911,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             f, "coordinate_interpolation", None
         )
         tie_point_ncvars = g["tie_point_ncvar"].get(field_ncvar, ())
-
         coordinates = {}
         for ncvar in tie_point_ncvars:
             ok = self._check_tie_point_coordinates(field_ncvar, ncvar, string)
@@ -4591,9 +4027,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             self._reference(ncvar, field_ncvar)
             if self.implementation.has_bounds(coord):
                 bounds = self.implementation.get_bounds(coord)
-                self._reference(
-                    self.implementation.nc_get_variable(bounds), field_ncvar
-                )
+                self._reference(self._absolute_ncvar(bounds), field_ncvar)
 
             ncvar_to_key[ncvar] = key
 
@@ -4607,12 +4041,16 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             for node_ncvar in geometry["node_coordinates"]:
                 found = any(
                     [
-                        self.implementation.get_bounds_ncvar(a) == node_ncvar
+                        self._absolute_ncvar(
+                            self.implementation.get_bounds_ncvar(a)
+                        )
+                        == node_ncvar
                         for a in self.implementation.get_auxiliary_coordinates(
                             f
                         ).values()
                     ]
                 )
+
                 # TODO: remove explicit API dependency:
                 # f.auxiliary_coordinates.values()
                 if found:
@@ -4678,7 +4116,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if self.implementation.has_bounds(coord):
                     bounds = self.implementation.get_bounds(coord)
                     self._reference(
-                        self.implementation.nc_get_variable(bounds),
+                        self._absolute_ncvar(bounds),
                         field_ncvar,
                     )
 
@@ -4702,7 +4140,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     copy=True,
                 )
                 self._reference(ncvar, field_ncvar)
-                ncvar = self.implementation.nc_get_variable(domain_topology)
+                ncvar = self._absolute_ncvar(domain_topology)
                 ncvar_to_key[ncvar] = key
 
         # ------------------------------------------------------------
@@ -4726,7 +4164,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     copy=True,
                 )
                 self._reference(ncvar, field_ncvar)
-                ncvar = self.implementation.nc_get_variable(cell_connectivity)
+                ncvar = self._absolute_ncvar(cell_connectivity)
                 ncvar_to_key[ncvar] = key
 
         # ------------------------------------------------------------
@@ -4734,14 +4172,17 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # properties
         # ------------------------------------------------------------
         for key, coord in self.implementation.get_coordinates(f).items():
-            coord_ncvar = self.implementation.nc_get_variable(coord)
+            coord_ncvar = self._absolute_ncvar(coord)
 
             if coord_ncvar is None:
                 # This might be the case if the coordinate construct
                 # just contains geometry nodes
                 continue
 
-            formula_terms = g["variable_attributes"][coord_ncvar].get(
+            if not coord_ncvar.startswith("/"):
+                coord_ncvar = f"/{coord_ncvar}"
+
+            formula_terms = g["variables"][coord_ncvar].attrs.get(
                 "formula_terms"
             )
             if formula_terms is None:
@@ -4754,7 +4195,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     field_ncvar,
                     coord_ncvar,
                     formula_terms,
-                    z_ncdim=g["variable_dimensions"][coord_ncvar][0],
+                    z_ncdim=g["variable_dimension_paths"][coord_ncvar][0],
                 )
 
             ok = True
@@ -4799,7 +4240,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         attribute={
                             coord_ncvar + ":formula_terms": formula_terms
                         },
-                        dimensions=g["variable_dimensions"][ncvar],
+                        dimensions=g["variable_dimension_paths"][ncvar],
                     )
                     ok = False
 
@@ -4821,7 +4262,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if self.implementation.has_bounds(domain_anc):
                     bounds = self.implementation.get_bounds(domain_anc)
                     self._reference(
-                        self.implementation.nc_get_variable(bounds),
+                        self._absolute_ncvar(bounds),
                         field_ncvar,
                     )
 
@@ -4868,9 +4309,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 for x in parsed_grid_mapping:
                     grid_mapping_ncvar, coordinates = list(x.items())[0]
 
-                    parameters = g["variable_attributes"][
+                    parameters = g["variables"][
                         grid_mapping_ncvar
-                    ].copy()
+                    ].attrs.copy()
 
                     # Convert netCDF variable names to internal identifiers
                     coordinates = [
@@ -4983,16 +4424,19 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Add cell measures to the field/domain
         # ------------------------------------------------------------
         measures = self.implementation.del_property(f, "cell_measures", None)
+
         if measures is not None:
             parsed_cell_measures = self._parse_x(field_ncvar, measures)
 
             cf_compliant = self._check_cell_measures(
                 field_ncvar, measures, parsed_cell_measures
             )
+
             if cf_compliant:
                 for x in parsed_cell_measures:
                     measure, ncvars = list(x.items())[0]
                     ncvar = ncvars[0]
+                    ncvar = g["external_variable_map"].get(ncvar, ncvar)
 
                     # Set the domain axes for the cell measure
                     axes = self._get_domain_axes(ncvar, allow_external=True)
@@ -5020,7 +4464,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         self._reference(ncvar, field_ncvar)
 
                     ncvar_to_key[ncvar] = key
-
                     if ncvar in g["external_variables"]:
                         g["referenced_external_variables"].add(ncvar)
 
@@ -5056,15 +4499,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             no_var_case=["cell_methods", axis],
                         )
 
-                if g["has_groups"]:
-                    # Replace flattened names with absolute names
-                    axes = [
-                        g["flattener_dimensions"].get(
-                            axis, g["flattener_variables"].get(axis, axis)
-                        )
-                        for axis in axes
-                    ]
-
                 # Replace names with domain axis keys
                 axes = [name_to_axis.get(axis, axis) for axis in axes]
 
@@ -5091,7 +4525,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
             if ancillary_variables is not None:
                 parsed_ancillary_variables = self._split_string_by_white_space(
-                    field_ncvar, ancillary_variables, variables=True
+                    ancillary_variables
                 )
                 cf_compliant = self._check_ancillary_variables(
                     field_ncvar,
@@ -5160,7 +4594,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Return the finished field/domain
         return f
 
-    def _find_coordinate_variable(self, field_ncvar, field_groups, ncdim):
+    def _find_coordinate_variable(self, field_ncvar, dim):
         """Find a coordinate variable for a data-dimension combination.
 
         Find a Unidata coordinate variable for a particular CF-netCDF
@@ -5171,127 +4605,40 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         :Parameters:
 
             field_ncvar: `str`
+                The netCDF name of the parent field or domain variable
+                that references the coordinate variable.
 
-            field_groups: `tuple`
-
-            ncdim: `str`
+            dim: `xnetcdf.Dimension`
+                The dimension spanned by the coordinate variable.
 
         :Returns:
 
-            (`str`, `str`) or (`None`, str`)
+            `str` or `None`
                 The second item is a message saying how the coordinate
                 variable was discovered.
 
         """
         g = self.read_vars
 
-        ncdim_groups = g["dimension_groups"].get(ncdim, ())
-        n_ncdim_groups = len(ncdim_groups)
+        if dim is None:
+            # There can't be a coordinate for a dimension that isn't
+            # in the dataset
+            return
 
-        if g["variable_dimensions"].get(ncdim) == (ncdim,):
-            # There is a Unidata coordinate variable for this
-            # dimension, so create a domain axis and dimension
-            # coordinate
-            return ncdim, ""
+        name = dim.name
 
-        if not g["has_groups"]:
-            # This file has no group structure and there is no
-            # coordinate variable for this dimension
-            return None, ""
+        # Check for variables named by the 'coordinates' attribute
+        coordinates = g["variables"][field_ncvar].attrs.get("coordinates")
+        for ref in self._split_string_by_white_space(coordinates):
+            if ref.split("/")[-1] == name and g["variable_dimension_paths"][
+                ref
+            ] == (dim.path,):
+                return ref
 
-        # ------------------------------------------------------------
-        # File has groups. Look for a coordinate variable by proximal
-        # and lateral search techniques
-        # ------------------------------------------------------------
-        proximal_candidates = {}
-        lateral_candidates = {}
-
-        for ncvar, ncdims in g["variable_dimensions"].items():
-            if ncvar == field_ncvar:
-                # A data variable can not be its own coordinate
-                # variable
-                continue
-
-            if ncdims != (ncdim,):
-                # This variable does not span the correct dimension
-                continue
-
-            if g["variable_basename"][ncvar] != g["dimension_basename"][ncdim]:
-                # This variable does not have the same basename as the
-                # dimension. E.g. if ncdim is '/forecast/lon' and
-                # ncvar is '/forecast/model/lat' then their basenames
-                # are 'lon' and 'lat' respectively.
-                continue
-
-            ncvar_groups = g["variable_groups"][ncvar]
-
-            if ncvar_groups[:n_ncdim_groups] != ncdim_groups:
-                # The variable's group is not the same as, nor a
-                # subgroup of, the local apex group.
-                continue
-
-            if field_groups[: len(ncvar_groups)] == ncvar_groups:
-                # Group is acceptable for proximal search
-                proximal_candidates[ncvar] = ncvar_groups
-            else:
-                # Group is acceptable for lateral search
-                lateral_candidates[ncvar] = ncvar_groups
-
-        if proximal_candidates:
-            # Choose the coordinate variable closest to the field by
-            # proximal search
-            ncvars = [
-                k
-                for k in sorted(
-                    proximal_candidates.items(),
-                    reverse=True,
-                    key=lambda item: len(item[1]),
-                )
-            ]
-            ncvar = ncvars[0][0]
-            return ncvar, " (found by proximal search)"
-
-        if lateral_candidates:
-            # Choose the coordinate variable that is closest the local
-            # apex group by proximal search. If more than one such
-            # vaiable exists then lateral search has failed.
-            ncvars = [
-                k
-                for k in sorted(
-                    lateral_candidates.items(), key=lambda item: len(item[1])
-                )
-            ]
-            ncvar, group = ncvars[0]
-
-            if len(lateral_candidates) == 1:
-                # There is a unique coordinate variable found by
-                # lateral search that is closest to the local apex
-                # group
-                return ncvar, " (found by lateral serach)"
-            else:
-                group2 = ncvars[1][1]
-                if len(group) < len(group2):
-                    # There is a unique coordinate variable found by
-                    # lateral search that is closest to the local apex
-                    # group
-                    return ncvar, " (found by lateral serach)"
-
-                # Two coordinate variables found by lateral search are
-                # the same distance from the local apex group
-                lateral_candidates = []
-
-        if lateral_candidates:
-            self._add_message(
-                field_ncvar,
-                field_ncvar,
-                message=(
-                    "Multiple coordinate variable candidates",
-                    "identified by lateral search",
-                ),
-                dimensions=g["variable_dimensions"][field_ncvar],
-            )
-
-        return None, ""
+        # Still here? The search by proximity, or by lateral search.
+        return search_by_proximity(
+            name, g["variables"][field_ncvar], "var", coord=True
+        )
 
     def _is_char_or_string(self, ncvar):
         """True if the netCDf variable has string or char datatype.
@@ -5313,7 +4660,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             True
 
         """
-        datatype = self._dtype(self.read_vars["variables"][ncvar])
+        datatype = self.read_vars["variables"][ncvar].dtype
         return datatype == str or datatype.kind in "OSUT"
 
     def _is_char(self, ncvar):
@@ -5336,8 +4683,18 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         True
 
         """
-        datatype = self._dtype(self.read_vars["variables"][ncvar])
-        return datatype is not str and datatype.kind in "SU"
+        datatype = self.read_vars["variables"][ncvar].dtype
+        char = datatype is not str and datatype.kind in "SU"
+        if not char:
+            return False
+
+        if datatype.kind == "S" and datatype.itemsize == 1:
+            return True
+
+        if datatype.kind == "U" and datatype.itemsize == 4:
+            return True
+
+        return False
 
     def _has_identity(self, construct, identity):
         """TODO.
@@ -5503,7 +4860,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        if allow_external and ncvar in g["external_variables"]:
+        if (
+            allow_external
+            and ncvar in g["external_variables"]
+            and ncvar not in g["variables"]
+        ):
             axes = []
         else:
             ncdim_to_axis = g["ncdim_to_axis"]
@@ -5515,34 +4876,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             ]
 
         return axes
-
-    def _ncdim_abspath(self, ncdim):
-        """Return the absolute path of the netCDF dimension name.
-
-        If the file has no groups, then the netCDF dimension is returned
-        unchanged.
-
-        .. versionadded:: (cfdm) 1.8.6
-
-        :Parameters:
-
-            ncdim: `str` or `None`
-                The (falttened) netCDF dimension name.
-
-        :Returns:
-
-            `str` or `None`
-                The (absolute path of the) netCDF dimension name.
-
-        """
-        g = self.read_vars
-        if ncdim is None or not g["has_groups"]:
-            return ncdim
-
-        # Replace the netCDF dimension name with its full group
-        # path. E.g. if dimension 'time' is in group '/forecast' then
-        # it will be renamed '/forecast/time'. (CF>=1.8)
-        return g["flattener_dimensions"].get(ncdim, ncdim)
 
     def _create_auxiliary_coordinate(
         self,
@@ -5717,13 +5050,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         """
         g = self.read_vars
-        nc = g["nc"]
 
-        g["bounds"][parent_ncvar] = {}
-        g["coordinates"][parent_ncvar] = []
+        g["bounds"].setdefault(parent_ncvar, {})
+        g["coordinates"].setdefault(parent_ncvar, [])
 
         if ncvar is not None:
-            properties = g["variable_attributes"][ncvar].copy()
+            properties = g["variables"][ncvar].attrs.copy()
             properties.pop("formula_terms", None)
         else:
             properties = {}
@@ -5784,21 +5116,14 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             self.implementation.set_data(c, data, copy=False)
 
         # Store the original file names
-        self.implementation.set_original_filenames(
-            c, g["variable_datasetname"].get(ncvar, g["dataset"])
-        )
+        var = g["variables"].get(ncvar)
+        if var is not None:
+            self.implementation.set_original_filenames(c, var.dataset)
 
         # ------------------------------------------------------------
         # Add any bounds
         # ------------------------------------------------------------
         if bounds_ncvar:
-            if g["has_groups"]:
-                # Replace a flattened name with an absolute name
-                # (CF>=1.8)
-                bounds_ncvar = g["flattener_variables"].get(
-                    bounds_ncvar, bounds_ncvar
-                )
-
             if attribute == "nodes":
                 # Check geometry node coordinate boounds (CF>=1.8)
                 cf_compliant = self._check_geometry_node_coordinates(
@@ -5816,7 +5141,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if bounds_ncvar:
             bounds = self.implementation.initialise_Bounds()
 
-            bounds_properties = g["variable_attributes"][bounds_ncvar].copy()
+            bounds_var = g["variables"][bounds_ncvar]
+            bounds_properties = bounds_var.attrs.copy()
             bounds_properties.pop("formula_terms", None)
             self.implementation.set_properties(bounds, bounds_properties)
 
@@ -5833,21 +5159,22 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
             # Store the original file names
             self.implementation.set_original_filenames(
-                bounds, g["variable_datasetname"][bounds_ncvar]
+                bounds, bounds_var.dataset
             )
+
             # Store the netCDF variable name
             self.implementation.nc_set_variable(bounds, bounds_ncvar)
 
             # Store the netCDF bounds dimension name
-            bounds_ncdim = self._ncdim_abspath(
-                g["variable_dimensions"][bounds_ncvar][-1]
-            )
+            bounds_ncdim = g["variable_dimension_paths"][bounds_ncvar][-1]
 
             # Set the netCDF trailing bounds dimension name. (But not
             # if it is a dimension of its parent coordinate
             # variable. This can sometimes happen if the bounds are
             # node coordinates.)
-            if bounds_ncdim not in g["variable_dimensions"].get(ncvar, ()):
+            if bounds_ncdim not in g["variable_dimension_paths"].get(
+                ncvar, ()
+            ):
                 self.implementation.nc_set_dimension(bounds, bounds_ncdim)
 
             # Set the bounds on the parent construct
@@ -5876,9 +5203,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 count = self.implementation.get_count(bounds)
                 node_ncdim = self.implementation.nc_get_sample_dimension(count)
 
-                self.implementation.nc_set_dimension(
-                    bounds, self._ncdim_abspath(node_ncdim)
-                )
+                self.implementation.nc_set_dimension(bounds, node_ncdim)
 
                 geometry_type = geometry["geometry_type"]
                 if geometry_type is not None:
@@ -5966,14 +5291,15 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the netCDF variable name
         self.implementation.nc_set_variable(cell_measure, ncvar)
-        if ncvar in g["external_variables"]:
+        if ncvar in g["external_variables"] and ncvar not in g["variables"]:
             # The cell measure variable is in an unknown external file
             self.implementation.nc_set_external(construct=cell_measure)
         else:
             # The cell measure variable is in this file or in a known
             # external file
             self.implementation.set_properties(
-                cell_measure, g["variable_attributes"][ncvar]
+                cell_measure,
+                g["variables"][ncvar].attrs,
             )
 
             if not g["mask"]:
@@ -5983,9 +5309,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             self.implementation.set_data(cell_measure, data, copy=False)
 
         # Store the original file names
-        self.implementation.set_original_filenames(
-            cell_measure, g["variable_datasetname"].get(ncvar)
-        )
+        filename = getattr(g["variables"].get(ncvar), "filename", None)
+        self.implementation.set_original_filenames(cell_measure, filename)
 
         # Set quantization metadata
         self._set_quantization(cell_measure, ncvar)
@@ -6020,7 +5345,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        if ncvar not in g["variable_attributes"]:
+        if ncvar not in g["variables"]:
             raise ReadError(
                 "Can't initialise a subsampled coordinate with specified "
                 f"interpolation parameter ({term}: {ncvar}) that is missing "
@@ -6033,9 +5358,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Store the netCDF variable name
         self.implementation.nc_set_variable(param, ncvar)
 
-        self.implementation.set_properties(
-            param, g["variable_attributes"][ncvar]
-        )
+        self.implementation.set_properties(param, g["variables"][ncvar].attrs)
 
         if not g["mask"]:
             self._set_default_FillValue(param, ncvar)
@@ -6045,7 +5368,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            param, g["variable_datasetname"][ncvar]
+            param,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6064,16 +5388,16 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 The netCDF name of the tie point index variable.
 
                 *Parameter example:*
-                  ``ncvar='x_indices'``
+                  ``ncvar='/x_indices'``
 
             ncdim: `str`
                 The netCDF name of the tie point index variable's
                 subsampled dimension.
 
                 *Parameter example:*
-                  ``ncdim='tp_xc'``
+                  ``ncdim='/tp_xc'``
 
-            subarea_ncdim: `str`
+            subarea_ncdim: `str` or `None`
                 The netCDF name of the interpolation subarea dimension
                 associated with the subsampled dimension.
 
@@ -6092,7 +5416,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the CF properties
         self.implementation.set_properties(
-            variable, g["variable_attributes"][ncvar]
+            variable,
+            g["variables"][ncvar].attrs,
         )
 
         if not g["mask"]:
@@ -6103,15 +5428,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the name of netCDF subsampled dimension that is spanned
         # by the tie point index variable
-        self.implementation.nc_set_subsampled_dimension(
-            variable, self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_subsampled_dimension(variable, ncdim)
 
         # Set the name of the netCDF interpolation subarea dimension
         # associated with the subsampled dimension.
         if subarea_ncdim is not None:
             self.implementation.nc_set_interpolation_subarea_dimension(
-                variable, self._ncdim_abspath(subarea_ncdim)
+                variable, subarea_ncdim
             )
 
         data = self._create_data(
@@ -6122,7 +5445,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6160,7 +5484,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         variable = self.implementation.initialise_Count()
 
         # Set the CF properties
-        properties = g["variable_attributes"][ncvar]
+        properties = g["variables"][ncvar].attrs.copy()
         sample_ncdim = properties.pop("sample_dimension", None)
         self.implementation.set_properties(variable, properties)
 
@@ -6172,16 +5496,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the netCDF sample dimension name
         if sample_ncdim is not None:
-            self.implementation.nc_set_sample_dimension(
-                variable, self._ncdim_abspath(sample_ncdim)
-            )
+            self.implementation.nc_set_sample_dimension(variable, sample_ncdim)
 
         # Set the name of the netCDF dimension spaned by the variable
         # (which, for indexed contiguous ragged arrays, will not be the
         # same as the netCDF instance dimension)
-        self.implementation.nc_set_dimension(
-            variable, self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
         data = self._create_data(
             ncvar, variable, uncompress_override=True, compression_index=True
@@ -6191,7 +5511,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6230,7 +5551,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         variable = self.implementation.initialise_Index()
 
         # Set the CF properties
-        properties = g["variable_attributes"][ncvar]
+        properties = g["variables"][ncvar].attrs.copy()
         properties.pop("instance_dimension", None)
 
         self.implementation.set_properties(variable, properties)
@@ -6243,16 +5564,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the netCDF sample dimension name
         sample_ncdim = ncdim
-        self.implementation.nc_set_sample_dimension(
-            variable, self._ncdim_abspath(sample_ncdim)
-        )
+        self.implementation.nc_set_sample_dimension(variable, sample_ncdim)
 
         # Set the name of the netCDF dimension spaned by the variable
         # (which, for indexed contiguous ragged arrays, will not be
         # the same as the netCDF sample dimension)
-        self.implementation.nc_set_dimension(
-            variable, self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
         # Set the data
         data = self._create_data(
@@ -6262,7 +5579,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6301,11 +5619,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the netCDF variable name
         self.implementation.nc_set_variable(variable, ncvar)
-        self.implementation.nc_set_dimension(
-            variable, self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
-        properties = g["variable_attributes"][ncvar]
+        properties = g["variables"][ncvar].attrs
         self.implementation.set_properties(variable, properties)
 
         if not g["mask"]:
@@ -6316,7 +5632,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6350,7 +5667,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Store the netCDF variable name
         self.implementation.nc_set_variable(variable, ncvar)
 
-        properties = self.read_vars["variable_attributes"][ncvar]
+        properties = g["variables"][ncvar].attrs.copy()
         properties.pop("compress", None)
         self.implementation.set_properties(variable, properties)
 
@@ -6364,7 +5681,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6398,7 +5716,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Store the netCDF variable name
         self.implementation.nc_set_variable(variable, ncvar)
 
-        properties = g["variable_attributes"][ncvar]
+        properties = g["variables"][ncvar].attrs
         self.implementation.set_properties(variable, properties)
 
         if not g["mask"]:
@@ -6406,7 +5724,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6445,11 +5764,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the netCDF variable name
         self.implementation.nc_set_variable(variable, ncvar)
-        self.implementation.nc_set_dimension(
-            variable, self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(variable, ncdim)
 
-        properties = g["variable_attributes"][ncvar]
+        properties = g["variables"][ncvar].attrs
         self.implementation.set_properties(variable, properties)
 
         if not g["mask"]:
@@ -6457,7 +5774,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            variable, g["variable_datasetname"][ncvar]
+            variable,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -6526,11 +5844,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        variable = self._original_dataset_variable(ncvar)
+        variable = g["variables"].get(ncvar)
         if variable is None:
             return None
 
-        dtype = self._dtype(variable)
+        dtype = variable.dtype
         if dtype is str or dtype.kind == "O":
             # netCDF string types have a dtype of `str`, which needs
             # to be reset as a numpy.dtype, but we don't know what
@@ -6540,9 +5858,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if dtype is not None and unpacked_dtype is not False:
             dtype = np.result_type(dtype, unpacked_dtype)
 
-        ndim = self._ndim(variable)
+        ndim = variable.ndim
         shape = variable.shape
-        size = prod(shape)
+        size = variable.size
 
         if size < 2:
             size = int(size)
@@ -6553,24 +5871,23 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             shape = shape[:-1]
             dtype = np.dtype(f"U{strlen}")
 
-        dataset = g["variable_datasetname"][ncvar]
+        dataset = variable.dataset
 
-        attributes = g["variable_attributes"][ncvar].copy()
+        attributes = variable.attrs.copy()
         if coord_ncvar is not None:
             # Get the Units from the parent coordinate variable, if
             # they've not already been set.
             if "units" not in attributes:
-                units = g["variable_attributes"][coord_ncvar].get("units")
+                units = g["variables"][coord_ncvar].attrs.get("units")
                 if units is not None:
                     attributes["units"] = units
 
             if "calendar" not in attributes:
-                calendar = g["variable_attributes"][coord_ncvar].get(
-                    "calendar"
-                )
+                calendar = g["variables"][coord_ncvar].attrs.get("calendar")
                 if calendar is not None:
                     attributes["calendar"] = calendar
 
+        backend = variable.backend_api
         kwargs = {
             "filename": dataset,
             "address": ncvar,
@@ -6579,8 +5896,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             "mask": g["mask"],
             "unpack": g["unpack"],
             "attributes": attributes,
-            "storage_protocol": g["file_system_protocol"],
-            "storage_options": g["file_system_storage_options"],
+            "filesystem": g["filesystem"],
+            "backend": backend,
+            "backend_options": g["backend_options"].get(f"{backend}_options"),
         }
 
         if not self._cfa_is_aggregation_variable(ncvar):
@@ -6588,31 +5906,19 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             if return_kwargs_only:
                 return kwargs
 
-            match g["original_dataset_opened_with"]:
-                case "h5netcdf-pyfive":
-                    # Add the pyfive.Variable object to the Array
-                    # object initialisation
-                    variable = self._original_dataset_variable(ncvar)
-                    kwargs["variable"] = variable._h5ds
-                    array = self.implementation.initialise_PyfiveArray(
-                        **kwargs
-                    )
-                case "h5netcdf-h5py":
-                    array = self.implementation.initialise_H5netcdfArray(
-                        **kwargs
-                    )
-                case "netCDF4":
-                    array = self.implementation.initialise_NetCDF4Array(
-                        **kwargs
-                    )
-                case "zarr":
-                    array = self.implementation.initialise_ZarrArray(**kwargs)
-                case "netcdf_file":
-                    array = (
-                        self.implementation.initialise_ScipyNetcdfFileArray(
-                            **kwargs
-                        )
-                    )
+            if backend == "xarray":
+                # For xarray, we don't want to create an `XnetcdfArray`
+                # instance, because 'variable' will wither contain its
+                # own Dask array (if the xarray 'chunks' argument was
+                # not `None`), or a `numpy` array (or similar).
+                array = variable.backend_accessor.data
+            else:
+                # For some backends, it's OK to store the actual
+                # variable inside the Dask array
+                if backend in ("pyfive", "zarr", "umfive"):
+                    kwargs["variable"] = variable
+
+                array = self.implementation.initialise_XnetcdfArray(**kwargs)
 
             return array, kwargs
 
@@ -6661,6 +5967,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 kwargs["dtype"] = fragment_array_variable.dtype
 
         kwargs["fragment_array"] = fragment_array
+        kwargs["fragment_filesystem"] = g["cfa_filesystem"]
+        kwargs["fragment_backend"] = g["cfa_backend"]
+        kwargs["fragment_backend_options"] = g["cfa_backend_options"]
+
         if return_kwargs_only:
             return kwargs
 
@@ -6732,8 +6042,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         compression = g["compression"]
 
-        dimensions = g["variable_dimensions"][ncvar]
-
+        # dimensions = g["variable_dimensions"][ncvar]
+        dimensions = g["variable_dimension_paths"][ncvar]
         if (
             (uncompress_override is not None and uncompress_override)
             or not compression
@@ -6911,7 +6221,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             # relative to the order of the tie point
                             # dimensions.
                             positions = []
-                            for dim in g["variable_dimensions"][param_ncvar]:
+                            # for dim in g["variable_dimensions"][param_ncvar]:
+                            for dim in g["variable_dimension_paths"][
+                                param_ncvar
+                            ]:
                                 if dim in dimensions:
                                     # This interpolation parameter
                                     # dimension is either an
@@ -7055,9 +6368,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         """
         domain_axis = self.implementation.initialise_DomainAxis(size=size)
-        self.implementation.nc_set_dimension(
-            domain_axis, self._ncdim_abspath(ncdim)
-        )
+        self.implementation.nc_set_dimension(domain_axis, ncdim)
 
         return domain_axis
 
@@ -7084,7 +6395,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Insert properties
         self.implementation.set_properties(
             field_ancillary,
-            g["variable_attributes"][ncvar],
+            g["variables"][ncvar].attrs,
             copy=True,
         )
 
@@ -7100,7 +6411,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the original file names
         self.implementation.set_original_filenames(
-            field_ancillary, g["variable_datasetname"][ncvar]
+            field_ancillary,
+            g["variables"][ncvar].dataset,
         )
 
         # Set quantization metadata
@@ -7310,12 +6622,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         """
         g = self.read_vars
 
-        # Separate the attribute string into components. E.g. "lat:
-        # lon: bilinear time: linear" becomes ["lat:", "lon:",
-        # "bilinear", "time:", "linear"]
-        coordinate_interpolation = self._split_string_by_white_space(
-            parent_ncvar, string, variables=True, trailing_colon=True
-        )
+        # Separate the attribute string into components. E.g. "/lat:
+        # /lon: /bilinear /time: /linear" becomes ["/lat:", "/lon:",
+        # "/bilinear", "/time:", "/linear"]
+        coordinate_interpolation = self._split_string_by_white_space(string)
 
         # Convert the components to a dictionary keyed by
         # interpolation variable name. E.g. ["lat:", "lon:",
@@ -7353,7 +6663,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # recorded
                 continue
 
-            attrs = g["variable_attributes"][interpolation_ncvar].copy()
+            attrs = g["variables"][interpolation_ncvar].attrs.copy()
             record = {
                 "interpolation_name": attrs.get("interpolation_name"),
                 "interpolation_description": attrs.get(
@@ -7455,11 +6765,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             subsampled_ncdims = record["subsampled_ncdim"]
 
             for tp_ncvar in coords:
-                coord_ncdims = g["variable_dimensions"][tp_ncvar]
+                # coord_ncdims = g["variable_dimensions"][tp_ncvar]
+                coord_ncdims = g["variable_dimension_paths"][tp_ncvar]
 
                 # Bounds tie points: Need to also record an implied
                 # trailing bounds dimension.
-                bounds_ncvar = g["variable_attributes"][tp_ncvar].get(
+                bounds_ncvar = g["variables"][tp_ncvar].attrs.get(
                     "bounds_tie_points"
                 )
                 if bounds_ncvar is not None:
@@ -7468,7 +6779,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     )
                     size = n_subsampled_dims * 2
                     bounds_ncdim = self._new_ncdimension(
-                        f"bounds{size}", size=size, use_existing_new=True
+                        f"/bounds{size}", size=size, use_existing_new=True
                     )
 
                 for ncdim in coord_ncdims:
@@ -7635,7 +6946,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         base = ncdim
         n = 0
         while (
-            ncdim in g["internal_dimension_sizes"]
+            #            ncdim in g["internal_dimension_sizes"]
+            ncdim in g["dimensions"]
             or ncdim in new_dimension_sizes
             or ncdim in g["variables"]
         ):
@@ -7675,8 +6987,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         sizes = []
         for ncdim in self._ncdimensions(ncvar, parent_ncvar=parent_ncvar):
-            if ncdim in g["internal_dimension_sizes"]:
-                sizes.append(g["internal_dimension_sizes"][ncdim])
+            if ncdim in g["dimensions"]:
+                sizes.append(g["dimensions"][ncdim].size)
             elif ncdim in g["new_dimension_sizes"]:
                 sizes.append(g["new_dimension_sizes"][ncdim])
             else:
@@ -7748,13 +7060,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         g = self.read_vars
 
         variable = g["variables"][ncvar]
-
         if ncdimensions is None:
             domain = False
             domain_ncdimensions = g["domain_ncdimensions"].get(ncvar)
             if domain_ncdimensions is None:
                 # Get dimensions from the netCDF variable array
-                ncdimensions = g["variable_dimensions"][ncvar]
+                ncdimensions = g["variable_dimension_paths"][ncvar]
             else:
                 # Use the pre-recorded domain variable dimensions
                 ncdimensions = domain_ncdimensions
@@ -7764,7 +7075,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         ncdimensions = list(ncdimensions)
 
-        ndim = self._ndim(variable)
+        ndim = variable.ndim
         if self._is_char(ncvar) and ndim >= 1:
             # Remove the trailing string-length dimension
             ncdimensions.pop()
@@ -7773,7 +7084,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # are any, then return the netCDF dimensions for the
         # uncompressed variable.
         compression = g["compression"]
-
         if compression and set(compression).intersection(ncdimensions):
             implied_bounds_ncdimensions = None
 
@@ -7862,7 +7172,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         :Parameters:
 
-            gathered_array: `NetCDF4Array` or `H5netcdfArray`
+            gathered_array: subclass of `Array`
 
             compressed_dimensions: sequence of `int`
                 The position of the compressed dimension in the
@@ -8073,18 +7383,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         g = self.read_vars
 
         # Deal with strings
-        match g["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
+        variable = g["variables"][ncvar]
+        match variable.backend_api:
+            case "pyfive" | "h5py" | "netCDF4" | "umfive":
                 if array.dtype is None:
-                    if g["has_groups"]:
-                        group, name = self._netCDF4_group(
-                            g["variable_grouped_dataset"][ncvar], ncvar
-                        )
-                        variable = group.variables.get(name)
-                    else:
-                        variable = g["variables"].get(ncvar)
-
-                    array = self._index(variable, Ellipsis)
+                    array = variable[...]
 
                     string_type = isinstance(array, str)
                     if string_type:
@@ -8108,6 +7411,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                         array = np.ma.masked_values(array, "")
 
             case "zarr":
+                # TODO - is array an Array, here? Does this work?
                 if array.dtype == np.dtypes.StringDType():
                     array = array.astype("O", copy=False).astype(
                         "U", copy=False
@@ -8140,7 +7444,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # same shape as its netCDF variable. This may not be
                 # the case for variables compressed by convention
                 # (e.g. some DSG variables).
-                chunks, shape = self._get_dataset_chunks(ncvar)
+                chunks = g["variables"][ncvar].chunks
+                shape = g["variables"][ncvar].shape
                 if shape == data.shape:
                     self.implementation.nc_set_dataset_chunksizes(data, chunks)
 
@@ -8150,7 +7455,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # same shape as its netCDF variable. This may not be
                 # the case for variables compressed by convention
                 # (e.g. some DSG variables).
-                shards, shape = self._get_dataset_shards(ncvar)
+                shards = self._get_dataset_shards(ncvar)
+                shape = g["variables"][ncvar].shape
                 if shards is not None and shape == data.shape:
                     self.implementation.nc_set_dataset_shards(data, shards)
 
@@ -8193,32 +7499,14 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         return True
 
-    def _split_string_by_white_space(
-        self, parent_ncvar, string, variables=False, trailing_colon=False
-    ):
+    def _split_string_by_white_space(self, string):
         """Split a string by white space.
 
         .. versionadded:: (cfdm) 1.7.0
 
         :Parameters:
 
-            parent_ncvar: `str`
-                Not used
-
             string: `str or `None`
-
-            variables: `bool`
-                If True then *string* contains internal netCDF variable
-                names. (Not sure yet what to do about external names.)
-
-                .. versionadded:: (cfdm) 1.8.6
-
-            trailing_colon: `bool`
-                If True then trailing colons are not part of the
-                string components that are variable names. Ignored if
-                *variables* is False.
-
-                .. versionadded:: (cfdm) 1.10.0.0
 
         :Returns:
 
@@ -8232,20 +7520,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             out = string.split()
         except AttributeError:
             out = []
-        else:
-            if variables and out and self.read_vars["has_groups"]:
-                mapping = self.read_vars["flattener_variables"]
-                if trailing_colon:
-                    out = [
-                        (
-                            mapping[ncvar[:-1]] + ":"
-                            if ncvar.endswith(":")
-                            else mapping[ncvar]
-                        )
-                        for ncvar in out
-                    ]
-                else:
-                    out = [mapping[ncvar] for ncvar in out]
 
         return out
 
@@ -8267,10 +7541,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         else:
             # The grid mapping attribute may only point to a single
             # netCDF variable (CF<=1.6)
-            out = self._split_string_by_white_space(
-                parent_ncvar, string, variables=True
-            )
-
+            out = self._split_string_by_white_space(string)
             if len(out) == 1:
                 out = [{out[0]: []}]
 
@@ -8339,7 +7610,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             end of string.
 
             """
-            return s.replace("WORD", r"[A-Za-z0-9_#]+").replace(
+            return s.replace("WORD", r"[A-Za-z0-9_#/]+").replace(
                 "SEP", r"(\s+|$)"
             )
 
@@ -8375,20 +7646,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     )
                 ]
                 out.append({term: values})
-
-        # If there are groups then replace flattened variable names
-        # with absolute path names (CF>=1.8)
-        g = self.read_vars
-        if g["has_groups"]:
-            for x in out:
-                for key, value in x.copy().items():
-                    if keys_are_variables:
-                        del x[key]
-                        key = g["flattener_variables"][key]
-
-                    x[key] = [
-                        g["flattener_variables"][ncvar] for ncvar in value
-                    ]
 
         return out
 
@@ -8445,7 +7702,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 tie_point_ncvar,
                 message=incorrect_dimensions,
                 attribute=attribute,
-                dimensions=g["variable_dimensions"][tie_point_ncvar],
+                dimensions=g["variable_dimension_paths"][tie_point_ncvar],
                 conformance="8.3.requirement.5",
             )
             return False
@@ -8564,7 +7821,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         ok = True
 
-        dimensions = self.read_vars["internal_dimension_sizes"]
+        dimensions = self.read_vars["dimensions"]
 
         for ncdim in parsed_compress:
             if ncdim not in dimensions:
@@ -8791,7 +8048,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         if (
             instance_dimension
-            not in self.read_vars["internal_dimension_sizes"]
+            not in self.read_vars["dimensions"]
         ):
             self._add_message(
                 None,
@@ -8817,7 +8074,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                             being used for a collection of features.
 
         """
-        return sample_dimension in self.read_vars["internal_dimension_sizes"]
+        return sample_dimension in self.read_vars["dimensions"]
 
     def _check_coordinate_interpolation(
         self,
@@ -8881,7 +8138,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 )
                 ok = False
 
-            attrs = g["variable_attributes"][interp_ncvar]
+            attrs = g["variables"][interp_ncvar].attrs
             if "tie_point_mapping" not in attrs:
                 self._add_message(
                     parent_ncvar,
@@ -8950,7 +8207,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
             ok = False
 
-        attributes = g["variable_attributes"][ncvar]
+        attributes = g["variables"][ncvar].attrs
 
         implementation = attributes.get("implementation")
         if implementation is None:
@@ -8982,7 +8239,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             )
             ok = False
 
-        if parameter not in g["variable_attributes"][parent_ncvar]:
+        if parameter not in g["variables"][parent_ncvar].attrs:
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
@@ -9060,13 +8317,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         for location in locations:
             if location == "node":
                 node_coordinates = self._split_string_by_white_space(
-                    None, attributes["node_coordinates"], variables=True
+                    attributes["node_coordinates"]
                 )
                 ncvar = node_coordinates[0]
             else:
                 ncvar = attributes.get(f"{location}_node_connectivity")
 
-            ncdim = self.read_vars["variable_dimensions"].get(ncvar)
+            ncdim = g["variable_dimension_paths"].get(ncvar)
             if ncdim is None:
                 continue
 
@@ -9088,9 +8345,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         coordinates_ncvar = {}
         for location in locations:
             coords_ncvar = attributes.get(f"{location}_coordinates", "")
-            coords_ncvar = self._split_string_by_white_space(
-                None, coords_ncvar, variables=True
-            )
+            coords_ncvar = self._split_string_by_white_space(coords_ncvar)
             coordinates_ncvar[location] = coords_ncvar
             for ncvar in coords_ncvar:
                 do_not_create_field.add(ncvar)
@@ -9168,12 +8423,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if not self._ugrid_check_location_index_set(location_index_set_ncvar):
             return
 
-        location_index_set_attributes = g["variable_attributes"][
+        location_index_set_attributes = g["variables"][
             location_index_set_ncvar
-        ]
+        ].attrs
         location = location_index_set_attributes["location"]
         mesh_ncvar = location_index_set_attributes["mesh"]
-        attributes = g["variable_attributes"][mesh_ncvar]
+        attributes = g["variables"][mesh_ncvar].attrs
 
         index_set = self._create_data(location_index_set_ncvar)
         start_index = location_index_set_attributes.get("start_index", 0)
@@ -9352,7 +8607,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         g = self.read_vars
 
-        properties = g["variable_attributes"][node_ncvar].copy()
+        properties = g["variables"][node_ncvar].attrs.copy()
         properties.pop("formula_terms", None)
 
         bounds = self.implementation.initialise_Bounds()
@@ -9373,7 +8628,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         node_coordinates = self._create_data(
             node_ncvar, compression_index=True
         )
-        start_index = g["variable_attributes"][connectivity_ncvar].get(
+        start_index = g["variables"][connectivity_ncvar].attrs.get(
             "start_index", 0
         )
         cell_dimension = self._ugrid_cell_dimension(
@@ -9404,7 +8659,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Set the original file names
         self.implementation.set_original_filenames(
-            bounds, g["variable_datasetname"][node_ncvar]
+            bounds,
+            g["variables"][node_ncvar].dataset,
         )
 
         error = self.implementation.set_bounds(aux, bounds, copy=False)
@@ -9441,6 +8697,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 not be created.
 
         """
+        g = self.read_vars
         attributes = mesh.mesh_attributes
 
         if location == "node":
@@ -9472,9 +8729,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Still here?
 
         # CF properties
-        properties = self.read_vars["variable_attributes"][
-            connectivity_ncvar
-        ].copy()
+        properties = g["variables"][connectivity_ncvar].attrs.copy()
         start_index = properties.pop("start_index", 0)
         cell_dimension = self._ugrid_cell_dimension(
             loc, connectivity_ncvar, mesh
@@ -9484,9 +8739,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if cell == "point":
             properties["long_name"] = "Maps every node to its connected nodes"
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-            n_nodes = self.read_vars["internal_dimension_sizes"][
-                mesh.ncdim[location]
-            ]
+            n_nodes = g["dimensions"][mesh.ncdim[location]].size
             array = self.implementation.initialise_PointTopologyArray(
                 shape=(n_nodes, nan),
                 start_index=start_index,
@@ -9523,7 +8776,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             domain_topology, connectivity_ncvar
         )
         self.implementation.set_original_filenames(
-            domain_topology, self.read_vars["dataset"]
+            domain_topology,
+            g["variables"][connectivity_ncvar].filename,
         )
 
         index_set = mesh.index_set
@@ -9532,9 +8786,9 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             domain_topology = domain_topology[index_set]
 
         # Store the netCDF connectivity dimension name
-        connectivity_ncdim = self._ncdim_abspath(
-            self.read_vars["variable_dimensions"][connectivity_ncvar][-1]
-        )
+        connectivity_ncdim = g["variable_dimension_paths"][connectivity_ncvar][
+            -1
+        ]
         domain_topology.nc_set_connectivity_dimension(connectivity_ncdim)
 
         return domain_topology
@@ -9574,6 +8828,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if location not in ("face", "edge"):
             return []
 
+        g = self.read_vars
+
         attributes = mesh.mesh_attributes
         connectivity_attr = f"{location}_{location}_connectivity"
 
@@ -9592,7 +8848,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             return []
 
         # CF properties
-        properties = self.read_vars["variable_attributes"][connectivity_ncvar]
+        properties = g["variables"][connectivity_ncvar].attrs.copy()
         start_index = properties.pop("start_index", 0)
         cell_dimension = self._ugrid_cell_dimension(
             location, connectivity_ncvar, mesh
@@ -9629,7 +8885,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # Set the netCDF variable name and the original file names
         self.implementation.nc_set_variable(connectivity, connectivity_ncvar)
         self.implementation.set_original_filenames(
-            connectivity, self.read_vars["dataset"]
+            connectivity,
+            g["variables"][connectivity_ncvar].dataset,
         )
 
         index_set = mesh.index_set
@@ -9675,536 +8932,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             cell_dim = 0
 
         return cell_dim
-
-    def _netCDF4_group(self, nc, name):
-        """Return the group of a variable or dimension in the dataset.
-
-        Given a dataset and a variable or dimension name, return the
-        group object for the name, and the name within the group.
-
-        .. versionadded:: (cfdm) 1.8.8.1
-
-        :Parameters:
-
-            nc: `netCDF4._netCDF4.Dataset` or `netCDF4._netCDF4.Group`
-
-            name: `str`
-
-        :Returns:
-
-            `netCDF4._netCDF4.Dataset` or `netCDF4._netCDF4.Group`, `str`
-
-        **Examples**
-
-        >>> group, name = n._netCDF4_group(nc, 'time')
-        >>> group.name, name
-        ('/', 'time')
-        >>> group, name = n._netCDF4_group(nc, '/surfacelayer/Z')
-        >>> group.name, name
-        ('surfacelayer', 'Z')
-
-        """
-        group = nc
-        path = name.split("/")
-        for group_name in path[1:-1]:
-            group = group[group_name]
-
-        return group, path[-1]
-
-    def _dataset_has_groups(self, nc):
-        """True if the dataset has a groups other than the root group.
-
-        .. versionadded:: (cfdm) 1.12.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-        :Returns:
-
-            `bool`
-
-        """
-        match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
-                return bool(nc.groups)
-
-            case "zarr":
-                return bool(tuple(nc.group_keys()))
-
-            case "netcdf_file":
-                return False
-
-    def _file_global_attribute(self, nc, attr):
-        """Return a global attribute from a dataset.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-            attr: `str`
-                The global attribute name.
-
-        :Returns:
-
-                The global attribute value.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
-                return nc.attrs[attr]
-
-            case "netCDF4":
-                return nc.getncattr(attr)
-
-            case "netcdf_file":
-                return nc._attributes[attr]
-
-    def _file_global_attributes(self, nc):
-        """Return the global attributes from a dataset.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-        :Returns:
-
-            `dict`-like
-                A dictionary of the attribute values keyed by their
-                names.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
-                return nc.attrs
-
-            case "netCDF4":
-                return {attr: nc.getncattr(attr) for attr in nc.ncattrs()}
-
-            case "netcdf_file":
-                return nc._attributes
-
-    def _file_group_variables(self, group):
-        """Return all variables in a group.
-
-        .. versionadded:: (cfdm) 1.13.0.0
-
-        :Parameters:
-
-            group:
-                The group.
-
-        :Returns:
-
-            `dict`-like
-                A dictionary of the variables keyed by their names.
-
-        """
-        match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
-                return group.variables
-
-            case "zarr":
-                return dict(group.arrays())
-
-    def _file_dimensions(self, nc):
-        """Return all dimensions in the root group.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-        :Returns:
-
-            `dict`-like
-                A dictionary of the dimension objects keyed by their
-                names.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
-                dimensions = dict(nc.dimensions)
-
-            case "zarr":
-                dimensions = {}
-                for var in self._file_variables(nc).values():
-                    dimensions.update(
-                        {
-                            name: ZarrDimension(name, size, nc)
-                            for name, size in zip(
-                                self._file_variable_dimensions(var), var.shape
-                            )
-                            if name not in dimensions
-                        }
-                    )
-
-            case "netcdf_file":
-                dimensions = {
-                    name: Dimension(name, size, nc)
-                    for name, size in nc.dimensions.items()
-                }
-
-        return dimensions
-
-    def _file_dimension(self, nc, dim_name):
-        """Return a dimension from the root group of a dataset.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-            dim_name: `str`
-                The dimension name.
-
-        :Returns:
-
-            `netCDF.Dimension` or `h5netcdf.Dimension` or `ZarrDimension` or `Dimension`
-                The dimension.
-
-        """
-        return self._file_dimensions(nc)[dim_name]
-
-    def _file_dimension_isunlimited(self, nc, dim_name):
-        """Return whether a dimension in the root group is unlimited.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-            dim_name: `str`
-                The dimension name.
-
-        :Returns:
-
-            `bool`
-                Whether the dimension is unlimited.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4":
-                return self._file_dimension(nc, dim_name).isunlimited()
-
-            case "zarr" | "netcdf_file":
-                return False
-
-    def _file_dimension_size(self, nc, dim_name):
-        """Return a dimension's size.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-            dim_name: `str`
-                The dimension name.
-
-        :Returns:
-
-            `int`
-                The dimension size.
-
-        """
-        return self._file_dimension(nc, dim_name).size
-
-    def _file_variables(self, nc):
-        """Return all variables in the root group.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-        :Returns:
-
-            `dict`-like
-                A dictionary of the variable objects keyed by their
-                names.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case (
-                "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "netcdf_file"
-            ):
-                return nc.variables
-
-            case "zarr":
-                return dict(nc.arrays())
-
-    def _file_variable(self, nc, var_name):
-        """Return a variable.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            nc:
-                The dataset. One of `netCDF4.Dataset`,
-                `scipy.io.netcdf_file`, `h5netcdf.File`, `zarr.Group`.
-
-            var_name: `str`
-                The variable name.
-
-        :Returns:
-
-                The variable. One of `netCDF4.Variable`,
-                `scipy.io.netcdf_file`, or `h5netcdf.Variable`, `zarr.Array`
-
-        """
-        # netCDF4, h5netcdf, zarr, scipy
-        return self._file_variables(nc)[var_name]
-
-    def _file_variable_attributes(self, var):
-        """Return the variable attributes.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`, `zarr.Array`.
-
-        :Returns:
-
-            `dict`
-                A dictionary of the attribute values keyed by their
-                names.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py":
-                return dict(var.attrs)
-
-            case "netCDF4":
-                return {attr: var.getncattr(attr) for attr in var.ncattrs()}
-
-            case "zarr":
-                attrs = dict(var.attrs)
-
-                # Remove _ARRAY_DIMENSIONS from Zarr v2 attributes
-                if var.metadata.zarr_format == 2:
-                    attrs.pop("_ARRAY_DIMENSIONS", None)
-
-                return attrs
-
-            case "netcdf_file":
-                return var._attributes
-
-    def _file_variable_dimensions(self, var):
-        """Return the variable dimension names.
-
-        .. versionadded:: (cfdm) 1.12.2.0
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-               `zarr.Array`.
-
-         :Returns:
-
-             `tuple` of `str`
-                 The dimension names.
-
-        """
-        match self.read_vars["nc_opened_with"]:
-            case (
-                "h5netcdf-pyfive" | "h5netcdf-h5py" | "netCDF4" | "netcdf_file"
-            ):
-                return var.dimensions
-
-            case "zarr":
-                match var.metadata.zarr_format:
-                    case 3:
-                        # Zarr v3
-                        dimension_names = var.metadata.dimension_names
-                        if dimension_names is None:
-                            # Scalar variable
-                            dimension_names = ()
-
-                        return dimension_names
-
-                    case 2:
-                        # Zarr v2
-                        return tuple(var.attrs["_ARRAY_DIMENSIONS"])
-
-    def _ndim(self, var):
-        """Return the size of a variable's array.
-
-        .. versionadded:: (cfdm) 1.13.1.0
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-               `zarr.Array`
-
-        :Returns:
-
-            `int`
-                The array size.
-
-        """
-        try:
-            # h5netcdf, netCDF4, zarr
-            return var.ndim
-        except AttributeError:
-            # scipy
-            return len(var.shape)
-
-    def _dtype(self, var):
-        """Return the data type of a dataset variable.
-
-        .. versionadded:: (cfdm) 1.13.1.0
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-               `zarr.Array`
-
-        :Returns:
-
-                The variable's data type as a `numpy.dtype` object,
-                unless the variable is a VLEN string, in which case
-                the data type will be `str`.
-
-        """
-        try:
-            # h5netcdf, netCDF4, zarr
-            dtype = var.dtype
-        except AttributeError:
-            # scipy: Need to get the datatype from the memory-mapped
-            # array.
-            x = self._index(var, (slice(0, 1),) * len(var.shape))
-            dtype = x.dtype
-
-        if dtype is not str and dtype != np.dtypes.StringDType():
-            dtype = np.dtype(f"{dtype.kind}{dtype.itemsize}")
-
-        return dtype
-
-    def _index(self, var, index):
-        """Return a subspace of the array of a dataset variable.
-
-        .. versionadded:: (cfdm) 1.13.1.0
-
-        :Parameters:
-
-            var:
-                The variable. One of `netCDF4.Variable`,
-               `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-               `zarr.Array`.
-
-            index:
-                The array index that defines the subspace.
-
-        :Returns:
-
-            `numpy.ndarray`
-                The array subspace.
-
-        """
-        array = var[index]
-        if self.read_vars["nc_opened_with"] == "netcdf_file":
-            # Need to copy the numpy array returned by
-            # scipy.io.netcdf_file with mmap=True. See `dataset_close`
-            # and the scipy.io.netcdf_file docs for details.
-            array = array.copy()
-
-        return array
-
-    def _get_dataset_chunks(self, ncvar):
-        """Return a netCDF variable's dataset storage chunks.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-           ncvar: `str`
-                The netCDF variable name.
-
-        :Returns:
-
-            2-tuple:
-                The variable's chunking strategy and its shape.
-
-                The variable's chunking strategy will one of
-                ``'contiguous'``, a sequence of `int`, or (only for
-                netCDF-3) `None`.
-
-        **Examples**
-
-        >>> n._get_dataset_chunks('tas')
-        [1, 324, 432], (12, 324, 432)
-        >>> n._get_dataset_chunks('pr')
-        'contiguous', (12, 324, 432)
-        >>> n._get_dataset_chunks('ua')
-        None, (12, 324, 432)
-
-        """
-        nc = self.read_vars["variable_dataset"][ncvar]
-
-        # 'nc' is the flattened dataset, so replace an 'ncvar' string
-        # that contains groups (e.g. '/forecast/tas') with its
-        # flattened version (e.g. 'forecast__tas').
-        if ncvar.startswith("/"):
-            ncvar = ncvar[1:]
-            ncvar = ncvar.replace("/", flattener_separator)
-
-        match self.read_vars["nc_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py":
-                var = nc.variables[ncvar]
-                chunks = var.chunks
-                if chunks is None:
-                    chunks = "contiguous"
-
-            case "netCDF4":
-                var = nc.variables[ncvar]
-                chunks = var.chunking()
-                if chunks is None:
-                    chunks = "contiguous"
-
-            case "zarr":
-                var = dict(nc.arrays())[ncvar]
-                chunks = var.chunks
-
-            case "netcdf_file":
-                var = nc.variables[ncvar]
-                chunks = "contiguous"
-
-        return chunks, var.shape
 
     def _dask_chunks(self, array, ncvar, compressed, construct_type=None):
         """Set the Dask chunking strategy for a netCDF variable.
@@ -10260,8 +8987,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # No Dask chunking
             return -1
 
-        variable = self._original_dataset_variable(ncvar)
-        storage_chunks = self._variable_chunksizes(variable)
+        variable = g["variables"][ncvar]
+        storage_chunks = variable.chunks
 
         ndim = array.ndim
         if (
@@ -10325,9 +9052,18 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # 1) Initialise the Dask chunk shape
             from dask.array.core import normalize_chunks
 
-            dask_chunks = normalize_chunks(
-                "auto", shape=array.shape, dtype=array.dtype
-            )
+            try:
+                dask_chunks = normalize_chunks(
+                    "auto", shape=array.shape, dtype=array.dtype
+                )
+            except NotImplementedError:
+                # This error could arise if "auto" chunks can not be
+                # inferred for the given the dtype (e.g. "O"). In this
+                # case we'll just assume one Dask chunk.
+                dask_chunks = normalize_chunks(
+                    -1, shape=array.shape, dtype=array.dtype
+                )
+
             dask_chunks = [sizes[0] for sizes in dask_chunks]
             n_dask_elements = prod(dask_chunks)
 
@@ -10521,17 +9257,25 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             if not dask_chunks:
                 return "auto"
 
-            attributes = g["variable_attributes"]
             chunks = []
-            for ncdim in g["variable_dimensions"][ncvar]:
+            for ncdim in g["variable_dimension_paths"][ncvar]:
                 key = f"ncdim%{ncdim}"
                 if key in dask_chunks:
                     chunks.append(dask_chunks[key])
                     continue
 
+                # Allow a relative name for a dimension in the root
+                # group
+                if ncdim.count("/") == 1:
+                    key = f"ncdim%{ncdim[1:]}"
+                    if key in dask_chunks:
+                        chunks.append(dask_chunks[key])
+                        continue
+
                 found_coord_attr = False
-                dim_coord_attrs = attributes.get(ncdim)
-                if dim_coord_attrs is not None:
+                dim_coord = g["variables"].get(ncdim)
+                if dim_coord is not None:
+                    dim_coord_attrs = dim_coord.attrs
                     for attr in ("standard_name", "axis"):
                         key = dim_coord_attrs.get(attr)
                         if key in dask_chunks:
@@ -10594,15 +9338,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             return
 
         g = self.read_vars
-
-        # Get the netCDF4.Variable for the data
-        if g["has_groups"]:
-            group, name = self._netCDF4_group(
-                g["variable_grouped_dataset"][ncvar], ncvar
-            )
-            variable = self._file_group_variables(group).get(name)
-        else:
-            variable = g["variables"].get(ncvar)
+        variable = g["variables"][ncvar]
 
         # Check for cached data elements and use them if they exist
         elements = g["cached_data_elements"].get(ncvar)
@@ -10620,7 +9356,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # array is stored in one dataset chunk (which does *not*
         # include netCDF contiguous arrays), that prevent the reading
         # of that chunk multiple times.
-        one_chunk = self._variable_chunksizes(variable) == variable.shape
+        one_chunk = variable.chunks == variable.shape
 
         # Get the required element values
         size = data.size
@@ -10648,22 +9384,22 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # data.
             if size == 1:
                 indices = (0, -1)
-                value = self._index(variable, Ellipsis)
+                value = variable[...]
                 values = [value, value]
             elif size == 2:
                 indices = (0, 1, -1)
-                values = self._index(variable, Ellipsis).tolist()
+                values = variable[...].tolist()
                 values += [values[-1]]
             elif size == 3:
                 indices = (0, 1, -1)
-                values = self._index(variable, Ellipsis).tolist()
+                values = variable[...].tolist()
             else:
                 indices = (0, 1, -1)
                 if one_chunk:
-                    values = self._index(variable, list(indices)).tolist()
+                    values = variable[list(indices)].tolist()
                 else:
-                    values = self._index(variable, slice(0, 2)).tolist() + [
-                        self._index(variable, slice(-1, None))
+                    values = variable[slice(0, 2)].tolist() + [
+                        variable[slice(-1, None)]
                     ]
 
         elif ndim == 2 and data.shape[-1] == 2:
@@ -10674,41 +9410,42 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             indices = (0, 1, -2, -1)
             ndim1 = ndim - 1
             if one_chunk:
-                v = self._index(variable, Ellipsis)
+                v = variable[...]
             else:
                 v = variable
+
             index = (slice(0, 1),) * ndim1 + (slice(0, 2),)
-            values = self._index(v, index).squeeze().tolist()
+            values = v[index].squeeze().tolist()
             if data.size == 2:
                 values = values + values
             else:
                 index = (slice(-1, None, 1),) * ndim1 + (slice(0, 2),)
-                values += self._index(v, index).squeeze().tolist()
+                values += v[index].squeeze().tolist()
 
             del v
 
         elif size == 1:
             # size 1, N-d (N>1)
             indices = (0, -1)
-            value = self._index(variable, Ellipsis)
+            value = variable[...]
             values = [value, value]
 
         elif size == 3:
             # size 3, N-d (N>1)
             v = self._index(variable, Ellipsis)
             indices = (0, 1, -1)
-            values = self._index(variable, Ellipsis).flatten().tolist()
+            values = variable[...].flatten().tolist()
         else:
             # size M (M=2 or >3), N-d (N>1)
             indices = (0, -1)
             if one_chunk:
-                v = self._index(variable, Ellipsis)
+                v = variable[...]
                 values = [v.item(0), v.item(-1)]
                 del v
             else:
                 values = [
-                    self._index(variable, (slice(0, 1),) * ndim),
-                    self._index(variable, (slice(-1, None, 1),) * ndim),
+                    variable[(slice(0, 1),) * ndim],
+                    variable[(slice(-1, None, 1),) * ndim],
                 ]
 
         # Create a dictionary of the element values
@@ -10725,49 +9462,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         # Store the elements in the data object
         data._set_cached_elements(elements)
-
-    def _variable_chunksizes(self, variable):
-        """Return the dataset variable chunk size.
-
-        .. versionadded:: (cfdm) 1.11.2.0
-
-        :Parameters:
-
-            variable:
-                The variable, one of `netCDF4.Variable`,
-                `scipy.io.netcdf_variable`, `h5netcdf.Variable`,
-                `zarr.Array`
-
-        :Returns:
-
-            sequence of `int`, or `None`
-                The chunk size. If the variable is contiguous
-                (i.e. not chunked) then `None` is returned.
-
-        **Examples**
-
-        >>> f.chunksizes(variable)
-        [1, 324, 432]
-
-        >>> f.chunksizes(variable)
-        None
-
-        """
-        match self.read_vars["original_dataset_opened_with"]:
-            case "h5netcdf-pyfive" | "h5netcdf-h5py" | "zarr":
-                chunks = variable.chunks
-                if not chunks:
-                    chunks = None
-
-            case "netCDF4":
-                chunks = variable.chunking()
-                if chunks == "contiguous":
-                    chunks = None
-
-            case "netcdf_file":
-                chunks = None
-
-        return chunks
 
     def _cfa_is_aggregation_variable(self, ncvar):
         """Return True if *ncvar* is a CF-netCDF aggregation variable.
@@ -10816,7 +9510,6 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         g = self.read_vars
         fragment_array_variables = g["fragment_array_variables"]
         variables = g["variables"]
-        variable_attributes = g["variable_attributes"]
 
         # Loop round aggregation instruction terms
         out = {}
@@ -10833,9 +9526,10 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 # We've already processed this term
                 continue
 
-            attributes = variable_attributes[term_ncvar]
+            term_variable = variables[term_ncvar]
+            attributes = term_variable.attrs
 
-            data = self._index(variables[term_ncvar], Ellipsis)
+            data = term_variable[...]
             data = np.asanyarray(data)
 
             array = netcdf_indexer(
@@ -10970,7 +9664,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         """
         q = self.implementation.initialise_Quantization(
-            parameters=self.read_vars["variable_attributes"][ncvar].copy(),
+            parameters=self.read_vars["variables"][ncvar].attrs.copy(),
             copy=False,
         )
         self.implementation.nc_set_variable(q, ncvar)
@@ -11006,7 +9700,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         # the Quantization component as appropriate.
         q = q.copy()
 
-        attributes = g["variable_attributes"][ncvar]
+        attributes = g["variables"][ncvar].attrs
         self.implementation.del_property(parent, "quantization", None)
 
         for attr in set(CF_QUANTIZATION_PARAMETERS.values()) | set(
@@ -11046,21 +9740,12 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         >>> n._get_dataset_shards('tas')
         [1, 2, 3], (12, 324, 432)
-        >>> n._get_dataset_chunks('pr')
+        >>> n._get_dataset_shards('pr')
         None, (12, 324, 432)
 
         """
-        g = self.read_vars
-        if g["original_dataset_opened_with"] != "zarr":
-            # Only Zarr datasets have shards
-            return None, None
-
-        if g["has_groups"]:
-            nc = g["nc_grouped"]
-        else:
-            nc = g["nc"]
-
-        var = nc[ncvar]
+        # TODO - what about external ..... just add to g["variables"]
+        var = self.read_vars["variables"][ncvar]
         shards = var.shards
         if shards is not None:
             # 'shards' is currently the number of data array elements
@@ -11068,34 +9753,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             # of chunks along each of axis.
             shards = [s // c for s, c in zip(shards, var.chunks)]
 
-        return shards, var.shape
-
-    def _original_dataset_variable(self, ncvar):
-        """Return a variable object from the origin dataset.
-
-        .. versionadded:: (cfdm) 1.13.1.0
-
-        :Parameters:
-
-           ncvar: `str`
-                The netCDF variable name.
-
-        :Returns:
-
-                The variable object with this name in the original
-                dataset as passed to `read`.
-
-        """
-        g = self.read_vars
-        if g["has_groups"]:
-            group, name = self._netCDF4_group(
-                g["variable_grouped_dataset"][ncvar], ncvar
-            )
-            variable = self._file_group_variables(group).get(name)
-        else:
-            variable = g["variables"].get(ncvar)
-
-        return variable
+        return shards  # , var.shape
 
     @classmethod
     def get_magic_number(cls, dataset, filesystem=None, representation=None):
@@ -11179,8 +9837,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 * ``'file_handle'``: An open file handle (such as
                   returned by `fsspec.filesystem.open`)
 
-                * ``'kerchunk_dict'``: A `dict` (parsed JSON)
-                  representation of a Kerchunk file.
+                * ``'general_mapper'``: A general dict-like object.
 
                 * ``'kerchunk_bytes'``: A `bytes` (raw unparsed JSON)
                   representation of a Kerchunk file.
@@ -11201,13 +9858,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 if "reference" in protocol:
                     return "kerchunk_mapper"
 
-                return "general_mapper"
-
             # If it has no '.fs' attribute then it's a raw reference
             # (`dict`, `OrderedDict`, etc.)
             #
             # Can't be passed to zarr.open
-            return "kerchunk_dict"
+            return "general_mapper"
 
         # Check for a "binary stream" (file handle)
         if hasattr(dataset, "read") and hasattr(dataset, "seek"):
@@ -11218,3 +9873,40 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             return "kerchunk_bytes"
 
         return "unknown"
+
+    def _absolute_ncvar(self, x):
+        """Return the absolute path of a netCDF variable name.
+
+        All it does is add a leading ``/`` if one is missing. `None`
+        is returned unchanged.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Parameters:
+
+            x:
+
+               The netCDF variable name as a string, or `None`, or an
+               object with an `!nc_get_variable` method which gets the
+               variable name.
+
+        :Returns:
+
+            `str` or `None`
+               The absolute path, or `None.
+
+        """
+        try:
+            # Try for having an `nc_get_variable` method
+            ncvar = x.nc_get_variable(None)
+        except AttributeError:
+            # 'x' is a string or `None`
+            ncvar = x
+
+        if ncvar is None:
+            return
+
+        if not ncvar.startswith("/"):
+            ncvar = f"/{ncvar}"
+
+        return ncvar

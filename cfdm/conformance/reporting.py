@@ -126,7 +126,12 @@ class Report:
 
         # Process attribute inputs
         attribute_key = next(iter(attribute))
-        lower_attr_value, attribute_name = attribute_key.split(":")
+
+        if ":" in attribute_key:
+            lower_attr_value, attribute_name = attribute_key.split(":")
+        else:
+            lower_attr_value, attribute_name = "", attribute_key
+
         attribute_value = attribute[attribute_key]
 
         # Potentially still a dict from init a dict - for UGRID cases only.
@@ -166,7 +171,7 @@ class Report:
             # TODO dicts are optimised for key-value lookup, but this requires
             # value-key lookup - find a better way to get relevant attr using
             # functionality in this module
-            varattrs = g["variable_attributes"][direct_parent_ncvar]
+            varattrs = g["variables"][direct_parent_ncvar].attrs
             reverse_varattrs = {v: k for k, v in varattrs.items()}
             store_attr = reverse_varattrs[ncvar]
             # Attribute value is same as the variable name in these cases

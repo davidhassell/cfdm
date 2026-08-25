@@ -1,8 +1,7 @@
-from copy import deepcopy
 from os import sep
 from os.path import join
 
-from cfdm.functions import abspath, dirname
+from cfdm.functions import _DEPRECATION_ERROR_METHOD, abspath, dirname
 
 from . import Array
 
@@ -23,8 +22,9 @@ class FileArray(Array):
         mask=True,
         unpack=True,
         attributes=None,
-        storage_protocol=None,
-        storage_options=None,
+        filesystem=None,
+        backend=None,
+        backend_options=None,
         variable=None,
         source=None,
         copy=True,
@@ -57,11 +57,15 @@ class FileArray(Array):
                 attributes will be set from those in the dataset
                 during the first `__getitem__` call.
 
-            {{init storage_protocol: `None` or `str`, optional}}
+            {{init filesystem: optional}}
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
-            {{init storage_options: `dict` or `None`, optional}}
+            {{init backend: `None` or (sequence of) `str`, optional}}
+
+                .. versionadded:: (cfdm) NEXTVERSION
+
+            {{init backend_options: `None` or `dict`, optional}}
 
                 .. versionadded:: (cfdm) 1.13.1.0
 
@@ -76,6 +80,12 @@ class FileArray(Array):
             {{init source: optional}}
 
             {{init copy: `bool`, optional}}
+
+            storage_options: Deprecated at version (cfdm) NEXTVERSION
+                Use *filesystem* instead.
+
+            storage_protocol: Deprecated at version (cfdm) NEXTVERSION
+                Use *filesystem* instead.
 
         """
         super().__init__(source=source, copy=copy)
@@ -117,18 +127,21 @@ class FileArray(Array):
                 attributes = None
 
             try:
-                storage_protocol = source._get_component(
-                    "storage_protocol", None
-                )
+                filesystem = source._get_component("filesystem", None)
             except AttributeError:
-                storage_protocol = None
+                filesystem = None
 
             try:
-                storage_options = source._get_component(
-                    "storage_options", None
+                backend = source._get_component("backend", None)
+            except AttributeError:
+                backend = None
+
+            try:
+                backend_options = source._get_component(
+                    "backend_options", None
                 )
             except AttributeError:
-                storage_options = None
+                backend_options = None
 
             try:
                 variable = source._get_component("variable", None)
@@ -148,19 +161,20 @@ class FileArray(Array):
         self._set_component("mask", bool(mask), copy=False)
         self._set_component("unpack", bool(unpack), copy=False)
 
-        if storage_protocol is not None:
-            self._set_component(
-                "storage_protocol", storage_protocol, copy=False
-            )
-
-        if storage_options is not None:
-            self._set_component("storage_options", storage_options, copy=copy)
-
         if attributes is not None:
             self._set_component("attributes", attributes, copy=copy)
 
         if variable is not None:
             self._set_component("variable", variable, copy=False)
+
+        if filesystem is not None:
+            self._set_component("filesystem", filesystem, copy=False)
+
+        if backend is not None:
+            self._set_component("backend", backend, copy=False)
+
+        if backend_options is not None:
+            self._set_component("backend_options", backend_options, copy=False)
 
         # By default, close the netCDF file after data array access
         self._set_component("close", True, copy=False)
@@ -207,8 +221,9 @@ class FileArray(Array):
             self.get_mask(),
             self.get_unpack(),
             self.get_attributes(copy=False),
-            self.get_storage_protocol(),
-            self.get_storage_options(),
+            self.get_filesystem(),
+            self.get_backend(),
+            self.get_backend_options(),
         )
 
     def _get_array(self, index=None):
@@ -294,6 +309,37 @@ class FileArray(Array):
         """
         return self._get_component("address", default)
 
+    def get_backend(self):
+        """The names of the packages for accessing the dataset.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `None` or (sequence of) `str`
+                The backend name or names, or `None` if none have been
+                provided, in which case the default backends for
+                `xnetcdf` are assumed. When accessing the dataset, the
+                backends are tried in order until one succeessfully
+                reads the dataset.
+
+        """
+        return self._get_component("backend", None)
+
+    def get_backend_options(self):
+        """Backend options when opening a dataset.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            `dict`
+                The options to use with each backend when opening the
+                dataset.
+
+        """
+        return self._get_component("backend_options", {})
+
     def file_directory(self, normalise=False, default=AttributeError()):
         """The file directory.
 
@@ -362,13 +408,17 @@ class FileArray(Array):
                 default, f"{self.__class__.__name__} has no file name"
             )
 
-        if normalise and not self.has_remote_storage_protocol():
-            try:
+        if normalise and isinstance(filename, str):
+            protocol = None
+            filesystem = self.get_filesystem()
+            if filesystem is not None:
+                protocol = getattr(filesystem, "protocol", "")
+                if isinstance(protocol, tuple):
+                    protocol = protocol[0]
+
+            # Only a normalise local name
+            if protocol in (None, "file", "local"):
                 filename = abspath(filename)
-            except TypeError:
-                # filename is not a string (e.g. file handle, kerchunk
-                # mapper, etc.)
-                pass
 
         return filename
 
@@ -407,23 +457,32 @@ class FileArray(Array):
         None
 
         """
-        return self._get_component("storage_protocol", None)
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "get_storage_protocol",
+            version="NEXTVERSION",
+            removed_at="1.14.0.0",
+        )  # pragma: no cover
+
+    def get_filesystem(self):
+        """Return the file system which contains the dataset.
+
+        .. versionadded:: (cfdm) NEXTVERSION
+
+        :Returns:
+
+            filesystem or `None`
+                The file system object. If the file system is the local
+                file system, then `None` may be returned or a file
+                system object.
+
+        """
+        return self._get_component("filesystem", None)
 
     def get_storage_options(self):
         """Return the file system options.
 
         .. versionadded:: (cfdm) 1.12.0.0
-
-        :Parameters:
-
-            create_endpoint_url: `bool`, optional
-                Removed at version 1.13.1.0
-
-            filename: `str`, optional
-                Removed at version 1.13.1.0
-
-            parsed_filename: `urllib.parse.ParseResult`, optional
-                Removed at version 1.13.1.0
 
         :Returns:
 
@@ -442,13 +501,11 @@ class FileArray(Array):
          'client_kwargs': {'region_name': 'fr-par'}}
 
         """
-        storage_options = self._get_component("storage_options", None)
-        if not storage_options:
-            storage_options = {}
-        else:
-            storage_options = deepcopy(storage_options)
+        fs = self.get_filesystem()
+        if fs is None:
+            return {}
 
-        return storage_options
+        return fs.storage_options.copy()
 
     def get_variable(self, default=AttributeError()):
         """Get the open dataset variable object for the data.
@@ -469,7 +526,7 @@ class FileArray(Array):
         """
         return self._get_component("variable", default)
 
-    def open(self, func, *args, **kwargs):
+    def open(self, func, options=None, create_filesystem=True):
         """Return a dataset file object and address.
 
         .. versionadded:: (cfdm) 1.10.1.0
@@ -479,51 +536,79 @@ class FileArray(Array):
             func: callable
                 Function that opens a file.
 
-            args, kwargs: optional
-                Optional arguments to *func*.
+            options: `dict`, optional
+                Arguments to *func*.
+
+            create_filesystem: `bool`, optional
+                If True (the default) then attempt to create a
+                file system if one has not been provided. Note that a
+                file system will not be created for a local dataset.
+
+                If there is no file system then the dataset as
+                returned by `get_filename` is passed directly to
+                *func*.
+
+                Ignored if `get_filename` does not return a string.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             2-`tuple`
-                The file object for the dataset, and the address of
-                the data within the file.
+                The object representing the whole dataset, and the
+                address of the data array within the dataset.
 
         """
         filename = self.get_filename(normalise=True)
         if isinstance(filename, str):
-            if self.has_remote_storage_protocol():
-                from urllib.parse import urlparse
+            filesystem = self.get_filesystem()
+            if filesystem is None and create_filesystem:
+                # No filesystem has been given, attempt to create one
+                # from the dataset name. Note that a filesystem will
+                # not be created for a local dataset.
+                from cfdm.read_write import IORead
 
-                import fsspec
+                filename, filesystem = IORead.create_filesystem(filename)
 
-                url = urlparse(filename)
-                if url.scheme == "s3":
-                    filename = url.path[1:]
-
-                fs = fsspec.filesystem(
-                    protocol=self.get_storage_protocol(),
-                    **self.get_storage_options(),
-                )
-                try:
-                    filename = fs.open(filename, "rb")
-                except Exception:
-                    # Something went wrong with the filesystem open
-                    raise
-
-            else:
+            if filesystem is None:
+                # Local file system
                 try:
                     filename = abspath(filename, uri=False)
                 except ValueError:
                     filename = abspath(filename)
+            else:
+                # Create a file-like object for the dataset in the
+                # filesystem
+                from urllib.parse import urlparse
 
-        try:
-            dataset = func(filename, *args, **kwargs)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"No such file: {filename}")
-        except RuntimeError as error:
-            raise RuntimeError(f"{error}: {filename}")
+                # For an s3 file we need to strip off the scheme and
+                # authority, if they're present.
+                url = urlparse(filename)
+                if url.scheme == "s3":
+                    filename = url.path[1:]
 
-        # Successfully opened a dataset, so return.
+                try:
+                    filename = filesystem.open(filename, "rb")
+                except AttributeError:
+                    raise AttributeError(
+                        f"Can't open {filename!r}. The file system object "
+                        f"{filesystem!r} does not have an 'open' method. "
+                        "Please provide a valid file system object, such "
+                        "as a fsspec.filesystem instance."
+                    )
+                except Exception as error:
+                    raise RuntimeError(
+                        "Failed to open "
+                        f"{self.get_filename(normalise=True)!r} using the "
+                        f"file system object {filesystem!r}: {error}"
+                    ) from error
+
+        # Open the dataset
+        if not options:
+            options = {}
+
+        dataset = func(filename, **options)
+
         return dataset, self.get_address()
 
     def replace_directory(self, old=None, new=None, normalise=False):
@@ -625,16 +710,12 @@ class FileArray(Array):
         Deprecated at version 1.12.0.0. Use `get_attributes` instead.
 
         """
-
-        class DeprecationError(Exception):
-            """Deprecation error."""
-
-            pass
-
-        raise DeprecationError(
-            f"{self.__class__.__name__}.get_missing_values was deprecated "
-            "at version 1.12.0.0 and is no longer available. "
-            f"Use {self.__class__.__name__}.get_attributes instead."
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "get_missing_values"
+            f"Use {self.__class__.__name__}.get_attributes instead.",
+            version="1.12.0.0",
+            removed_at="1.14.0.0",
         )  # pragma: no cover
 
     def to_memory(self):
@@ -651,11 +732,10 @@ class FileArray(Array):
         return self.array
 
     def _attributes(self, var):
-        """Get the netCDF variable attributes.
+        """Get the variable attributes.
 
         If the attributes have not been set, then they are retrieved
-        from the netCDF variable *var* and stored in `{{class}}`
-        instance for fast future access.
+        from the *var* and cached for fast future access.
 
         .. versionadded:: (cfdm) 1.12.0.0
 
@@ -663,8 +743,8 @@ class FileArray(Array):
 
         :Parameters:
 
-            var:
-                The netCDF variable.
+            var: `p5netcdf.Variable`
+                The variable.
 
         :Returns:
 
@@ -704,7 +784,12 @@ class FileArray(Array):
                 otherwise `False`.
 
         """
-        return self.get_storage_protocol() not in (None, "file", "local")
+        _DEPRECATION_ERROR_METHOD(
+            self,
+            "has_remote_storage_protocol",
+            version="NEXTVERSION",
+            removed_at="1.14.0.0",
+        )  # pragma: no cover
 
     def replace_filename(self, filename):
         """Replace the file location.

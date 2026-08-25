@@ -366,13 +366,13 @@ class ComplianceCheckingTest(unittest.TestCase):
         # Top-level structure
         # =======================================================
         self.assertIsInstance(dc_output, dict)
-        self.assertCountEqual(dc_output.keys(), ["CF version", "ta"])
+        self.assertCountEqual(dc_output.keys(), ["CF version", "/ta"])
         self.assertEqual(dc_output["CF version"], self.expected_cf_version)
 
         # =======================================================
         # ta
         # =======================================================
-        ta = dc_output["ta"]
+        ta = dc_output["/ta"]
         self.assertIsInstance(ta, dict)
         self.assertCountEqual(ta.keys(), ["attributes"])
 
@@ -414,17 +414,17 @@ class ComplianceCheckingTest(unittest.TestCase):
         self.assertCountEqual(anc.keys(), ["value", "variables"])
         self.assertEqual(
             anc["value"],
-            "air_temperature_standard_error",
+            "/air_temperature_standard_error",
         )
 
         anc_vars = anc["variables"]
         self.assertIsInstance(anc_vars, dict)
         self.assertCountEqual(
             anc_vars.keys(),
-            ["air_temperature_standard_error"],
+            ["/air_temperature_standard_error"],
         )
 
-        anc_var = anc_vars["air_temperature_standard_error"]
+        anc_var = anc_vars["/air_temperature_standard_error"]
         self.assertIsInstance(anc_var, dict)
         self.assertCountEqual(anc_var.keys(), ["attributes"])
 
@@ -455,13 +455,13 @@ class ComplianceCheckingTest(unittest.TestCase):
         cell = ta_attributes["cell_measures"]
         self.assertIsInstance(cell, dict)
         self.assertCountEqual(cell.keys(), ["value", "variables"])
-        self.assertEqual(cell["value"], "cell_measure")
+        self.assertEqual(cell["value"], "/cell_measure")
 
         cell_vars = cell["variables"]
         self.assertIsInstance(cell_vars, dict)
-        self.assertCountEqual(cell_vars.keys(), ["cell_measure"])
+        self.assertCountEqual(cell_vars.keys(), ["/cell_measure"])
 
-        cell_var = cell_vars["cell_measure"]
+        cell_var = cell_vars["/cell_measure"]
         self.assertIsInstance(cell_var, dict)
         self.assertCountEqual(cell_var.keys(), ["attributes"])
 
@@ -514,20 +514,20 @@ class ComplianceCheckingTest(unittest.TestCase):
         coords = ta_attributes["coordinates"]
         self.assertIsInstance(coords, dict)
         self.assertCountEqual(coords.keys(), ["value", "variables"])
-        self.assertEqual(coords["value"], "time")
+        self.assertEqual(coords["value"], "/time")
 
         coord_vars = coords["variables"]
         self.assertIsInstance(coord_vars, dict)
         self.assertCountEqual(
             coord_vars.keys(),
-            ["auxiliary", "latitude_1", "longitude_1", "time"],
+            ["/auxiliary", "/latitude_1", "/longitude_1", "/time"],
         )
 
         expected_coord_values = {
-            "auxiliary": "badname_auxiliary",
-            "latitude_1": "badname_latitude_1",
-            "longitude_1": "badname_longitude_1",
-            "time": "badname_time",
+            "/auxiliary": "badname_auxiliary",
+            "/latitude_1": "badname_latitude_1",
+            "/longitude_1": "badname_longitude_1",
+            "/time": "badname_time",
         }
 
         for name, expected_value in expected_coord_values.items():
@@ -583,7 +583,7 @@ class ComplianceCheckingTest(unittest.TestCase):
         # =======================================================
         self.assertEqual(dc1["CF version"], "1.13")
 
-        pa = dc1["pa"]
+        pa = dc1["/pa"]
         self.assertIsInstance(pa, dict)
         self.assertIn("attributes", pa)
 
@@ -613,14 +613,14 @@ class ComplianceCheckingTest(unittest.TestCase):
         self.assertIsInstance(mesh, dict)
         self.assertIn("value", mesh)
         self.assertIn("variables", mesh)
-        self.assertEqual(mesh["value"], "mesh")
+        self.assertEqual(mesh["value"], "/mesh")
 
         # mesh.variables
         mesh_vars = mesh["variables"]
         self.assertIsInstance(mesh_vars, dict)
-        self.assertCountEqual(mesh_vars.keys(), ["mesh"])
+        self.assertCountEqual(mesh_vars.keys(), ["/mesh"])
 
-        mesh_var = mesh_vars["mesh"]
+        mesh_var = mesh_vars["/mesh"]
         self.assertIsInstance(mesh_var, dict)
         self.assertIn("attributes", mesh_var)
 
@@ -660,16 +660,16 @@ class ComplianceCheckingTest(unittest.TestCase):
         self.assertIsInstance(edge_node, dict)
         self.assertIn("value", edge_node)
         self.assertIn("variables", edge_node)
-        self.assertEqual(edge_node["value"], "Mesh2_edge_nodes")
+        self.assertEqual(edge_node["value"], "/Mesh2_edge_nodes")
 
         edge_node_vars = edge_node["variables"]
         self.assertIsInstance(edge_node_vars, dict)
         self.assertCountEqual(
             edge_node_vars.keys(),
-            ["Mesh2_edge_nodes"],
+            ["/Mesh2_edge_nodes"],
         )
 
-        edge_nodes = edge_node_vars["Mesh2_edge_nodes"]
+        edge_nodes = edge_node_vars["/Mesh2_edge_nodes"]
         self.assertIsInstance(edge_nodes, dict)
         self.assertIn("attributes", edge_nodes)
 
@@ -695,16 +695,16 @@ class ComplianceCheckingTest(unittest.TestCase):
         self.assertIsInstance(face_face, dict)
         self.assertIn("value", face_face)
         self.assertIn("variables", face_face)
-        self.assertEqual(face_face["value"], "Mesh2_face_links")
+        self.assertEqual(face_face["value"], "/Mesh2_face_links")
 
         face_face_vars = face_face["variables"]
         self.assertIsInstance(face_face_vars, dict)
         self.assertCountEqual(
             face_face_vars.keys(),
-            ["Mesh2_face_links"],
+            ["/Mesh2_face_links"],
         )
 
-        face_links = face_face_vars["Mesh2_face_links"]
+        face_links = face_face_vars["/Mesh2_face_links"]
         self.assertIsInstance(face_links, dict)
         self.assertIn("attributes", face_links)
 
@@ -730,16 +730,16 @@ class ComplianceCheckingTest(unittest.TestCase):
         self.assertIsInstance(face_node, dict)
         self.assertIn("value", face_node)
         self.assertIn("variables", face_node)
-        self.assertEqual(face_node["value"], "Mesh2_face_nodes")
+        self.assertEqual(face_node["value"], "/Mesh2_face_nodes")
 
         face_node_vars = face_node["variables"]
         self.assertIsInstance(face_node_vars, dict)
         self.assertCountEqual(
             face_node_vars.keys(),
-            ["Mesh2_face_nodes"],
+            ["/Mesh2_face_nodes"],
         )
 
-        face_nodes = face_node_vars["Mesh2_face_nodes"]
+        face_nodes = face_node_vars["/Mesh2_face_nodes"]
         self.assertIsInstance(face_nodes, dict)
         self.assertIn("attributes", face_nodes)
 
@@ -764,9 +764,9 @@ class ComplianceCheckingTest(unittest.TestCase):
         # Do this by first extracting the actual content below the top-level
         # key, then setting the one key that should differ to be the same
         # dummy key, before comparing.
-        dc1_content = dc1["pa"]
-        dc2_content = dc2["ta"]
-        dc3_content = dc3["v"]
+        dc1_content = dc1["/pa"]
+        dc2_content = dc2["/ta"]
+        dc3_content = dc3["/v"]
 
         dc1_content["attributes"]["standard_name"]["value"] = "dummy"
         dc2_content["attributes"]["standard_name"]["value"] = "dummy"

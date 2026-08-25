@@ -5,7 +5,11 @@ from os import walk
 from os.path import expanduser, expandvars, isdir, join
 
 from cfdm.decorators import _manage_log_level_via_verbosity
-from cfdm.functions import abspath, is_log_level_info
+from cfdm.functions import (
+    _DEPRECATION_ERROR_FUNCTION_KWARGS,
+    abspath,
+    is_log_level_info,
+)
 
 from .abstract import ReadWrite
 from .exceptions import DatasetTypeError
@@ -17,8 +21,16 @@ logger = getLogger(__name__)
 class read(ReadWrite):
     """Read field or domain constructs from a dataset.
 
-    The following dataset formats are supported: netCDF, CDL, Zarr,
-    and Kerchunk.
+    The following dataset formats are supported:
+
+    * netCDF-4
+    * netCDF-3
+    * Zarr v3
+    * Zarr v2
+    * Kerchunk
+    * UK Met Office PP
+    * UK Met Office fields file
+    * GRIB
 
     Datasets may be on local disk or in remote storage.
 
@@ -84,6 +96,13 @@ class read(ReadWrite):
     constructs in memory will be created with data with all missing
     values.
 
+    **PP and UM fields files**
+
+    32-bit and 64-bit Met Office (UK) PP files and Met Office (UK)
+    fields files of any endian-ness can be read. 2-d "slices" within a
+    single file are combined, where possible, into field constructs
+    with 3-d, 4-d or 5-d data.
+
     **Performance**
 
     Descriptive properties are always read into memory, but lazy
@@ -120,6 +139,8 @@ class read(ReadWrite):
             ``'CDL'``       A text CDL file of a netCDF dataset
             ``'Zarr'``      A Zarr v2 (xarray) or Zarr v3 dataset
             ``'Kerchunk'``  A Kerchunked dataset
+            ``'UM'``        A UK Met Office PP or fields file dataset
+            ``'GRIB'``      A GRIB dataset
             ==============  ==========================================
 
             .. versionadded:: (cfdm) 1.12.2.0
@@ -148,9 +169,13 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.9.0.0
 
-        {{read netcdf_backend: `None` or (sequence of) `str`, optional}}
+        {{read backend: `None` or (sequence of) `str`, optional}}
 
-            .. versionadded:: (cfdm) 1.11.2.0
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        {{read backend_options: `None` or `dict`, optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
 
         {{read filesystem: optional}}
 
@@ -184,6 +209,18 @@ class read(ReadWrite):
 
             .. versionadded:: (cfdm) 1.12.0.0
 
+        {{read cfa_filesystem: `None` or filesystem, optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        {{read cfa_backend: `None` or (sequence of) `str`, optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
+        {{cfa_backend_options: `None` or `dict`, optional}}
+
+            .. versionadded:: (cfdm) NEXTVERSION
+
         {{read to_memory: (sequence of) `str`, optional}}
 
             .. versionadded:: (cfdm) 1.12.0.0
@@ -199,6 +236,10 @@ class read(ReadWrite):
         {{read group_dimension_search: `str`, optional}}
 
             .. versionadded:: (cfdm) 1.13.0.0
+
+        {{read um: `dict` or `None`, optional}}
+
+            .. versionadded:: NEXTVERSION
 
         _noncompliance_report: `bool`, optional
             If True then return a warning when any data read in are
@@ -231,6 +272,9 @@ class read(ReadWrite):
 
         ignore_unknown_type: Deprecated at version 1.12.2.0
             Use *dataset_type* instead.
+
+        netcdf_backend: Deprecated at version NEXTVERSION
+            Use *backend* instead.
 
     :Returns:
 
@@ -272,7 +316,8 @@ class read(ReadWrite):
         mask=True,
         unpack=True,
         domain=False,
-        netcdf_backend=None,
+        backend=None,
+        backend_options=None,
         storage_options=None,
         filesystem=None,
         cache=True,
@@ -281,6 +326,9 @@ class read(ReadWrite):
         store_dataset_shards=True,
         cfa=None,
         cfa_write=None,
+        cfa_filesystem=None,
+        cfa_backend=None,
+        cfa_backend_options=None,
         to_memory=False,
         squeeze=False,
         unsqueeze=False,
@@ -290,6 +338,7 @@ class read(ReadWrite):
         cdl_string=False,
         extra_read_vars=None,
         group_dimension_search="closest_ancestor",
+        um=None,
         _noncompliance_report=False,
         **kwargs,
     ):
@@ -298,6 +347,15 @@ class read(ReadWrite):
         .. versionadded:: (cfdm) 1.12.2.0
 
         """
+        if kwargs.get("netcdf_backend") is not None:
+            _DEPRECATION_ERROR_FUNCTION_KWARGS(
+                "cfdm.read",
+                {"netcdf_backend": kwargs["netcdf_backend"]},
+                "Use keyword 'backend' instead",
+                version="NEXTVERSION",
+                removed_at="1.15.0.0",
+            )  # pragma: no cover
+
         kwargs = locals()
         kwargs.update(kwargs.pop("kwargs"))
 
@@ -522,7 +580,9 @@ class read(ReadWrite):
         self.dataset_type = dataset_type
 
         # Recognised netCDF dataset formats
-        self.netCDF_dataset_types = set(("netCDF", "CDL", "Zarr", "Kerchunk"))
+        self.netCDF_dataset_types = set(
+            ("netCDF", "CDL", "Zarr", "Kerchunk", "PP/UM")
+        )
 
         # Allowed dataset formats
         self.allowed_dataset_types = self.netCDF_dataset_types.copy()
@@ -642,13 +702,17 @@ class read(ReadWrite):
                         "domain",
                         "storage_options",
                         "filesystem",
-                        "netcdf_backend",
+                        "backend",
+                        "backend_options",
                         "cache",
                         "dask_chunks",
                         "store_dataset_chunks",
                         "store_dataset_shards",
                         "cfa",
                         "cfa_write",
+                        "cfa_filesystem",
+                        "cfa_backend",
+                        "cfa_backend_options",
                         "to_memory",
                         "squeeze",
                         "unsqueeze",
@@ -656,6 +720,7 @@ class read(ReadWrite):
                         "cdl_string",
                         "extra_read_vars",
                         "group_dimension_search",
+                        "um",
                         "_noncompliance_report",
                     )
                 }

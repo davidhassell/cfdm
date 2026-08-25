@@ -101,21 +101,16 @@ from .data import (
     Data,
     FullArray,
     GatheredArray,
-    H5netcdfArray,
-    NetCDFArray,
-    NetCDF4Array,
     netcdf_indexer,
     NumpyArray,
     PointTopologyArray,
-    PyfiveArray,
     RaggedArray,
     RaggedContiguousArray,
     RaggedIndexedArray,
     RaggedIndexedContiguousArray,
-    ScipyNetcdfFileArray,
     SparseArray,
     SubsampledArray,
-    ZarrArray,
+    XnetcdfArray,
 )
 
 from .data import (
@@ -166,7 +161,6 @@ from .abstract import Implementation
 from .cfdmimplementation import CFDMImplementation, implementation
 
 from .read_write import read, write
-from .read_write.netcdf.flatten import dataset_flatten
 
 from .examplefield import example_field, example_fields, example_domain
 

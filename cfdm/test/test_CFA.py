@@ -287,8 +287,8 @@ class CFATest(unittest.TestCase):
             self.assertEqual(
                 fa.data.nc_get_aggregated_data(),
                 {
-                    "map": "fragment_map_uid",
-                    "unique_values": "fragment_value_uid",
+                    "map": "/fragment_map_uid",
+                    "unique_values": "/fragment_value_uid",
                 },
             )
 
@@ -406,6 +406,38 @@ class CFATest(unittest.TestCase):
 
         with netCDF4.Dataset(tmpfile2, "r") as nc:
             self.assertTrue(nc.dimensions["a_time"].isunlimited)
+
+    def test_CFA_unique_value(self):
+        """Test the unique value fragment array variable."""
+        write = True
+        for aggregation_value_file in (self.aggregation_value, cfa_file):
+            f = cfdm.read(aggregation_value_file, cfa_write="all")
+            self.assertEqual(len(f), 1)
+            f = f[0]
+            fa = f.field_ancillary()
+            self.assertEqual(fa.shape, (12,))
+            self.assertEqual(fa.data.chunks, ((3, 9),))
+            self.assertEqual(
+                fa.data.nc_get_aggregation_fragment_type(), "unique_value"
+            )
+            self.assertEqual(
+                fa.data.nc_get_aggregated_data(),
+                {
+                    "map": "/fragment_map_uid",
+                    "unique_values": "/fragment_value_uid",
+                },
+            )
+
+            nc = netCDF4.Dataset(aggregation_value_file, "r")
+            fragment_value_uid = nc.variables["fragment_value_uid"][...]
+            nc.close()
+
+            self.assertTrue((fa[:3].array == fragment_value_uid[0]).all())
+            self.assertTrue((fa[3:].array == fragment_value_uid[1]).all())
+
+            if write:
+                cfdm.write(f, cfa_file)
+                write = False
 
 
 if __name__ == "__main__":

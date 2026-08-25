@@ -443,13 +443,16 @@ def environment(display=True, paths=True):
         "udunits2 library": (ctypes.util.find_library("udunits2"), ""),
         "HDF5 library": (netCDF4.__hdf5libversion__, ""),
         "netcdf library": (netCDF4.__netcdf4libversion__, ""),
+        "xnetcdf": _get_module_info("xnetcdf", try_except=True),
         "netCDF4": _get_module_info("netCDF4", try_except=True),
         "h5netcdf": _get_module_info("h5netcdf", try_except=True),
         "h5py": _get_module_info("h5py", try_except=True),
         "pyfive": _get_module_info("pyfive", try_except=True),
+        "umfive": _get_module_info("umfive", try_except=True),
         "zarr": _get_module_info("zarr", try_except=True),
         "fsspec": _get_module_info("fsspec", try_except=True),
         "scipy": _get_module_info("scipy", try_except=True),
+        "xarray": _get_module_info("xarray", try_except=True),
         "dask": _get_module_info("dask"),
         "distributed": _get_module_info("distributed"),
         "cftime": _get_module_info("cftime"),
@@ -2666,8 +2669,6 @@ def netcdf_flatten(*args, **kwargs):
     """
     _DEPRECATION_ERROR_FUNCTION(
         "netcdf_flatten",
-        "Use 'cfdm.dataset_flatten' instead, "
-        "which has a slightly different API.",
         version="1.13.0.0",
         removed_at="1.15.0.0",
     )  # pragma: no cover
@@ -2739,3 +2740,29 @@ def _DEPRECATION_ERROR_FUNCTION(
         f"Function {func!r} has been deprecated at version {version} and is "
         f"no longer available{removed_at}. {message}"
     )
+
+
+def _DEPRECATION_ERROR_FUNCTION_KWARGS(
+    func,
+    kwargs=None,
+    message="",
+    version=None,
+    removed_at="",
+):
+    """Error handling for deprecated function kwargs.
+
+    .. versionadded:: (cfdm) NEXTVERSION
+
+    """
+    if removed_at:
+        removed_at = f" and will be removed at version {removed_at}"
+
+    if kwargs is None:
+        kwargs = {}
+
+    for key in kwargs.keys():
+        raise DeprecationError(
+            f"Keyword {key!r} of function {func!r} has been deprecated at "
+            f"version {version} and is no longer available{removed_at}. "
+            f"{message}"
+        )

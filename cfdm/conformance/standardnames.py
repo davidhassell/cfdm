@@ -306,8 +306,9 @@ def get_all_current_standard_names(include_aliases=False):
         _STD_NAME_CURRENT_XML_URL,
     )  # pragma: no cover
 
-    # First attempt to get a cached version from a pickle of the frozenset
-    # of names that may have been fetched and stored at an earlier time
+    # First attempt to get a cached version from a pickle of the
+    # frozenset of names that may have been fetched and stored at an
+    # earlier time
     pickled_names = _load_standard_names_from_dotfile(
         include_aliases=include_aliases
     )
@@ -326,19 +327,22 @@ def get_all_current_standard_names(include_aliases=False):
             "standard names"
         )  # pragma: no cover
     except (
-        # urllib failures surface as OSError subclasses e.g. error.URLError
+        # urllib failures surface as OSError subclasses
+        # e.g. error.URLError
         OSError,
         TimeoutError,
     ) as exc:
-        logger.warning(
+        logger.info(
             "Unable to retrieve CF standard names so skipping validation "
             f"against standard name table. Reason: {exc}",
         )
-        # Note that lru_cache doesn't cache exceptions, so best return this here
-        # but it can be caught later to prevent erroring for bypassing validation
+        # Note that lru_cache doesn't cache exceptions, so best return
+        # this here but it can be caught later to prevent erroring for
+        # bypassing validation
         raise StandardNameTableUnavailableError from exc
 
-    # Be careful even with parsing since there's a small chance the XML could be bad
+    # Be careful even with parsing since there's a small chance the
+    # XML could be bad
     try:
         names_set = _extract_names_from_xml(
             all_snames_xml,
@@ -346,10 +350,12 @@ def get_all_current_standard_names(include_aliases=False):
         )
     except ET.ParseError as exc:
         raise StandardNameTableUnavailableError(
-            "Downloaded CF standard name table is not valid XML and cannot be parsed."
+            "Downloaded CF standard name table is not valid XML and "
+            "cannot be parsed."
         ) from exc
 
-    # Successfully extracted set of all current names. Cache to dotfile for future use.
+    # Successfully extracted set of all current names. Cache to
+    # dotfile for future use.
     table_version = _extract_table_version_from_xml(all_snames_xml)
     _cache_standard_names_to_dotfile(
         names_set,

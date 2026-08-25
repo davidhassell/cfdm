@@ -257,13 +257,6 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(z.equals(n))
         self.assertTrue(z.equals(f))
 
-        # Check that grouped netCDF datasets can only be read with
-        # 'closest_ancestor'
-        cfdm.read(grouped_file, group_dimension_search="closest_ancestor")
-        for gsn in ("furthest_ancestor", "local", "BAD VALUE"):
-            with self.assertRaises(ValueError):
-                cfdm.read(grouped_file, group_dimension_search=gsn)
-
     def test_zarr_groups_DSG(self):
         """Test Zarr groups containing DSGs."""
         f = cfdm.example_field(4)
@@ -297,6 +290,9 @@ class read_writeTest(unittest.TestCase):
         z = z[0]
         self.assertTrue(z.equals(n))
         self.assertTrue(z.equals(f))
+
+        # Check 'closest_ancestor'
+        cfdm.read(grouped_file, group_dimension_search="closest_ancestor")
 
     def test_zarr_groups_geometry(self):
         """Test Zarr groups containing cell geometries."""
