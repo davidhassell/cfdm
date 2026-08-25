@@ -268,7 +268,7 @@ environments for which these features are not required.
 * `xarray <https://pypi.org/project/xarray>`_, version 2026.7.0 or newer.
 
   For converting fields and domains to `xarray` datasets, and
-  converting `xarray` datasets to fields and domains
+  converting `xarray` datasets to fields and domains.
 
 ----
 

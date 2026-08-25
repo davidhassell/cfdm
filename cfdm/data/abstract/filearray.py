@@ -317,11 +317,11 @@ class FileArray(Array):
         :Returns:
 
             `None` or (sequence of) `str`
-                The backend name or names, or `None` if none have not
-                been provided. When accessing the dataset, the
+                The backend name or names, or `None` if none have been
+                provided, in which case the default backends for
+                `xnetcdf` are assumed. When accessing the dataset, the
                 backends are tried in order until one succeessfully
-                reads the dataset. If no backends have been provided
-                then the default backends for `xnetcdf` are used.
+                reads the dataset.
 
         """
         return self._get_component("backend", None)
@@ -472,7 +472,7 @@ class FileArray(Array):
         :Returns:
 
             filesystem or `None`
-                The file system object.If the file system is the local
+                The file system object. If the file system is the local
                 file system, then `None` may be returned or a file
                 system object.
 
@@ -548,14 +548,14 @@ class FileArray(Array):
                 returned by `get_filename` is passed directly to
                 *func*.
 
-                Ignored if `get_filename`does not return a string.
+                Ignored if `get_filename` does not return a string.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
         :Returns:
 
             2-`tuple`
-                The object representing the whole the dataset, and the
+                The object representing the whole dataset, and the
                 address of the data array within the dataset.
 
         """
@@ -581,7 +581,7 @@ class FileArray(Array):
                 # filesystem
                 from urllib.parse import urlparse
 
-                # For an s3 file we need to stip off the scheme and
+                # For an s3 file we need to strip off the scheme and
                 # authority, if they're present.
                 url = urlparse(filename)
                 if url.scheme == "s3":
