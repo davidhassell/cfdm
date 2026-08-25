@@ -90,15 +90,10 @@ Classes that support the creation and storage of arrays.
    :toctree: class/
 
    cfdm.Array
-   cfdm.NetCDF4Array
-   cfdm.H5netcdfArray
-   cfdm.ZarrArray
+   cfdm.XnetcdfArray
    cfdm.AggregatedArray
    cfdm.FullArray
-   cfdm.NetCDFArray
    cfdm.NumpyArray
-   cfdm.PyfiveArray
-   cfdm.ScipyNetcdfFileArray
    cfdm.SparseArray
 
 

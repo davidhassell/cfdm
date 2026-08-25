@@ -230,6 +230,10 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                     # given role.
                     return ncdim
 
+        # Remove the leading / for names in the root group
+        if base.startswith("/") and base.count("/") == 1:
+            base = base[1:]
+
         if base in existing_names:
             counter = g.setdefault("count_" + base, 1)
 
@@ -5130,6 +5134,51 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         g["group_attributes"] = group_attributes
 
+    def _get_group(self, parent, groups):
+        """Get the group of *parent* defined by *groups*.
+
+        The group will be created if it doesn't already exist.
+
+        .. versionadded:: (cfdm) 1.13.0.0
+
+        :Parameters:
+
+            parent: `netCDF4.Dataset` or `netCDF4.Group` or `Zarr.Group`
+                The group in which to find or create new group.
+
+            groups: sequence of `str`
+                The group defined by the sequence of its subgroups
+                relative to *parent*, e.g. ``('forecast', 'model')``.
+
+        :Returns:
+
+            `h5netcdf.Group` or `netCDF4.Group` or `Zarr.Group`
+                The group.
+
+        """
+        match self.write_vars["backend"]:
+            case "h5netcdf-h5py" | "netCDF4" | "xarray":
+                for group in groups:
+                    if group in parent.groups:
+                        parent = parent.groups[group]
+                    else:
+                        parent = self._createGroup(parent, group)
+
+            case "zarr":
+                group = "/".join(groups)
+                if group in parent:
+                    parent = parent[group]
+                else:
+                    parent = self._createGroup(parent, group)
+
+            case _:
+                raise NotImplementedError(
+                    "Need to implement _get_group for the "
+                    f"{self.write_vars['backend']!r} backend"
+                )
+
+        return parent
+
     def _write_global_attributes(self, fields):
         """Writes all global properties to the dataset.
 
@@ -5496,7 +5545,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         dataset_shards=None,
         cfa="auto",
         reference_datetime=None,
-        netcdf_backend=None,
+        backend=None,
         h5py_options=None,
         hdf5_consolidated_metadata=True,
         hdf5_expansion_factor=2.25,
@@ -5759,7 +5808,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
                 .. versionadded:: (cfdm) 1.11.2.0
 
-            netcdf_backend: `str` or `None`, optional
+            backend: `str` or `None`, optional
                 Which library to use for creating the dataset. The
                 default value is `None`. See `cfdm.write` for details.
 
@@ -5825,7 +5874,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             # Format of output dataset
             "fmt": fmt,
             # Backend for writing to the dataset
-            "backend": netcdf_backend,
+            "backend": backend,
             # Whether the output datset is a file or a directory
             "dataset_type": None,
             # netCDF4.Dataset instance
@@ -6092,7 +6141,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         if self.write_vars["omit_data"] and backend != "netCDF4":
             raise ValueError(
-                "Can only set omit_data=True when netcdf_backend='netCDF4'"
+                "Can only set omit_data=True when backend='netCDF4'"
             )
 
         # Parse the 'h5py_options' parameter
@@ -6102,10 +6151,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             self.write_vars["h5py_options"] = h5py_options.copy()
         else:
             raise ValueError(
-                "Can only set h5py_options when "
-                "netcdf_backend='h5netcdf-h5py'. "
-                f"Got: netcdf_backend={backend!r}, "
-                f"h5py_options={h5py_options!r}"
+                "Can only set h5py_options when backend='h5netcdf-h5py'. "
+                f"Got: backend={backend!r}, h5py_options={h5py_options!r}"
             )
 
         # ------------------------------------------------------------
@@ -6165,7 +6212,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
             # First read in the fields from the existing dataset:
             effective_fields = self._NetCDFRead(self.implementation).read(
-                dataset_name, netcdf_backend="netCDF4"
+                dataset_name, backend="netCDF4"
             )
 
             # Read rather than append for the first iteration to ensure nothing
@@ -6964,7 +7011,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             dim = "i"
 
         map_ncdimensions = tuple(map_ncdimensions)
-
         feature_ncvar = self._cfa_write_fragment_array_variable(
             f_map,
             aggregated_data.get(feature, f"fragment_{feature}"),

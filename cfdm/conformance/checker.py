@@ -221,8 +221,9 @@ class FieldChecker(Report):
                 # 1. Check if there is a (computed_)standard_name property
                 sn_value = ncvar_attrs.get(sn_attr)
                 attribute_value = {f"{ncvar}:{sn_attr}": sn_value}
-            if debug:
-                logger.debug(f"Found a {sn_attr} of '{sn_value}' on {ncvar}")
+
+            if debug and sn_value is not None:
+                logger.debug(f"Found a {sn_attr} of {sn_value!r} on {ncvar}")
 
             if not sn_value:
                 continue

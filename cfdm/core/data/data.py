@@ -834,7 +834,7 @@ class Data(abstract.Container):
         >>> f = {{package}}.read('file.nc')[0]
         >>> d = f.data
         >>> d.source()
-        <{{repr}}PyfiveArray(149, 182): file.nc latitude(149, 182)>
+        <{{repr}}XnetcdfArray(149, 182): file.nc latitude(149, 182)>
 
         """
         return self._get_component("array", default=default)

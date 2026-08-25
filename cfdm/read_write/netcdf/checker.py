@@ -31,7 +31,7 @@ class NetCDFCheckerMixin(Report):
         self._check_standard_names(
             field_ncvar,
             field_ncvar,
-            self.read_vars["variable_attributes"][field_ncvar],
+            self.read_vars["variables"][field_ncvar].attrs,
         )
 
     # -------- Non-UGRID checking methods (old relative to #373) ------------
@@ -83,7 +83,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        bounds_ncvar_attrs = g["variable_attributes"][bounds_ncvar]
         if bounds_ncvar not in g["internal_variables"]:
             bounds_ncvar, message = self._missing_variable(
                 bounds_ncvar, variable_type
@@ -97,6 +96,7 @@ class NetCDFCheckerMixin(Report):
             )
             return False
 
+        bounds_ncvar_attrs = g["variables"][bounds_ncvar].attrs
         self._check_standard_names(
             parent_ncvar,
             bounds_ncvar,
@@ -159,8 +159,6 @@ class NetCDFCheckerMixin(Report):
 
         geometry_ncvar = g["variable_geometry"].get(field_ncvar)
 
-        geometry_ncvar_attrs = g["variable_attributes"][geometry_ncvar]
-
         attribute = {
             field_ncvar
             + ":"
@@ -179,6 +177,14 @@ class NetCDFCheckerMixin(Report):
                 direct_parent_ncvar=field_ncvar,
             )
             return False
+
+        geometry_ncvar_attrs = g["variables"][geometry_ncvar].attrs
+
+        attribute = {
+            field_ncvar
+            + ":"
+            + geometry_ncvar: " ".join(geometry["node_coordinates"])
+        }
 
         self._check_standard_names(
             node_ncvar,
@@ -280,7 +286,12 @@ class NetCDFCheckerMixin(Report):
             # measures can be external (but consult
             # https://cfconventions.org/cf-conventions/
             # cf-conventions.html#external-variables in case this changes).
-            ncvar_attrs = g["variable_attributes"].get(ncvar)
+            var = g["variables"].get(ncvar)
+            if var is not None:
+                ncvar_attrs = var.attrs
+            else:
+                ncvar_attrs = None
+
             if ncvar_attrs:
                 self._check_standard_names(
                     field_ncvar,
@@ -321,7 +332,7 @@ class NetCDFCheckerMixin(Report):
                         ncvar,
                         message=incorrect_dimensions,
                         attribute=attribute,
-                        dimensions=g["variable_dimensions"][ncvar],
+                        dimensions=g["variable_dimension_paths"][ncvar],
                         conformance="7.2.requirement.4",
                     )
                     ok = False
@@ -368,8 +379,6 @@ class NetCDFCheckerMixin(Report):
             return False
 
         for ncvar in parsed_string:
-            ncvar_attrs = g["variable_attributes"][ncvar]
-
             # Check that the geometry variable exists in the file
             if ncvar not in g["variables"]:
                 ncvar, message = self._missing_variable(
@@ -383,6 +392,8 @@ class NetCDFCheckerMixin(Report):
                     conformance="?",
                 )
                 return False
+
+            ncvar_attrs = g["variables"][ncvar].attrs
 
             self._check_standard_names(
                 parent_ncvar,
@@ -444,8 +455,6 @@ class NetCDFCheckerMixin(Report):
 
         ok = True
         for ncvar in parsed_string:
-            ncvar_attrs = g["variable_attributes"][ncvar]
-
             # Check that the variable exists in the file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._missing_variable(
@@ -456,6 +465,8 @@ class NetCDFCheckerMixin(Report):
                 )
 
                 return False
+
+            ncvar_attrs = g["variables"][ncvar].attrs
 
             self._check_standard_names(
                 field_ncvar,
@@ -478,7 +489,7 @@ class NetCDFCheckerMixin(Report):
                     ncvar,
                     message=incorrect_dimensions,
                     attribute=attribute,
-                    dimensions=g["variable_dimensions"][ncvar],
+                    dimensions=g["variable_dimension_paths"][ncvar],
                 )
                 ok = False
 
@@ -511,7 +522,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        coord_ncvar_attrs = g["variable_attributes"][coord_ncvar]
         if coord_ncvar not in g["internal_variables"]:
             coord_ncvar, message = self._missing_variable(
                 coord_ncvar, "Auxiliary/scalar coordinate variable"
@@ -523,14 +533,9 @@ class NetCDFCheckerMixin(Report):
                 attribute=attribute,
                 conformance="5.requirement.5",
             )
-            self._add_message(
-                parent_ncvar,
-                coord_ncvar,
-                message=message,
-                attribute=attribute,
-                conformance="5.requirement.5",
-            )
             return False
+
+        coord_ncvar_attrs = g["variables"][coord_ncvar].attrs
 
         self._check_standard_names(
             parent_ncvar,
@@ -556,7 +561,7 @@ class NetCDFCheckerMixin(Report):
                 coord_ncvar,
                 message=incorrect_dimensions,
                 attribute=attribute,
-                dimensions=g["variable_dimensions"][coord_ncvar],
+                dimensions=g["variable_dimension_paths"][coord_ncvar],
                 conformance="5.requirement.6",
             )
             return False
@@ -590,8 +595,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        tie_point_ncvar_attrs = g["variable_attributes"][tie_point_ncvar]
-
         if tie_point_ncvar not in g["internal_variables"]:
             ncvar, message = self._missing_variable(
                 tie_point_ncvar, "Tie point coordinate variable"
@@ -604,6 +607,8 @@ class NetCDFCheckerMixin(Report):
                 conformance="8.3.requirement.1",
             )
             return False
+
+        tie_point_ncvar_attrs = g["variables"][tie_point_ncvar].attrs
 
         self._check_standard_names(
             parent_ncvar,
@@ -624,7 +629,7 @@ class NetCDFCheckerMixin(Report):
                 tie_point_ncvar,
                 message=incorrect_dimensions,
                 attribute=attribute,
-                dimensions=g["variable_dimensions"][tie_point_ncvar],
+                dimensions=g["variable_dimension_paths"][tie_point_ncvar],
                 conformance="8.3.requirement.5",
             )
             return False
@@ -772,8 +777,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        geometry_ncvar_attrs = g["variable_attributes"][geometry_ncvar]
-
         incorrectly_formatted = (
             "node_coordinates attribute",
             "is incorrectly formatted",
@@ -799,6 +802,8 @@ class NetCDFCheckerMixin(Report):
             )
             return False
 
+        geometry_ncvar_attrs = g["variables"][geometry_ncvar].attrs
+
         self._check_standard_names(
             field_ncvar,
             geometry_ncvar,
@@ -811,7 +816,7 @@ class NetCDFCheckerMixin(Report):
             # Check that the node coordinate variable exists in the
             # file
             if ncvar not in g["internal_variables"]:
-                ncvar_attrs = g["variable_attributes"][ncvar]
+                ncvar_attrs = g["variables"][ncvar].attrs
                 self._check_standard_names(
                     field_ncvar,
                     ncvar,
@@ -862,8 +867,6 @@ class NetCDFCheckerMixin(Report):
         ok = True
 
         for ncvar in parsed_node_count:
-            ncvar_attrs = g["variable_attributes"][ncvar]
-
             # Check that the node count variable exists in the file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._missing_variable(
@@ -873,6 +876,8 @@ class NetCDFCheckerMixin(Report):
                     field_ncvar, ncvar, message=message, attribute=attribute
                 )
                 ok = False
+
+            ncvar_attrs = g["variables"][ncvar].attrs
 
             self._check_standard_names(
                 field_ncvar,
@@ -914,8 +919,6 @@ class NetCDFCheckerMixin(Report):
         ok = True
 
         for ncvar in parsed_part_node_count:
-            ncvar_attrs = g["variable_attributes"][ncvar]
-
             # Check that the variable exists in the file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._missing_variable(
@@ -925,6 +928,8 @@ class NetCDFCheckerMixin(Report):
                     field_ncvar, ncvar, message=message, attribute=attribute
                 )
                 ok = False
+
+            ncvar_attrs = g["variables"][ncvar].attrs
 
             self._check_standard_names(
                 field_ncvar,
@@ -977,8 +982,6 @@ class NetCDFCheckerMixin(Report):
             return False
 
         for ncvar in parsed_interior_ring:
-            ncvar_attrs = g["variable_attributes"][ncvar]
-
             # Check that the variable exists in the file
             if ncvar not in g["internal_variables"]:
                 ncvar, message = self._missing_variable(
@@ -988,6 +991,8 @@ class NetCDFCheckerMixin(Report):
                     field_ncvar, ncvar, message=message, attribute=attribute
                 )
                 ok = False
+
+            ncvar_attrs = g["variables"][ncvar].attrs
 
             self._check_standard_names(
                 field_ncvar,
@@ -1098,7 +1103,6 @@ class NetCDFCheckerMixin(Report):
         ok = True
 
         for interp_ncvar, coords in parsed_coordinate_interpolation.items():
-            interp_ncvar_attrs = g["variable_attributes"][interp_ncvar]
 
             # Check that the interpolation variable exists in the file
             if interp_ncvar not in g["internal_variables"]:
@@ -1110,14 +1114,15 @@ class NetCDFCheckerMixin(Report):
                 )
                 ok = False
 
+            interp_ncvar_attrs = g["variables"][interp_ncvar].attrs
+
             self._check_standard_names(
                 parent_ncvar,
                 interp_ncvar,
                 interp_ncvar_attrs,
             )
 
-            attrs = g["variable_attributes"][interp_ncvar]
-            if "tie_point_mapping" not in attrs:
+            if "tie_point_mapping" not in interp_ncvar_attrs:
                 self._add_message(
                     parent_ncvar,
                     interp_ncvar,
@@ -1132,10 +1137,6 @@ class NetCDFCheckerMixin(Report):
             # Check that the tie point coordinate variables exist in
             # the file
             for tie_point_ncvar in coords:
-                tie_point_interp_ncvar_attrs = g["variable_attributes"][
-                    tie_point_ncvar
-                ]
-
                 if tie_point_ncvar not in g["internal_variables"]:
                     ncvar, message = self._missing_variable(
                         tie_point_ncvar, "Tie point coordinate variable"
@@ -1147,6 +1148,10 @@ class NetCDFCheckerMixin(Report):
                         attribute=attribute,
                     )
                     ok = False
+
+                tie_point_interp_ncvar_attrs = g["variables"][
+                    tie_point_ncvar
+                ].attrs
 
                 self._check_standard_names(
                     parent_ncvar,
@@ -1180,8 +1185,6 @@ class NetCDFCheckerMixin(Report):
 
         g = self.read_vars
 
-        ncvar_attrs = g["variable_attributes"][ncvar]
-
         # Check that the quantization variable exists in the file
         ok = True
         if ncvar not in g["internal_variables"]:
@@ -1194,7 +1197,9 @@ class NetCDFCheckerMixin(Report):
                 message=message,
                 attribute=attribute,
             )
-            ok = False
+            return False
+
+        ncvar_attrs = g["variables"][ncvar].attrs
 
         self._check_standard_names(
             parent_ncvar,
@@ -1202,9 +1207,7 @@ class NetCDFCheckerMixin(Report):
             ncvar_attrs,
         )
 
-        attributes = g["variable_attributes"][ncvar]
-
-        implementation = attributes.get("implementation")
+        implementation = ncvar_attrs.get("implementation")
         if implementation is None:
             self._add_message(
                 parent_ncvar,
@@ -1213,7 +1216,7 @@ class NetCDFCheckerMixin(Report):
             )
             ok = False
 
-        algorithm = attributes.get("algorithm")
+        algorithm = ncvar_attrs.get("algorithm")
         if algorithm is None:
             self._add_message(
                 parent_ncvar,
@@ -1234,7 +1237,7 @@ class NetCDFCheckerMixin(Report):
             )
             ok = False
 
-        if parameter not in g["variable_attributes"][parent_ncvar]:
+        if parameter not in g["variables"][parent_ncvar].attrs:
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
@@ -1386,7 +1389,7 @@ class NetCDFCheckerMixin(Report):
 
             g["formula_terms"][coord_ncvar]["coord"][term] = ncvar
 
-        bounds_ncvar = g["variable_attributes"][coord_ncvar].get("bounds")
+        bounds_ncvar = g["variables"][coord_ncvar].attrs.get("bounds")
 
         if bounds_ncvar is None:
             # --------------------------------------------------------
@@ -1398,7 +1401,7 @@ class NetCDFCheckerMixin(Report):
             # --------------------------------------------------------
             # Parametric Z coordinate has bounds
             # --------------------------------------------------------
-            bounds_formula_terms = g["variable_attributes"][bounds_ncvar].get(
+            bounds_formula_terms = g["variables"][bounds_ncvar].attrs.get(
                 "formula_terms"
             )
             if bounds_formula_terms is not None:
@@ -1477,8 +1480,8 @@ class NetCDFCheckerMixin(Report):
                         term
                     ]
 
-                    d_ncdims = g["variable_dimensions"][parent_ncvar]
-                    dimensions = g["variable_dimensions"][ncvar]
+                    d_ncdims = g["variable_dimension_paths"][parent_ncvar]
+                    dimensions = g["variable_dimension_paths"][ncvar]
 
                     if z_ncdim not in d_ncdims:
                         if ncvar != parent_ncvar:
@@ -1564,8 +1567,10 @@ class NetCDFCheckerMixin(Report):
                             continue
 
                         is_coordinate_with_bounds = True
-
-                        if z_ncdim not in g["variable_dimensions"][c_ncvar]:
+                        if (
+                            z_ncdim
+                            not in g["variable_dimension_paths"][c_ncvar]
+                        ):
                             # Coordinates do not span the Z dimension
                             g["formula_terms"][coord_ncvar]["bounds"][
                                 term
@@ -1645,7 +1650,7 @@ class NetCDFCheckerMixin(Report):
         """
         g = self.read_vars
 
-        attributes = g["variable_attributes"][mesh_ncvar]
+        attributes = g["variables"][mesh_ncvar].attrs
 
         ok = True
 
@@ -1686,9 +1691,7 @@ class NetCDFCheckerMixin(Report):
             if attr not in attributes:
                 continue
 
-            coordinates = self._split_string_by_white_space(
-                None, attributes[attr], variables=True
-            )
+            coordinates = self._split_string_by_white_space(attributes[attr])
 
             n_coordinates = len(coordinates)
             if attr == "node_coordinates":
@@ -1719,7 +1722,7 @@ class NetCDFCheckerMixin(Report):
                     )
                     ok = False
                 else:
-                    ncvar_attrs = g["variable_attributes"][ncvar]
+                    ncvar_attrs = g["variables"][ncvar].attrs
 
                     dims = []
                     ncdims = self._ncdimensions(ncvar)
@@ -1732,7 +1735,7 @@ class NetCDFCheckerMixin(Report):
                                 "spans incorrect dimensions",
                             ),
                             attribute=attr,
-                            dimensions=g["variable_dimensions"][ncvar],
+                            dimensions=g["variable_dimension_paths"][ncvar],
                         )
                         ok = False
 
@@ -1761,7 +1764,6 @@ class NetCDFCheckerMixin(Report):
             ok = False
         elif topology_dimension == 2:
             ncvar = attributes.get("face_node_connectivity")
-            ncvar_attrs = g["variable_attributes"][ncvar]
 
             if ncvar is None:
                 self._add_message(
@@ -1784,7 +1786,6 @@ class NetCDFCheckerMixin(Report):
                 ok = False
         elif topology_dimension == 1:
             ncvar = attributes.get("edge_node_connectivity")
-            ncvar_attrs = g["variable_attributes"][ncvar]
 
             if ncvar is None:
                 self._add_message(
@@ -1806,6 +1807,8 @@ class NetCDFCheckerMixin(Report):
                 )
                 ok = False
 
+            ncvar_attrs = g["variables"][ncvar].attrs
+
             self._check_standard_names(
                 mesh_ncvar,
                 ncvar,
@@ -1813,7 +1816,6 @@ class NetCDFCheckerMixin(Report):
             )
         elif topology_dimension == 3:
             ncvar = attributes.get("volume_node_connectivity")
-            ncvar_attrs = g["variable_attributes"][ncvar]
 
             if ncvar is None:
                 self._add_message(
@@ -1839,6 +1841,8 @@ class NetCDFCheckerMixin(Report):
                     },
                 )
                 ok = False
+
+            ncvar_attrs = g["variable_attributes"][ncvar]
 
             self._check_standard_names(
                 mesh_ncvar,
@@ -1904,9 +1908,9 @@ class NetCDFCheckerMixin(Report):
             ok = False
             return ok
 
-        location_index_set_attributes = g["variable_attributes"][
+        location_index_set_attributes = g["variables"][
             location_index_set_ncvar
-        ]
+        ].attrs
 
         location = location_index_set_attributes.get("location")
         if location is None:
@@ -1926,7 +1930,7 @@ class NetCDFCheckerMixin(Report):
             ok = False
 
         mesh_ncvar = location_index_set_attributes.get("mesh")
-        mesh_ncvar_attrs = g["variable_attributes"][mesh_ncvar]
+        mesh_ncvar_attrs = g["variables"][mesh_ncvar].attrs
 
         if mesh_ncvar is None:
             self._add_message(
@@ -1997,7 +2001,7 @@ class NetCDFCheckerMixin(Report):
 
         ok = True
 
-        if "mesh" in g["variable_attributes"][parent_ncvar]:
+        if "mesh" in g["variables"][parent_ncvar].attrs:
             self._add_message(
                 parent_ncvar,
                 parent_ncvar,
@@ -2020,9 +2024,9 @@ class NetCDFCheckerMixin(Report):
             ok = False
             return ok
 
-        location_index_set_attributes = g["variable_attributes"][
+        location_index_set_attributes = g["variables"][
             location_index_set_ncvar
-        ]
+        ].attrs
 
         location = location_index_set_attributes.get("location")
         if location is None:
@@ -2079,7 +2083,9 @@ class NetCDFCheckerMixin(Report):
         parent_ncdims = self._ncdimensions(parent_ncvar)
         lis_ncdims = self._ncdimensions(location_index_set_ncvar)
 
-        loc_index_dims = g["variable_dimensions"][location_index_set_ncvar]
+        loc_index_dims = g["variable_dimension_paths"][
+            location_index_set_ncvar
+        ]
         if not set(lis_ncdims).issubset(parent_ncdims):
             self._add_message(
                 parent_ncvar,
@@ -2127,7 +2133,7 @@ class NetCDFCheckerMixin(Report):
         """
         g = self.read_vars
 
-        mesh_ncvar_attrs = g["variable_attributes"][mesh_ncvar]
+        mesh_ncvar_attrs = g["variables"][mesh_ncvar].attrs
         self._check_standard_names(
             parent_ncvar,
             mesh_ncvar,
@@ -2136,7 +2142,7 @@ class NetCDFCheckerMixin(Report):
 
         ok = True
 
-        parent_attributes = g["variable_attributes"][parent_ncvar]
+        parent_attributes = g["variables"][parent_ncvar].attrs
         if "location_index_set" in parent_attributes:
             self._add_message(
                 parent_ncvar,
@@ -2222,8 +2228,6 @@ class NetCDFCheckerMixin(Report):
         """
         g = self.read_vars
 
-        ncvar_attrs = g["variable_attributes"][connectivity_ncvar]
-
         ok = True
         if connectivity_ncvar is None:
             self._add_message(
@@ -2249,13 +2253,14 @@ class NetCDFCheckerMixin(Report):
             )
             return False
 
+        ncvar_attrs = g["variables"][connectivity_ncvar].attrs
+
         self._check_standard_names(
             parent_ncvar,
             connectivity_ncvar,
             ncvar_attrs,
             direct_parent_ncvar=mesh_ncvar,
         )
-
         parent_ncdims = self._ncdimensions(parent_ncvar)
         connectivity_ncdims = self._ncdimensions(connectivity_ncvar)[0]
         if not connectivity_ncdims[0] not in parent_ncdims:
@@ -2269,7 +2274,7 @@ class NetCDFCheckerMixin(Report):
                 attribute={
                     f"mesh:{connectivity_attr}": f"{connectivity_ncvar}"
                 },
-                dimensions=g["variable_dimensions"][connectivity_ncvar],
+                dimensions=g["variable_dimension_paths"][connectivity_ncvar],
             )
             ok = False
 
