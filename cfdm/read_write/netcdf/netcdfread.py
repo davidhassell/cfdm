@@ -8047,10 +8047,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         missing_dimension = ("Instance dimension", "is not in file")
 
-        if (
-            instance_dimension
-            not in self.read_vars["dimensions"]
-        ):
+        if instance_dimension not in self.read_vars["dimensions"]:
             self._add_message(
                 None,
                 parent_ncvar,

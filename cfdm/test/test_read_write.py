@@ -1671,6 +1671,29 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(x.data.nc_dataset_chunksizes(), (4,))
         self.assertEqual(x.bounds.data.nc_dataset_chunksizes(), (2, 2))
 
+    def test_write_h5netcdf_string_int_attributes(self):
+        """Test cfdm.write with h5netcdf and string and integer attributes."""
+        f = self.f0.copy()
+
+        # String that includes hyphens (\u2010) and en dashes (\u2013)
+        string = "MPI\u2010ESM1.2\u2010HR 1383\u20131413"
+
+        # 64-bit integer
+        integer = np.int64(9)
+
+        f.set_property("string", string)
+        f.set_property("integer", integer)
+
+        cfdm.write(f, tmpfile, backend="h5netcdf-h5py", fmt="NETCDF4")
+        g = cfdm.read(tmpfile)[0]
+        self.assertEqual(g.get_property("string"), string)
+        self.assertEqual(type(g.get_property("integer")), np.int64)
+
+        cfdm.write(f, tmpfile, backend="h5netcdf-h5py", fmt="NETCDF4_CLASSIC")
+        g = cfdm.read(tmpfile)[0]
+        self.assertEqual(g.get_property("string"), string)
+        self.assertEqual(type(g.get_property("integer")), np.int32)
+
     def test_read_pathlib(self):
         """Test cfdm.read with pathlib datasets."""
         p0 = pathlib.PosixPath(filename)
@@ -1723,7 +1746,16 @@ class read_writeTest(unittest.TestCase):
         self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
 
         # Consolidated, lots of variables
-        cfdm.write([f] * 100, tmpfile)
+        #
+        # Anything greater than x19 gives a pyfive v1.1.2 (the latest
+        # release at 2026-08-26) error coming from its
+        # `consolidated_metadata` attribute:
+        #
+        # struct.error: unpack_from requires a buffer of at least 4088 bytes for unpacking 16 bytes at offset 4072 (actual buffer size is 4080)
+        #
+        # This need to be followed up in pyfive (INSERT PYFIVE ISSUE
+        # HERE). For now we'll stick with 19.
+        cfdm.write([f] * 19, tmpfile)
         self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
 
     def test_write_hdf5_expansion_factor(self):
