@@ -1693,6 +1693,7 @@ class read_writeTest(unittest.TestCase):
         g = cfdm.read(tmpfile)[0]
         self.assertEqual(g.get_property("string"), string)
         self.assertEqual(type(g.get_property("integer")), np.int32)
+
     def test_read_pathlib(self):
         """Test cfdm.read with pathlib datasets."""
         p0 = pathlib.PosixPath(filename)
