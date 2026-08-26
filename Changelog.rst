@@ -3,6 +3,8 @@ Version NEXTVERSION
 
 **2026-08-??**
 
+* Improve `cfdm.read` performance for UGRID datasets
+  (https://github.com/NCAS-CMS/cfdm/issues/421)
 * Allow a dataset to be defined in `cfdm.read` by a `pathlib.Path`
   instance (https://github.com/NCAS-CMS/cfdm/issues/425)
 * New keywords to `cfdm.read`: ``backend``, ``backend_options``,

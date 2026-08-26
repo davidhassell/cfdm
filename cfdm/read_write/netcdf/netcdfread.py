@@ -7338,6 +7338,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         ncdimensions=None,
         compressed=False,
         construct_type=None,
+        chunks=None,
         **kwargs,
     ):
         """Create a Data object from a netCDF variable.
@@ -7371,6 +7372,13 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 to `None` if the array does not belong to a construct.
 
                 .. versionadded:: (cfdm) 1.12.0.0
+
+            chunks: optional
+                Set the dask chunking strategy. If set to `None` (the
+                default) then the Dask chunking strategy will be set
+                by `_dask_chunks`.
+
+                .. versionadded:: (cfdm) NEXTVERSION
 
             kwargs: optional
                 Extra parameters to pass to the initialisation of the
@@ -7419,10 +7427,11 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     )
                     array = np.ma.masked_values(array, "")
 
-        # Set the dask chunking strategy
-        chunks = self._dask_chunks(
-            array, ncvar, compressed, construct_type=construct_type
-        )
+        # Set the Dask chunking strategy
+        if chunks is None:
+            chunks = self._dask_chunks(
+                array, ncvar, compressed, construct_type=construct_type
+            )
 
         # Set whether or not to read the data into memory
         to_memory = g["to_memory"]
@@ -7439,27 +7448,46 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         )
 
         if ncvar is not None:
-            # Store the dataset chunking
-            if g["store_dataset_chunks"]:
-                # Only store the dataset chunking if 'data' has the
-                # same shape as its netCDF variable. This may not be
-                # the case for variables compressed by convention
-                # (e.g. some DSG variables).
-                chunks = g["variables"][ncvar].chunks
-                shape = g["variables"][ncvar].shape
-                if shape == data.shape:
-                    self.implementation.nc_set_dataset_chunksizes(data, chunks)
+            store_chunks = True
+            try:
+                # Don't store the chunks of a `Data` object that
+                # doesn't know its own shape (i.e. the shape contains
+                # one or more NaNs), because this means that its
+                # array is not taken directly from a variable in the
+                # dataset.
+                store_chunks = not np.isnan(data.to_dask_array().shape).any()
+            except Exception:
+                pass
 
-            # Store the dataset sharding
-            if g["store_dataset_shards"]:
-                # Only store the dataset sharding if 'data' has the
-                # same shape as its netCDF variable. This may not be
-                # the case for variables compressed by convention
-                # (e.g. some DSG variables).
-                shards = self._get_dataset_shards(ncvar)
-                shape = g["variables"][ncvar].shape
-                if shards is not None and shape == data.shape:
-                    self.implementation.nc_set_dataset_shards(data, shards)
+            if store_chunks:
+                # Store the dataset chunking, but only for data arrays
+                # that know their shape (i.e. the shape does not
+                # contain NaN). If the shape contains NaN then it is
+                # certainly data that is not identical to an array in
+                # the dataset being read, and so chunking is not
+                # relevant).
+                if g["store_dataset_chunks"]:
+                    # Only store the dataset chunking if 'data' has
+                    # the same shape as its netCDF variable. This may
+                    # not be the case for variables compressed by
+                    # convention (e.g. some DSG variables).
+                    chunks = g["variables"][ncvar].chunks
+                    shape = g["variables"][ncvar].shape
+                    if shape == data.shape:
+                        self.implementation.nc_set_dataset_chunksizes(
+                            data, chunks
+                        )
+
+                # Store the dataset sharding
+                if g["store_dataset_shards"]:
+                    # Only store the dataset sharding if 'data' has
+                    # the same shape as its netCDF variable. This may
+                    # not be the case for variables compressed by
+                    # convention (e.g. some DSG variables).
+                    shards = self._get_dataset_shards(ncvar)
+                    shape = g["variables"][ncvar].shape
+                    if shards is not None and shape == data.shape:
+                        self.implementation.nc_set_dataset_shards(data, shards)
 
         return data
 
@@ -8738,6 +8766,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             properties["long_name"] = "Maps every node to its connected nodes"
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
             n_nodes = g["dimensions"][mesh.ncdim[location]].size
+
             array = self.implementation.initialise_PointTopologyArray(
                 shape=(n_nodes, nan),
                 start_index=start_index,
@@ -8745,13 +8774,19 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 copy=False,
                 **{connectivity_attr: indices},
             )
+
             attributes = kwargs["attributes"]
+
+            # Create the data with a single Dask chunk (chunks=-1),
+            # because the entire point-point connectivity array needs
+            # to be created to find any subspace.
             data = self._create_Data(
                 array,
                 units=attributes.get("units"),
                 calendar=attributes.get("calendar"),
                 ncvar=connectivity_ncvar,
                 compressed=True,
+                chunks=-1,
             )
         else:
             # Edge or face cells
