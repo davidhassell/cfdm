@@ -11,7 +11,7 @@ class DeprecationError(Exception):
 class ScipyNetcdfFileArray(IndexMixin, FileArray):
     """A netCDF-3 array accessed with `scipy.io.netcdf_file`.
 
-    Deprecated at version NEXTVERSION and is no longer available. Use
+    Deprecated at version 1.13.3.0 and is no longer available. Use
     `{{package}}.XnetcdfArray` instead.
 
     .. versionadded:: (cfdm) 1.13.1.0
@@ -23,6 +23,6 @@ class ScipyNetcdfFileArray(IndexMixin, FileArray):
             """Deprecation error."""
 
         raise DeprecationError(
-            f"{self.__class__.__name__} was deprecated at version NEXTVERSION "
+            f"{self.__class__.__name__} was deprecated at version 1.13.3.0 "
             "and is no longer available. Use XnetcdfArray instead."
         )

@@ -1,7 +1,7 @@
-Version NEXTVERSION
+Version 1.13.3.0
 ----------------
 
-**2026-08-??**
+**2026-08-26**
 
 * Improve `cfdm.read` performance for UGRID datasets
   (https://github.com/NCAS-CMS/cfdm/issues/421)

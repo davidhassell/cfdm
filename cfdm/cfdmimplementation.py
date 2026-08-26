@@ -2582,7 +2582,7 @@ class CFDMImplementation(Implementation):
     def initialise_XnetcdfArray(self, **kwargs):
         """Return a `XnetcdfArray` instance.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Parameters:
 

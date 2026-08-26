@@ -80,11 +80,11 @@ class AggregatedArray(abstract.FileArray):
 
             {{read backend: `None` or (sequence of) `str`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init backend_options: `None` or `dict`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init attributes: `dict` or `None`, optional}}
 
@@ -106,7 +106,7 @@ class AggregatedArray(abstract.FileArray):
                 ``filesytem.open(fragment, 'rb')`` which is passed to
                 the backends (see the *fragment_backend* parameter).
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             fragment_backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading the
@@ -120,13 +120,13 @@ class AggregatedArray(abstract.FileArray):
                 equivalent to providing the ordered sequence of the
                 default backends for `xnetcdf`.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             fragment_backend_options: `None` or `dict`, optional
                 The options to use with each backend when opening a
                 fragment dataset.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init source: optional}}
 
@@ -485,7 +485,7 @@ class AggregatedArray(abstract.FileArray):
     def get_fragment_backend(self):
         """The names of the packages for accessing the fragment dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -503,7 +503,7 @@ class AggregatedArray(abstract.FileArray):
     def get_fragment_backend_options(self):
         """Backend options when opening a fragment dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -517,7 +517,7 @@ class AggregatedArray(abstract.FileArray):
     def get_fragment_filesystem(self):
         """Return the file system which contains the fragement dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 

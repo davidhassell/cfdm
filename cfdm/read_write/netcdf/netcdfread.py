@@ -1013,20 +1013,20 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                  fragment datasets indicated in a CF-netCDF
                  aggregation file. See `cfdm.read` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             cfa_backend: `None` or (sequence of) `str`, optional
                 Which library or libraries to use for reading the
                 dataset fragments indicated in a CF-netCDF aggregation
                 file. See `cfdm.read` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             cfa_backend_options: `None` or `dict`, optional
                 The options to use with each backend when opening an
                 aggregated dataset. See `cfdm.read` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             to_memory: (sequence) of `str`, optional
                 Whether or not to bring data arrays into memory. See
@@ -1104,7 +1104,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 Configuration options for decoding UM datasets. See
                 `cfdm.read` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -7378,7 +7378,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                 default) then the Dask chunking strategy will be set
                 by `_dask_chunks`.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             kwargs: optional
                 Extra parameters to pass to the initialisation of the
@@ -9913,7 +9913,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         All it does is add a leading ``/`` if one is missing. `None`
         is returned unchanged.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Parameters:
 

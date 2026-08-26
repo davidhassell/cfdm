@@ -3170,7 +3170,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             bounds: `bool`
                 Whether or not the data represent cell bounds.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -5801,7 +5801,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 Set the minimum chunksizes for 1-d data. See
                 `cfdm.write` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             cfa: `dict` or `None`, optional
                 Configure the creation of aggregation variables. See
@@ -5827,13 +5827,13 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 into a single HDF5 metadata block. See `cfdm.write`
                 for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             hdf5_expansion_factor: number, optional
                 The expansion factor for the HDF5 metadata block size
                 calculation algorithm. See `cfdm.write` for details.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -6726,7 +6726,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 used to inform the setting of chunksizes for the
                 bounds of 1-d coordinates.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -7784,7 +7784,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
           chunksize then set the chunksize to the minimum 1-d
           chunksize.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Parameters:
 

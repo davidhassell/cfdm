@@ -171,11 +171,11 @@ class read(ReadWrite):
 
         {{read backend: `None` or (sequence of) `str`, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         {{read backend_options: `None` or `dict`, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         {{read filesystem: optional}}
 
@@ -211,15 +211,15 @@ class read(ReadWrite):
 
         {{read cfa_filesystem: `None` or filesystem, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         {{read cfa_backend: `None` or (sequence of) `str`, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         {{cfa_backend_options: `None` or `dict`, optional}}
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         {{read to_memory: (sequence of) `str`, optional}}
 
@@ -239,7 +239,7 @@ class read(ReadWrite):
 
         {{read um: `dict` or `None`, optional}}
 
-            .. versionadded:: NEXTVERSION
+            .. versionadded:: 1.13.3.0
 
         _noncompliance_report: `bool`, optional
             If True then return a warning when any data read in are
@@ -273,7 +273,7 @@ class read(ReadWrite):
         ignore_unknown_type: Deprecated at version 1.12.2.0
             Use *dataset_type* instead.
 
-        netcdf_backend: Deprecated at version NEXTVERSION
+        netcdf_backend: Deprecated at version 1.13.3.0
             Use *backend* instead.
 
     :Returns:
@@ -352,7 +352,7 @@ class read(ReadWrite):
                 "cfdm.read",
                 {"netcdf_backend": kwargs["netcdf_backend"]},
                 "Use keyword 'backend' instead",
-                version="NEXTVERSION",
+                version="1.13.3.0",
                 removed_at="1.15.0.0",
             )  # pragma: no cover
 

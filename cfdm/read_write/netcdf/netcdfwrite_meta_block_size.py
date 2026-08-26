@@ -13,7 +13,7 @@ def _calculate_chunk_metadata(shape, contiguous, chunksizes):
 
     Accounts for data chunks.
 
-    .. versionadded: (cfdm) NEXTVERSION
+    .. versionadded: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -60,14 +60,14 @@ def _calculate_chunk_metadata(shape, contiguous, chunksizes):
 class NetCDFMetaBlockSize:
     """Mixin class for calculating the HDF5 metadata block size.
 
-    .. versionadded: (cfdm) NEXTVERSION
+    .. versionadded: (cfdm) 1.13.3.0
 
     """
 
     def _calculate_meta_block_size(self):
         """Estimate the HDF5 metadata block size for the dataset.
 
-        .. versionadded: (cfdm) NEXTVERSION
+        .. versionadded: (cfdm) 1.13.3.0
 
         :Returns:
 

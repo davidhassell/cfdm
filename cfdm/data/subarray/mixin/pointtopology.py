@@ -55,7 +55,7 @@ class PointTopology:
             `numpy.ndarray`
                 The point-point connectivity array.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         """
         # ------------------------------------------------------------

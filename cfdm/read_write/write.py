@@ -726,7 +726,7 @@ class write(ReadWrite):
               a 1-d data array, and the bounds array of 1-d
               coordinates, is as described by *dataset_chunks*.
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         cfa: `str` or `dict` or `None`, optional
             Specify which netCDF variables, if any, should be written
@@ -936,7 +936,7 @@ class write(ReadWrite):
             algorithm used to estimate the required metadata block
             size, and how it can be modified.
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         hdf5_expansion_factor: number, optional
             Configure the algorithm for calculating the size of the
@@ -969,7 +969,7 @@ class write(ReadWrite):
             bypassing the automatic calculation by explicitly setting
             ``'meta_block_size'`` in the *h5py_options*).
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         _implementation: (subclass of) `CFDMImplementation`, optional
             Define the CF data model implementation that defines field
@@ -978,7 +978,7 @@ class write(ReadWrite):
         filename: Deprecated at version 1.13.0.0
             Use *dataset_name* instead.
 
-        netcdf_backend: Deprecated at version NEXTVERSION
+        netcdf_backend: Deprecated at version 1.13.3.0
             Use *backend* instead.
 
     :Returns:
@@ -1047,7 +1047,7 @@ class write(ReadWrite):
                 "cfdm.write",
                 {"netcdf_backend": netcdf_backend},
                 "Use keyword 'backend' instead",
-                version="NEXTVERSION",
+                version="1.13.3.0",
                 removed_at="1.15.0.0",
             )  # pragma: no cover
 

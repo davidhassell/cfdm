@@ -360,7 +360,7 @@ _docstring_substitution_definitions = {
     # read netcdf_backend
     "{{read netcdf_backend: `None` or (sequence of) `str`, optional}}": """netcdf_backend: `None` or (sequence of) `str`, optional
             Which library or libraries to use for reading a
-            dataset. Deprecated at version (cfdm) NEXTVERSION. Use the
+            dataset. Deprecated at version (cfdm) 1.13.3.0. Use the
             *backend* parameter instead.""",
     # read backend
     "{{read backend: `None` or (sequence of) `str`, optional}}": """backend: `None` or (sequence of) `str`, optional
@@ -893,7 +893,7 @@ _docstring_substitution_definitions = {
             'rb')`` which is passed to the backends (see the
             *cfa_backend* parameter).
 
-            .. versionadded:: (cfdm) NEXTVERSION""",
+            .. versionadded:: (cfdm) 1.13.3.0""",
     # read to_memory
     "{{read to_memory: (sequence of) `str`, optional}}": """to_memory: (sequence of) `str`, optional
             Read all data arrays of the named construct types into

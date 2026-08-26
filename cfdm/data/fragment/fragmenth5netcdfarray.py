@@ -5,7 +5,7 @@ from .mixin import FragmentFileArrayMixin
 class FragmentH5netcdfArray(FragmentFileArrayMixin, H5netcdfArray):
     """A fragment of aggregated data in a file accessed with `h5netcdf`.
 
-    Deprecated at version NEXTVERSION and is no longer available. Use
+    Deprecated at version 1.13.3.0 and is no longer available. Use
     `{{package}}.FragmentXnetcdfArray` instead.
 
     .. versionadded:: (cfdm) 1.12.0.0
@@ -17,6 +17,6 @@ class FragmentH5netcdfArray(FragmentFileArrayMixin, H5netcdfArray):
             """Deprecation error."""
 
         raise DeprecationError(
-            f"{self.__class__.__name__} was deprecated at version NEXTVERSION "
+            f"{self.__class__.__name__} was deprecated at version 1.13.3.0 "
             "and is no longer available. Use FragmentXnetcdfArray instead."
         )

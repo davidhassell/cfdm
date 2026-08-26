@@ -14,6 +14,6 @@ class FragmentPyfiveArray(FragmentFileArrayMixin, PyfiveArray):
             """Deprecation error."""
 
         raise DeprecationError(
-            f"{self.__class__.__name__} was deprecated at version NEXTVERSION "
+            f"{self.__class__.__name__} was deprecated at version 1.13.3.0 "
             "and is no longer available. Use FragmentXnetcdfArray instead."
         )
