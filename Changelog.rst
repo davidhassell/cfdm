@@ -5,6 +5,8 @@ Version NEXTVERSION
 
 * Improve `cfdm.read` performance for UGRID datasets
   (https://github.com/NCAS-CMS/cfdm/issues/421)
+* Allow a dataset to be defined in `cfdm.read` by a `pathlib.Path`
+  instance (https://github.com/NCAS-CMS/cfdm/issues/425)
 * New keywords to `cfdm.read`: ``backend``, ``backend_options``,
   ``cfa_filesystem``, ``cfa_backend``, ``cfa_backend_options``, ``um``
   (https://github.com/NCAS-CMS/cfdm/issues/417)
@@ -34,6 +36,9 @@ Version NEXTVERSION
 * Introduce use of cache files stored as `~/.cf/standard_names*.pickle`
   to improve performance of CF compliance checking
   (https://github.com/NCAS-CMS/cfdm/pull/411)
+* Allow `cfdm.write` to write Unicode characters in attribute values
+  when using the ``h5netcdf-h5py`` backend
+  (https://github.com/NCAS-CMS/cfdm/issues/423)
 * Stop inaccessiblity of standard names table resource from causing
   `cfdm.read` to error (https://github.com/NCAS-CMS/cfdm/pull/411)
 * New dependency: ``xnetcdf>=0.1.0``

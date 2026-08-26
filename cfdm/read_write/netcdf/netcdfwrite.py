@@ -435,16 +435,15 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         match g["backend"]:
             case "h5netcdf-h5py":
                 attributes = attributes.copy()
-                for key, value in attributes.items():
-                    if isinstance(value, str):
-                        # Write string-valued attributes as
-                        # byte strings (rather than VLEN strings)
-                        attributes[key] = np.bytes_(value)
-
-                    if g["fmt"] == "NETCDF4_CLASSIC":
-                        # Cast integers to 32-bit (which is what
-                        # netCDF4 does).
-                        if isinstance(value, int):
+                if g["fmt"] == "NETCDF4_CLASSIC":
+                    for key, value in attributes.items():
+                        if isinstance(value, str):
+                            # Write string-valued attributes as byte
+                            # strings (rather than VLEN strings)
+                            attributes[key] = np.bytes_(value.encode("utf-8"))
+                        elif isinstance(value, int):
+                            # Cast integers to 32-bit (which is what
+                            # netCDF4 does).
                             attributes[key] = np.array(value, dtype="int32")
                         else:
                             try:
@@ -452,6 +451,8 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                             except AttributeError:
                                 pass
                             else:
+                                # Cast integers to 32-bit (which is
+                                # what netCDF4 does).
                                 attributes[key] = value.astype("int32")
 
                 x.attrs.update(attributes)
