@@ -121,7 +121,7 @@ _docstring_substitution_definitions = {
             Each dataset must be one of:
 
             * A string-like path name to the dataset (such as a `str`
-              or `pathlib.Path` instance)
+              or `pathlib.Path` instance).
 
               - Local names may be relative paths and will have tilde
                 and shell environment variable expansions applied to

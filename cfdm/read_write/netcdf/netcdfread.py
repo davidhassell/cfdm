@@ -11,6 +11,7 @@ from functools import reduce
 from math import log, nan, prod
 from numbers import Integral
 from os.path import isdir, isfile, join
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -8072,10 +8073,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         missing_dimension = ("Instance dimension", "is not in file")
 
-        if (
-            instance_dimension
-            not in self.read_vars["dimensions"]
-        ):
+        if instance_dimension not in self.read_vars["dimensions"]:
             self._add_message(
                 None,
                 parent_ncvar,
@@ -9881,7 +9879,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
 
         """
         # Strings (Paths)
-        if isinstance(dataset, str):
+        if isinstance(dataset, (str, Path)):
             return "path"
 
         # Check for a "virtual directory" (Mapper)
