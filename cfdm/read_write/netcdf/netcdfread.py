@@ -7451,8 +7451,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
             try:
                 # Don't store the chunks of a `Data` object that
                 # doesn't know its own shape (i.e. the shape contains
-                # one or more NaNs), because this means that it's
-                # array is not taken directly from an variable in the
+                # one or more NaNs), because this means that its
+                # array is not taken directly from a variable in the
                 # dataset.
                 store_chunks = not np.isnan(data.to_dask_array().shape).any()
             except Exception:
