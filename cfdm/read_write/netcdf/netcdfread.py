@@ -7470,7 +7470,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # the same shape as its netCDF variable. This may
                     # not be the case for variables compressed by
                     # convention (e.g. some DSG variables).
-                    chunks, shape = self._get_dataset_chunks(ncvar)
+                    chunks = g["variables"][ncvar].chunks
+                    shape = g["variables"][ncvar].shape
                     if shape == data.shape:
                         self.implementation.nc_set_dataset_chunksizes(
                             data, chunks
@@ -7482,7 +7483,8 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
                     # the same shape as its netCDF variable. This may
                     # not be the case for variables compressed by
                     # convention (e.g. some DSG variables).
-                    shards, shape = self._get_dataset_shards(ncvar)
+                    shards = self._get_dataset_shards(ncvar)
+                    shape = g["variables"][ncvar].shape
                     if shards is not None and shape == data.shape:
                         self.implementation.nc_set_dataset_shards(data, shards)
 
@@ -8765,9 +8767,7 @@ class NetCDFRead(IORead, FieldChecker, NetCDFCheckerMixin):
         if cell == "point":
             properties["long_name"] = "Maps every node to its connected nodes"
             indices, kwargs = self._create_netcdfarray(connectivity_ncvar)
-            n_nodes = self.read_vars["internal_dimension_sizes"][
-                mesh.ncdim[location]
-            ]
+            n_nodes = g["dimensions"][mesh.ncdim[location]].size
 
             array = self.implementation.initialise_PointTopologyArray(
                 shape=(n_nodes, nan),
