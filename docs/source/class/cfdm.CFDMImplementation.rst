@@ -143,6 +143,7 @@ Methods
    ~cfdm.CFDMImplementation.initialise_ScipyNetcdfFileArray
    ~cfdm.CFDMImplementation.initialise_SubsampledArray
    ~cfdm.CFDMImplementation.initialise_TiePointIndex
+   ~cfdm.CFDMImplementation.initialise_XnetcdfArray
    ~cfdm.CFDMImplementation.initialise_ZarrArray
    ~cfdm.CFDMImplementation.is_climatology
    ~cfdm.CFDMImplementation.is_domain
