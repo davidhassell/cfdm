@@ -549,7 +549,7 @@ class CFDMImplementation(Implementation):
             return [data_axes[i] for i in self.get_data_compressed_axes(data)]
 
         # For a domain construct, work out the compression axes from
-        # its metadata constucts.
+        # its metadata constructs.
         domain = field_or_domain
 
         compression_types = (
@@ -612,7 +612,7 @@ class CFDMImplementation(Implementation):
             return data.get_compression_type()
 
         # For a domain construct, work out the compression type from
-        # its metadata constucts.
+        # its metadata constructs.
         constructs = self.get_constructs(construct, data=True)
 
         compression_types = set()
@@ -1016,7 +1016,7 @@ class CFDMImplementation(Implementation):
         return field.domain_axes()
 
     def get_domain_axis_size(self, field, axis):
-        """Return the size a of domrain axis construct.
+        """Return the size a of domain axis construct.
 
         :Parameters:
 
@@ -1077,7 +1077,7 @@ class CFDMImplementation(Implementation):
         return field.nc_get_geometry_variable(default)
 
     def nc_get_group_attributes(self, field):
-        """Returns the netCDF sub-group attribtues for the field.
+        """Returns the netCDF sub-group attributes for the field.
 
         .. versionadded:: (cfdm) 1.8.6
 
@@ -1568,7 +1568,7 @@ class CFDMImplementation(Implementation):
             return construct.get_data().get_count(default=None)
 
         # For a domain construct, get the count variable from its
-        # metadata constucts.
+        # metadata constructs.
         return self._get_domain_compression_variable("count", construct)
 
     def get_index(self, construct):
@@ -1587,7 +1587,7 @@ class CFDMImplementation(Implementation):
             return construct.get_data().get_index(default=None)
 
         # For a domain construct, get the index variable from its
-        # metadata constucts.
+        # metadata constructs.
         return self._get_domain_compression_variable("index", construct)
 
     def get_inherited_properties(self, parent):
@@ -1661,7 +1661,7 @@ class CFDMImplementation(Implementation):
             return construct.get_data().get_list(default=None)
 
         # For a domain construct, get the list variable from its
-        # metadata constucts.
+        # metadata constructs.
         return self._get_domain_compression_variable("list", construct)
 
     def get_measure(self, cell_measure):
@@ -1885,7 +1885,7 @@ class CFDMImplementation(Implementation):
 
             default: optional
                 Return the value of the *default* parameter if a
-                uantize-on-write instruction has not been set.
+                quantize-on-write instruction has not been set.
 
         :Returns:
 
@@ -1963,7 +1963,7 @@ class CFDMImplementation(Implementation):
             parent: `Field` or `Domain`
 
             key: `str` or `None`
-                The identifier of the constuct, or `None` to get
+                The identifier of the construct, or `None` to get
                 `Field` axes.
 
         :Returns:
@@ -2056,7 +2056,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the node connectivity
+                Parameters for initialising the node connectivity
                 array, which are passed to
                 `CellConnectivityArray.__init__`.
 
@@ -2129,7 +2129,7 @@ class CFDMImplementation(Implementation):
 
             domain_ancillaries: optional
 
-            parameters: optioanl
+            parameters: optional
 
         :Returns:
 
@@ -2204,7 +2204,7 @@ class CFDMImplementation(Implementation):
 
         :Parameters:
 
-            parameters: optioanl
+            parameters: optional
 
         :Returns:
 
@@ -2256,7 +2256,7 @@ class CFDMImplementation(Implementation):
         """Returns a dimension coordinate from an auxiliary coordinate.
 
         Specifically, returns a dimension coordinate construct
-        insitialised from an auxiliary coordinate construct.
+        initialised from an auxiliary coordinate construct.
 
         :Parameters:
 
@@ -2313,7 +2313,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the domain topology
+                Parameters for initialising the domain topology
                 construct, which are passed to
                 `DomainTopology.__init__`.
 
@@ -2334,7 +2334,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the cell connectivity
+                Parameters for initialising the cell connectivity
                 construct, which are passed to
                 `CellConnectivity.__init__`.
 
@@ -2348,7 +2348,7 @@ class CFDMImplementation(Implementation):
         return cls(**kwargs)
 
     def initialise_Field(self):
-        """Return a field qconstruct.
+        """Return a field construct.
 
         :Returns:
 
@@ -2538,7 +2538,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the point topology array.
+                Parameters for initialising the point topology array.
                 which are passed to `PointTopologyArray.__init__`.
 
         :Returns:
@@ -2557,7 +2557,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the quantization metadata,
+                Parameters for initialising the quantization metadata,
                 which are passed to `Quantization.__init__`.
 
         :Returns:
@@ -2605,7 +2605,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             kwargs: optional
-                Parameters for intialising the node bounds array.
+                Parameters for initialising the node bounds array.
                 which are passed to `BoundsFromNodesArray.__init__`.
 
         :Returns:
@@ -2621,7 +2621,7 @@ class CFDMImplementation(Implementation):
 
         :Returns:
 
-        Node count properties bariable
+        Node count properties variable
 
         """
         cls = self.get_class("NodeCountProperties")
@@ -2646,7 +2646,7 @@ class CFDMImplementation(Implementation):
         size=None,
         count_variable=None,
     ):
-        """Return a ragged contigous array instance.
+        """Return a ragged contiguous array instance.
 
         :Parameters:
 
@@ -2664,7 +2664,7 @@ class CFDMImplementation(Implementation):
 
         :Returns:
 
-            `RaggedContigousArray`
+            `RaggedContiguousArray`
 
         """
         cls = self.get_class("RaggedContiguousArray")
@@ -3254,7 +3254,7 @@ class CFDMImplementation(Implementation):
 
         :Parameters:
 
-            coordinate_referece: coordinate reference construct
+            coordinate_reference: coordinate reference construct
 
             datum: datum component
 
@@ -3394,7 +3394,7 @@ class CFDMImplementation(Implementation):
         :Parameters:
 
             construct:
-                The construct containing the ccompressed data. Will be
+                The construct containing the compressed data. Will be
                 changed in-place.
 
             tie_points: `dict`
@@ -3402,7 +3402,7 @@ class CFDMImplementation(Implementation):
                 identities.
 
             dimensions: `dict`
-                The dimensions spanned by the tie point ararys, keyed
+                The dimensions spanned by the tie point arrays, keyed
                 by their identities.
 
         :Returns:
@@ -3668,7 +3668,7 @@ class CFDMImplementation(Implementation):
 
             parent:
 
-            interior_ring: interiot ring variable
+            interior_ring: interior ring variable
 
             copy: `bool`, optional
 
@@ -3819,7 +3819,7 @@ class CFDMImplementation(Implementation):
             ref.nc_set_datum_variable(ncvar)
 
     def set_properties(self, construct, properties, copy=True):
-        """Set construct proporties.
+        """Set construct properties.
 
         :Parameters:
 

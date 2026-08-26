@@ -548,7 +548,7 @@ class read(ReadWrite):
             `None`
 
         """
-        # Sort the output contructs in-place by their netCDF variable
+        # Sort the output constructs in-place by their netCDF variable
         # names
         constructs = self.constructs
         if len(constructs) > 1:

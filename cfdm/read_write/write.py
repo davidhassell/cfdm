@@ -951,11 +951,10 @@ class write(ReadWrite):
             algorithm that determines this size does so by calculating
             an approximate amount of bytes based on the actual groups,
             attributes, variables, and dimension that are going to be
-            written to the dataset; and then multipling this amount by
-            the *hdf5_expansion_factor* to account for the HDF5's
+            written to the dataset; and then multiplying this amount
+            by the *hdf5_expansion_factor* to account for the HDF5's
             dynamic, non-linear memory allocation behaviours, which
-            are not known in advance. The default value is
-            ``2.25``.
+            are not known in advance. The default value is ``2.25``.
 
             Due to the approximate nature of the algorithm, it may be
             that the calculated HDF5 metadata block size is too small

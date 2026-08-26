@@ -47,7 +47,7 @@ class AggregatedArray(abstract.FileArray):
 
             filename: `str`, optional
                 The name of the aggregation file containing the
-                aaggregation variable.
+                aggregation variable.
 
             address: `str`, optional
                 The name of the aggregation variable for the array.
@@ -493,7 +493,7 @@ class AggregatedArray(abstract.FileArray):
                 The backend name or names, or `None` if none have not
                 been provided. When accessing the fragment dataset,
                 the backends are tried in order until one
-                succeessfully reads the dataset. If no backends have
+                successfully reads the dataset. If no backends have
                 been provided then the default backends for `xnetcdf`
                 are used.
 
@@ -515,7 +515,7 @@ class AggregatedArray(abstract.FileArray):
         return self._get_component("fragment_backend_options", {})
 
     def get_fragment_filesystem(self):
-        """Return the file system which contains the fragement dataset.
+        """Return the file system which contains the fragment dataset.
 
         .. versionadded:: (cfdm) 1.13.3.0
 
@@ -532,7 +532,7 @@ class AggregatedArray(abstract.FileArray):
     def subarray_shapes(self, shapes):
         """Create the subarray shapes.
 
-        A fragmented dimenion (i.e. one spanned by two or fragments)
+        A fragmented dimension (i.e. one spanned by two or fragments)
         will always have a subarray size equal to the size of each of
         its fragments, overriding any other size implied by the
         *shapes* parameter.

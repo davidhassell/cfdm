@@ -39,7 +39,7 @@ Version 1.13.3.0
 * Allow `cfdm.write` to write Unicode characters in attribute values
   when using the ``h5netcdf-h5py`` backend
   (https://github.com/NCAS-CMS/cfdm/issues/423)
-* Stop inaccessiblity of standard names table resource from causing
+* Stop inaccessibility of standard names table resource from causing
   `cfdm.read` to error (https://github.com/NCAS-CMS/cfdm/pull/411)
 * New dependency: ``xnetcdf>=0.1.0``
 * Changed optional dependency: ``xarray>=2026.7.0``

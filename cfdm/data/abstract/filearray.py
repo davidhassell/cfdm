@@ -320,7 +320,7 @@ class FileArray(Array):
                 The backend name or names, or `None` if none have been
                 provided, in which case the default backends for
                 `xnetcdf` are assumed. When accessing the dataset, the
-                backends are tried in order until one succeessfully
+                backends are tried in order until one successfully
                 reads the dataset.
 
         """
