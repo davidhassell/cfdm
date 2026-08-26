@@ -469,7 +469,6 @@ class read(ReadWrite):
             )
 
         is_zarr = partial(NetCDFRead.is_zarr, filesystem=filesystem)
-
         for datasets1 in datasets:
             representation = NetCDFRead.dataset_representation(datasets1)
             if representation == "path":

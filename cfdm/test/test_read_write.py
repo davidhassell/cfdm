@@ -2,6 +2,7 @@ import atexit
 import datetime
 import faulthandler
 import os
+import pathlib
 import platform
 import shutil
 import subprocess
@@ -1692,6 +1693,17 @@ class read_writeTest(unittest.TestCase):
         g = cfdm.read(tmpfile)[0]
         self.assertEqual(g.get_property("string"), string)
         self.assertEqual(type(g.get_property("integer")), np.int32)
+    def test_read_pathlib(self):
+        """Test cfdm.read with pathlib datasets."""
+        p0 = pathlib.PosixPath(filename)
+        p1 = pathlib.Path(filename)
+
+        for p in (p0, p1):
+            f = cfdm.read(p)
+            self.assertEqual(len(f), 1)
+
+        f = cfdm.read([p0, p1, str(p0)])
+        self.assertEqual(len(f), 3)
 
     def test_write_hdf5_consolidated_metadata(self):
         """Test cfdm.write hdf5_consolidated_metadata keyword."""

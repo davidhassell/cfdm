@@ -3,6 +3,8 @@ Version NEXTVERSION
 
 **2026-08-??**
 
+* Allow a dataset to be defined in `cfdm.read` by a `pathlib.Path`
+  instance (https://github.com/NCAS-CMS/cfdm/issues/425)
 * New keywords to `cfdm.read`: ``backend``, ``backend_options``,
   ``cfa_filesystem``, ``cfa_backend``, ``cfa_backend_options``, ``um``
   (https://github.com/NCAS-CMS/cfdm/issues/417)
