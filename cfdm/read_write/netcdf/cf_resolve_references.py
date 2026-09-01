@@ -10,7 +10,7 @@ def resolve_references(dataset):
     A reference comprises the name of a variable or dimension within a
     string-valued attribute.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -35,7 +35,7 @@ def resolve_attribute(name, attr_value, variable):
     A reference comprises the name of a variable or dimension within a
     string-valued attribute.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -68,7 +68,7 @@ def resolve_reference(
     Resolves the absolute path to a coordinate variable within the
     group structure.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -149,7 +149,7 @@ def search_by_absolute_or_relative_path(ref, variable, search_type):
     (one that starts with '/') or a relative path (one that contains,
     but does not start with, '/').
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -198,7 +198,7 @@ def search_by_proximity(ref, variable, search_type, coord=False):
     Coordinate variable references that cannot be found by proximity
     are searched for laterally (see `coordinate_lateral_search`).
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -275,7 +275,7 @@ def coordinate_lateral_search(ref, group, depth):
 
     If *depth* is less than 0 then no search is done.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -333,7 +333,7 @@ def resolve_pattern_1(value, variable, coord=False):
     E.g. ``coordinates``, ``ancillary_variables``,
     ``edge_node_connectivity``
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
     try:
@@ -360,7 +360,7 @@ def resolve_pattern_2(value, variable, coord=False):
 
     E.g. ``dimensions``, ``face_dimension``
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
     try:
@@ -389,7 +389,7 @@ def resolve_pattern_3(value, variable, coord=False):
     E.g. ``cell_measures``, ``aggregated_data``, ``formula_terms``,
     ``interpolation_parameters``
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
     try:
@@ -422,7 +422,7 @@ def resolve_pattern_4(value, variable, coord=False):
 
     E.g. ``grid_mapping``, ``coordinate_interpolation``
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Returns:
 
@@ -455,7 +455,7 @@ def resolve_pattern_5(value, variable, coord=False):
 
     Resolve references in a cell_methods attribute.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     :Parameters:
 
@@ -566,7 +566,7 @@ def resolve_pattern_6(value, variable, coord=False):
 
     E.g. ``tie_point_mapping``
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
     try:
@@ -740,7 +740,7 @@ def resolve_pattern_8(value, variable, coord=False):
 class ResolveAttribute:
     """How to resolve references in an attribute.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
 

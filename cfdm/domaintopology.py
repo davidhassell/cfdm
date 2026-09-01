@@ -419,16 +419,35 @@ class DomainTopology(
 
         if cell in ("edge", "face"):
             # Normalise node ids for edge or face cells.
-            mask = np.ma.getmaskarray(data)
-            n, b = np.where(~mask)
-            data[n, b] = np.unique(data[n, b], return_inverse=True)[1]
+            if np.ma.is_masked(data):
+                # Masked elements
+                mask = data.mask
+
+                # Get 1-d array of unmasked values
+                unmasked_vals = data.compressed()
+
+                # Re-map unique node IDs to compact rank indices [0, 1,
+                # ..., N-1]
+                inverse = np.unique(unmasked_vals, return_inverse=True)[1]
+
+                if start_index:
+                    inverse += start_index
+
+                # Assign directly back into 'data'
+                data.data[~mask] = inverse
+            else:
+                # No masked elements
+                inverse = np.unique(data, return_inverse=True)[1]
+
+                if start_index:
+                    inverse += start_index
+
+                data = inverse.reshape(data.shape)
 
             if remove_empty_columns:
                 # Discard columns that are all missing data
                 data = self._remove_empty_columns(data)
 
-            if start_index:
-                data += 1
         elif cell == "point":
             # Normalise cell ids for point cells
             data = self._normalise_cell_ids(
@@ -550,18 +569,27 @@ class DomainTopology(
         data = self.array
 
         if cell == "edge":
-            # Sort within each row
+            # Sort within each row (axis 1) without in-place mutation
             data.sort(axis=1)
-            # Sort over rows
-            data = sorted(data.tolist())
+
+            # Sort across rows (axis 0) lexicographically completely
+            # in numpy C memory. `np.lexsort` sorts by keys in reverse
+            # order (col 1 then col 0)
+            order = np.lexsort((data[:, 1], data[:, 0]))
+            data = data[order]
+            del order
 
         elif cell == "point":
             # Sort within each row from column 1
-            data[:, 1:] = np.ma.sort(data[:, 1:], axis=1, endwith=True)
+            if not np.ma.is_masked(data):
+                data[:, 1:].sort(axis=1)
+            else:
+                data[:, 1:] = np.ma.sort(data[:, 1:], axis=1)
+
             # Sort over rows by value in column 0
             data = data[data[:, 0].argsort()]
 
-        data = self._Data(data, dtype=self.dtype, chunks=self.data.chunks)
+        data = self._Data(data)
 
         d = self.copy()
         d.set_data(data, copy=False)
@@ -583,8 +611,9 @@ class DomainTopology(
 
             sort: `bool`
                 If True then sort output edges. This is equivalent to,
-                but faster than, setting *sort* to False and sorting
-                the returned `{{class}}` with its `sort` method.
+                but might be faster than, setting *sort* to False and
+                sorting the returned `{{class}}` with its `sort`
+                method.
 
             face_nodes: `None` or sequence of `int`, optional
                 The unique node ids for 'face' cells. If `None` (the
@@ -680,9 +709,6 @@ class DomainTopology(
          [4 5]]
 
         """
-        edges = []
-        edges_extend = edges.extend
-
         cell = self.get_cell(None)
         if face_nodes is not None and cell != "face":
             raise ValueError(
@@ -701,60 +727,88 @@ class DomainTopology(
         # Still here? Then deal with the other cell types.
         if cell == "point":
             points = self.array
-            masked = np.ma.is_masked(points)
 
-            # Loop round the nodes, finding the node-pairs that define
-            # the edges.
-            for row in points:
-                if masked:
-                    row = row.compressed()
+            is_masked = np.ma.is_masked(points)
+            if is_masked:
+                fill_val = -1
+                points = points.filled(fill_val)
 
-                node = int(row[0])
-                row = row[1:].tolist()
-                edges_extend(
-                    [(node, n) if node < n else (n, node) for n in row]
+            # points[:, 0] is the central point; points[:, 1:] are the
+            # neighbours
+            sources = points[:, [0]]  # Shape (N, 1) for 2-d broadcasting
+            targets = points[:, 1:]  # Shape (N, K)
+            del points
+
+            if is_masked:
+                valid = (
+                    (sources != fill_val)
+                    & (targets != fill_val)
+                    & (sources != targets)
                 )
+            else:
+                valid = sources != targets
 
-            del points, row
+            # Extract 1-d arrays for valid pairs directly via 2-d
+            # broadcasting
+            u = np.broadcast_to(sources, targets.shape)[valid]
+            del sources
+            v = targets[valid]
+            del targets, valid
 
         elif cell == "face":
-            from cfdm.data.subarray import PointTopologyFromFacesSubarray
-
-            connected_nodes = PointTopologyFromFacesSubarray._connected_nodes
-
             faces = self.array
-            masked = np.ma.is_masked(faces)
 
-            if face_nodes is None:
-                # Find the unique node ids
-                face_nodes = np.unique(faces).tolist()
-                if masked:
-                    face_nodes = face_nodes[:-1]
+            if not np.ma.is_masked(faces):
+                u = faces.ravel()
+                # Wrap column 0 to the end via 2-d index view
+                cols = faces.shape[1]
+                v = faces[:, np.roll(np.arange(cols), -1)].ravel()
+                del faces
 
-            # Loop round the face nodes, finding the node-pairs that
-            # define the edges.
-            for n in face_nodes:
-                edges_extend(connected_nodes(n, faces, masked, edges=True))
+            else:
+                fill_val = -1
+                faces = faces.filled(fill_val)
 
-            del faces, face_nodes
+                # Right-shifted neighbour columns for all faces at once
+                v = np.empty_like(faces)
+                v[:, :-1] = faces[:, 1:]
+                v[:, -1] = faces[:, 0]
+
+                # If neighbour is fill_val, wrap back to col 0
+                masked_next = v == fill_val
+                if np.any(masked_next):
+                    col_0 = faces[:, [0]]  # Shape (N, 1) for broadcasting
+                    v = np.where(masked_next, col_0, v)
+                    del col_0
+
+                del masked_next
+
+                u = faces.ravel()
+                del faces
+                v = v.ravel()
+
+                # Filter out invalid padding/self-loops
+                valid = (u != fill_val) & (v != fill_val) & (u != v)
+                u = u[valid]
+                v = v[valid]
+                del valid
 
         else:
             raise NotImplementedError(
                 f"Can't get edges from {self!r} with {cell} cells"
             )
 
-        # Remove duplicates to get the set of unique edges, because
-        # every edge currently appears twice in the 'edges' list.
-        #
-        # E.g. edge (1, 5) will appear once from processing node 1,
-        #      and once from processing node 5.
-        edges = set(edges)
+        edges = np.empty((len(u), 2), dtype=u.dtype)
 
-        if sort:
-            edges = sorted(edges)
-        else:
-            edges = list(edges)
+        # min/max assignment
+        swap = u > v
+        edges[:, 0] = np.where(swap, v, u)
+        edges[:, 1] = np.where(swap, u, v)
+        del u, v, swap
 
+        # De-duplicate, and sort globally across axis=0
+        # lexicographically.
+        edges = np.unique(edges, axis=0)
         edges = self._Data(edges, dtype=self.dtype)
 
         out = self.copy()

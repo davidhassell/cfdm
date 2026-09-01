@@ -70,15 +70,15 @@ class FragmentFileArray(
 
             {{init filesystem: optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init backend: `None` or (sequence of) `str`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init backend_options: `None` or `dict`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init source: optional}}
 

@@ -836,5 +836,7 @@ quantized[0, 0, 0].array
 pp = cfdm.read('umfile.pp')
 pp
 print(pp[0])
+pp = cfdm.read('umfile.pp')
 cfdm.write(pp, 'umfile1.nc')
+pp = cfdm.read('umfile.pp', cfa_write='field')
 cfdm.write(pp, 'umfile2.nc', cfa='field')

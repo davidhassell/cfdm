@@ -102,7 +102,7 @@ def _extract_names_from_xml(snames_xml, include_aliases):
 def _extract_table_version_from_xml(snames_xml):
     """Extract table version from a valid Standard Name Table XML document.
 
-    .. versionadded:: NEXTVERSION
+    .. versionadded:: 1.13.3.0
 
      :Parameters:
 
@@ -124,7 +124,7 @@ def _extract_table_version_from_xml(snames_xml):
 def _get_cache_file_path(include_aliases=False):
     """Return the filesystem path to the standard names pickle cache file.
 
-    .. versionadded:: NEXTVERSION
+    .. versionadded:: 1.13.3.0
 
      :Parameters:
 
@@ -169,7 +169,7 @@ def _cache_standard_names_to_dotfile(
 ):
     """Create a pickle cache of the frozenset of fetched standard names.
 
-    .. versionadded:: NEXTVERSION
+    .. versionadded:: 1.13.3.0
 
      :Parameters:
 
@@ -219,7 +219,7 @@ def _cache_standard_names_to_dotfile(
 def _load_standard_names_from_dotfile(include_aliases=False):
     """Attempt to load and open a pickled dotfile cache of standard names.
 
-    .. versionadded:: NEXTVERSION
+    .. versionadded:: 1.13.3.0
 
      :Parameters:
 

@@ -2459,7 +2459,7 @@ class FieldDomain:
 
             `list`
                 The node coordinates, stored in zero or more
-                `{{package}}.AuxiliaryCoordinate` contructs.
+                `{{package}}.AuxiliaryCoordinate` constructs.
 
         **Examples:**
 

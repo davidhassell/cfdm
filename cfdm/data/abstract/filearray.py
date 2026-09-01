@@ -63,7 +63,7 @@ class FileArray(Array):
 
             {{init backend: `None` or (sequence of) `str`, optional}}
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
             {{init backend_options: `None` or `dict`, optional}}
 
@@ -81,10 +81,10 @@ class FileArray(Array):
 
             {{init copy: `bool`, optional}}
 
-            storage_options: Deprecated at version (cfdm) NEXTVERSION
+            storage_options: Deprecated at version (cfdm) 1.13.3.0
                 Use *filesystem* instead.
 
-            storage_protocol: Deprecated at version (cfdm) NEXTVERSION
+            storage_protocol: Deprecated at version (cfdm) 1.13.3.0
                 Use *filesystem* instead.
 
         """
@@ -312,7 +312,7 @@ class FileArray(Array):
     def get_backend(self):
         """The names of the packages for accessing the dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -320,7 +320,7 @@ class FileArray(Array):
                 The backend name or names, or `None` if none have been
                 provided, in which case the default backends for
                 `xnetcdf` are assumed. When accessing the dataset, the
-                backends are tried in order until one succeessfully
+                backends are tried in order until one successfully
                 reads the dataset.
 
         """
@@ -329,7 +329,7 @@ class FileArray(Array):
     def get_backend_options(self):
         """Backend options when opening a dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -460,14 +460,14 @@ class FileArray(Array):
         _DEPRECATION_ERROR_METHOD(
             self,
             "get_storage_protocol",
-            version="NEXTVERSION",
+            version="1.13.3.0",
             removed_at="1.14.0.0",
         )  # pragma: no cover
 
     def get_filesystem(self):
         """Return the file system which contains the dataset.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -550,7 +550,7 @@ class FileArray(Array):
 
                 Ignored if `get_filename` does not return a string.
 
-                .. versionadded:: (cfdm) NEXTVERSION
+                .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -787,7 +787,7 @@ class FileArray(Array):
         _DEPRECATION_ERROR_METHOD(
             self,
             "has_remote_storage_protocol",
-            version="NEXTVERSION",
+            version="1.13.3.0",
             removed_at="1.14.0.0",
         )  # pragma: no cover
 

@@ -29,11 +29,17 @@ Methods
    ~cfdm.AggregatedArray.file_directory
    ~cfdm.AggregatedArray.get_address
    ~cfdm.AggregatedArray.get_attributes
+   ~cfdm.AggregatedArray.get_backend
+   ~cfdm.AggregatedArray.get_backend_options
    ~cfdm.AggregatedArray.get_calendar
    ~cfdm.AggregatedArray.get_compression_type
    ~cfdm.AggregatedArray.get_filename
+   ~cfdm.AggregatedArray.get_filesystem
    ~cfdm.AggregatedArray.get_fragment_array
    ~cfdm.AggregatedArray.get_fragment_array_shape
+   ~cfdm.AggregatedArray.get_fragment_backend
+   ~cfdm.AggregatedArray.get_fragment_backend_options
+   ~cfdm.AggregatedArray.get_fragment_filesystem
    ~cfdm.AggregatedArray.get_fragment_type
    ~cfdm.AggregatedArray.get_fragmented_dimensions
    ~cfdm.AggregatedArray.get_mask

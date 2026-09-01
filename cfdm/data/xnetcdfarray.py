@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class XnetcdfArray(IndexMixin, abstract.FileArray):
     """A netCDF array accessed with `xnetcdf`.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
 
@@ -19,7 +19,7 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
     def _lock(self):
         """Return a lock for dataset array access.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Returns:
 
@@ -83,7 +83,7 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
         The subspace is defined by the `index` attributes, and is
         applied with `cfdm.netcdf_indexer`.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         .. seealso:: `__array__`, `index`
 
@@ -128,7 +128,7 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
     def close(self, dataset):
         """Close the dataset containing the data.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Parameters:
 
@@ -146,7 +146,7 @@ class XnetcdfArray(IndexMixin, abstract.FileArray):
     def open(self, **kwargs):
         """Return a dataset object and address.
 
-        .. versionadded:: (cfdm) NEXTVERSION
+        .. versionadded:: (cfdm) 1.13.3.0
 
         :Parameters:
 

@@ -13,97 +13,110 @@ class PointTopologyFromFacesSubarray(PointTopology, MeshSubarray):
 
     """
 
-    @classmethod
-    def _connected_nodes(self, node, node_connectivity, masked, edges=False):
-        """Return nodes that are joined to *node* by face edges.
+    def __getitem__(self, indices):
+        """Return a subspace of the uncompressed data."""
+        from math import isnan
 
-        The input *node* is included at the start of the returned
-        list.
+        # ------------------------------------------------------------
+        # E.g. Two quadrilaterals and one triangle:
+        #
+        # node_connectivity = [[2 3 1 0]
+        #                      [4 5 3 2]
+        #                      [6 1 3 --]]
+        # ------------------------------------------------------------
+        node_connectivity = self._select_data(check_mask=True)
+        is_masked = np.ma.is_masked(node_connectivity)
 
-        .. versionadded:: (cfdm) 1.11.0.0
+        if not is_masked:
+            # No masked elements in 'node_connectivity'
+            nc_ravel = node_connectivity.ravel()
+            src_neighbours = np.tile(nc_ravel, 2)
+            del nc_ravel
 
-        :Parameters:
+            # Left roll: [1, 2, ..., N, 0]
+            # Right roll: [N, 0, 1, ..., N-1]
+            cols = node_connectivity.shape[1]
+            left_idx = np.arange(cols)
+            right_idx = np.roll(left_idx, 1)
+            left_idx = np.roll(left_idx, -1)
 
-            node: `int`
-                A node identifier.
+            left = node_connectivity[:, left_idx].ravel()
+            right = node_connectivity[:, right_idx].ravel()
+            del node_connectivity, left_idx, right_idx
 
-            node_connectivity: `numpy.ndarray`
-                A UGRID "face_node_connectivity" array.
+            dst_neighbours = np.concatenate([left, right])
+            del left, right
 
-            masked: `bool`
-                Whether or not *node_connectivity* has masked
-                elements.
-
-            edges: `bool`, optional
-                By default *edges* is False and a flat list of nodes,
-                including *node* itself at the start, is returned. If
-                True then a list of edge definitions (i.e. a list of
-                ordered 2-tuples of nodes) is returned instead.
-
-                .. versionadded:: (cfdm) 1.13.1.0
-
-        :Returns:
-
-            `list`
-                All nodes that are joined to *node*, including *node*
-                itself at the start. If *edges* is True then a list of
-                edge definitions is returned instead.
-
-        **Examples**
-
-        >>> p._connected_nodes(7, nc)
-        [7, 1, 2, 9]
-        >>> p._connected_nodes(7, nc, edges=True)
-        [(1, 7), (2, 7), (7, 9)]
-
-        >>> p._connected_nodes(2, nc)
-        [2,  7, 8]
-        >>> p._connected_nodes(2, nc, edges=True)
-        [(2, 7), (2, 8)]
-
-        """
-        if masked:
-            where = np.ma.where
         else:
-            where = np.where
+            # Masked elements in 'node_connectivity'
+            node_connectivity = node_connectivity.filled(-1)
+            cols = node_connectivity.shape[1]
 
-        # Find the faces that contain this node:
-        rows, cols = where(node_connectivity == node)
+            # Shift columns left (right neighbours) & right (left
+            # neighbours)
+            v_right = np.empty_like(node_connectivity)
+            v_right[:, :-1] = node_connectivity[:, 1:]
+            v_right[:, -1] = node_connectivity[:, 0]
 
-        nodes = []
-        nodes_extend = nodes.extend
+            # Repair wrapped -1 entries in right neighbours back to
+            # col 0
+            masked_right = v_right == -1
+            if np.any(masked_right):
+                col_0 = node_connectivity[:, 0]
+                # Broadcast col_0 across rows where right neighbour is
+                # missing
+                v_right = np.where(masked_right, col_0[:, None], v_right)
+                del col_0
 
-        # For each face, find which two of its nodes are neighbours to
-        # 'node'.
-        for row, col in zip(node_connectivity[rows], cols):
-            if masked:
-                row = row.compressed()
+            del masked_right
 
-            row = row.tolist()
+            v_left = np.empty_like(node_connectivity)
+            v_left[:, 1:] = node_connectivity[:, :-1]
+            v_left[:, 0] = node_connectivity[:, -1]
 
-            # Get the neighbours of 'node', which is in position 'col'
-            # in the face.
-            if not col:
-                # 'node' is in position 0, so its neighbours are in
-                # positions -1 and 1
-                nodes_extend((row[-1], row[1]))
-            elif col == len(row) - 1:
-                # 'node' is in position -1, so its neighbours are in
-                # positions -2 and 0
-                nodes_extend((row[-2], row[0]))
-            else:
-                # 'node' is in any other position (col), so its
-                # neighbours are in positions col-1 and col+1
-                nodes_extend((row[col - 1], row[col + 1]))
+            # Flatten and build src/dst pairs directly
+            u_col = node_connectivity.ravel()
+            del node_connectivity
 
-        nodes = sorted(set(nodes))
+            v_r_flat = v_right.ravel()
+            del v_right
+            v_l_flat = v_left.ravel()
+            del v_left
 
-        if edges:
-            # Return a list of ordered edge definitions
-            nodes = [(node, n) if node < n else (n, node) for n in nodes]
-        else:
-            # Return a flat list of nodes, inserting 'node' at the
-            # start.
-            nodes.insert(0, node)
+            # Concatenate twice for forward and backward directions
+            src_neighbours = np.tile(u_col, 2)
+            del u_col
 
-        return nodes
+            dst_neighbours = np.concatenate([v_r_flat, v_l_flat])
+            del v_r_flat, v_l_flat
+
+        # ------------------------------------------------------------
+        # src_neighbours = [2 3 1 0 4 5 3 2 6 1 3 -1 2 3 1 0 4 5 3 2  6 1 3 -1]
+        # dst_neighbours = [3 1 0 2 5 3 2 4 1 3 6  6 0 2 3 1 2 4 5 3 -1 6 1  3]
+        # ------------------------------------------------------------
+
+        # Create the full point_point_connectivity matrix (padded with -1)
+        u = self._point_point_connectivity(src_neighbours, dst_neighbours)
+        del src_neighbours, dst_neighbours
+
+        if any(map(isnan, self.shape)):
+            # Store the shape, now that it is known.
+            self._set_component("shape", u.shape, copy=False)
+
+        # Subspace the full point connectivity matrix
+        if indices is not Ellipsis:
+            u = u[indices]
+
+        # Mask padding values in-place (-1)
+        u = np.ma.masked_equal(u, -1, copy=False)
+
+        # ------------------------------------------------------------
+        # u = [[0 1 2 -- --]
+        #      [1 0 3 6 --]
+        #      [2 0 3 4 --]
+        #      [3 1 2 5 6]
+        #      [4 2 5 -- --]
+        #      [5 3 4 -- --]
+        #      [6 1 3 -- --]]
+        # ------------------------------------------------------------
+        return u

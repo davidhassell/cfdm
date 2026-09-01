@@ -726,7 +726,7 @@ class write(ReadWrite):
               a 1-d data array, and the bounds array of 1-d
               coordinates, is as described by *dataset_chunks*.
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         cfa: `str` or `dict` or `None`, optional
             Specify which netCDF variables, if any, should be written
@@ -936,7 +936,7 @@ class write(ReadWrite):
             algorithm used to estimate the required metadata block
             size, and how it can be modified.
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         hdf5_expansion_factor: number, optional
             Configure the algorithm for calculating the size of the
@@ -951,11 +951,10 @@ class write(ReadWrite):
             algorithm that determines this size does so by calculating
             an approximate amount of bytes based on the actual groups,
             attributes, variables, and dimension that are going to be
-            written to the dataset; and then multipling this amount by
-            the *hdf5_expansion_factor* to account for the HDF5's
+            written to the dataset; and then multiplying this amount
+            by the *hdf5_expansion_factor* to account for the HDF5's
             dynamic, non-linear memory allocation behaviours, which
-            are not known in advance. The default value is
-            ``2.25``.
+            are not known in advance. The default value is ``2.25``.
 
             Due to the approximate nature of the algorithm, it may be
             that the calculated HDF5 metadata block size is too small
@@ -969,7 +968,7 @@ class write(ReadWrite):
             bypassing the automatic calculation by explicitly setting
             ``'meta_block_size'`` in the *h5py_options*).
 
-            .. versionadded:: (cfdm) NEXTVERSION
+            .. versionadded:: (cfdm) 1.13.3.0
 
         _implementation: (subclass of) `CFDMImplementation`, optional
             Define the CF data model implementation that defines field
@@ -978,7 +977,7 @@ class write(ReadWrite):
         filename: Deprecated at version 1.13.0.0
             Use *dataset_name* instead.
 
-        netcdf_backend: Deprecated at version NEXTVERSION
+        netcdf_backend: Deprecated at version 1.13.3.0
             Use *backend* instead.
 
     :Returns:
@@ -1047,7 +1046,7 @@ class write(ReadWrite):
                 "cfdm.write",
                 {"netcdf_backend": netcdf_backend},
                 "Use keyword 'backend' instead",
-                version="NEXTVERSION",
+                version="1.13.3.0",
                 removed_at="1.15.0.0",
             )  # pragma: no cover
 

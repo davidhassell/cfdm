@@ -2751,7 +2751,7 @@ def _DEPRECATION_ERROR_FUNCTION_KWARGS(
 ):
     """Error handling for deprecated function kwargs.
 
-    .. versionadded:: (cfdm) NEXTVERSION
+    .. versionadded:: (cfdm) 1.13.3.0
 
     """
     if removed_at:
