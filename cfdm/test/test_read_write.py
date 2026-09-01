@@ -1670,6 +1670,63 @@ class read_writeTest(unittest.TestCase):
         self.assertEqual(x.data.nc_dataset_chunksizes(), (4,))
         self.assertEqual(x.bounds.data.nc_dataset_chunksizes(), (2, 2))
 
+    def test_write_hdf5_consolidated_metadata(self):
+        """Test cfdm.write hdf5_consolidated_metadata keyword."""
+        import pyfive
+
+        f = self.f0.copy()
+        f.nc_set_variable("/forecast/model/q")
+
+        # Non-consolidated
+        cfdm.write(f, tmpfile, hdf5_consolidated_metadata=False)
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
+        cfdm.write(
+            f,
+            tmpfile,
+            hdf5_consolidated_metadata=True,
+            h5py_options={"meta_block_size": 4096},  # Small!
+        )
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
+        cfdm.write(
+            f,
+            tmpfile,
+            hdf5_consolidated_metadata=True,
+            hdf5_expansion_factor=0.5,
+        )
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
+        # Consolidated
+        cfdm.write(f, tmpfile)
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
+        cfdm.write(
+            f,
+            tmpfile,
+            hdf5_consolidated_metadata=True,
+            h5py_options={"meta_block_size": 2**20},  # Large!
+        )
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
+        # Consolidated, lots of variables
+        cfdm.write([f] * 100, tmpfile)
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
+    def test_write_hdf5_expansion_factor(self):
+        """Test cfdm.write hdf5_expansion_factor keyword."""
+        import pyfive
+
+        f = self.f0.copy()
+
+        # Consolidated (large expansion factor)
+        cfdm.write(f, tmpfile, hdf5_expansion_factor=10)
+        self.assertTrue(pyfive.File(tmpfile).consolidated_metadata)
+
+        # Non-consolidated (small expansion factor)
+        cfdm.write(f, tmpfile, hdf5_expansion_factor=0.001)
+        self.assertFalse(pyfive.File(tmpfile).consolidated_metadata)
+
 
 if __name__ == "__main__":
     print("Run date:", datetime.datetime.now())

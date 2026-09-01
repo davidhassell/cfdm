@@ -1026,7 +1026,7 @@ class NetCDFRead(
 
             cfa_backend_options: `None` or `dict`, optional
                 The options to use with each backend when opening an
-                aggregated dataset.See `cfdm.read` for details.
+                aggregated dataset. See `cfdm.read` for details.
 
                 .. versionadded:: (cfdm) NEXTVERSION
 
@@ -1258,7 +1258,7 @@ class NetCDFRead(
             backend_options = {}
         elif not isinstance(backend_options, dict):
             raise ValueError(
-                "'backend_options' parameter must be a dictionary or None"
+                "'backend_options' parameter must be a dictionary or None. "
                 f"Got: {backend_options!r}"
             )
         else:
@@ -1267,7 +1267,7 @@ class NetCDFRead(
             valid_options = [f"{b}_options" for b in xnetcdf.backends]
             if not set(backend_options).issubset(valid_options):
                 raise ValueError(
-                    "Invalid key in 'backend_options' dictionary"
+                    "Invalid key in 'backend_options' dictionary. "
                     f"Got {backend_options!r}, expected a subset "
                     f"of {valid_options}"
                 )
@@ -1635,7 +1635,7 @@ class NetCDFRead(
 
         # ------------------------------------------------------------
         # Find the CF version for the file
-        # -------------------------------ding -----------------------------
+        # ------------------------------------------------------------
         Conventions = g["global_attributes"].get("Conventions", "")
 
         # If the string contains any commas, it is assumed to be a
@@ -1672,7 +1672,7 @@ class NetCDFRead(
         if g["CF>=1.11"] and g["UGRID_version"] is None:
             g["UGRID_version"] = "1.0"
 
-        # The netCDF4 dataset objects that have been opened (i.e. the
+        # The netCDF4 dataset objects that have been opened (i.e.
         # for parent file and any external datasets)
         g["datasets"] = [nc]
 
@@ -4650,10 +4650,12 @@ class NetCDFRead(
 
         :Parameters:
 
-            ncvar: `str`
-                The
+            field_ncvar: `str`
+                The netCDF name of the parent field or domain variable
+                that references the coordinate variable.
 
             dim: `xnetcdf.Dimension`
+                The dimension spanned by the coordinate variable.
 
         :Returns:
 
@@ -5951,8 +5953,8 @@ class NetCDFRead(
                 return kwargs
 
             if backend == "xarray":
-                # For xarray, we don't wnt to create an `XnetcdfArray`
-                # instance, because 'variable' will wither contain ist
+                # For xarray, we don't want to create an `XnetcdfArray`
+                # instance, because 'variable' will wither contain its
                 # own Dask array (if the xarray 'chunks' argument was
                 # not `None`), or a `numpy` array (or similar).
                 array = variable.backend_accessor.data
@@ -8121,7 +8123,6 @@ class NetCDFRead(
 
         if (
             instance_dimension
-            #            not in self.read_vars["internal_dimension_sizes"]
             not in self.read_vars["dimensions"]
         ):
             self._add_message(

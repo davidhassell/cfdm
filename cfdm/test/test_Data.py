@@ -970,25 +970,6 @@ class DataTest(unittest.TestCase):
             self.assertTrue(m1.equals(m2, ignore_fill_value=True))
 
         # Test verbose parameter: 1/'INFO' level is behaviour change boundary
-        # for checks in [(1, False), (2, True)]:
-        #    verbosity_level, expect_to_see_msg = checks
-        #    with self.assertLogs(level=-1) as catch:
-        #        # Logging note: want to assert in the former case (verbosity=1)
-        #        # that nothing is logged, but need to use workaround to prevent
-        #        # AssertionError on fact that nothing is logged here. When at
-        #        # Python =>3.10 this can be replaced by 'assertNoLogs' method.
-        #        logger.warning(
-        #            "Log warning to prevent test error on empty log."
-        #        )
-        #
-        #        self.assertFalse(d2.equals(d, verbose=verbosity_level))
-        #        self.assertIs(
-        #            any(
-        #                "Data: Different data types: float32, int64" in log_msg
-        #                for log_msg in catch.output
-        #            ),
-        #            expect_to_see_msg,
-        #        )
 
         # Test ignore_data_type parameter
         self.assertTrue(d2.equals(d, ignore_data_type=True))
