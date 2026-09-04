@@ -40,7 +40,7 @@ class Topology(PropertiesData):
     def shape(self):
         """A tuple of the data array's dimension sizes.
 
-        Only the data dimension that corresponds to a domain axis
+        Only the data dimensions that corresponds to a domain axis
         construct is included.
 
         .. versionadded:: (cfdm) 1.11.0.0
@@ -70,7 +70,7 @@ class Topology(PropertiesData):
         """The number elements in the data.
 
         `size` is equal to the product of `shape`, that only includes
-        the data dimension corresponding to a domain axis construct.
+        the data dimensions corresponding to a domain axis construct.
 
         .. versionadded:: (cfdm) 1.11.0.0
 

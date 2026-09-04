@@ -2,7 +2,17 @@ from .abstract import ParametersAncillaries
 
 
 class ProbabilityDistribution(ParametersAncillaries):
-    """TODOU o collect named parameters andTODOU domain ancillaries.
+    """A probability distribution for an uncertainty construct.
+
+    The coverage interval of an uncertainty construct is derived from
+    the probability distribution. The probability distribution is
+    defined by the values of named parameters. A parameter value can
+    be a descriptive string (such as the distribution type
+    "gaussian"), or an uncertainty ancillary construct (such as one
+    containing spatially varying skewness data), or one or more
+    uncertainty ancillary constructs (such as multiple uncertainty
+    ancillary constructs containing error-correlation data for
+    non-overlapping subsets of the domain axis constructs).
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -31,10 +41,11 @@ class ProbabilityDistribution(ParametersAncillaries):
                  ``parameters={'distribution_name': 'gaussian'}``
 
             uncertainty_ancillaries: `dict`, optional
-               Set references to uncertainty ancillary constructs. The
-               dictionary keys are parameter names, with corresponding
-               values of construct keys. A named parameters may have a
-               value of a single key, or multiple keys.
+               References to uncertainty ancillary constructs. Each
+               dictionary key is a parameter name, with corresponding
+               value of uncertainty ancillary construct identifiers. A
+               named parameter may have a value of a single key, or a
+               sequence of keys.
 
                References to uncertainty ancillary constructs may also
                be set after initialisation with the `set_ancillaries`,

@@ -678,16 +678,16 @@ def resolve_pattern_8(value, variable, coord=False):
         return f"{key}: {ref}"
 
     resolved = []
-    # ------------------------------------------------------------
-    # Split the cell_methods string into a list of strings ready
+    # ----------------------------------------------------------------
+    # Split the error_correlation string into a list of strings ready
     # for parsing. For example:
     #
-    #   'lat: lon: mean (interval: 1 hour) time: max'
+    #   'TODOU'
     #
     # would be split up into:
     #
-    #   ['lat:', 'lon:', 'mean', '(interval: 1 hour)', 'time:', 'max']
-    # ------------------------------------------------------------
+    #   [TODOU]
+    # ----------------------------------------------------------------
     try:
         value = re.findall(r"\([^)]*\)|\S+", value)
     except TypeError:
@@ -863,14 +863,11 @@ resolvable_attributes = {
         # ------------------------------------------------------------
         ResolveAttribute(name="quantization", resolver=resolve_pattern_1),
         # ------------------------------------------------------------
-        # Proability distribution
+        # Uncertainty
         # ------------------------------------------------------------
         ResolveAttribute(
             name="probability_distribution", resolver=resolve_pattern_7
         ),
-        # ------------------------------------------------------------
-        # Error correlations
-        # ------------------------------------------------------------
         ResolveAttribute(name="error_correlation", resolver=resolve_pattern_8),
     )
 }

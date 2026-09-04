@@ -2,9 +2,14 @@ from .abstract import ParametersAncillaries
 
 
 class UncertaintyAncillaryParameterisation(ParametersAncillaries):
-    """TODOU o colA parametrisation for an uncertainty ancillary data array.
-
-    TODOU
+    """A parameterisation for an uncertainty ancillary construct.
+    
+    The parameterization formula which describes how the missing data
+    array can be created. A term of the parameterization formula can
+    be a descriptive string (such as the error-correlation structural
+    type "triangular"), or can may be an uncertainty ancillary
+    construct (such as one which contains a configuration parameter
+    for an error-correlation structural type).
 
     .. versionadded:: (cfdm) NEXTVERSION
 
@@ -32,9 +37,10 @@ class UncertaintyAncillaryParameterisation(ParametersAncillaries):
                  ``parameters={'error_correlation_structure': 'triangular'}``
 
             uncertainty_ancillaries: `dict`, optional
-               Set references to uncertainty ancillary constructs. The
-               dictionary keys are parameter names, with corresponding
-               values of construct keys.
+
+               References to uncertainty ancillary constructs. Each
+               dictionary key is a parameter name, with corresponding
+               value of uncertainty ancillary construct identifier.
 
                References to uncertainty ancillary constructs may also
                be set after initialisation with the `set_ancillaries`,

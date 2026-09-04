@@ -17,10 +17,11 @@ class Uncertainty(PropertiesData):
       probability. The array depends on zero or more of the domain
       axis constructs. If there is the addition of a trailing size-two
       dimension, then this stores the lower an upper limits of the
-      interval. Otherwise the array values define the half-width of a
-      symmetric interval. It is assumed that the data do not depend on
-      axes of the domain which are not spanned by the array, along
-      which the values are implicitly propagated.
+      interval as additive offsets. Otherwise the array values define
+      the positive half-width of a symmetric interval. It is assumed
+      that the data do not depend on axes of the domain which are not
+      spanned by the array, along which the values are implicitly
+      propagated.
 
     * Properties to describe the data (in the same sense as for the
       field construct). The properties must include a "coverage
@@ -149,7 +150,7 @@ class Uncertainty(PropertiesData):
 
         """
         ndim = super().ndim
-        if self._get_coverage_interval() == "offsets":
+        if self._get_coverage_interval(" to get ndim") == "offsets":
             ndim -= 1
 
         return ndim
@@ -207,7 +208,7 @@ class Uncertainty(PropertiesData):
 
         """
         shape = super().shape
-        if self._get_coverage_interval() == "offsets":
+        if self._get_coverage_interval(" to get shape") == "offsets":
             shape = shape[:-1]
 
         return shape
@@ -234,12 +235,12 @@ class Uncertainty(PropertiesData):
 
         """
         size = super().size
-        if self._get_coverage_interval() == "offsets":
+        if self._get_coverage_interval(" to get size") == "offsets":
             size = prod(self.shape[:-1])
 
         return size
 
-    def _get_coverage_interval(self):
+    def _get_coverage_interval(self, message=""):
         """TODOU.
 
         .. versionadded:: (cfdm) NEXTVERSION
@@ -253,7 +254,7 @@ class Uncertainty(PropertiesData):
         if out is None:
             raise ValueError(
                 f"{self.__class__.__name__} must have a 'coverage_interval' "
-                "property"
+                f"property{message}"
             )
 
         return out

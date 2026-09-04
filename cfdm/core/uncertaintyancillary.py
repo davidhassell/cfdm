@@ -78,12 +78,15 @@ class UncertaintyAncillary(PropertiesData):
                the `set_parameters` and `set_parameter` methods.
 
                *Parameter example:*
-                 ``parameters={'earth_radius': 6371007.}``
+                 ``parameters={'earth_radius': 6371007.}``TODOU
 
             data: TODOU
 
-            parameterisation=None,  TODOU
-            trailing_dimensions=None,  TODOU
+            parameterisation: `UncertaintyAncillaryParameterisation`, optional
+                TODOU
+
+            trailing_dimensions: `bool` or `None`, optional
+                TODOU
 
             {{init source: optional}}
 
@@ -146,7 +149,7 @@ class UncertaintyAncillary(PropertiesData):
 
     @property
     def construct_type(self):
-        """Return a description of the construct type.TODOU
+        """Return a description of the construct type.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -157,8 +160,8 @@ class UncertaintyAncillary(PropertiesData):
 
         **Examples**
 
-        >>> f = {{package}}.{{class}}()
-        >>> f.construct_type
+        >>> c = {{package}}.{{class}}()
+        >>> cs.construct_type
         'uncertainty_ancillary'
 
         """
@@ -189,10 +192,10 @@ class UncertaintyAncillary(PropertiesData):
 
     @property
     def shape(self):
-        """A tuple of the data array's dimension sizes.TODOU
+        """A tuple of the data array's dimension sizes.
 
-        Only the data dimension that corresponds to a domain axis
-        construct is included.
+        Only the data dimensions that corresponds to a domain axis
+        constructs is included.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -219,7 +222,7 @@ class UncertaintyAncillary(PropertiesData):
         """The number elements in the data. TODOU
 
         `size` is equal to the product of `shape`, that only includes
-        the data dimension corresponding to a domain axis construct.
+        the data dimensions corresponding to domain axis constructs.
 
         .. versionadded:: (cfdm) NEXTVERSION
 

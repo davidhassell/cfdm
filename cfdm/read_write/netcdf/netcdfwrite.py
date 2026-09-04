@@ -2620,6 +2620,52 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         return ncvar
 
+    def _write_uncertainty(self,    f,     key,unc):
+        """Write a TODOUfield ancillary to the dataset.
+
+        If an equal field ancillary has already been written to the
+        dataset then it is not re-written.
+
+        :Parameters:
+
+            f : `Field`
+
+            key : `str`
+
+            anc : `Uncertainty`
+
+        :Returns:
+
+            `str`
+                The dataset variable name of the field ancillary TODOU
+                object. If no ancillary variable was written then an
+                empty string is returned.
+
+        """
+        g = self.write_vars
+
+        ncdimensions = self._dataset_dimensions(f, key, anc)
+
+        create = not self._already_in_file(unc, ncdimensions)
+
+        if not create:
+            ncvar = g["seen"][id(unc)]["ncvar"]
+        else:
+            ncvar = self._create_variable_name(unc, default="uncertainty_data")
+
+            # Create a new field ancillary variable
+            self._write_netcdf_variable(
+                ncvar,
+                ncdimensions,
+                unc,
+                self.implementation.get_data_axes(f, key),
+            )
+
+        g["key_to_ncvar"][key] = ncvar
+        g["key_to_ncdims"][key] = ncdimensions
+
+        return ncvar
+
     def _write_cell_measure(self, f, key, cell_measure):
         """Write a cell measure construct to the dataset.
 
@@ -4786,6 +4832,21 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
                 ).items()
             ]
 
+        # ------------------------------------------------------------
+        # Uncertainty variables
+        #
+        # Create the 'ancillary_variables' CF attribute and create the
+        # referenced dataset ancillary variables
+        # ------------------------------------------------------------
+        if field:
+            ancillary_variables = [
+                self._write_uncertainty(f, key, anc)
+                for key, anc in self.implementation.get_uncertainties(
+                        f
+                ).items()
+            ]
+
+            
         # ------------------------------------------------------------
         # Domain topology variables (CF>=1.11)
         # ------------------------------------------------------------
