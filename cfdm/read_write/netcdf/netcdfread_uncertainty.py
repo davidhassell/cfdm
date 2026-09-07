@@ -75,9 +75,7 @@ class NetCDFReadUncertainty:
                     else:
                         unc_anc = self._create_uncertainty_ancillary(dp_ncvar)
 
-                    axes = self._get_domain_axes(
-                        dp_ncvar, parent_ncvar=field_ncvar
-                    )
+                    axes = self._get_domain_axes(dp_ncvar)
 
                     # Insert the uncertainty ancillary
                     logger.detail(
@@ -140,7 +138,7 @@ class NetCDFReadUncertainty:
                             ].copy()
                         else:
                             unc_anc = self._create_uncertainty_ancillary(
-                                ecp_ncvar, trailing_dimensions=True
+                                ecp_ncvar, dual_dimensions=True
                             )
                             g["uncertainty_ancillary"][ecp_ncvar] = unc_anc
 
@@ -161,7 +159,7 @@ class NetCDFReadUncertainty:
                     # corresponding CF error-correlation variable.
                     unc_anc = (
                         self.implementation.initialise_UncertaintyAncillary(
-                            trailing_dimensions=True
+                            dual_dimensions=True
                         )
                     )
                     comment = element["comment"]
@@ -196,15 +194,15 @@ class NetCDFReadUncertainty:
 
                     # Loop round the error-correlation parameters
                     for parameter, value in element["parameters"].items():
-                        if isinstance(value, int):
+                        if isinstance(value, list):
                             # The error-correlation parameter is
-                            # defined by a dimensionless integer
-                            # originating from the "error_correlation"
-                            # attribute, i.e. there is no CF
-                            # error-correlation parameter variable in
-                            # the dataset.
+                            # defined by an integer (possibly with
+                            # units) originating from the
+                            # "error_correlation" attribute,
+                            # i.e. there is no CF error-correlation
+                            # parameter variable in the dataset.
                             ecp_ncvar = None
-                            axes = ()
+                            ecp_axes = ()
                         else:
                             # The error-correlation parameter is
                             # defined by a CF error-correlation
@@ -219,13 +217,11 @@ class NetCDFReadUncertainty:
                             if not ok:
                                 continue
 
-                            ecp_axes = self._get_domain_axes(
-                                ncvar, parent_ncvar=field_ncvar
-                            )
+                            ecp_axes = self._get_domain_axes(ncvar)
                             value = None
 
                         ecp_unc_anc = self._create_uncertainty_ancillary(
-                            ncvar, data=value
+                            ecp_ncvar, data=value
                         )
 
                         # Insert the uncertainty ancillary
@@ -254,6 +250,10 @@ class NetCDFReadUncertainty:
                         "error_correlation", error_correlation_keys
                     )
 
+        # ------------------------------------------------------------
+        # Uncertainty
+        # ------------------------------------------------------------
+
         # Insert properties (having removed any
         # probabilty_distribution and error_correlation attributes)
         self.implementation.set_properties(uncertainty, properties, copy=False)
@@ -268,9 +268,12 @@ class NetCDFReadUncertainty:
         # Store the netCDF variable name
         self.implementation.nc_set_variable(uncertainty, ncvar)
 
-        trailing_dimension=properties.get('coverage_interval') == "offsets"
-        if trailing_dimension:
-            # Set the netCDF trailing dimension name
+        # Store the netCDF interval dimension name (if there is one)
+        unc_ncdims = self._ncdimension(ncvar)
+        field_ncdims =  self._ncdimension(field_ncvar)
+        if unc_ncdims and unc_ncdims[-1] not in field_ncdims:
+            # interval_dimension = 
+            # properties.get('coverage_interval') == "offsets")
             try:
                 ncdim = g["variable_dimension_paths"][ncvar][-1]
             except IndexError:
@@ -290,7 +293,7 @@ class NetCDFReadUncertainty:
         return uncertainty
 
     def _create_uncertainty_ancillary(
-            self, ncvar, trailing_dimensions=False, data=None
+            self, ncvar, dual_dimensions=False, data=None
     ):
         """Create an uncertainty ancillary construct.
         
@@ -304,9 +307,9 @@ class NetCDFReadUncertainty:
                 is inferred from an attribute, such as
                 ``error_correlation``).
 
-            trailing_dimensions: `bool`, optional
-                True if the uncertainty ancillary construct has extra
-                trailing dimensions.
+            dual_dimensions: `bool`, optional
+                True if the uncertainty ancillary construct has
+                trailing dual dimensions.
 
             data: optional
                 Provide the data array. If `None` then the array is
@@ -321,7 +324,7 @@ class NetCDFReadUncertainty:
         
         # Create an empty uncertainty construct
         unc_anc = self.implementation.initialise_UncertaintyAncillary(
-            trailing_dimensions=bool(trailing_dimensions)
+            dual_dimensions=bool(dual_dimensions)
         )
 
         if ncvar is not None:
@@ -335,7 +338,7 @@ class NetCDFReadUncertainty:
             if not self.read_vars["mask"]:
                 self._set_default_FillValue(field_ancillary, ncvar)
 
-            if trailing_dimensions:
+            if dual_dimensions:
                 # Set the netCDF trailing dimension name
                 try:
                     ncdim = g["variable_dimension_paths"][ncvar][-1]
@@ -346,10 +349,13 @@ class NetCDFReadUncertainty:
 
         if data is not None:
             # Create data from the given value
+            units = data[1]
             data = self.implementation.initialise_Data(
-                array=data, copy=False
+                array=data[0], units=units, copy=False
             )
-            unc_anc.nc_set_data_in_attribute(True)             
+            if units is not None:
+                unc_anc.set_property('units', units)
+#            unc_anc.nc_set_data_in_attribute(True)             
         elif ncvar is not None:
             # Create data from the variable in the dataset
             data = self._create_data(ncvar, unc_anc)
@@ -479,7 +485,10 @@ class NetCDFReadUncertainty:
           'error_correlation_structure': 'triangular',
           'comment': '',
           'parameters': {}}]
-        >>> _parse_error_correlation('lon: triangular (e_folding_length: var localization_radius: 10 comment: info 2), time: z: (info 3)')
+        >>> _parse_error_correlation(
+        ...     'lon: triangular (e_folding_length: var localization_radius: 10 comment: info 2) '
+        ...     'time: z: (info 3))'
+        ... )
         [{'dimensions': ['lon],
           'error_correlation_variable': None,
           'error_correlation_structure': 'triangular',
@@ -491,6 +500,14 @@ class NetCDFReadUncertainty:
           'error_correlation_structure': None,
           'comment': 'info 3',
           'parameters': {}}]
+        >>> _parse_error_correlation(
+        ...    'lon: triangular (e_folding_length: 10 m s-1)'
+        ... )
+        [{'dimensions': ['lon],
+          'error_correlation_variable': None,
+          'error_correlation_structure': 'triangular',
+          'comment': '',
+          'parameters': {'e_folding_length': '10 m s-1'}]
 
         """
         import re
@@ -609,8 +626,14 @@ class NetCDFReadUncertainty:
                     element = deepcopy(empty)
                 else:
                     # A parameter value
-                    if x not in g["variables"] and re.match("^\d+$", x):
-                        x = int(x)
+                    if x not in g["variables"]:
+                        x = x.split(maxsplit=1)
+                        if x[0].isdigit():
+                            x[0] = int(x[0])
+
+                        if len(x) ==1 :
+                            # Append None units
+                            x.append(None)
 
                     previous = "parameter value"
 

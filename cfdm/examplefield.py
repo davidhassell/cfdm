@@ -5861,7 +5861,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
-        c.set_trailing_dimensions(True)
+        c.set_dual_dimensions(True)
         c.nc_set_variable("correlation_latlon")
         data = Data(
             [
@@ -6218,7 +6218,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
-        c.set_trailing_dimensions(True)
+        c.set_dual_dimensions(True)
         c.nc_set_variable("correlation_lat")
         data = Data(
             [
@@ -6239,7 +6239,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
-        c.set_trailing_dimensions(True)
+        c.set_dual_dimensions(True)
         c.nc_set_variable("correlation_lon")
         data = Data(
             [
@@ -6263,7 +6263,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
-        c.set_trailing_dimensions(False)
+        c.set_dual_dimensions(False)
         c.nc_set_variable("localisation_radius")
         data = Data(10, dtype="i4")
         c.set_data(data)
@@ -6271,7 +6271,7 @@ def example_field(n, _implementation=_implementation):
 
         # uncertainty_ancillary
         c = UncertaintyAncillary()
-        c.set_trailing_dimensions(True)
+        c.set_dual_dimensions(True)
         c.parameterisation.set_parameter(
             "error_correlation_structure", "triangular"
         )

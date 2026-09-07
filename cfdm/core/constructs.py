@@ -58,32 +58,32 @@ class Constructs(abstract.Container):
                 The base name for keys of auxiliary coordinate
                 constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``auxiliary_coordinate='auxiliarycoordinate'``
 
             dimension_coordinate: `str`, optional
                 The base name for keys of dimension coordinate
                 constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``dimension_coordinate='dimensioncoordinate'``
 
             domain_ancillary: `str`, optional
                 The base name for keys of domain ancillary constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``domain_ancillary='domainancillary'``
 
             field_ancillary: `str`, optional
                 The base name for keys of field ancillary constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``field_ancillary='fieldancillary'``
 
             uncertainty: `str`, optional
                 The base name for keys of uncertainty constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``uncertainty='uncertainty'``
 
                 .. versionadded:: (cfdm) NEXTVERSION
@@ -92,7 +92,7 @@ class Constructs(abstract.Container):
                 The base name for keys of uncertainty ancillary
                 constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``uncertainty_ancillary='uncertaintyancillary'``
 
                 .. versionadded:: (cfdm) NEXTVERSION
@@ -100,26 +100,26 @@ class Constructs(abstract.Container):
             cell_measure: `str`, optional
                 The base name for keys of cell measure constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``cell_measure='cellmeasure'``
 
             coordinate_reference: `str`, optional
                 The base name for keys of coordinate reference
                 constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``coordinate_reference='coordinatereference'``
 
             domain_axis: `str`, optional
                 The base name for keys of domain axis constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``domain_axis='domainaxis'``
 
             domain_topology: `str`, optional
                 The base name for keys of domain topology constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``'domaintopology'``
 
                 .. versionadded:: (cfdm) 1.11.0.0
@@ -128,7 +128,7 @@ class Constructs(abstract.Container):
                 The base name for keys of cell connectivity
                 constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``'cellconnectivity'``
 
                 .. versionadded:: (cfdm) 1.11.0.0
@@ -136,7 +136,7 @@ class Constructs(abstract.Container):
             cell_method: `str`, optional
                 The base name for keys of cell method constructs.
 
-                *Parameter example:*
+                *Example:*
                   ``cell_method='cellmethod'``
 
             {{init source: optional}}
@@ -149,7 +149,7 @@ class Constructs(abstract.Container):
             _ignore: sequence of `str`, optional
                 Ignores the given construct types.
 
-                *Parameter example:*
+                *Example:*
                   ``_ignore=('cell_method', 'field_ancillary')``
 
         """
@@ -416,7 +416,7 @@ class Constructs(abstract.Container):
             ignore: sequence of `str`, optional
                 Return a view that ignores the given construct types.
 
-                *Parameter example:*
+                *Example:*
                   ``ignore=('cell_method', 'field_ancillary')``
 
         :Returns:
@@ -492,7 +492,7 @@ class Constructs(abstract.Container):
             key: `str`
                 The key of the construct to be removed.
 
-                *Parameter example:*
+                *Example:*
                   ``key='auxiliarycoordinate0'``
 
             default: optional
@@ -596,7 +596,7 @@ class Constructs(abstract.Container):
                 created automatically. If the identifier already
                 exists then the existing construct will be replaced.
 
-                *Parameter example:*
+                *Example:*
                   ``key='cellmeasure0'``
 
             axes: (sequence of) `str`, optional
@@ -609,13 +609,13 @@ class Constructs(abstract.Container):
                 The axes may also be set afterwards with the
                 `_set_construct_data_axes` method.
 
-                *Parameter example:*
+                *Example:*
                   ``axes='domainaxis1'``
 
-                *Parameter example:*
+                *Example:*
                   ``axes=['domainaxis1']``
 
-                *Parameter example:*
+                *Example:*
                   ``axes=('domainaxis1', 'domainaxis0')``
 
             copy: `bool`, optional
@@ -705,7 +705,7 @@ class Constructs(abstract.Container):
             key: `str`, optional
                 The construct identifier of metadata construct.
 
-                *Parameter example:*
+                *Example:*
                   ``key='cellmeasure0'``
 
             axes: (sequence of) `str`
@@ -714,13 +714,13 @@ class Constructs(abstract.Container):
                 raised if used for a metadata construct that can not
                 have a data array, such as a domain axis construct.
 
-                *Parameter example:*
+                *Example:*
                   ``axes='domainaxis1'``
 
-                *Parameter example:*
+                *Example:*
                   ``axes=['domainaxis1']``
 
-                *Parameter example:*
+                *Example:*
                   ``axes=['domainaxis1', 'domainaxis0']``
 
         :Returns:
@@ -1198,7 +1198,7 @@ class Constructs(abstract.Container):
             key: `str`
                 Specify a metadata construct.
 
-                *Parameter example:*
+                *Example:*
                   ``key='auxiliarycoordinate0'``
 
             default: optional
@@ -1291,7 +1291,7 @@ class Constructs(abstract.Container):
                 The construct type for which the identifier is being
                 created.
 
-                *Parameter example:*
+                *Example:*
                   ``construct_type='dimension_coordinate'``
 
         :Returns:

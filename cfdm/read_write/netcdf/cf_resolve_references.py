@@ -700,31 +700,43 @@ def resolve_pattern_8(value, variable, coord=False):
             # Form 1, 2, 3
             ref = resolve_reference(ref[:-1], variable, dim=True)
             resolved.append(f"{ref}:")
-            previous_ref = "axis"
+            previous_ref = "dimension"
             continue
 
-        if previous_ref == "axis":
+        if previous_ref == "dimension":
             if ref.startswith("(") and ref.endswith(")"):
                 # Form 3
                 resolved.append(ref)
                 previous_ref = "brackets"
                 continue
 
-            # Form 1, 2
             ref = resolve_reference(ref, variable, var=True, coord=coord)
             resolved.append(ref)
-            previous_ref = "variable"
-            continue
+            if ref in variable.root.all_variables: 
+                # Form 1
+                previous_ref = "variable"
+                continue
+            else:
+                # Form 2
+                previous_ref = "structure"
+                continue
 
-        if previous_ref == "variable":
-            # Form 1, 2
+        if previous_ref in ("variable", "structure"):
             if ref.startswith("(") and ref.endswith(")"):
-                if not ref.startswith("(comment:"):
+                if previous_ref == "structure":
+                    # Form 2
+                    #
+                    # E.g.
+                    # "(key1: 30 m s-2 key2: ncvar comment: some text)" -> 
+                    # "(key1: 30 m s-2 key2: /ncvar comment: some text)"
                     ref = re.sub(
-                        r"([^\s:]+):\s+([^\s\)]+)", replacer, value[1:-1]
+                        r"([^\s:]+):\s+(.*?)(?=\s+[^\s:]+:|$)",
+                        replacer,
+                        value[1:-1]
                     )
                     ref = f"({ref})"
 
+                # Form 1, 2
                 resolved.append(ref)
                 previous_ref = "brackets"
                 continue

@@ -1293,6 +1293,7 @@ class NetCDFRead(
             "dimension_coordinate": self.implementation.get_dimension_coordinates,
             "domain_ancillary": self.implementation.get_domain_ancillaries,
             "field_ancillary": self.implementation.get_field_ancillaries,
+            "uncertainty": self.implementation.get_uncertainties,
             "uncertainty_ancillary": self.implementation.get_uncertainty_ancillaries,
         }
 
@@ -4577,7 +4578,7 @@ class NetCDFRead(
                     self._reference(anc_ncvar, field_ncvar)
 
         # ------------------------------------------------------------
-        # Add uncertainty constructs to the field
+        # Add uncertainty constructs to the field (CF>=1.15)
         # ------------------------------------------------------------
         if field and g["CF>=1.15"]:
             uncertainty_variables = self.implementation.del_property(
@@ -7143,7 +7144,7 @@ class NetCDFRead(
                 if ncvar not in c.get("netCDF_variables", (ncvar,)):
                     # This variable is not compressed, even though it
                     # spans a dimension that is compressed for some
-                    # other variables For example, this sort of
+                    # other variables. For example, this sort of
                     # situation may arise with simple geometries.
                     continue
 

@@ -61,7 +61,7 @@ class UncertaintyAncillary(PropertiesData):
         properties=None,
         data=None,
         parameterisation=None,
-        trailing_dimensions=None,
+        dual_dimensions=None,
         source=None,
         copy=True,
         _use_data=True,
@@ -85,7 +85,7 @@ class UncertaintyAncillary(PropertiesData):
             parameterisation: `UncertaintyAncillaryParameterisation`, optional
                 TODOU
 
-            trailing_dimensions: `bool` or `None`, optional
+            dual_dimensions: `bool` or `None`, optional
                 TODOU
 
             {{init source: optional}}
@@ -108,15 +108,15 @@ class UncertaintyAncillary(PropertiesData):
                 parameterisation = None
 
             try:
-                trailing_dimensions = source.has_trailing_dimensions()
+                dual_dimensions = source.has_dual_dimensions()
             except AttributeError:
-                trailing_dimensions = None
+                dual_dimensions = None
 
         if parameterisation is not None:
             self.set_parameterisation(parameterisation, copy=copy)
 
-        if trailing_dimensions is not None:
-            self.set_trailing_dimensions(trailing_dimensions)
+        if dual_dimensions is not None:
+            self.set_dual_dimensions(dual_dimensions)
 
     @property
     def parameterisation(self):
@@ -212,7 +212,7 @@ class UncertaintyAncillary(PropertiesData):
 
         """
         shape = super().shape
-        if self.has_trailing_dimensions():
+        if self.has_dual_dimensions():
             shape = shape[: len(shape) // 2]
 
         return shape
@@ -279,12 +279,12 @@ class UncertaintyAncillary(PropertiesData):
 
         return out
 
-    def has_trailing_dimensions(self):
+    def has_dual_dimensions(self):
         """TODOU.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `set_trailing_dimensions`
+        .. seealso:: `set_dual_dimensions`
 
         :Returns:
 
@@ -292,11 +292,11 @@ class UncertaintyAncillary(PropertiesData):
                 TODOU
 
         """
-        out = self._get_component("trailing_dimensions", None)
+        out = self._get_component("dual_dimensions", None)
         if out is None:
             raise AttributeError(
                 f"{self.__class__.__name__} must specify whether or not "
-                "it has trailing dimensions"
+                "it has trailing dual dimensions"
             )
 
         return out
@@ -345,16 +345,16 @@ class UncertaintyAncillary(PropertiesData):
 
         self._set_component("parameterisation", parameterisation, copy=False)
 
-    def set_trailing_dimensions(self, trailing_dimensions):
+    def set_dual_dimensions(self, dual_dimensions):
         """TODOU.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
-        .. seealso:: `has_trailing_dimensions`
+        .. seealso:: `has_dual_dimensions`
 
         :Parameters:
 
-            trailing_dimensions: `bool`
+            dual_dimensions: `bool`
                 TODOU
 
         :Returns:
@@ -363,5 +363,5 @@ class UncertaintyAncillary(PropertiesData):
 
         """
         self._set_component(
-            "trailing_dimensions", bool(trailing_dimensions), copy=False
+            "dual_dimensions", bool(dual_dimensions), copy=False
         )

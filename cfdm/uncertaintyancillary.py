@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class UncertaintyAncillary(
     mixin.QuantizationMixin,
-    mixin.NetCDFDataInAttribute,
+#    mixin.NetCDFDataInAttribute,
     mixin.NetCDFVariable,
     mixin.NetCDFDimension,
     mixin.PropertiesData,
@@ -64,30 +64,28 @@ class UncertaintyAncillary(
 
         f.__getitem__(indices) <==> f[indices]
 
-        For an error-correlation uncertainty ancillary, only indices
-        for the leading half of the data array dimensions may be
-        provided, and these are automatically propagated to the
-        trailing dimensions in such a way as as to guarantee that the
-        symmetrical structure of the data array is preserved in the
-        subspaced construct. For instance, if the construct shape is
-        ``(20, 30)`` and the data array shape is ``(20, 30, 20, 30)``,
-        then *indices* of ``(slice(2:5), [1, 3])`` will result in a
-        data array shape of ``(3, 2, 3, 2)``; and *indices* of ``0``
-        will result in a data array shape of ``(1, 30, 1, 30)`.
+        For uncertainty ancillary data with dual dimensions (the
+        trailing half of the dimensions), only indices for the primary
+        dimensions (the leading half of the dimensions) are provided,
+        and these are automatically copied to the dual dimensions,
+        thereby preserving the symmetrical structure of the data array
+        in the subspaced construct. For instance, if the construct
+        shape is ``(20, 30)`` and the data array shape is ``(20, 30,
+        20, 30)``, then *indices* of ``(slice(2:5), [1, 3])`` will
+        result in a data array shape of ``(3, 2, 3, 2)``; and
+        *indices* of ``0`` will result in a data array shape of ``(1,
+        30, 1, 30)`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
         """
-        # For an error-correlation uncertainty ancillary, the indices
-        # need to be propagated to the trailing dimensions of the data
-        # array.
         data = self.get_data(None, _units=False, _fill_value=False)
-        if data is not None and self.has_trailing_dimensions():
+        if data is not None and self.has_dual_dimensions():
+            # Propagate the indices to the dual dimensions
             indices = parse_indices(
                 self.shape, indices, keepdims=data.__keepdims_indexing__
             )
-            indices = tuple(indices)
-            indices *= 2
+            indices = tuple(indices) * 2
 
         return super().__getitem__(indices)
 
@@ -162,8 +160,8 @@ class UncertaintyAncillary(
 
         try:
             out.append(
-                f"{name}.set_trailing_dimensions"
-                f"({self.has_trailing_dimensions()})"
+                f"{name}.set_dual_dimensions"
+                f"({self.has_dual_dimensions()})"
             )
         except AttributeError:
             pass
@@ -504,16 +502,16 @@ class UncertaintyAncillary(
 
         Inserts a new size 1 axis into the data array.
 
-        For an error-correlation uncertainty ancillary, only a
-        poisiton in the leading half of the data array dimensions may
-        be provided, and this is automatically propagated to the
-        trailing dimensions in such a way as as to guarantee that the
-        symmetrical structure of the data array is preserved in the
-        construct. For instance, if the construct shape is ``(20,
-        30)`` and the data array shape is ``(20, 30, 20, 30)``, then
-        *position* of ``1`` will result in a data array shape of
-        ``(20, 1, 30, 20, 1, 30)``.
-
+        For uncertainty ancillary data with dual dimensions (the
+        trailing half of the dimensions), only a position in the
+        primary dimensions (the leading half of the dimensions) are
+        provided, and this is automatically copied to the dual
+        dimensions, thereby preserving the symmetrical structure of
+        the data array in the subspaced construct. For instance, if
+        the construct shape is ``(20, 30)`` and the data array shape
+        is ``(20, 30, 20, 30)``, then *position* of ``1`` will result
+        in a data array shape of ``(20, 1, 30, 20, 1, 30)``.
+        
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `squeeze`, `transpose`
@@ -552,9 +550,8 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        if self.has_data() and self.has_trailing_dimensions():
-            # An axis in the trailing dimensions also needs to be
-            # inserted
+        if self.has_data() and self.has_dual_dimensions():
+            # An axis in the dual dimensions also needs to be inserted
             try:
                 ndim = c.ndim
             except AttributeError:
@@ -625,10 +622,9 @@ class UncertaintyAncillary(
         if (
             axes is not None
             and self.has_data()
-            and self.has_trailing_dimensions()
+            and self.has_dual_dimensions()
         ):
-            # Axes in the trailing dimensions also need to be
-            # squeezed
+            # Axes in the dual dimensions also need to be squeezed
             try:
                 ndim = c.ndim
             except AttributeError:
@@ -657,15 +653,17 @@ class UncertaintyAncillary(
     def transpose(self, axes=None, inplace=False):
         """Permute the axes of the data array.
 
-        For an error-correlation uncertainty ancillary, only axes for
-        the leading half of the data array dimensions may be provided,
-        and these are automatically propagated to the trailing
-        dimensions in such a way as as to guarantee that the
-        symmetrical structure of the data array is preserved in the
-        tranposed construct. For instance, if the construct shape is
-        ``(20, 30)`` and the data array shape is ``(20, 30, 20, 30)``,
-        then *axes* of ``[1, 0]`` will result in a data array shape of
-        ``(30, 20, 30, 20)``.
+        For uncertainty ancillary data with dual dimensions (the
+        trailing half of the dimensions), only axes for the primary
+        dimensions (the leading half of the dimensions) are provided,
+        and these are automatically propagated to the dual dimensions
+        in a manner that preserves the symmetrical structure of the
+        data array in the subspaced construct. For instance, if the
+        construct shape is ``(20, 30)`` and the data array shape is
+        ``(20, 30, 20, 30)``, then *indices* of ``(slice(2:5), [1,
+        3])`` will result in a data array shape of ``(3, 2, 3, 2)``;
+        and *indices* of ``0`` will result in a data array shape of
+        ``(1, 30, 1, 30)`.
 
         .. versionadded:: (cfdm) NEXTVERSION
 
@@ -689,9 +687,8 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        if self.has_data() and self.has_trailing_dimensions():
-            # Axes in the trailing dimensions also need to be
-            # transposed
+        if self.has_data() and self.has_dual_dimensions():
+            # The dual dimensions also need to be transposed
             try:
                 ndim = c.ndim
             except AttributeError:
