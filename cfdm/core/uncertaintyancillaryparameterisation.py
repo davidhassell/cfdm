@@ -58,7 +58,6 @@ class UncertaintyAncillaryParameterisation(ParametersAncillaries):
         super().__init__(
             parameters=parameters,
             ancillaries=uncertainty_ancillaries,
-            multiple_ancillaries=False,
             source=source,
             copy=copy,
         )

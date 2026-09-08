@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from .parameters import Parameters
 
 
@@ -15,7 +17,7 @@ class ParametersAncillaries(Parameters):
         self,
         parameters=None,
         ancillaries=None,
-        multiple_ancillaries=False,
+#        multiple_ancillaries=False,
         source=None,
         copy=True,
     ):
@@ -44,6 +46,9 @@ class ParametersAncillaries(Parameters):
                *Example:*
                  ``ancillaries={'orog': 'domainancillary2'}``
 
+               *Example:*
+                 ``ancillaries={'TODOU': ('TODO, TODU)'}``
+
             multiple_ancillaries: `bool`, optional
 
                 TODOU
@@ -64,16 +69,13 @@ class ParametersAncillaries(Parameters):
             except AttributeError:
                 ancillaries = None
 
-            try:
-                multiple_ancillaries = source.get_multiple_ancillaries()
-            except AttributeError:
-                multiple_ancillaries = False
+#            try:
+#                multiple_ancillaries = source.get_multiple_ancillaries()
+#            except AttributeError:
+#                multiple_ancillaries = False
 
-        if ancillaries is None:
-            ancillaries = {}
-
-        self.set_multiple_ancillaries(multiple_ancillaries)
-        self.set_ancillaries(ancillaries)
+        if ancillaries is not None:
+            self.set_ancillaries(ancillaries)
 
     def clear_ancillaries(self):
         """Remove all ancillaries.
@@ -125,12 +127,12 @@ class ParametersAncillaries(Parameters):
             if default is None:
                 return
 
-            s = "s" if self.get_multiple_ancillaries() else ""
+#            s = "s" if self.get_multiple_ancillaries() else ""
 
             return self._default(
                 default,
                 f"{self.__class__.__name__!r} has no {term!r} "
-                f"ancillary construct{s}",
+                f"ancillary constructs",
             )
 
     def ancillaries(self):
@@ -178,30 +180,30 @@ class ParametersAncillaries(Parameters):
             if default is None:
                 return
 
-            s = "s" if self.get_multiple_ancillaries() else ""
+#            s = "s" if self.get_multiple_ancillaries() else ""
 
             return self._default(
                 default,
                 f"{self.__class__.__name__!r} has no {term!r} "
-                f"ancillary construct{s}",
+                f"ancillary constructs",
             )
 
-    def get_multiple_ancillaries(self):
-        """TODOU.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Returns:
-
-            `bool`
-                TODOU
-
-        **Examples**
-
-        >>> TODOU
-
-        """
-        return self._get_component("multiple_ancillaries")
+    #def get_multiple_ancillaries(self):
+    #    """TODOU.
+    #
+    #    .. versionadded:: (cfdm) NEXTVERSION
+    #
+    #    :Returns:
+    #
+    #        `bool`
+    #            TODOU
+    #
+    #    **Examples**
+    #
+    #    >>> TODOU
+    #
+    #    """
+    #    return self._get_component("multiple_ancillaries")
 
     def has_ancillary(self, term):
         """Whether an ancillary construct-valued term has been set.
@@ -241,13 +243,13 @@ class ParametersAncillaries(Parameters):
             `None`
 
         """
-        if self.get_multiple_ancillaries():
-            ancillaries = {
-                key: (
-                    tuple([value]) if isinstance(value, str) else tuple(value)
-                )
-                for key, value in ancillaries.items()
-            }
+#        if self.get_multiple_ancillaries():
+        ancillaries = {
+            key: (
+                tuple([value]) if isinstance(value, str) else tuple(value)
+            )
+            for key, value in ancillaries.items()
+        }
 
         self._get_component("ancillaries").update(ancillaries)
 
@@ -264,36 +266,38 @@ class ParametersAncillaries(Parameters):
                 The name of the term to be set.
 
             ancillary: (sequence of) `str`
-                The ancillary keys for the term.
+                The ancillary identifiers for the term. When there is
+                only one identifier it may be provided as a string or
+                a single-element sequence.
 
         :Returns:
 
             `None`
-
+        
         """
-        if self._get_component("multiple_ancillaries"):
-            if isinstance(ancillary, str):
-                ancillary = tuple([ancillary])
-            else:
-                ancillary = tuple(ancillary)
-
+#        if self._get_component("multiple_ancillaries"):
+        if isinstance(ancillary, str):
+            ancillary = tuple([ancillary])
+        else:
+            ancillary = tuple(ancillary)
+            
         self._get_component("ancillaries")[term] = ancillary
 
-    def set_multiple_ancillaries(self, multiple_ancillaries):
-        """TODOU.
-
-        .. versionadded:: (cfdm) NEXTVERSION
-
-        :Parameters:
-
-            multiple_ancillaries: `bool`
-                TODOU
-
-        :Returns:
-
-            `None`
-
-        """
-        return self._set_component(
-            "multiple_ancillaries", bool(multiple_ancillaries), copy=False
-        )
+#    def set_multiple_ancillaries(self, multiple_ancillaries):
+#        """TODOU.
+#
+#        .. versionadded:: (cfdm) NEXTVERSION
+#
+#        :Parameters:
+#
+#            multiple_ancillaries: `bool`
+#                TODOU
+#
+#        :Returns:
+#
+#            `None`
+#
+#        """
+#        return self._set_component(
+#            "multiple_ancillaries", bool(multiple_ancillaries), copy=False
+#        )

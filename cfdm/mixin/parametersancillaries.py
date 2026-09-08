@@ -84,10 +84,10 @@ class ParametersAncillaries(Parameters):
             header=header,
         )
 
-        out.append(
-            f"{name}.set_multiple_ancillaries"
-            f"({self.get_multiple_ancillaries()})"
-        )
+#        out.append(
+#            f"{name}.set_multiple_ancillaries"
+#            f"({self.get_multiple_ancillaries()})"
+#        )
 
         ancillaries = self.ancillaries()
         if ancillaries:

@@ -48,11 +48,12 @@ class UncertaintyAncillaryParameterisation(
         if _construct_names is None:
             _construct_names = {}
 
-        for term, key in sorted(self.ancillaries().items()):
-            construct_name = _construct_names.get(key, f"key:{key}")
-            out.append(
-                f"{indent1}{_prefix}{term} = "
-                f"Uncertainty ancillary: {construct_name}"
-            )
+        for term, keys in sorted(self.ancillaries().items()):
+            for key in keys:
+                construct_name = _construct_names.get(key, f"key:{key}")
+                out.append(
+                    f"{indent1}{_prefix}{term} = "
+                    f"Uncertainty ancillary: {construct_name}"
+                )
 
         return "\n".join(out)

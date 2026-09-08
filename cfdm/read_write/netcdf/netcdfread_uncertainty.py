@@ -115,6 +115,14 @@ class NetCDFReadUncertainty:
                     # attribute, the domain axes for the
                     # error-correlation uncertainty ancillary
                     # construct
+                    #
+                    # E.g. element = {
+                    #   'dimensions': ['/lat'],
+                    #   'error_correlation_variable': '/varname',
+                    #   'error_correlation_structure': None,
+                    #   'comment': 'info',
+                    #   'parameters': {}
+                    # }
                     axes = [
                         ncdim_to_axis[ncdim]
                         for ncdim in element["dimensions"]
@@ -142,6 +150,13 @@ class NetCDFReadUncertainty:
                             )
                             g["uncertainty_ancillary"][ecp_ncvar] = unc_anc
 
+                        # Store a comment in the parameterisation
+                        comment = element["comment"]
+                        if comment:
+                            unc_anc.parameterisation.set_parameter(
+                                "comment", comment
+                            )
+                                
                         # Insert the uncertainty ancillary
                         logger.detail(
                             f"        [p] Inserting {unc_anc!r}"
@@ -157,16 +172,27 @@ class NetCDFReadUncertainty:
                     # Still here? Then create an error-correlation
                     # uncertainty ancillary construct without a
                     # corresponding CF error-correlation variable.
+                    #
+                    # E.g. element = {
+                    #   'dimensions': ['/lon],
+                    #   'error_correlation_variable': None,
+                    #   'error_correlation_structure': 'triangular',
+                    #   'comment': 'info 2',
+                    #   'parameters': {'e_folding_length': 'var',
+                    #                  'localization_radius': [10, 'km']}
+                    # }
                     unc_anc = (
                         self.implementation.initialise_UncertaintyAncillary(
                             dual_dimensions=True
                         )
                     )
+                    
+                    # Store a comment in the parameterisation
                     comment = element["comment"]
                     if comment:
-                        # Store the comment as a property of the
-                        # uncertainty ancillary construct
-                        unc_anc.set_property("comment")
+                        unc_anc.parameterisation.set_parameter(
+                            "comment", comment
+                        )
 
                     error_correlation_structure = element[
                         "error_correlation_structure"
@@ -198,9 +224,10 @@ class NetCDFReadUncertainty:
                             # The error-correlation parameter is
                             # defined by an integer (possibly with
                             # units) originating from the
-                            # "error_correlation" attribute,
-                            # i.e. there is no CF error-correlation
-                            # parameter variable in the dataset.
+                            # "error_correlation" attribute, e.g. [10,
+                            # 'km']. I.e. there is no CF
+                            # error-correlation parameter variable in
+                            # the dataset.
                             ecp_ncvar = None
                             ecp_axes = ()
                         else:
@@ -309,11 +336,14 @@ class NetCDFReadUncertainty:
 
             dual_dimensions: `bool`, optional
                 True if the uncertainty ancillary construct has
-                trailing dual dimensions.
+                trailing dual dimensions (such as an error-correlation
+                variable). False by default.
 
-            data: optional
-                Provide the data array. If `None` then the array is
-                taken from the variable in the dataset.
+            data: `list` or `None`, optional
+                Provide the scalar data array and it's units
+                (e.g. ``[10, 'km']``, ``[10, None]``. If `None` (the
+                default) then the array is taken from the variable in
+                the dataset.
         
         :Returns:
 
@@ -328,7 +358,7 @@ class NetCDFReadUncertainty:
         )
 
         if ncvar is not None:
-            # Insert properties
+            # There is a netCDF variable
             self.implementation.set_properties(
                 unc_anc,
                 g["variables"][ncvar].attrs,
@@ -336,7 +366,16 @@ class NetCDFReadUncertainty:
             )
             
             if not self.read_vars["mask"]:
-                self._set_default_FillValue(field_ancillary, ncvar)
+                self._set_default_FillValue(unc_anc, ncvar)
+
+            # Create data from the variable in the dataset
+            data = self._create_data(ncvar, unc_anc)
+
+            # Store the netCDF variable name
+            self.implementation.nc_set_variable(unc_anc, ncvar)
+                        
+            # Set quantization metadata
+            self._set_quantization(unc_anc, ncvar)
 
             if dual_dimensions:
                 # Set the netCDF trailing dimension name
@@ -347,21 +386,19 @@ class NetCDFReadUncertainty:
                 else:
                     unc_anc.nc_set_dimension(ncdim)
 
-        if data is not None:
-            # Create data from the given value
+        elif data is not None:
+            # There is no netCDF variable, so create data from the
+            # given value.
             units = data[1]
             data = self.implementation.initialise_Data(
                 array=data[0], units=units, copy=False
             )
             if units is not None:
                 unc_anc.set_property('units', units)
-#            unc_anc.nc_set_data_in_attribute(True)             
-        elif ncvar is not None:
-            # Create data from the variable in the dataset
-            data = self._create_data(ncvar, unc_anc)
 
         # Insert data
-        self.implementation.set_data(unc_anc, data, copy=False)
+        if data is not None:
+            self.implementation.set_data(unc_anc, data, copy=False)
 
         # Store the original file names
         self.implementation.set_original_filenames(
@@ -469,18 +506,18 @@ class NetCDFReadUncertainty:
         >>> _parse_error_correlation('')
         []
         >>> _parse_error_correlation('lat: lon: varname')
-        [{'dimensions': ['lat, 'lon'],
+        [{'dimensions': ['lat', 'lon'],
           'error_correlation_variable': 'varname',
           'error_correlation_structure': None,
           'comment': '',
           'parameters': {}}]
         >>> _parse_error_correlation('lat: varname (info 1) lon: triangular')
-        [{'dimensions': ['lat],
+        [{'dimensions': ['lat'],
           'error_correlation_variable': 'varname',
           'error_correlation_structure': None,
           'comment': 'info 1',
           'parameters': {}},
-         {'dimensions': ['lon],
+         {'dimensions': ['lon'],
           'error_correlation_variable': None,
           'error_correlation_structure': 'triangular',
           'comment': '',
@@ -489,7 +526,7 @@ class NetCDFReadUncertainty:
         ...     'lon: triangular (e_folding_length: var localization_radius: 10 comment: info 2) '
         ...     'time: z: (info 3))'
         ... )
-        [{'dimensions': ['lon],
+        [{'dimensions': ['lon'],
           'error_correlation_variable': None,
           'error_correlation_structure': 'triangular',
           'comment': 'info 2',
@@ -503,7 +540,7 @@ class NetCDFReadUncertainty:
         >>> _parse_error_correlation(
         ...    'lon: triangular (e_folding_length: 10 m s-1)'
         ... )
-        [{'dimensions': ['lon],
+        [{'dimensions': ['lon'],
           'error_correlation_variable': None,
           'error_correlation_structure': 'triangular',
           'comment': '',
