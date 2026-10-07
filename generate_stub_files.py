@@ -20,6 +20,7 @@ OUT_DIR = SOURCE_DIR.parent
 
 
 def generate_stub_files(rst_path: Path):
+    """Generate method and attribute stubs for sphinx."""
     content = rst_path.read_text(encoding="utf-8")
 
     # Regular expression to match rubric sections and their
