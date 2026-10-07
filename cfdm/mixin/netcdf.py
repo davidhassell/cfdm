@@ -6003,7 +6003,7 @@ class NetCDFConnectivityDimension(NetCDFMixin, NetCDFGroupsMixin):
         )
 
 
-#class NetCDFDataInAttribute(NetCDFMixin):
+# class NetCDFDataInAttribute(NetCDFMixin):
 #    """Mixin class for accessing the nTODOUetCDF dimension name.
 #
 #    .. versionadded:: (cfdm) NEXTVERSION

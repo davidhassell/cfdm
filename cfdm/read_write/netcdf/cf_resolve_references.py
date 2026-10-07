@@ -712,7 +712,7 @@ def resolve_pattern_8(value, variable, coord=False):
 
             ref = resolve_reference(ref, variable, var=True, coord=coord)
             resolved.append(ref)
-            if ref in variable.root.all_variables: 
+            if ref in variable.root.all_variables:
                 # Form 1
                 previous_ref = "variable"
                 continue
@@ -727,12 +727,12 @@ def resolve_pattern_8(value, variable, coord=False):
                     # Form 2
                     #
                     # E.g.
-                    # "(key1: 30 m s-2 key2: ncvar comment: some text)" -> 
+                    # "(key1: 30 m s-2 key2: ncvar comment: some text)" ->
                     # "(key1: 30 m s-2 key2: /ncvar comment: some text)"
                     ref = re.sub(
                         r"([^\s:]+):\s+(.*?)(?=\s+[^\s:]+:|$)",
                         replacer,
-                        value[1:-1]
+                        value[1:-1],
                     )
                     ref = f"({ref})"
 

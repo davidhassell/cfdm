@@ -64,7 +64,7 @@ class ProbabilityDistribution(ParametersAncillaries):
         super().__init__(
             parameters=parameters,
             ancillaries=uncertainty_ancillaries,
-#            multiple_ancillaries=True,
+            #            multiple_ancillaries=True,
             source=source,
             copy=copy,
         )

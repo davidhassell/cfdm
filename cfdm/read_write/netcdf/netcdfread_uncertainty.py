@@ -156,7 +156,7 @@ class NetCDFReadUncertainty:
                             unc_anc.parameterisation.set_parameter(
                                 "comment", comment
                             )
-                                
+
                         # Insert the uncertainty ancillary
                         logger.detail(
                             f"        [p] Inserting {unc_anc!r}"
@@ -186,7 +186,7 @@ class NetCDFReadUncertainty:
                             dual_dimensions=True
                         )
                     )
-                    
+
                     # Store a comment in the parameterisation
                     comment = element["comment"]
                     if comment:
@@ -297,9 +297,9 @@ class NetCDFReadUncertainty:
 
         # Store the netCDF interval dimension name (if there is one)
         unc_ncdims = self._ncdimension(ncvar)
-        field_ncdims =  self._ncdimension(field_ncvar)
+        field_ncdims = self._ncdimension(field_ncvar)
         if unc_ncdims and unc_ncdims[-1] not in field_ncdims:
-            # interval_dimension = 
+            # interval_dimension =
             # properties.get('coverage_interval') == "offsets")
             try:
                 ncdim = g["variable_dimension_paths"][ncvar][-1]
@@ -320,10 +320,10 @@ class NetCDFReadUncertainty:
         return uncertainty
 
     def _create_uncertainty_ancillary(
-            self, ncvar, dual_dimensions=False, data=None
+        self, ncvar, dual_dimensions=False, data=None
     ):
         """Create an uncertainty ancillary construct.
-        
+
         .. versionadded:: (cfdm) NEXTVERSION
 
         :Parameters:
@@ -344,14 +344,14 @@ class NetCDFReadUncertainty:
                 (e.g. ``[10, 'km']``, ``[10, None]``. If `None` (the
                 default) then the array is taken from the variable in
                 the dataset.
-        
+
         :Returns:
 
             `UncertaintyAncillary`
 
         """
-        g = self.read_vars        
-        
+        g = self.read_vars
+
         # Create an empty uncertainty construct
         unc_anc = self.implementation.initialise_UncertaintyAncillary(
             dual_dimensions=bool(dual_dimensions)
@@ -364,7 +364,7 @@ class NetCDFReadUncertainty:
                 g["variables"][ncvar].attrs,
                 copy=True,
             )
-            
+
             if not self.read_vars["mask"]:
                 self._set_default_FillValue(unc_anc, ncvar)
 
@@ -373,7 +373,7 @@ class NetCDFReadUncertainty:
 
             # Store the netCDF variable name
             self.implementation.nc_set_variable(unc_anc, ncvar)
-                        
+
             # Set quantization metadata
             self._set_quantization(unc_anc, ncvar)
 
@@ -394,7 +394,7 @@ class NetCDFReadUncertainty:
                 array=data[0], units=units, copy=False
             )
             if units is not None:
-                unc_anc.set_property('units', units)
+                unc_anc.set_property("units", units)
 
         # Insert data
         if data is not None:
@@ -433,6 +433,8 @@ class NetCDFReadUncertainty:
          'parameters': {'skew: 'varname'}}
 
         """
+        from copy import deepcopy
+
         # ------------------------------------------------------------
         # Split the probability_distribution string into a list of
         # strings ready for parsing. For example:
@@ -500,6 +502,8 @@ class NetCDFReadUncertainty:
         :Returns:
 
             `list` of `dict`
+                Each ditionary encapsulates an error-correlation
+                uncertainty ancillary construct.
 
         **Examples**
 
@@ -547,7 +551,7 @@ class NetCDFReadUncertainty:
           'parameters': {'e_folding_length': '10 m s-1'}]
 
         """
-        import re
+        from copy import deepcopy
 
         g = self.read_vars
 
@@ -555,8 +559,8 @@ class NetCDFReadUncertainty:
         # Split the probability_distribution string into a list of
         # strings ready for parsing. For example:
         #
-        #   'lat: lon: varname (comment)' would be split up into:
-        #   ['lat:', 'lon:', 'varname', '(', 'comment', ')']
+        #   'lat: lon: varname (comment text)' would be split up into:
+        #   ['lat:', 'lon:', 'varname', '(', 'comment', 'text', ')']
         # ------------------------------------------------------------
         error_correlation = self._split_by_space_and_round_brackets(
             error_correlation
@@ -585,27 +589,27 @@ class NetCDFReadUncertainty:
                 # Store a dimension
                 element["dimensions"].append(x[:-1])
                 previous = "dimension"
+                form = None
                 continue
 
             if previous == "dimension" and not x.endswith(":"):
                 if x == "(":
                     form = 3
                     previous = "("
+                elif x in g["variables"]:
+                    # An error-correlation variable name
+                    form = 1
+                    element["error_correlation_variable"] = x
+                    previous = "variable"
                 else:
-                    if x in g["variables"]:
-                        # An error-correlation variable name
-                        form = 1
-                        element["error_correlation_variable"] = x
-                    else:
-                        # An error-correlation structure name
-                        form = 2
-                        element["error_correlation_structure"] = x
-
-                    previous = "name"
+                    # An error-correlation structure name
+                    form = 2
+                    element["error_correlation_structure"] = x
+                    previous = "structural_type"
 
                 continue
 
-            if previous == "name":
+            if previous in ("variable", "structural_type"):
                 if x == "(":
                     previous = "("
                     continue
@@ -620,23 +624,24 @@ class NetCDFReadUncertainty:
                     previous = "dimension"
                     continue
 
-            if previous == "(" and form in (1, 3):
-                if x == "comment:":
+            if previous == "(":
+                if form in (1, 3):
+                    if x == "comment:":
+                        previous = "comment"
+                        continue
+
+                    element["comment"].append(x)
                     previous = "comment"
                     continue
 
-                element["comment"].append(x)
-                previous = "comment"
-                continue
+                elif form == 2:
+                    if x == "comment:":
+                        previous = "comment"
+                    elif x.endswith(":"):
+                        parameter = x[:-1]
+                        previous = "parameter"
 
-            if previous == "(" and form == 2:
-                if x == "comment:":
-                    previous = "comment"
-                elif x.endswith(":"):
-                    parameter = x[:-1]
-                    previous = "parameter"
-
-                continue
+                    continue
 
             if previous == "comment":
                 if x == ")":
@@ -664,21 +669,23 @@ class NetCDFReadUncertainty:
                 else:
                     # A parameter value
                     if x not in g["variables"]:
+                        # x is not a vriable name, so it ought to be
+                        # an integer possibly followed by units
                         x = x.split(maxsplit=1)
                         if x[0].isdigit():
                             x[0] = int(x[0])
 
-                        if len(x) ==1 :
+                        if len(x) == 1:
                             # Append None units
                             x.append(None)
 
-                    previous = "parameter value"
+                    previous = "parameter_value"
 
                 element["parameters"][parameter] = x
                 parameter = None
                 continue
 
-            if previous == "parameter value":
+            if previous == "parameter_value":
                 if x == "comment:":
                     # A comment
                     previous = "comment"

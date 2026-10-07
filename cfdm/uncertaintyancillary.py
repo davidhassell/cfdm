@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class UncertaintyAncillary(
     mixin.QuantizationMixin,
-#    mixin.NetCDFDataInAttribute,
+    #    mixin.NetCDFDataInAttribute,
     mixin.NetCDFVariable,
     mixin.NetCDFDimension,
     mixin.PropertiesData,
@@ -160,8 +160,7 @@ class UncertaintyAncillary(
 
         try:
             out.append(
-                f"{name}.set_dual_dimensions"
-                f"({self.has_dual_dimensions()})"
+                f"{name}.set_dual_dimensions" f"({self.has_dual_dimensions()})"
             )
         except AttributeError:
             pass
@@ -327,6 +326,20 @@ class UncertaintyAncillary(
         False
 
         """
+
+        if not super().equals(
+            other,
+            rtol=rtol,
+            atol=atol,
+            verbose=verbose,
+            ignore_fill_value=ignore_fill_value,
+            ignore_data_type=ignore_data_type,
+            ignore_properties=ignore_properties,
+            ignore_compression=ignore_compression,
+            ignore_type=ignore_type,
+        ):
+            return False
+
         # Check the parameterisation (in the absence of domains)
         parameterisation0 = self.parameterisation
         parameterisation1 = other.parameterisation
@@ -341,19 +354,6 @@ class UncertaintyAncillary(
                 f"{self.__class__.__name__}: Different data parameterisations "
                 f"({parameterisation0!r} != {parameterisation1!r})"
             )  # pragma: no cover
-            return False
-
-        if not super().equals(
-            other,
-            rtol=rtol,
-            atol=atol,
-            verbose=verbose,
-            ignore_fill_value=ignore_fill_value,
-            ignore_data_type=ignore_data_type,
-            ignore_properties=ignore_properties,
-            ignore_compression=ignore_compression,
-            ignore_type=ignore_type,
-        ):
             return False
 
         # Still here? Then the two instances are as equal as can be
@@ -511,7 +511,7 @@ class UncertaintyAncillary(
         the construct shape is ``(20, 30)`` and the data array shape
         is ``(20, 30, 20, 30)``, then *position* of ``1`` will result
         in a data array shape of ``(20, 1, 30, 20, 1, 30)``.
-        
+
         .. versionadded:: (cfdm) NEXTVERSION
 
         .. seealso:: `squeeze`, `transpose`
@@ -619,11 +619,7 @@ class UncertaintyAncillary(
         """
         c = _inplace_enabled_define_and_cleanup(self)
 
-        if (
-            axes is not None
-            and self.has_data()
-            and self.has_dual_dimensions()
-        ):
+        if axes is not None and self.has_data() and self.has_dual_dimensions():
             # Axes in the dual dimensions also need to be squeezed
             try:
                 ndim = c.ndim

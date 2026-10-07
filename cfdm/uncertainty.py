@@ -269,23 +269,6 @@ class Uncertainty(
         False
 
         """
-        # Check the probability distributions (in the absence of
-        # domains)
-        distribution0 = self.probability_distribution
-        distribution1 = other.probability_distribution
-        if not distribution0.equals(
-            distribution1,
-            rtol=rtol,
-            atol=atol,
-            verbose=verbose,
-            ignore_type=ignore_type,
-        ):
-            logger.info(
-                f"{self.__class__.__name__}: Different probability "
-                f"distributions ({distribution0!r} != {distribution1!r})"
-            )  # pragma: no cover
-            return False
-
         if not super().equals(
             other,
             rtol=rtol,
@@ -297,6 +280,24 @@ class Uncertainty(
             ignore_compression=ignore_compression,
             ignore_type=ignore_type,
         ):
+            return False
+
+        # Check the probability distributions (in the absence of
+        # domains)
+        distribution0 = self.probability_distribution
+        distribution1 = other.probability_distribution
+
+        if not distribution0.equals(
+            distribution1,
+            rtol=rtol,
+            atol=atol,
+            verbose=verbose,
+            ignore_type=ignore_type,
+        ):
+            logger.info(
+                f"{self.__class__.__name__}: Different probability "
+                f"distributions ({distribution0!r} != {distribution1!r})"
+            )  # pragma: no cover
             return False
 
         # Still here? Then the two instances are as equal as can be

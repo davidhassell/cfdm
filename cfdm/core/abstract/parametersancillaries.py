@@ -17,7 +17,7 @@ class ParametersAncillaries(Parameters):
         self,
         parameters=None,
         ancillaries=None,
-#        multiple_ancillaries=False,
+        #        multiple_ancillaries=False,
         source=None,
         copy=True,
     ):
@@ -69,10 +69,10 @@ class ParametersAncillaries(Parameters):
             except AttributeError:
                 ancillaries = None
 
-#            try:
-#                multiple_ancillaries = source.get_multiple_ancillaries()
-#            except AttributeError:
-#                multiple_ancillaries = False
+        #            try:
+        #                multiple_ancillaries = source.get_multiple_ancillaries()
+        #            except AttributeError:
+        #                multiple_ancillaries = False
 
         if ancillaries is not None:
             self.set_ancillaries(ancillaries)
@@ -127,7 +127,7 @@ class ParametersAncillaries(Parameters):
             if default is None:
                 return
 
-#            s = "s" if self.get_multiple_ancillaries() else ""
+            #            s = "s" if self.get_multiple_ancillaries() else ""
 
             return self._default(
                 default,
@@ -180,7 +180,7 @@ class ParametersAncillaries(Parameters):
             if default is None:
                 return
 
-#            s = "s" if self.get_multiple_ancillaries() else ""
+            #            s = "s" if self.get_multiple_ancillaries() else ""
 
             return self._default(
                 default,
@@ -188,7 +188,7 @@ class ParametersAncillaries(Parameters):
                 f"ancillary constructs",
             )
 
-    #def get_multiple_ancillaries(self):
+    # def get_multiple_ancillaries(self):
     #    """TODOU.
     #
     #    .. versionadded:: (cfdm) NEXTVERSION
@@ -243,11 +243,9 @@ class ParametersAncillaries(Parameters):
             `None`
 
         """
-#        if self.get_multiple_ancillaries():
+        #        if self.get_multiple_ancillaries():
         ancillaries = {
-            key: (
-                tuple([value]) if isinstance(value, str) else tuple(value)
-            )
+            key: (tuple([value]) if isinstance(value, str) else tuple(value))
             for key, value in ancillaries.items()
         }
 
@@ -273,15 +271,16 @@ class ParametersAncillaries(Parameters):
         :Returns:
 
             `None`
-        
+
         """
-#        if self._get_component("multiple_ancillaries"):
+        #        if self._get_component("multiple_ancillaries"):
         if isinstance(ancillary, str):
             ancillary = tuple([ancillary])
         else:
             ancillary = tuple(ancillary)
-            
+
         self._get_component("ancillaries")[term] = ancillary
+
 
 #    def set_multiple_ancillaries(self, multiple_ancillaries):
 #        """TODOU.

@@ -245,7 +245,7 @@ class Field(
         ]
         if x:
             uncertainty_ancils = "\n                : ".join(x)
-            string.append(f"Uncertain ancils: {uncertainty_ancils}")
+            string.append(f"Uncertainty ancs: {uncertainty_ancils}")
 
         string.append(str(self.domain))
 

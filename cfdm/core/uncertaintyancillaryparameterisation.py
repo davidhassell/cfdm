@@ -3,7 +3,7 @@ from .abstract import ParametersAncillaries
 
 class UncertaintyAncillaryParameterisation(ParametersAncillaries):
     """A parameterisation for an uncertainty ancillary construct.
-    
+
     The parameterization formula which describes how the missing data
     array can be created. A term of the parameterization formula can
     be a descriptive string (such as the error-correlation structural

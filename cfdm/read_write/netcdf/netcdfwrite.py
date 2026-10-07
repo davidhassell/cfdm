@@ -24,6 +24,7 @@ from .constants import (
 from .netcdfread import NetCDFRead
 from .netcdfwrite_meta_block_size import NetCDFMetaBlockSize
 from .netcdfwrite_ugrid import NetCDFWriteUgrid
+from .netcdfwrite_uncertainty import NetCDFWriteUncertainty
 from .xarray_dataset import XarrayDataset
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,9 @@ class AggregationError(Exception):
     pass
 
 
-class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
+class NetCDFWrite(
+    NetCDFMetaBlockSize, NetCDFWriteUncertainty, NetCDFWriteUgrid, IOWrite
+):
     """A container for writing Fields to a dataset.
 
     NetCDF3, netCDF4 and Zarr output formats are supported.
@@ -2620,52 +2623,6 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
 
         return ncvar
 
-    def _write_uncertainty(self,    f,     key,unc):
-        """Write a TODOUfield ancillary to the dataset.
-
-        If an equal field ancillary has already been written to the
-        dataset then it is not re-written.
-
-        :Parameters:
-
-            f : `Field`
-
-            key : `str`
-
-            anc : `Uncertainty`
-
-        :Returns:
-
-            `str`
-                The dataset variable name of the field ancillary TODOU
-                object. If no ancillary variable was written then an
-                empty string is returned.
-
-        """
-        g = self.write_vars
-
-        ncdimensions = self._dataset_dimensions(f, key, anc)
-
-        create = not self._already_in_file(unc, ncdimensions)
-
-        if not create:
-            ncvar = g["seen"][id(unc)]["ncvar"]
-        else:
-            ncvar = self._create_variable_name(unc, default="uncertainty_data")
-
-            # Create a new field ancillary variable
-            self._write_netcdf_variable(
-                ncvar,
-                ncdimensions,
-                unc,
-                self.implementation.get_data_axes(f, key),
-            )
-
-        g["key_to_ncvar"][key] = ncvar
-        g["key_to_ncdims"][key] = ncdimensions
-
-        return ncvar
-
     def _write_cell_measure(self, f, key, cell_measure):
         """Write a cell measure construct to the dataset.
 
@@ -4819,7 +4776,7 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
         ]
 
         # ------------------------------------------------------------
-        # Field ancillary variables
+        # Field ancillary variables (CF>=1.0)
         #
         # Create the 'ancillary_variables' CF attribute and create the
         # referenced dataset ancillary variables
@@ -4833,20 +4790,17 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             ]
 
         # ------------------------------------------------------------
-        # Uncertainty variables
+        # Uncertainty variables (CF>=1.15)
         #
-        # Create the 'ancillary_variables' CF attribute and create the
-        # referenced dataset ancillary variables
+        # Create the 'uncertainty_variables' CF attribute and create
+        # the referenced dataset uncertainty variables
         # ------------------------------------------------------------
         if field:
-            ancillary_variables = [
-                self._write_uncertainty(f, key, anc)
-                for key, anc in self.implementation.get_uncertainties(
-                        f
-                ).items()
+            uncertainty_variables = [
+                self._write_uncertainty(f, key, unc)
+                for key, unc in f.uncertainties().items()
             ]
 
-            
         # ------------------------------------------------------------
         # Domain topology variables (CF>=1.11)
         # ------------------------------------------------------------
@@ -4913,6 +4867,17 @@ class NetCDFWrite(NetCDFMetaBlockSize, NetCDFWriteUgrid, IOWrite):
             )  # pragma: no cover
 
             extra["ancillary_variables"] = ancillary_variables
+
+        # Uncertainty variables
+        if field and uncertainty_variables:
+            uncertainty_variables = " ".join(uncertainty_variables)
+            uncertainty_variables = re.sub(r"\s+", " ", uncertainty_variables)
+            logger.info(
+                "    Writing uncertainty_variables attribute to "
+                f"variable {field_ncvar}: {uncertainty_variables!r}"
+            )  # pragma: no cover
+
+            extra["uncertainty_variables"] = uncertainty_variables
 
         # name can be a dimension of the variable, a scalar coordinate
         # variable, a valid standard name, or the word 'area'
