@@ -191,6 +191,9 @@ class CellMethodTest(unittest.TestCase):
         cfdm.write(f, tmpfile)
         g = cfdm.read(tmpfile)[0]
 
+        print()
+        print(f.cell_methods())
+        print(g.cell_methods())
         self.assertTrue(f.cell_methods().equals(g.cell_methods()))
 
         # Test removing the coordinate construct
@@ -206,6 +209,7 @@ class CellMethodTest(unittest.TestCase):
         """Test CellMethod with field ancillary-valued keys."""
         f = cfdm.example_field(1)
 
+        tmpfile = "tmpfile.nc"
         key = f.field_ancillary(key=True)
 
         # Set up a test cell method
@@ -236,6 +240,11 @@ class CellMethodTest(unittest.TestCase):
         key_fa = f.field_ancillary(key=True)
 
         cms = g.cell_methods(todict=True)
+
+        print()
+        print(cms)
+        print(f.cell_methods())
+
         self.assertEqual(len(cms), len(f.cell_methods()))
         cms = tuple(cms.items())
         cm_anomaly_wrt = cms[2][1]
